@@ -2047,6 +2047,13 @@
       }
     });
 
+    document.addEventListener('click', () => {
+      if (mode === 'single') {
+        currentFont = randomFont();
+        applySingle(currentFont);
+      }
+    });
+
     document.addEventListener('wheel', e => {
       e.preventDefault();
       size = Math.max(8, Math.min(512, size - Math.sign(e.deltaY) * 4));
