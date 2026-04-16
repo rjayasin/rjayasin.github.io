@@ -4,17 +4,21 @@ const loadedFonts = new Set();
 
 function injectFontCSS(families) {
   const toLoad = families.filter(f => !loadedFonts.has(f));
-  if (toLoad.length === 0) return;
+  if (toLoad.length === 0) return Promise.resolve();
   toLoad.forEach(f => loadedFonts.add(f));
   const params = toLoad.map(f => 'family=' + encodeURIComponent(f)).join('&');
   const link = document.createElement('link');
   link.rel = 'stylesheet';
   link.href = `https://fonts.googleapis.com/css2?${params}&display=block`;
-  document.head.appendChild(link);
+  return new Promise(resolve => {
+    link.onload = resolve;
+    link.onerror = resolve;
+    document.head.appendChild(link);
+  });
 }
 
 async function waitForFont(font) {
-  injectFontCSS([font]);
+  await injectFontCSS([font]);
   try { await document.fonts.load(`1em '${font}'`); } catch (_) {}
 }
 
