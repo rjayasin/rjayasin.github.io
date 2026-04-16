@@ -1971,7 +1971,7 @@ function applyMulti() {
   spans.forEach(s => s.style.fontFamily = `'${randomLoadedFont()}', serif`);
 }
 
-const DENSITY = 0.65;
+const DENSITY = window.CELL_DENSITY || 0.65;
 
 function rebuild() {
   const cell = Math.round(size * DENSITY);
