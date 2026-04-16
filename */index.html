@@ -119,20 +119,8 @@
       "Zapfino",
     ];
 
-    const size = 64;
-    const cols = Math.ceil(window.innerWidth / size);
-    const rows = Math.ceil(window.innerHeight / size);
-    const total = cols * rows;
-
-    const spans = [];
-    for (let i = 0; i < total; i++) {
-      const span = document.createElement('span');
-      span.className = 'asterisk';
-      span.textContent = '*';
-      document.body.appendChild(span);
-      spans.push(span);
-    }
-
+    let size = 64;
+    let spans = [];
     let unified = false;
     let fontIndex = 0;
 
@@ -149,7 +137,29 @@
       spans.forEach(s => s.style.fontFamily = f);
     }
 
-    applyRandom();
+    function rebuild() {
+      const cols = Math.ceil(window.innerWidth / size);
+      const rows = Math.ceil(window.innerHeight / size);
+      const total = cols * rows;
+
+      document.body.innerHTML = '';
+      spans = [];
+
+      for (let i = 0; i < total; i++) {
+        const span = document.createElement('span');
+        span.className = 'asterisk';
+        span.textContent = '*';
+        span.style.width = size + 'px';
+        span.style.height = size + 'px';
+        span.style.fontSize = size + 'px';
+        document.body.appendChild(span);
+        spans.push(span);
+      }
+
+      unified ? applyUnified() : applyRandom();
+    }
+
+    rebuild();
 
     document.addEventListener('keydown', e => {
       if (e.code === 'Space') {
@@ -161,6 +171,12 @@
         applyUnified();
       }
     });
+
+    document.addEventListener('wheel', e => {
+      e.preventDefault();
+      size = Math.max(8, Math.min(512, size - Math.sign(e.deltaY) * 4));
+      rebuild();
+    }, { passive: false });
   </script>
 </body>
 </html>
