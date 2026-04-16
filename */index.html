@@ -137,9 +137,12 @@
       spans.forEach(s => s.style.fontFamily = f);
     }
 
+    const DENSITY = 0.65;
+
     function rebuild() {
-      const cols = Math.ceil(window.innerWidth / size);
-      const rows = Math.ceil(window.innerHeight / size);
+      const cell = Math.round(size * DENSITY);
+      const cols = Math.ceil(window.innerWidth / cell);
+      const rows = Math.ceil(window.innerHeight / cell);
       const total = cols * rows;
 
       document.body.innerHTML = '';
@@ -149,8 +152,8 @@
         const span = document.createElement('span');
         span.className = 'asterisk';
         span.textContent = '*';
-        span.style.width = size + 'px';
-        span.style.height = size + 'px';
+        span.style.width = cell + 'px';
+        span.style.height = cell + 'px';
         span.style.fontSize = size + 'px';
         document.body.appendChild(span);
         spans.push(span);
