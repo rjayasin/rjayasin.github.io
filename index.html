@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ruvan</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #ffffff;
+      color: #000000;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #name {
+      font-size: 10vw;
+    }
+  </style>
+</head>
+<body>
+  <span id="name">Ruvan</span>
+  <script>
+    const fonts = [
+      "'Georgia', serif",
+      "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
+      "'Times New Roman', Times, serif",
+      "'Arial', sans-serif",
+      "'Helvetica Neue', Helvetica, sans-serif",
+      "'Trebuchet MS', Helvetica, sans-serif",
+      "'Verdana', Geneva, sans-serif",
+      "'Gill Sans', 'Gill Sans MT', Calibri, sans-serif",
+      "'Century Gothic', CenturyGothic, AppleGothic, sans-serif",
+      "'Futura', 'Trebuchet MS', Arial, sans-serif",
+      "'Garamond', Garamond, serif",
+      "'Baskerville', 'Baskerville Old Face', 'Hoefler Text', serif",
+      "'Didot', 'Didot LT STD', 'Hoefler Text', Garamond, serif",
+      "'Rockwell', 'Courier Bold', Courier, Georgia, serif",
+      "'Courier New', Courier, monospace",
+      "'Lucida Console', Monaco, monospace",
+      "'Impact', Charcoal, sans-serif",
+      "'Copperplate', 'Copperplate Gothic Light', fantasy",
+      "'Papyrus', fantasy",
+      "'Brush Script MT', cursive",
+      "'Avenir', 'Avenir Next', sans-serif",
+      "'Avenir Next', Avenir, sans-serif",
+      "'Avenir Next Condensed', 'Avenir Next', Avenir, sans-serif",
+      "'Optima', Candara, sans-serif",
+      "'Menlo', 'Courier New', monospace",
+      "'New York', Georgia, serif",
+      "'Cormorant Garamond', Garamond, Georgia, serif",
+      "'EB Garamond', Garamond, Georgia, serif",
+      "'Noteworthy', cursive",
+      "'Marker Felt', fantasy",
+      "'Nasalization', 'Futura', sans-serif",
+      "'Lucida Grande', 'Lucida Sans', sans-serif"
+    ];
+
+    const chosen = fonts[Math.floor(Math.random() * fonts.length)];
+    document.getElementById('name').style.fontFamily = chosen;
+  </script>
+</body>
+</html>

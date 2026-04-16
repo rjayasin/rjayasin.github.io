@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>*</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    body {
+      background: #ffffff;
+      color: #000000;
+      display: flex;
+      flex-wrap: wrap;
+      align-content: flex-start;
+    }
+    .asterisk {
+      font-size: 64px;
+      line-height: 1;
+      width: 64px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <script>
+    const fonts = [
+      "Academy Engraved LET",
+      "American Typewriter",
+      "Andale Mono",
+      "Arial",
+      "Arial Black",
+      "Arial Narrow",
+      "Arial Rounded MT Bold",
+      "Athelas",
+      "Avenir",
+      "Avenir Next",
+      "Avenir Next Condensed",
+      "Baskerville",
+      "Big Caslon",
+      "Bodoni 72",
+      "Bodoni 72 Oldstyle",
+      "Bodoni 72 Smallcaps",
+      "Bradley Hand",
+      "Brush Script MT",
+      "Chalkboard",
+      "Chalkboard SE",
+      "Chalkduster",
+      "Charter",
+      "Cochin",
+      "Comic Sans MS",
+      "Copperplate",
+      "Cormorant Garamond",
+      "Courier",
+      "Courier New",
+      "Didot",
+      "DIN Alternate",
+      "DIN Condensed",
+      "EB Garamond",
+      "Fira Mono for Powerline",
+      "Futura",
+      "Galvji",
+      "Geneva",
+      "Georgia",
+      "Gill Sans",
+      "Hack",
+      "Helvetica",
+      "Helvetica Neue",
+      "Herculanum",
+      "Hoefler Text",
+      "Impact",
+      "Inconsolata for Powerline",
+      "Iowan Old Style",
+      "Lucida Grande",
+      "Luminari",
+      "Marion",
+      "Marker Felt",
+      "Menlo",
+      "Meslo LG M for Powerline",
+      "Meslo LG S for Powerline",
+      "Microsoft Sans Serif",
+      "Monaco",
+      "Nasalization",
+      "New York",
+      "Noteworthy",
+      "Optima",
+      "Palatino",
+      "Papyrus",
+      "Party LET",
+      "Phosphate",
+      "PT Mono",
+      "PT Sans",
+      "PT Sans Caption",
+      "PT Sans Narrow",
+      "PT Serif",
+      "PT Serif Caption",
+      "Rockwell",
+      "Savoye LET",
+      "Seravek",
+      "SignPainter",
+      "Skia",
+      "Snell Roundhand",
+      "Superclarendon",
+      "Symbol",
+      "Tahoma",
+      "Times",
+      "Times New Roman",
+      "Trattatello",
+      "Trebuchet MS",
+      "Verdana",
+      "Webdings",
+      "Wingdings",
+      "Wingdings 2",
+      "Wingdings 3",
+      "Zapf Dingbats",
+      "Zapfino",
+    ];
+
+    const size = 64;
+    const cols = Math.ceil(window.innerWidth / size);
+    const rows = Math.ceil(window.innerHeight / size);
+    const total = cols * rows;
+
+    const spans = [];
+    for (let i = 0; i < total; i++) {
+      const span = document.createElement('span');
+      span.className = 'asterisk';
+      span.textContent = '*';
+      document.body.appendChild(span);
+      spans.push(span);
+    }
+
+    let unified = false;
+    let fontIndex = 0;
+
+    function randomFont() {
+      return fonts[Math.floor(Math.random() * fonts.length)];
+    }
+
+    function applyRandom() {
+      spans.forEach(s => s.style.fontFamily = `'${randomFont()}'`);
+    }
+
+    function applyUnified() {
+      const f = `'${fonts[fontIndex]}'`;
+      spans.forEach(s => s.style.fontFamily = f);
+    }
+
+    applyRandom();
+
+    document.addEventListener('keydown', e => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        unified = !unified;
+        unified ? applyUnified() : applyRandom();
+      } else if (unified) {
+        fontIndex = (fontIndex + 1) % fonts.length;
+        applyUnified();
+      }
+    });
+  </script>
+</body>
+</html>
