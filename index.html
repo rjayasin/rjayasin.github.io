@@ -28,7 +28,7 @@
   <script>
     // /?/ is routed here by the browser since ? starts a query string.
     // Detect it and render the question mark glyph page inline.
-    if (window.location.search === '?/') {
+    if (window.location.search === '?/' || window.location.search === '?') {
       document.title = '?';
       document.head.insertAdjacentHTML('beforeend', `<style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
