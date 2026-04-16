@@ -2020,9 +2020,13 @@
 
     rebuild();
 
+    let keyDebounce = null;
     document.addEventListener('keydown', e => {
+      if (e.code === 'Space') e.preventDefault();
+      if (keyDebounce) return;
+      keyDebounce = setTimeout(() => { keyDebounce = null; }, 150);
+
       if (e.code === 'Space') {
-        e.preventDefault();
         if (mode === 'single') {
           mode = 'multi';
           applyMulti();
