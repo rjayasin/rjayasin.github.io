@@ -2047,11 +2047,25 @@
       }
     });
 
-    document.addEventListener('click', () => {
+    let tapCooldown = false;
+    function handleTap() {
+      if (tapCooldown) return;
+      tapCooldown = true;
+      setTimeout(() => { tapCooldown = false; }, 500);
       if (mode === 'single') {
         currentFont = randomFont();
         applySingle(currentFont);
       }
+    }
+
+    document.addEventListener('touchend', e => {
+      e.preventDefault(); // stops the synthetic click from also firing
+      handleTap();
+    }, { passive: false });
+
+    document.addEventListener('click', e => {
+      if (e.pointerType === 'touch') return; // already handled by touchend
+      handleTap();
     });
 
     document.addEventListener('wheel', e => {
