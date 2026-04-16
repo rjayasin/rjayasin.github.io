@@ -34,47 +34,28 @@
       </style>`);
       document.body.innerHTML = '';
       window.GLYPH = '?'; window.CELL_DENSITY = 1.1;
-      const s = document.createElement('script');
-      s.src = '/glyph.js';
-      document.body.appendChild(s);
+      const sf = document.createElement('script');
+      sf.src = '/fonts.js';
+      sf.onload = () => {
+        const sg = document.createElement('script');
+        sg.src = '/glyph.js';
+        document.body.appendChild(sg);
+      };
+      document.body.appendChild(sf);
     } else {
-      const fonts = [
-        "'Georgia', serif",
-        "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
-        "'Times New Roman', Times, serif",
-        "'Arial', sans-serif",
-        "'Helvetica Neue', Helvetica, sans-serif",
-        "'Trebuchet MS', Helvetica, sans-serif",
-        "'Verdana', Geneva, sans-serif",
-        "'Gill Sans', 'Gill Sans MT', Calibri, sans-serif",
-        "'Century Gothic', CenturyGothic, AppleGothic, sans-serif",
-        "'Futura', 'Trebuchet MS', Arial, sans-serif",
-        "'Garamond', Garamond, serif",
-        "'Baskerville', 'Baskerville Old Face', 'Hoefler Text', serif",
-        "'Didot', 'Didot LT STD', 'Hoefler Text', Garamond, serif",
-        "'Rockwell', 'Courier Bold', Courier, Georgia, serif",
-        "'Courier New', Courier, monospace",
-        "'Lucida Console', Monaco, monospace",
-        "'Impact', Charcoal, sans-serif",
-        "'Copperplate', 'Copperplate Gothic Light', fantasy",
-        "'Papyrus', fantasy",
-        "'Brush Script MT', cursive",
-        "'Avenir', 'Avenir Next', sans-serif",
-        "'Avenir Next', Avenir, sans-serif",
-        "'Avenir Next Condensed', 'Avenir Next', Avenir, sans-serif",
-        "'Optima', Candara, sans-serif",
-        "'Menlo', 'Courier New', monospace",
-        "'New York', Georgia, serif",
-        "'Cormorant Garamond', Garamond, Georgia, serif",
-        "'EB Garamond', Garamond, Georgia, serif",
-        "'Noteworthy', cursive",
-        "'Marker Felt', fantasy",
-        "'Nasalization', 'Futura', sans-serif",
-        "'Lucida Grande', 'Lucida Sans', sans-serif"
-      ];
-
-      const chosen = fonts[Math.floor(Math.random() * fonts.length)];
-      document.getElementById('name').style.fontFamily = chosen;
+      const sfonts = document.createElement('script');
+      sfonts.src = '/fonts.js';
+      sfonts.onload = () => {
+        const chosen = window.googleFonts[Math.floor(Math.random() * window.googleFonts.length)];
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(chosen)}&display=swap`;
+        document.head.appendChild(link);
+        document.fonts.load(`1em '${chosen}'`).finally(() => {
+          document.getElementById('name').style.fontFamily = `'${chosen}', serif`;
+        });
+      };
+      document.head.appendChild(sfonts);
     }
   </script>
 </body>
