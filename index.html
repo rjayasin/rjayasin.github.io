@@ -17,6 +17,9 @@
     }
     #name {
       font-size: 10vw;
+      opacity: 0;
+      cursor: pointer;
+      user-select: none;
     }
   </style>
 </head>
@@ -44,17 +47,43 @@
       };
       document.body.appendChild(sf);
     } else {
+      const nameEl = document.getElementById('name');
+
+      function loadFont(font) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(font)}&display=swap`;
+        document.head.appendChild(link);
+        return document.fonts.load(`1em '${font}'`).finally(() => {
+          nameEl.style.fontFamily = `'${font}', serif`;
+          nameEl.style.opacity = '1';
+        });
+      }
+
+      let tapCooldown = false;
+      function handleClick() {
+        if (tapCooldown || !window.googleFonts) return;
+        tapCooldown = true;
+        setTimeout(() => { tapCooldown = false; }, 500);
+        nameEl.style.opacity = '0';
+        const chosen = window.googleFonts[Math.floor(Math.random() * window.googleFonts.length)];
+        loadFont(chosen);
+      }
+
+      document.addEventListener('click', e => {
+        if (e.pointerType === 'touch') return;
+        handleClick();
+      });
+      document.addEventListener('touchend', e => {
+        e.preventDefault();
+        handleClick();
+      }, { passive: false });
+
       const sfonts = document.createElement('script');
       sfonts.src = '/fonts.js';
       sfonts.onload = () => {
         const chosen = window.googleFonts[Math.floor(Math.random() * window.googleFonts.length)];
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(chosen)}&display=swap`;
-        document.head.appendChild(link);
-        document.fonts.load(`1em '${chosen}'`).finally(() => {
-          document.getElementById('name').style.fontFamily = `'${chosen}', serif`;
-        });
+        loadFont(chosen);
       };
       document.head.appendChild(sfonts);
     }
