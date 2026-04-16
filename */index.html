@@ -1971,27 +1971,26 @@
 
     let size = 32;
     let spans = [];
-    let unified = false;
-    let fontIndex = 0;
+    // mode: 'single' = all asterisks one random font; 'multi' = each asterisk random from loaded fonts
+    let mode = 'single';
+    let currentFont = fonts[Math.floor(Math.random() * fonts.length)];
 
     function randomFont() {
       return fonts[Math.floor(Math.random() * fonts.length)];
     }
 
-    function applyRandom() {
-      const assigned = [];
-      spans.forEach(s => {
-        const f = randomFont();
-        s.style.fontFamily = `'${f}', serif`;
-        assigned.push(f);
-      });
-      loadFonts([...new Set(assigned)]);
+    function randomLoadedFont() {
+      const loaded = [...loadedFonts];
+      return loaded[Math.floor(Math.random() * loaded.length)];
     }
 
-    function applyUnified() {
-      const f = fonts[fontIndex];
-      spans.forEach(s => s.style.fontFamily = `'${f}', serif`);
-      loadFonts([f]);
+    function applySingle(font) {
+      spans.forEach(s => s.style.fontFamily = `'${font}', serif`);
+      loadFonts([font]);
+    }
+
+    function applyMulti() {
+      spans.forEach(s => s.style.fontFamily = `'${randomLoadedFont()}', serif`);
     }
 
     const DENSITY = 0.65;
@@ -2016,7 +2015,7 @@
         spans.push(span);
       }
 
-      unified ? applyUnified() : applyRandom();
+      mode === 'single' ? applySingle(currentFont) : applyMulti();
     }
 
     rebuild();
@@ -2024,11 +2023,19 @@
     document.addEventListener('keydown', e => {
       if (e.code === 'Space') {
         e.preventDefault();
-        unified = !unified;
-        unified ? applyUnified() : applyRandom();
-      } else if (unified) {
-        fontIndex = (fontIndex + 1) % fonts.length;
-        applyUnified();
+        if (mode === 'single') {
+          mode = 'multi';
+          applyMulti();
+        } else {
+          mode = 'single';
+          currentFont = randomFont();
+          applySingle(currentFont);
+        }
+      } else {
+        if (mode === 'single') {
+          currentFont = randomFont();
+          applySingle(currentFont);
+        }
       }
     });
 
