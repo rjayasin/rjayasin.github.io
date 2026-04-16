@@ -2020,13 +2020,14 @@
 
     rebuild();
 
-    let keyDebounce = null;
     document.addEventListener('keydown', e => {
-      if (e.code === 'Space') e.preventDefault();
-      if (keyDebounce) return;
-      keyDebounce = setTimeout(() => { keyDebounce = null; }, 150);
+      if (e.repeat) return;
+      const isLetterOrNumber = /^[a-zA-Z0-9]$/.test(e.key);
+      const isSpace = e.code === 'Space';
+      if (!isLetterOrNumber && !isSpace) return;
+      if (isSpace) e.preventDefault();
 
-      if (e.code === 'Space') {
+      if (isSpace) {
         if (mode === 'single') {
           mode = 'multi';
           applyMulti();
@@ -2035,11 +2036,9 @@
           currentFont = randomFont();
           applySingle(currentFont);
         }
-      } else {
-        if (mode === 'single') {
-          currentFont = randomFont();
-          applySingle(currentFont);
-        }
+      } else if (mode === 'single') {
+        currentFont = randomFont();
+        applySingle(currentFont);
       }
     });
 
