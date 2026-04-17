@@ -44,7 +44,7 @@
     }
     .day {
       display: grid;
-      grid-template-columns: 60px 1fr;
+      grid-template-columns: 90px 1fr;
       column-gap: 24px;
       padding: 12px 0;
       border-top: 2px solid #000;
@@ -78,7 +78,7 @@
     .repo:hover { color: #000; }
     .commit {
       display: grid;
-      grid-template-columns: 48px 1fr;
+      grid-template-columns: 64px 1fr;
       column-gap: 12px;
       white-space: nowrap;
     }
@@ -117,18 +117,23 @@
     let currentDay = null;
     let total = 0;
 
+    const CURRENT_YEAR = new Date().getFullYear();
+
     function fmtDay(iso) {
       const d = new Date(iso);
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
-      return `${mm}-${dd}`;
+      const yyyy = d.getFullYear();
+      return yyyy === CURRENT_YEAR ? `${mm}-${dd}` : `${yyyy}-${mm}-${dd}`;
     }
 
     function fmtTime(iso) {
       const d = new Date(iso);
-      const hh = String(d.getHours()).padStart(2, '0');
+      let h = d.getHours();
+      const ampm = h >= 12 ? 'pm' : 'am';
+      h = h % 12 || 12;
       const min = String(d.getMinutes()).padStart(2, '0');
-      return `${hh}:${min}`;
+      return `${h}:${min}${ampm}`;
     }
 
     function escHtml(s) {
