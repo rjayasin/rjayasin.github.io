@@ -64,10 +64,21 @@
       }
 
       let tapCooldown = false;
+      let clickCount = 0;
       function handleClick() {
         if (tapCooldown || !window.googleFonts) return;
         tapCooldown = true;
         setTimeout(() => { tapCooldown = false; }, 500);
+        clickCount++;
+        if (clickCount % 10 === 0) {
+          nameEl.style.backgroundImage = 'linear-gradient(90deg, #ff0000, #ff8800, #ffee00, #22cc22, #0088ff, #4422cc, #8800cc)';
+          nameEl.style.webkitBackgroundClip = 'text';
+          nameEl.style.backgroundClip = 'text';
+          nameEl.style.color = 'transparent';
+        } else {
+          nameEl.style.backgroundImage = '';
+          nameEl.style.color = '';
+        }
         nameEl.style.opacity = '0';
         const chosen = window.googleFonts[Math.floor(Math.random() * window.googleFonts.length)];
         loadFont(chosen);
