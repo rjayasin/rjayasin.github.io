@@ -46,6 +46,9 @@
       padding: 8px 0;
       border-top: 1px solid #f0f0f0;
     }
+    .entry.day-start {
+      border-top: 2px solid #000;
+    }
     .entry:last-child {
       border-bottom: 1px solid #f0f0f0;
     }
@@ -151,15 +154,21 @@
       document.getElementById('range').textContent =
         `${commits.length} commit${commits.length === 1 ? '' : 's'} in the past 7 days`;
 
-      log.innerHTML = commits.map(c => `
-        <div class="entry">
+      let lastDay = null;
+      log.innerHTML = commits.map(c => {
+        const day = new Date(c.date).toDateString();
+        const cls = day !== lastDay ? ' day-start' : '';
+        lastDay = day;
+        return `
+        <div class="entry${cls}">
           <span class="date">${fmtDate(c.date)}</span>
           <div class="right">
             <a class="repo" href="${c.repoUrl}" target="_blank" rel="noopener">${escHtml(c.repo)}</a>
             <span class="message"><a href="${c.url}" target="_blank" rel="noopener">${escHtml(c.message)}</a></span>
           </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
     }
 
     function escHtml(s) {
