@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ruvan / commits</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #ffffff;
+      color: #000000;
+      font-family: monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      padding: 48px 32px;
+      max-width: 720px;
+    }
+    header {
+      margin-bottom: 40px;
+    }
+    header a {
+      color: #000;
+      text-decoration: none;
+    }
+    header a:hover {
+      text-decoration: underline;
+    }
+    h1 {
+      font-size: 13px;
+      font-weight: normal;
+      letter-spacing: 0.05em;
+    }
+    .subtitle {
+      color: #888;
+      margin-top: 4px;
+    }
+    .log {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .entry {
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      column-gap: 24px;
+      padding: 8px 0;
+      border-top: 1px solid #f0f0f0;
+    }
+    .entry:last-child {
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .date {
+      color: #888;
+      white-space: nowrap;
+      padding-top: 1px;
+    }
+    .right {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+    .repo {
+      color: #888;
+      font-size: 11px;
+      text-decoration: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .repo:hover { color: #000; }
+    .message {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .message a {
+      color: #000;
+      text-decoration: none;
+    }
+    .message a:hover { text-decoration: underline; }
+    #status {
+      color: #888;
+      padding: 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="/">Ruvan</a> / commits</h1>
+    <p class="subtitle" id="range"></p>
+  </header>
+  <div class="log" id="log">
+    <p id="status">loading…</p>
+  </div>
+  <script>
+    const USER = 'rjayasin';
+    const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+    const cutoff = new Date(Date.now() - WEEK_MS);
+
+    function fmtDate(iso) {
+      const d = new Date(iso);
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const hh = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      return `${mm}-${dd} ${hh}:${min}`;
+    }
+
+    async function fetchPage(page) {
+      const r = await fetch(
+        `https://api.github.com/users/${USER}/events?per_page=100&page=${page}`,
+        { headers: { Accept: 'application/vnd.github+json' } }
+      );
+      if (!r.ok) throw new Error(`GitHub API ${r.status}`);
+      return r.json();
+    }
+
+    async function load() {
+      const commits = [];
+      let done = false;
+      for (let page = 1; page <= 10 && !done; page++) {
+        let events;
+        try { events = await fetchPage(page); } catch (e) {
+          document.getElementById('status').textContent = e.message;
+          return;
+        }
+        if (!events.length) break;
+        for (const ev of events) {
+          if (new Date(ev.created_at) < cutoff) { done = true; break; }
+          if (ev.type !== 'PushEvent') continue;
+          const repo = ev.repo.name;
+          for (const c of (ev.payload.commits || [])) {
+            commits.push({
+              date: ev.created_at,
+              repo,
+              sha: c.sha,
+              message: c.message.split('\n')[0],
+              url: `https://github.com/${repo}/commit/${c.sha}`,
+              repoUrl: `https://github.com/${repo}`,
+            });
+          }
+        }
+      }
+
+      const log = document.getElementById('log');
+      if (!commits.length) {
+        log.innerHTML = '<p id="status">no commits this week</p>';
+        return;
+      }
+
+      const rangeEl = document.getElementById('range');
+      rangeEl.textContent = `${commits.length} commit${commits.length === 1 ? '' : 's'} in the past 7 days`;
+
+      log.innerHTML = commits.map(c => `
+        <div class="entry">
+          <span class="date">${fmtDate(c.date)}</span>
+          <div class="right">
+            <a class="repo" href="${c.repoUrl}" target="_blank" rel="noopener">${c.repo}</a>
+            <span class="message"><a href="${c.url}" target="_blank" rel="noopener">${escHtml(c.message)}</a></span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    load();
+  </script>
+</body>
+</html>
