@@ -39,19 +39,20 @@
       display: flex;
       flex-direction: column;
       gap: 0;
-      width: max-content;
-      min-width: 100%;
+      width: 100%;
+      overflow-x: auto;
     }
     .day {
       display: grid;
-      grid-template-columns: 90px 1fr;
+      grid-template-columns: 11ch 1fr;
       column-gap: 24px;
       padding: 12px 0;
       border-top: 2px solid #000;
-      width: 100%;
+      width: max-content;
+      min-width: 100%;
     }
     .day.short-date {
-      grid-template-columns: 48px 1fr;
+      grid-template-columns: 6ch 1fr;
     }
     .day:last-child {
       border-bottom: 1px solid #f0f0f0;
@@ -60,6 +61,9 @@
       color: #888;
       white-space: nowrap;
       padding-top: 1px;
+      position: sticky;
+      left: 0;
+      background: #fff;
     }
     .day-body {
       display: flex;
@@ -81,9 +85,18 @@
     .repo:hover { color: #000; }
     .commit {
       display: grid;
-      grid-template-columns: 64px 1fr;
+      grid-template-columns: 8ch 1fr;
       column-gap: 12px;
       white-space: nowrap;
+    }
+    @media (max-width: 640px) {
+      body {
+        font-size: 15px;
+        padding: 32px 20px;
+      }
+      .repo { font-size: 12px; }
+      h1 { font-size: 15px; }
+      .day { column-gap: 16px; }
     }
     .time {
       color: #888;
