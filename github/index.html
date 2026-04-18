@@ -38,56 +38,54 @@
     .log {
       display: flex;
       flex-direction: column;
-      gap: 0;
       width: 100%;
-      overflow-x: auto;
     }
-    .day {
-      display: grid;
-      grid-template-columns: 11ch 1fr;
-      column-gap: 24px;
-      padding: 12px 0;
+    .section {
+      display: flex;
+      flex-direction: column;
+    }
+    .section.day-start .section-header {
       border-top: 2px solid #000;
-      width: max-content;
-      min-width: 100%;
     }
-    .day.short-date {
-      grid-template-columns: 6ch 1fr;
-    }
-    .day:last-child {
+    .section:last-child .commits {
       border-bottom: 1px solid #f0f0f0;
     }
-    .day-label {
-      color: #888;
-      white-space: nowrap;
-      padding-top: 1px;
+    .section-header {
       position: sticky;
-      left: 0;
+      top: 0;
       background: #fff;
-    }
-    .day-body {
       display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .repo-group {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 24px;
+      padding: 10px 0 8px;
+      z-index: 1;
     }
     .repo {
       color: #888;
       font-size: 11px;
       text-decoration: none;
       white-space: nowrap;
-      margin-bottom: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
     }
     .repo:hover { color: #000; }
+    .date {
+      color: #888;
+      white-space: nowrap;
+      padding-top: 1px;
+    }
+    .commits {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding-bottom: 12px;
+    }
     .commit {
       display: grid;
       grid-template-columns: 8ch 1fr;
       column-gap: 12px;
-      white-space: nowrap;
     }
     @media (max-width: 640px) {
       body {
@@ -96,7 +94,6 @@
       }
       .repo { font-size: 12px; }
       h1 { font-size: 15px; }
-      .day { column-gap: 16px; }
     }
     .time {
       color: #888;
@@ -131,6 +128,7 @@
     let loading = false;
     let exhausted = false;
     let currentDay = null;
+    let currentDayRepos = null;
     let total = 0;
 
     const CURRENT_YEAR = new Date().getFullYear();
@@ -194,27 +192,28 @@
         const repo = c.repository.full_name;
         const msg = c.commit.message.split('\n')[0];
 
-        if (!currentDay || currentDay.day !== day) {
-          const dayEl = document.createElement('div');
-          const label = fmtDay(date);
-          dayEl.className = label.length <= 5 ? 'day short-date' : 'day';
-          dayEl.innerHTML = `
-            <span class="day-label">${label}</span>
-            <div class="day-body"></div>`;
-          log.appendChild(dayEl);
-          currentDay = { day, bodyEl: dayEl.querySelector('.day-body'), repos: new Map() };
+        if (currentDay !== day) {
+          currentDay = day;
+          currentDayRepos = new Map();
         }
 
-        let repoEl = currentDay.repos.get(repo);
-        if (!repoEl) {
-          repoEl = document.createElement('div');
-          repoEl.className = 'repo-group';
-          repoEl.innerHTML = `<a class="repo" href="https://github.com/${repo}" target="_blank" rel="noopener">${escHtml(repo)}</a>`;
-          currentDay.bodyEl.appendChild(repoEl);
-          currentDay.repos.set(repo, repoEl);
+        let commitsEl = currentDayRepos.get(repo);
+        if (!commitsEl) {
+          const sec = document.createElement('section');
+          sec.className = 'section';
+          if (currentDayRepos.size === 0) sec.classList.add('day-start');
+          sec.innerHTML = `
+            <header class="section-header">
+              <a class="repo" href="https://github.com/${repo}" target="_blank" rel="noopener">${escHtml(repo)}</a>
+              <span class="date">${fmtDay(date)}</span>
+            </header>
+            <div class="commits"></div>`;
+          log.appendChild(sec);
+          commitsEl = sec.querySelector('.commits');
+          currentDayRepos.set(repo, commitsEl);
         }
 
-        repoEl.insertAdjacentHTML('beforeend', `
+        commitsEl.insertAdjacentHTML('beforeend', `
           <div class="commit"><span class="time">${fmtTime(date)}</span><a href="${c.html_url}" target="_blank" rel="noopener">${escHtml(msg)}</a></div>`);
       }
 
