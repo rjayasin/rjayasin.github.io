@@ -50,6 +50,9 @@
       border-top: 2px solid #000;
       width: 100%;
     }
+    .day.short-date {
+      grid-template-columns: 48px 1fr;
+    }
     .day:last-child {
       border-bottom: 1px solid #f0f0f0;
     }
@@ -180,9 +183,10 @@
 
         if (!currentDay || currentDay.day !== day) {
           const dayEl = document.createElement('div');
-          dayEl.className = 'day';
+          const label = fmtDay(date);
+          dayEl.className = label.length <= 5 ? 'day short-date' : 'day';
           dayEl.innerHTML = `
-            <span class="day-label">${fmtDay(date)}</span>
+            <span class="day-label">${label}</span>
             <div class="day-body"></div>`;
           log.appendChild(dayEl);
           currentDay = { day, bodyEl: dayEl.querySelector('.day-body'), repos: new Map() };
