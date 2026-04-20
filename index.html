@@ -49,13 +49,13 @@
     } else {
       const nameEl = document.getElementById('name');
 
-      function rollShadow() {
-        if (Math.random() < 1 / 7) {
-          const shadows = [];
-          for (let i = 1; i <= 60; i++) shadows.push(`${i}px ${i}px 0 #ddd`);
-          nameEl.style.textShadow = shadows.join(', ');
+      function rollContent() {
+        if (Math.random() < 1 / 7 && window.EMOJIS) {
+          let s = '';
+          for (let i = 0; i < 5; i++) s += window.EMOJIS[Math.floor(Math.random() * window.EMOJIS.length)];
+          nameEl.textContent = s;
         } else {
-          nameEl.style.textShadow = '';
+          nameEl.textContent = 'Ruvan';
         }
       }
 
@@ -70,7 +70,7 @@
         });
         try { await document.fonts.load(`1em '${font}'`); } catch (_) {}
         nameEl.style.fontFamily = `'${font}', serif`;
-        rollShadow();
+        rollContent();
         nameEl.style.opacity = '1';
       }
 
@@ -103,6 +103,10 @@
         e.preventDefault();
         handleClick();
       }, { passive: false });
+
+      const semojis = document.createElement('script');
+      semojis.src = '/emojis.js';
+      document.head.appendChild(semojis);
 
       const sfonts = document.createElement('script');
       sfonts.src = '/fonts.js';
