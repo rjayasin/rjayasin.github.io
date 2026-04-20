@@ -49,6 +49,12 @@
     } else {
       const nameEl = document.getElementById('name');
 
+      if (Math.random() < 1 / 7) {
+        const shadows = [];
+        for (let i = 1; i <= 60; i++) shadows.push(`${i}px ${i}px 0 #ddd`);
+        nameEl.style.textShadow = shadows.join(', ');
+      }
+
       async function loadFont(font) {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
