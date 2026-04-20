@@ -49,10 +49,14 @@
     } else {
       const nameEl = document.getElementById('name');
 
-      if (Math.random() < 1 / 7) {
-        const shadows = [];
-        for (let i = 1; i <= 60; i++) shadows.push(`${i}px ${i}px 0 #ddd`);
-        nameEl.style.textShadow = shadows.join(', ');
+      function rollShadow() {
+        if (Math.random() < 1 / 7) {
+          const shadows = [];
+          for (let i = 1; i <= 60; i++) shadows.push(`${i}px ${i}px 0 #ddd`);
+          nameEl.style.textShadow = shadows.join(', ');
+        } else {
+          nameEl.style.textShadow = '';
+        }
       }
 
       async function loadFont(font) {
@@ -66,6 +70,7 @@
         });
         try { await document.fonts.load(`1em '${font}'`); } catch (_) {}
         nameEl.style.fontFamily = `'${font}', serif`;
+        rollShadow();
         nameEl.style.opacity = '1';
       }
 
