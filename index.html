@@ -49,12 +49,10 @@
     } else {
       const nameEl = document.getElementById('name');
 
-      const EMOJIS = ['😀','😎','🥹','🤖','👽','🐱','🐶','🦊','🐼','🦄','🌈','🌞','🌙','⭐','🔥','💧','🌊','🌸','🍕','🍔','🍣','🍩','🍪','🎂','☕','🎮','🎲','🎸','🎺','🎨','📸','📚','✈️','🚀','🛸','⚓','🏝️','🗿','💎','🎁','🎉','🎈','💀','👻','🦋','🐙','🦖','🐉','🍄','⚡'];
-
       function rollContent() {
-        if (Math.random() < 1 / 7) {
+        if (Math.random() < 1 / 7 && window.EMOJIS) {
           let s = '';
-          for (let i = 0; i < 5; i++) s += EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
+          for (let i = 0; i < 5; i++) s += window.EMOJIS[Math.floor(Math.random() * window.EMOJIS.length)];
           nameEl.textContent = s;
         } else {
           nameEl.textContent = 'Ruvan';
@@ -105,6 +103,10 @@
         e.preventDefault();
         handleClick();
       }, { passive: false });
+
+      const semojis = document.createElement('script');
+      semojis.src = '/emojis.js';
+      document.head.appendChild(semojis);
 
       const sfonts = document.createElement('script');
       sfonts.src = '/fonts.js';
