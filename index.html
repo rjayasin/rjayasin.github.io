@@ -15,6 +15,7 @@
       align-items: center;
       justify-content: center;
     }
+    body.dark { background: #000000; color: #ffffff; }
     #name {
       font-size: 10vw;
       opacity: 0;
@@ -56,6 +57,13 @@
 </head>
 <body>
   <script>
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.body.classList.add('dark');
+    }
+    document.addEventListener('keydown', e => {
+      if (e.key === '1' && !e.repeat) document.body.classList.toggle('dark');
+    });
+
     function glyphFromHash() {
       const raw = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
       return [...raw][0] || '';
