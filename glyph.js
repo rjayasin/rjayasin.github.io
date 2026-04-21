@@ -36,9 +36,26 @@ function randomLoadedFont() {
   return loaded[Math.floor(Math.random() * loaded.length)];
 }
 
+function updateFavicon() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const ctx = c.getContext('2d');
+  const isDark = document.body.classList.contains('dark');
+  ctx.fillStyle = isDark ? '#000' : '#fff';
+  ctx.fillRect(0, 0, 64, 64);
+  ctx.font = `52px '${currentFont}', serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = isDark ? '#fff' : '#000';
+  ctx.fillText(window.GLYPH, 32, 32);
+  const link = document.getElementById('favicon');
+  if (link) link.href = c.toDataURL();
+}
+
 async function applySingle(font) {
   await waitForFont(font);
   rebuild();
+  updateFavicon();
 }
 
 function applyMulti() {
