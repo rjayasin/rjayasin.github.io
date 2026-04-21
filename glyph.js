@@ -58,9 +58,10 @@ function measureCell(font) {
 
 function currentCell() {
   if (mode === 'single') return Math.ceil(measureCell(currentFont));
-  let max = size * 0.4;
-  for (const f of loadedFonts) max = Math.max(max, measureCell(f));
-  return Math.ceil(max);
+  const measurements = [...loadedFonts].map(measureCell).sort((a, b) => a - b);
+  if (measurements.length === 0) return Math.ceil(size * 0.4);
+  const p90 = measurements[Math.floor(measurements.length * 0.9)] ?? measurements[measurements.length - 1];
+  return Math.ceil(p90);
 }
 
 function rebuild() {
