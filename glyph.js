@@ -22,7 +22,7 @@ async function waitForFont(font) {
   try { await document.fonts.load(`1em '${font}'`); } catch (_) {}
 }
 
-let size = 32;
+let size = 42;
 let spans = [];
 let mode = 'single';
 let currentFont = fonts[Math.floor(Math.random() * fonts.length)];
@@ -38,17 +38,33 @@ function randomLoadedFont() {
 
 async function applySingle(font) {
   await waitForFont(font);
-  spans.forEach(s => s.style.fontFamily = `'${font}', serif`);
+  rebuild();
 }
 
 function applyMulti() {
-  spans.forEach(s => s.style.fontFamily = `'${randomLoadedFont()}', serif`);
+  rebuild();
 }
 
-const DENSITY = window.CELL_DENSITY || 0.65;
+const measureCanvas = document.createElement('canvas');
+const measureCtx = measureCanvas.getContext('2d');
+
+function measureCell(font) {
+  measureCtx.font = `${size}px '${font}', serif`;
+  const m = measureCtx.measureText(window.GLYPH);
+  const w = (m.actualBoundingBoxLeft || 0) + (m.actualBoundingBoxRight || m.width || 0);
+  const h = (m.actualBoundingBoxAscent || 0) + (m.actualBoundingBoxDescent || 0);
+  return Math.max(w, h, size * 0.4) + size * 0.2;
+}
+
+function currentCell() {
+  if (mode === 'single') return Math.ceil(measureCell(currentFont));
+  let max = size * 0.4;
+  for (const f of loadedFonts) max = Math.max(max, measureCell(f));
+  return Math.ceil(max);
+}
 
 function rebuild() {
-  const cell = Math.round(size * DENSITY);
+  const cell = currentCell();
   const cols = Math.ceil(window.innerWidth / cell);
   const rows = Math.ceil(window.innerHeight / cell);
   const total = cols * rows;
@@ -66,13 +82,20 @@ function rebuild() {
     document.body.appendChild(span);
     spans.push(span);
   }
-
-  if (mode === 'single') applySingle(currentFont); else applyMulti();
+  if (mode === 'single') spans.forEach(s => s.style.fontFamily = `'${currentFont}', serif`);
+  else spans.forEach(s => s.style.fontFamily = `'${randomLoadedFont()}', serif`);
 }
 
-rebuild();
+applySingle(currentFont);
 
 document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    const delta = e.key === 'ArrowUp' ? 4 : -4;
+    size = Math.max(8, Math.min(512, size + delta));
+    rebuild();
+    return;
+  }
   if (e.repeat) return;
   const isLetterOrNumber = /^[a-zA-Z0-9]$/.test(e.key);
   const isSpace = e.code === 'Space';
@@ -115,8 +138,3 @@ document.addEventListener('click', e => {
   handleTap();
 });
 
-document.addEventListener('wheel', e => {
-  e.preventDefault();
-  size = Math.max(8, Math.min(512, size - Math.sign(e.deltaY) * 4));
-  rebuild();
-}, { passive: false });
