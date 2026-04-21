@@ -37,29 +37,38 @@
       margin: 0 6px;
     }
     #sitemap a:hover { text-decoration: underline; }
+    body.glyph-mode {
+      height: 100%;
+      display: flex;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      align-items: stretch;
+      justify-content: flex-start;
+    }
+    html:has(body.glyph-mode), body.glyph-mode { width: 100%; height: 100%; overflow: hidden; }
+    .glyph {
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
   </style>
 </head>
 <body>
-  <span id="name">Ruvan</span>
-  <footer id="sitemap">
-    <a href="/!/">!</a>
-    <a href="/?/">?</a>
-    <a href="/*/">*</a>
-    <a href="/github/">github</a>
-  </footer>
   <script>
-    // /?/ is routed here by the browser since ? starts a query string.
-    // Detect it and render the question mark glyph page inline.
-    if (window.location.search === '?/' || window.location.search === '?') {
-      document.title = '?';
-      document.head.insertAdjacentHTML('beforeend', `<style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { width: 100%; height: 100%; overflow: hidden; }
-        body { background: #fff; color: #000; display: flex; flex-wrap: wrap; align-content: flex-start; }
-        .glyph { line-height: 1; display: flex; align-items: center; justify-content: center; }
-      </style>`);
-      document.body.innerHTML = '';
-      window.GLYPH = '?'; window.CELL_DENSITY = 1.1;
+    function glyphFromHash() {
+      const raw = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
+      return [...raw][0] || '';
+    }
+
+    const hashGlyph = glyphFromHash();
+    if (hashGlyph) {
+      document.body.classList.add('glyph-mode');
+      document.title = hashGlyph;
+      window.GLYPH = hashGlyph;
+      window.addEventListener('hashchange', () => {
+        if (glyphFromHash() !== window.GLYPH) location.reload();
+      });
       const sf = document.createElement('script');
       sf.src = '/fonts.js';
       sf.onload = () => {
@@ -69,6 +78,15 @@
       };
       document.body.appendChild(sf);
     } else {
+      document.body.insertAdjacentHTML('beforeend', `
+        <span id="name">Ruvan</span>
+        <footer id="sitemap">
+          <a href="/#/!">!</a>
+          <a href="/#/?">?</a>
+          <a href="/#/*">*</a>
+          <a href="/github/">github</a>
+        </footer>
+      `);
       const nameEl = document.getElementById('name');
 
       function rollContent() {
