@@ -98,6 +98,7 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (e.repeat) return;
+  if (e.key === '1') return;
   const isLetterOrNumber = /^[a-zA-Z0-9]$/.test(e.key);
   const isSpace = e.code === 'Space';
   if (!isLetterOrNumber && !isSpace) return;
