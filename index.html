@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ruvan</title>
+  <link rel="icon" id="favicon">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -61,8 +62,16 @@
       document.body.classList.add('dark');
     }
     document.addEventListener('keydown', e => {
-      if (e.key === '1' && !e.repeat) document.body.classList.toggle('dark');
+      if (e.key === '1' && !e.repeat) {
+        document.body.classList.toggle('dark');
+        if (typeof updateHomeFavicon === 'function') updateHomeFavicon();
+      }
     });
+
+    (function() {
+      const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><style>text{fill:#000}@media(prefers-color-scheme:dark){text{fill:#fff}}</style><text x="50" y="86" font-size="90" font-family="Georgia,serif" text-anchor="middle">R</text></svg>';
+      document.getElementById('favicon').href = 'data:image/svg+xml,' + encodeURIComponent(svg);
+    })();
 
     function glyphFromHash() {
       const raw = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
@@ -74,6 +83,17 @@
       document.body.classList.add('glyph-mode');
       document.title = hashGlyph;
       window.GLYPH = hashGlyph;
+      (function() {
+        const c = document.createElement('canvas');
+        c.width = c.height = 64;
+        const ctx = c.getContext('2d');
+        ctx.font = '52px serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = document.body.classList.contains('dark') ? '#fff' : '#000';
+        ctx.fillText(hashGlyph, 32, 32);
+        document.getElementById('favicon').href = c.toDataURL();
+      })();
       window.addEventListener('hashchange', () => {
         if (glyphFromHash() !== window.GLYPH) location.reload();
       });
@@ -96,6 +116,23 @@
         </footer>
       `);
       const nameEl = document.getElementById('name');
+      let currentHomeFont = null;
+
+      function updateHomeFavicon() {
+        if (!currentHomeFont) return;
+        const c = document.createElement('canvas');
+        c.width = c.height = 64;
+        const ctx = c.getContext('2d');
+        const isDark = document.body.classList.contains('dark');
+        ctx.fillStyle = isDark ? '#000' : '#fff';
+        ctx.fillRect(0, 0, 64, 64);
+        ctx.font = `52px '${currentHomeFont}', serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = isDark ? '#fff' : '#000';
+        ctx.fillText('R', 32, 32);
+        document.getElementById('favicon').href = c.toDataURL();
+      }
 
       function rollContent() {
         if (Math.random() < 1 / 7 && window.EMOJIS) {
@@ -117,9 +154,11 @@
           document.head.appendChild(link);
         });
         try { await document.fonts.load(`1em '${font}'`); } catch (_) {}
+        currentHomeFont = font;
         nameEl.style.fontFamily = `'${font}', serif`;
         rollContent();
         nameEl.style.opacity = '1';
+        updateHomeFavicon();
       }
 
       let tapCooldown = false;
