@@ -134,31 +134,43 @@
         document.getElementById('favicon').href = c.toDataURL();
       }
 
-      function rollContent() {
-        if (Math.random() < 1 / 7 && window.EMOJIS) {
-          let s = '';
-          for (let i = 0; i < 5; i++) s += window.EMOJIS[Math.floor(Math.random() * window.EMOJIS.length)];
-          nameEl.textContent = s;
-        } else {
-          nameEl.textContent = 'Ruvan';
-        }
+      function updateEmojiFavicon(emoji) {
+        const c = document.createElement('canvas');
+        c.width = c.height = 64;
+        const ctx = c.getContext('2d');
+        ctx.font = '48px serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(emoji, 32, 32);
+        document.getElementById('favicon').href = c.toDataURL();
       }
 
-      async function loadFont(font) {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(font)}&display=block`;
-        await new Promise(resolve => {
-          link.onload = resolve;
-          link.onerror = resolve;
-          document.head.appendChild(link);
-        });
-        try { await document.fonts.load(`1em '${font}'`); } catch (_) {}
-        currentHomeFont = font;
-        nameEl.style.fontFamily = `'${font}', serif`;
-        rollContent();
-        nameEl.style.opacity = '1';
-        updateHomeFavicon();
+      async function display() {
+        if (Math.random() < 1 / 7 && window.EMOJIS) {
+          const emojis = Array.from({ length: 5 }, () => window.EMOJIS[Math.floor(Math.random() * window.EMOJIS.length)]);
+          nameEl.style.backgroundImage = '';
+          nameEl.style.color = '';
+          nameEl.style.fontFamily = '';
+          nameEl.textContent = emojis.join('');
+          nameEl.style.opacity = '1';
+          updateEmojiFavicon(emojis[0]);
+        } else {
+          const font = window.googleFonts[Math.floor(Math.random() * window.googleFonts.length)];
+          const link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(font)}&display=block`;
+          await new Promise(resolve => {
+            link.onload = resolve;
+            link.onerror = resolve;
+            document.head.appendChild(link);
+          });
+          try { await document.fonts.load(`1em '${font}'`); } catch (_) {}
+          currentHomeFont = font;
+          nameEl.style.fontFamily = `'${font}', serif`;
+          nameEl.textContent = 'Ruvan';
+          nameEl.style.opacity = '1';
+          updateHomeFavicon();
+        }
       }
 
       let tapCooldown = false;
@@ -178,8 +190,7 @@
           nameEl.style.color = '';
         }
         nameEl.style.opacity = '0';
-        const chosen = window.googleFonts[Math.floor(Math.random() * window.googleFonts.length)];
-        loadFont(chosen);
+        display();
       }
 
       document.addEventListener('click', e => {
@@ -197,10 +208,7 @@
 
       const sfonts = document.createElement('script');
       sfonts.src = '/fonts.js';
-      sfonts.onload = () => {
-        const chosen = window.googleFonts[Math.floor(Math.random() * window.googleFonts.length)];
-        loadFont(chosen);
-      };
+      sfonts.onload = () => { display(); };
       document.head.appendChild(sfonts);
     }
   </script>
