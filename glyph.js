@@ -116,6 +116,10 @@ document.addEventListener('keydown', e => {
   }
   if (e.repeat) return;
   if (e.key === '1') return;
+  if (e.key === 'g' || e.key === 'G') {
+    window.open(`https://fonts.google.com/specimen/${currentFont.replace(/ /g, '+')}`, '_blank', 'noopener');
+    return;
+  }
   const isLetterOrNumber = /^[a-zA-Z0-9]$/.test(e.key);
   const isSpace = e.code === 'Space';
   if (!isLetterOrNumber && !isSpace) return;
