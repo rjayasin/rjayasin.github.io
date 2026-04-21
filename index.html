@@ -193,6 +193,12 @@
         display();
       }
 
+      document.addEventListener('keydown', e => {
+        if ((e.key === 'g' || e.key === 'G') && !e.repeat && currentHomeFont) {
+          window.open(`https://fonts.google.com/specimen/${currentHomeFont.replace(/ /g, '+')}`, '_blank', 'noopener');
+        }
+      });
+
       document.addEventListener('click', e => {
         if (e.pointerType === 'touch') return;
         handleClick();
