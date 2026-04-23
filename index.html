@@ -23,6 +23,7 @@
       opacity: 0;
       cursor: pointer;
       user-select: none;
+      transition: opacity 0.35s ease;
     }
     #sitemap {
       position: fixed;
@@ -146,8 +147,10 @@
       }
 
       async function display() {
+        const fadeOut = new Promise(r => setTimeout(r, 350));
         if (Math.random() < 1 / 7 && window.EMOJIS) {
           const emojis = Array.from({ length: 5 }, () => window.EMOJIS[Math.floor(Math.random() * window.EMOJIS.length)]);
+          await fadeOut;
           nameEl.style.backgroundImage = '';
           nameEl.style.color = '';
           nameEl.style.fontFamily = '';
@@ -159,12 +162,12 @@
           const link = document.createElement('link');
           link.rel = 'stylesheet';
           link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(font)}&display=block`;
-          await new Promise(resolve => {
+          const fontLoad = new Promise(resolve => {
             link.onload = resolve;
             link.onerror = resolve;
             document.head.appendChild(link);
-          });
-          try { await document.fonts.load(`1em '${font}'`); } catch (_) {}
+          }).then(() => document.fonts.load(`1em '${font}'`).catch(() => {}));
+          await Promise.all([fadeOut, fontLoad]);
           currentHomeFont = font;
           nameEl.style.fontFamily = `'${font}', serif`;
           nameEl.textContent = 'Ruvan';
