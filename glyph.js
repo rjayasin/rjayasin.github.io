@@ -151,43 +151,8 @@ function handleTap() {
   }
 }
 
-let pinching = false;
-let pinchStartDist = 0;
-let pinchStartSize = 0;
-
-function pinchDistance(touches) {
-  const dx = touches[0].clientX - touches[1].clientX;
-  const dy = touches[0].clientY - touches[1].clientY;
-  return Math.hypot(dx, dy);
-}
-
-document.addEventListener('touchstart', e => {
-  if (e.touches.length === 2) {
-    pinching = true;
-    pinchStartDist = pinchDistance(e.touches);
-    pinchStartSize = size;
-    e.preventDefault();
-  }
-}, { passive: false });
-
-document.addEventListener('touchmove', e => {
-  if (pinching && e.touches.length >= 2) {
-    e.preventDefault();
-    const dist = pinchDistance(e.touches);
-    const next = Math.max(8, Math.min(512, Math.round(pinchStartSize * dist / pinchStartDist)));
-    if (next !== size) {
-      size = next;
-      rebuild();
-    }
-  }
-}, { passive: false });
-
 document.addEventListener('touchend', e => {
   e.preventDefault();
-  if (pinching) {
-    if (e.touches.length === 0) pinching = false;
-    return;
-  }
   handleTap();
 }, { passive: false });
 
