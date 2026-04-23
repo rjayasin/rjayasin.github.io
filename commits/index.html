@@ -88,6 +88,11 @@
       color: #888;
       white-space: nowrap;
       padding-top: 1px;
+      visibility: hidden;
+    }
+    .section.day-start > .section-header .date,
+    .section-header.stuck .date {
+      visibility: visible;
     }
     .commits {
       display: flex;
@@ -318,6 +323,7 @@
             </header>
             <div class="commits"></div>`;
           log.appendChild(sec);
+          stickyObserver.observe(sec.querySelector('.section-header'));
           commitsEl = sec.querySelector('.commits');
           currentDayRepos.set(repo, commitsEl);
         }
@@ -343,6 +349,15 @@
       if (entries.some(e => e.isIntersecting)) loadMore();
     }, { rootMargin: '400px' });
     io.observe(sentinel);
+
+    const stickyObserver = new IntersectionObserver(
+      entries => {
+        for (const e of entries) {
+          e.target.classList.toggle('stuck', e.intersectionRatio < 1);
+        }
+      },
+      { threshold: [1], rootMargin: '-1px 0px 0px 0px' }
+    );
   </script>
 </body>
 </html>
