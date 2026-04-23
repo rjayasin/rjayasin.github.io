@@ -23,7 +23,7 @@
       opacity: 0;
       cursor: pointer;
       user-select: none;
-      transition: opacity 0.2s ease;
+      transition: opacity 0.1s ease;
     }
     #sitemap {
       position: fixed;
@@ -147,7 +147,7 @@
       }
 
       async function display() {
-        const fadeOut = new Promise(r => setTimeout(r, 200));
+        const fadeOut = new Promise(r => setTimeout(r, 100));
         if (Math.random() < 1 / 7 && window.EMOJIS) {
           const emojis = Array.from({ length: 5 }, () => window.EMOJIS[Math.floor(Math.random() * window.EMOJIS.length)]);
           await fadeOut;
