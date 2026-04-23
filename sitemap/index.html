@@ -30,7 +30,8 @@
       letter-spacing: 0.05em;
     }
     ul { list-style: none; }
-    li { padding: 2px 0; }
+    li { padding: 2px 0; white-space: pre; }
+    li .branch { color: #888; user-select: none; }
     li a { color: #000; text-decoration: none; }
     li a:hover { text-decoration: underline; }
     @media (max-width: 640px) {
@@ -47,10 +48,9 @@
     <h1><a href="/">Ruvan</a> / sitemap</h1>
   </header>
   <ul>
-    <li><a href="/">home</a></li>
-    <li><a href="/commits/">commits</a></li>
-    <li><a href="/#/*">grid</a></li>
-    <li><a href="https://rjayasin.github.io/dodgers-notifier/" target="_blank" rel="noopener">dodgers-notifier</a></li>
+    <li><span class="branch">├── </span><a href="/commits/">commits</a></li>
+    <li><span class="branch">├── </span><a href="https://rjayasin.github.io/dodgers-notifier/" target="_blank" rel="noopener">dodgers-notifier</a></li>
+    <li><span class="branch">└── </span><a href="/#/*">grid</a></li>
   </ul>
   <script>
     (function() {
