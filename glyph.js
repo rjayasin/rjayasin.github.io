@@ -22,7 +22,7 @@ async function waitForFont(font) {
   try { await document.fonts.load(`1em '${font}'`); } catch (_) {}
 }
 
-let size = 110;
+let size = window.innerWidth < 640 ? 50 : 110;
 let spans = [];
 let mode = 'single';
 let currentFont = fonts[Math.floor(Math.random() * fonts.length)];
