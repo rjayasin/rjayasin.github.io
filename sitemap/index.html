@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ruvan / sitemap</title>
+  <link rel="icon" id="favicon">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    body {
+      background: #ffffff;
+      color: #000000;
+      font-family: monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      padding: 48px 32px;
+      max-width: 720px;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+    a, h1 {
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    }
+    header { margin-bottom: 15px; }
+    header a { color: #000; text-decoration: none; }
+    header a:hover { text-decoration: underline; }
+    h1 {
+      font-size: 13px;
+      font-weight: normal;
+      letter-spacing: 0.05em;
+    }
+    ul { list-style: none; }
+    li { padding: 2px 0; }
+    li a { color: #000; text-decoration: none; }
+    li a:hover { text-decoration: underline; }
+    @media (max-width: 640px) {
+      body { font-size: 15px; padding: 32px 20px; }
+      h1 { font-size: 15px; }
+    }
+    body.dark { background: #111; color: #fff; }
+    body.dark header a,
+    body.dark li a { color: #fff; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="/">Ruvan</a> / sitemap</h1>
+  </header>
+  <ul>
+    <li><a href="/">home</a></li>
+    <li><a href="/commits/">commits</a></li>
+    <li><a href="/#/*">grid</a></li>
+    <li><a href="https://rjayasin.github.io/dodgers-notifier/" target="_blank" rel="noopener">dodgers-notifier</a></li>
+  </ul>
+  <script>
+    (function() {
+      const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><style>text{fill:#000}@media(prefers-color-scheme:dark){text{fill:#fff}}</style><text x="50" y="86" font-size="90" font-family="Georgia,serif" text-anchor="middle">R</text></svg>';
+      const link = document.createElement('link');
+      link.rel = 'icon';
+      link.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
+      document.head.appendChild(link);
+    })();
+
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.body.classList.add('dark');
+    }
+    document.addEventListener('keydown', e => {
+      if (e.key === '1' && !e.repeat && !e.metaKey && !e.ctrlKey) document.body.classList.toggle('dark');
+    });
+  </script>
+</body>
+</html>
