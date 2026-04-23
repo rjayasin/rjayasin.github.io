@@ -62,7 +62,7 @@
       document.body.classList.add('dark');
     }
     document.addEventListener('keydown', e => {
-      if (e.key === '1' && !e.repeat) {
+      if (e.key === '1' && !e.repeat && !e.metaKey && !e.ctrlKey) {
         document.body.classList.toggle('dark');
         if (typeof updateHomeFavicon === 'function') updateHomeFavicon();
       }
