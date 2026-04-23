@@ -17,12 +17,13 @@
       max-width: 720px;
       transition: background-color 0.2s ease, color 0.2s ease;
     }
-    .section-header,
-    .section.day-start,
-    .section:last-child .commits,
+    .day,
+    .top-bar,
+    .day:last-child .commits:last-child,
     header a,
     .commit a,
-    .repo {
+    .repo,
+    .top-repo {
       transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
     }
     header {
@@ -53,17 +54,18 @@
       flex-direction: column;
       width: 100%;
     }
-    .section {
+    .day {
       display: flex;
       flex-direction: column;
-    }
-    .section.day-start {
       border-top: 1px solid #ccc;
     }
-    .section:last-child .commits {
+    .top-bar + .day {
+      border-top: none;
+    }
+    .day:last-child .commits:last-child {
       border-bottom: 1px solid #f0f0f0;
     }
-    .section-header {
+    .top-bar {
       position: sticky;
       top: 0;
       background: #fff;
@@ -72,7 +74,30 @@
       align-items: baseline;
       gap: 24px;
       padding: 10px 0 4px;
-      z-index: 1;
+      z-index: 2;
+    }
+    .top-bar[hidden] { display: none; }
+    .top-repo {
+      color: #888;
+      font-size: 11px;
+      text-decoration: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+    .top-repo:hover { color: #000; }
+    .top-date {
+      color: #888;
+      white-space: nowrap;
+      padding-top: 1px;
+    }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 24px;
+      padding: 8px 0 2px;
     }
     .repo {
       color: #888;
@@ -84,15 +109,9 @@
       min-width: 0;
     }
     .repo:hover { color: #000; }
-    .date {
+    .section-header .date {
       color: #888;
       white-space: nowrap;
-      padding-top: 1px;
-      visibility: hidden;
-    }
-    .section.day-start > .section-header .date,
-    .section-header.stuck .date {
-      visibility: visible;
     }
     .commits {
       display: flex;
@@ -148,9 +167,10 @@
     body.dark .repo:hover,
     body.dark #gh-auth:hover,
     body.dark #gh-auth.authed { color: #fff; }
-    body.dark .section.day-start { border-top-color: #333; }
-    body.dark .section:last-child .commits { border-bottom-color: #1a1a1a; }
-    body.dark .section-header { background: #111; }
+    body.dark .day { border-top-color: #333; }
+    body.dark .day:last-child .commits:last-child { border-bottom-color: #1a1a1a; }
+    body.dark .top-bar { background: #111; }
+    body.dark .top-repo:hover { color: #fff; }
   </style>
 </head>
 <body>
@@ -165,7 +185,12 @@
       </svg>
     </button>
   </header>
-  <div class="log" id="log"></div>
+  <div class="log" id="log">
+    <div class="top-bar" id="top-bar" hidden>
+      <a class="top-repo" id="top-repo" target="_blank" rel="noopener"></a>
+      <span class="top-date" id="top-date"></span>
+    </div>
+  </div>
   <p id="status">loading…</p>
   <div id="sentinel"></div>
   <script>
@@ -192,6 +217,9 @@
     const range = document.getElementById('range');
     const sentinel = document.getElementById('sentinel');
     const authBtn = document.getElementById('gh-auth');
+    const topBar = document.getElementById('top-bar');
+    const topRepo = document.getElementById('top-repo');
+    const topDate = document.getElementById('top-date');
 
     function getToken() {
       return localStorage.getItem(TOKEN_KEY) || '';
@@ -235,6 +263,7 @@
     let exhausted = false;
     let currentDay = null;
     let currentDayRepos = null;
+    let currentDayContainer = null;
     let total = 0;
 
     const CURRENT_YEAR = new Date().getFullYear();
@@ -309,21 +338,28 @@
         if (currentDay !== day) {
           currentDay = day;
           currentDayRepos = new Map();
+          currentDayContainer = document.createElement('div');
+          currentDayContainer.className = 'day';
+          log.appendChild(currentDayContainer);
         }
 
         let commitsEl = currentDayRepos.get(repo);
         if (!commitsEl) {
+          const isDayStart = currentDayRepos.size === 0;
+          const isVeryFirst = !log.querySelector('.section');
           const sec = document.createElement('section');
           sec.className = 'section';
-          if (currentDayRepos.size === 0) sec.classList.add('day-start');
-          sec.innerHTML = `
+          sec.dataset.repo = repo;
+          sec.dataset.date = fmtDay(date);
+          const dateSpan = isDayStart ? `<span class="date">${fmtDay(date)}</span>` : '';
+          const headerHtml = isVeryFirst ? '' : `
             <header class="section-header">
               <a class="repo" href="https://github.com/${repo}" target="_blank" rel="noopener">${escHtml(repo)}</a>
-              <span class="date">${fmtDay(date)}</span>
-            </header>
+              ${dateSpan}
+            </header>`;
+          sec.innerHTML = `${headerHtml}
             <div class="commits"></div>`;
-          log.appendChild(sec);
-          stickyObserver.observe(sec.querySelector('.section-header'));
+          currentDayContainer.appendChild(sec);
           commitsEl = sec.querySelector('.commits');
           currentDayRepos.set(repo, commitsEl);
         }
@@ -343,21 +379,41 @@
         status.textContent = '';
       }
       loading = false;
+      updateTopBar();
     }
+
+    function updateTopBar() {
+      const sections = log.querySelectorAll('.section');
+      if (!sections.length) return;
+      topBar.hidden = false;
+      const barBottom = topBar.getBoundingClientRect().bottom;
+      let current = null;
+      for (const s of sections) {
+        const h = s.querySelector('.section-header');
+        if (!h) { current = s; continue; }
+        if (h.getBoundingClientRect().bottom < barBottom) {
+          current = s;
+        } else {
+          break;
+        }
+      }
+      if (!current) current = sections[0];
+      const repo = current.dataset.repo;
+      const date = current.dataset.date;
+      if (topRepo.dataset.repo !== repo) {
+        topRepo.textContent = repo;
+        topRepo.href = `https://github.com/${repo}`;
+        topRepo.dataset.repo = repo;
+      }
+      if (topDate.textContent !== date) topDate.textContent = date;
+    }
+
+    window.addEventListener('scroll', updateTopBar, { passive: true });
 
     const io = new IntersectionObserver(entries => {
       if (entries.some(e => e.isIntersecting)) loadMore();
     }, { rootMargin: '400px' });
     io.observe(sentinel);
-
-    const stickyObserver = new IntersectionObserver(
-      entries => {
-        for (const e of entries) {
-          e.target.classList.toggle('stuck', e.intersectionRatio < 1);
-        }
-      },
-      { threshold: [1], rootMargin: '-1px 0px 0px 0px' }
-    );
   </script>
 </body>
 </html>
