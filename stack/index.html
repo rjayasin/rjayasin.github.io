@@ -16,6 +16,7 @@
       transition: background-color 0.2s ease, color 0.2s ease;
     }
     body.dark { background: #111111; color: #ffffff; }
+    body.hide-cursor, body.hide-cursor * { cursor: none !important; }
     #stack {
       width: 100%;
       height: 100%;
@@ -43,6 +44,17 @@
     document.addEventListener('keydown', e => {
       if (e.key === '1' && !e.repeat && !e.metaKey && !e.ctrlKey) document.body.classList.toggle('dark');
     });
+
+    let cursorTimer = null;
+    function hideCursor() { document.body.classList.add('hide-cursor'); }
+    function showCursor() {
+      document.body.classList.remove('hide-cursor');
+      clearTimeout(cursorTimer);
+      cursorTimer = setTimeout(hideCursor, 1500);
+    }
+    showCursor();
+    document.addEventListener('mousemove', showCursor);
+    document.addEventListener('keydown', hideCursor);
 
     const stackEl = document.getElementById('stack');
     let fontSize = 40;

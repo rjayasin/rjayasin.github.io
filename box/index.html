@@ -17,6 +17,7 @@
       transition: background-color 0.2s ease, color 0.2s ease;
     }
     body.dark { background: #111111; color: #ffffff; }
+    body.hide-cursor, body.hide-cursor * { cursor: none !important; }
     #box {
       position: absolute;
       top: 50%;
@@ -167,6 +168,17 @@
         return;
       }
     });
+
+    let cursorTimer = null;
+    function hideCursor() { document.body.classList.add('hide-cursor'); }
+    function showCursor() {
+      document.body.classList.remove('hide-cursor');
+      clearTimeout(cursorTimer);
+      cursorTimer = setTimeout(hideCursor, 1500);
+    }
+    showCursor();
+    document.addEventListener('mousemove', showCursor);
+    document.addEventListener('keydown', hideCursor);
 
     const hintEl = document.getElementById('hint');
     const hintZone = document.getElementById('hint-zone');
