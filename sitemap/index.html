@@ -54,9 +54,9 @@
   <!-- Keep every section and sublist alphabetically ordered. -->
   <h2>text</h2>
   <ul>
-    <li><span class="branch">├── </span><a href="/box/?hello/world">box</a></li>
-    <li><span class="branch">├── </span><a href="/#/*">grid</a></li>
-    <li><span class="branch">└── </span><a href="/stack/?hello/world">stack</a></li>
+    <li><span class="branch">├── </span><a id="box-link" href="/box/">box</a></li>
+    <li><span class="branch">├── </span><a id="grid-link" href="/">grid</a></li>
+    <li><span class="branch">└── </span><a id="stack-link" href="/stack/">stack</a></li>
   </ul>
   <h2>tools</h2>
   <ul>
@@ -81,6 +81,24 @@
     document.addEventListener('keydown', e => {
       if (e.key === '1' && !e.repeat && !e.metaKey && !e.ctrlKey) document.body.classList.toggle('dark');
     });
+
+    let words = ['hello'];
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?@#&*';
+    function pickWord() { return words[Math.floor(Math.random() * words.length)]; }
+    function pickChar() { return chars[Math.floor(Math.random() * chars.length)]; }
+    function randomize() {
+      document.getElementById('box-link').href = '/box/?' + pickWord();
+      document.getElementById('stack-link').href = '/stack/?' + pickWord();
+      document.getElementById('grid-link').href = '/#/' + encodeURIComponent(pickChar());
+    }
+    randomize();
+    document.getElementById('box-link').addEventListener('mousedown', randomize);
+    document.getElementById('stack-link').addEventListener('mousedown', randomize);
+    document.getElementById('grid-link').addEventListener('mousedown', randomize);
+    fetch('/words.txt').then(r => r.text()).then(t => {
+      const list = t.split(/\s+/).filter(w => w.length > 0);
+      if (list.length) { words = list; randomize(); }
+    }).catch(() => {});
   </script>
 </body>
 </html>
