@@ -1,61 +1,16 @@
-const fonts = window.googleFonts;
-
-const loadedFonts = new Set();
-
-function injectFontCSS(families) {
-  const toLoad = families.filter(f => !loadedFonts.has(f));
-  if (toLoad.length === 0) return Promise.resolve();
-  toLoad.forEach(f => loadedFonts.add(f));
-  const params = toLoad.map(f => 'family=' + encodeURIComponent(f)).join('&');
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = `https://fonts.googleapis.com/css2?${params}&display=block`;
-  return new Promise(resolve => {
-    link.onload = resolve;
-    link.onerror = resolve;
-    document.head.appendChild(link);
-  });
-}
-
-async function waitForFont(font) {
-  await injectFontCSS([font]);
-  try { await document.fonts.load(`1em '${font}'`); } catch (_) {}
-}
-
 let size = window.innerWidth < 640 ? 50 : 110;
 let spans = [];
 let mode = 'single';
-let currentFont = fonts[Math.floor(Math.random() * fonts.length)];
+let currentFont = RJ.pickRandomGoogleFont();
 
-function randomFont() {
-  return fonts[Math.floor(Math.random() * fonts.length)];
-}
-
-function randomLoadedFont() {
-  const loaded = [...loadedFonts];
-  return loaded[Math.floor(Math.random() * loaded.length)];
-}
-
-function updateFavicon() {
-  const c = document.createElement('canvas');
-  c.width = c.height = 64;
-  const ctx = c.getContext('2d');
-  const isDark = document.body.classList.contains('dark');
-  ctx.fillStyle = isDark ? '#000' : '#fff';
-  ctx.fillRect(0, 0, 64, 64);
-  ctx.font = `52px '${currentFont}', serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = isDark ? '#fff' : '#000';
-  ctx.fillText(window.GLYPH, 32, 32);
-  const link = document.getElementById('favicon');
-  if (link) link.href = c.toDataURL();
+function repaintFavicon() {
+  RJ.paintFavicon({ glyph: window.GLYPH, font: currentFont });
 }
 
 async function applySingle(font) {
-  await waitForFont(font);
+  await RJ.loadGoogleFont(font);
   rebuild();
-  updateFavicon();
+  repaintFavicon();
 }
 
 function applyMulti() {
@@ -75,7 +30,7 @@ function measureCell(font) {
 
 function currentCell() {
   if (mode === 'single') return Math.ceil(measureCell(currentFont));
-  const measurements = [...loadedFonts].map(measureCell).sort((a, b) => a - b);
+  const measurements = [...RJ.loadedGoogleFonts].map(measureCell).sort((a, b) => a - b);
   if (measurements.length === 0) return Math.ceil(size * 0.4);
   const p90 = measurements[Math.floor(measurements.length * 0.9)] ?? measurements[measurements.length - 1];
   return Math.ceil(p90);
@@ -90,6 +45,7 @@ function rebuild() {
   document.body.innerHTML = '';
   spans = [];
 
+  const frag = document.createDocumentFragment();
   for (let i = 0; i < total; i++) {
     const span = document.createElement('span');
     span.className = 'glyph';
@@ -97,14 +53,26 @@ function rebuild() {
     span.style.width = cell + 'px';
     span.style.height = cell + 'px';
     span.style.fontSize = size + 'px';
-    document.body.appendChild(span);
+    frag.appendChild(span);
     spans.push(span);
   }
+  document.body.appendChild(frag);
   if (mode === 'single') spans.forEach(s => s.style.fontFamily = `'${currentFont}', serif`);
-  else spans.forEach(s => s.style.fontFamily = `'${randomLoadedFont()}', serif`);
+  else spans.forEach(s => s.style.fontFamily = `'${RJ.pickLoadedGoogleFont()}', serif`);
 }
 
 applySingle(currentFont);
+
+window.addEventListener('rj:darkmodechange', repaintFavicon);
+
+let resizeRaf = null;
+window.addEventListener('resize', () => {
+  if (resizeRaf) return;
+  resizeRaf = requestAnimationFrame(() => {
+    resizeRaf = null;
+    rebuild();
+  });
+});
 
 document.addEventListener('keydown', e => {
   if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
@@ -117,7 +85,7 @@ document.addEventListener('keydown', e => {
   if (e.repeat) return;
   if (e.key === '1') return;
   if (e.key === 'g' || e.key === 'G') {
-    window.open(`https://fonts.google.com/specimen/${currentFont.replace(/ /g, '+')}`, '_blank', 'noopener');
+    RJ.openFontSpecimen(currentFont);
     return;
   }
   const isLetterOrNumber = /^[a-zA-Z0-9]$/.test(e.key);
@@ -131,33 +99,21 @@ document.addEventListener('keydown', e => {
       applyMulti();
     } else {
       mode = 'single';
-      currentFont = randomFont();
+      currentFont = RJ.pickRandomGoogleFont();
       applySingle(currentFont);
     }
   } else if (mode === 'single') {
-    currentFont = randomFont();
+    currentFont = RJ.pickRandomGoogleFont();
     applySingle(currentFont);
   }
 });
 
-let tapCooldown = false;
-function handleTap() {
-  if (tapCooldown) return;
-  tapCooldown = true;
-  setTimeout(() => { tapCooldown = false; }, 500);
-  if (mode === 'single') {
-    currentFont = randomFont();
-    applySingle(currentFont);
-  }
-}
-
-document.addEventListener('touchend', e => {
-  e.preventDefault();
-  handleTap();
-}, { passive: false });
-
-document.addEventListener('click', e => {
-  if (e.pointerType === 'touch') return;
-  handleTap();
+const tap = RJ.makeCooldown(500);
+RJ.onTap(() => {
+  tap(() => {
+    if (mode === 'single') {
+      currentFont = RJ.pickRandomGoogleFont();
+      applySingle(currentFont);
+    }
+  });
 });
-
