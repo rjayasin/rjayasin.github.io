@@ -24,16 +24,20 @@
     header { margin-bottom: 15px; }
     header a { color: #000; text-decoration: none; }
     header a:hover { text-decoration: underline; }
-    h1 {
+    h1, h2 {
       font-size: 13px;
       font-weight: normal;
       letter-spacing: 0.05em;
     }
+    h2 { color: #888; margin-top: 18px; margin-bottom: 4px; }
     ul { list-style: none; }
     li { padding: 2px 0; white-space: pre; }
     li .branch { color: #888; user-select: none; }
     li a { color: #000; text-decoration: none; }
     li a:hover { text-decoration: underline; }
+    @media (max-width: 640px) {
+      h2 { font-size: 15px; }
+    }
     @media (max-width: 640px) {
       body { font-size: 15px; padding: 32px 20px; }
       h1 { font-size: 15px; }
@@ -47,15 +51,20 @@
   <header>
     <h1><a href="/">Ruvan</a> / sitemap</h1>
   </header>
+  <!-- Keep every section and sublist alphabetically ordered. -->
+  <h2>text</h2>
+  <ul>
+    <li><span class="branch">├── </span><a href="/box/?hello/world">box</a></li>
+    <li><span class="branch">├── </span><a href="/#/*">grid</a></li>
+    <li><span class="branch">└── </span><a href="/stack/?hello/world">stack</a></li>
+  </ul>
+  <h2>tools</h2>
   <ul>
     <li><span class="branch">├── </span><a href="/commits/">commits</a></li>
     <li><span class="branch">├── </span><a href="https://rjayasin.github.io/dodgers-notifier/" target="_blank" rel="noopener">dodgers-notifier</a></li>
-    <li><span class="branch">├── </span><a href="/box/?hello/world">box</a></li>
-    <li><span class="branch">├── </span><a href="/#/*">grid</a></li>
-    <li><span class="branch">├── </span><a href="/stack/?hello/world">stack</a></li>
     <li><span class="branch">└── </span>visualizer</li>
-    <li><span class="branch">    ├── </span><a href="https://rjayasin.github.io/visualizer/video-player.html" target="_blank" rel="noopener">video-player</a></li>
-    <li><span class="branch">    └── </span><a href="https://rjayasin.github.io/visualizer/spotify-auth.html" target="_blank" rel="noopener">spotify-auth</a></li>
+    <li><span class="branch">    ├── </span><a href="https://rjayasin.github.io/visualizer/spotify-auth.html" target="_blank" rel="noopener">spotify-auth</a></li>
+    <li><span class="branch">    └── </span><a href="https://rjayasin.github.io/visualizer/video-player.html" target="_blank" rel="noopener">video-player</a></li>
   </ul>
   <script>
     (function() {
