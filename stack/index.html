@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ruvan / stack</title>
+  <link rel="icon" id="favicon">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    body {
+      background: #ffffff;
+      color: #000000;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+    body.dark { background: #111111; color: #ffffff; }
+    #stack {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      line-height: 0.85;
+    }
+    #stack > div { white-space: pre; }
+  </style>
+</head>
+<body>
+  <div id="stack"></div>
+  <script>
+    (function() {
+      const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><style>text{fill:#000}@media(prefers-color-scheme:dark){text{fill:#fff}}</style><text x="50" y="86" font-size="90" font-family="Georgia,serif" text-anchor="middle">R</text></svg>';
+      document.getElementById('favicon').href = 'data:image/svg+xml,' + encodeURIComponent(svg);
+    })();
+
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.body.classList.add('dark');
+    }
+    document.addEventListener('keydown', e => {
+      if (e.key === '1' && !e.repeat && !e.metaKey && !e.ctrlKey) document.body.classList.toggle('dark');
+    });
+
+    const stackEl = document.getElementById('stack');
+    let fontSize = 40;
+    function applySize() { stackEl.style.fontSize = fontSize + 'px'; }
+    applySize();
+    function readItems() {
+      const raw = location.search.replace(/^\?/, '');
+      return raw.split('/').map(s => { try { return decodeURIComponent(s); } catch (_) { return s; } }).filter(s => s.length > 0);
+    }
+    function render() {
+      const items = readItems();
+      stackEl.innerHTML = '';
+      if (items.length === 0) return;
+      const probe = document.createElement('div');
+      probe.textContent = items[0];
+      stackEl.appendChild(probe);
+      const lineH = probe.getBoundingClientRect().height || parseFloat(getComputedStyle(stackEl).fontSize) * 1.1;
+      stackEl.removeChild(probe);
+      const rows = Math.max(1, Math.ceil(window.innerHeight / lineH));
+      for (let i = 0; i < rows; i++) {
+        const d = document.createElement('div');
+        d.textContent = items[i % items.length];
+        stackEl.appendChild(d);
+      }
+    }
+    render();
+    window.addEventListener('resize', render);
+
+    let currentFont = null;
+    let tapCooldown = false;
+
+    async function pickFont() {
+      if (!window.googleFonts) return;
+      if (tapCooldown) return;
+      tapCooldown = true;
+      setTimeout(() => { tapCooldown = false; }, 500);
+
+      const font = window.googleFonts[Math.floor(Math.random() * window.googleFonts.length)];
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(font)}&display=block`;
+      const fontLoad = new Promise(resolve => {
+        link.onload = resolve;
+        link.onerror = resolve;
+        document.head.appendChild(link);
+      }).then(() => document.fonts.load(`1em '${font}'`).catch(() => {}));
+
+      await fontLoad;
+      currentFont = font;
+      stackEl.style.fontFamily = `'${font}', serif`;
+      render();
+    }
+
+    document.addEventListener('keydown', e => {
+      if ((e.key === 'g' || e.key === 'G') && !e.repeat && currentFont) {
+        window.open(`https://fonts.google.com/specimen/${currentFont.replace(/ /g, '+')}`, '_blank', 'noopener');
+        return;
+      }
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        fontSize = Math.max(8, Math.min(512, fontSize + (e.key === 'ArrowUp' ? 4 : -4)));
+        applySize();
+        render();
+      }
+    });
+
+    document.addEventListener('click', e => {
+      if (e.pointerType === 'touch') return;
+      pickFont();
+    });
+    document.addEventListener('touchend', e => {
+      e.preventDefault();
+      pickFont();
+    }, { passive: false });
+
+    const sfonts = document.createElement('script');
+    sfonts.src = '/fonts.js';
+    sfonts.onload = () => { pickFont(); };
+    document.head.appendChild(sfonts);
+  </script>
+</body>
+</html>
