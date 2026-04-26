@@ -146,7 +146,7 @@
         document.getElementById('favicon').href = c.toDataURL();
       }
 
-      async function display() {
+      async function display(rainbow) {
         const fadeOut = new Promise(r => setTimeout(r, 100));
         if (Math.random() < 1 / 7 && window.EMOJIS) {
           const emojis = Array.from({ length: 5 }, () => window.EMOJIS[Math.floor(Math.random() * window.EMOJIS.length)]);
@@ -171,6 +171,15 @@
           currentHomeFont = font;
           nameEl.style.fontFamily = `'${font}', serif`;
           nameEl.textContent = 'Ruvan';
+          if (rainbow) {
+            nameEl.style.backgroundImage = 'linear-gradient(90deg, #ff0000, #ff8800, #ffee00, #22cc22, #0088ff, #4422cc, #8800cc)';
+            nameEl.style.webkitBackgroundClip = 'text';
+            nameEl.style.backgroundClip = 'text';
+            nameEl.style.color = 'transparent';
+          } else {
+            nameEl.style.backgroundImage = '';
+            nameEl.style.color = '';
+          }
           nameEl.style.opacity = '1';
           updateHomeFavicon();
         }
@@ -183,17 +192,8 @@
         tapCooldown = true;
         setTimeout(() => { tapCooldown = false; }, 500);
         clickCount++;
-        if (clickCount % 10 === 0) {
-          nameEl.style.backgroundImage = 'linear-gradient(90deg, #ff0000, #ff8800, #ffee00, #22cc22, #0088ff, #4422cc, #8800cc)';
-          nameEl.style.webkitBackgroundClip = 'text';
-          nameEl.style.backgroundClip = 'text';
-          nameEl.style.color = 'transparent';
-        } else {
-          nameEl.style.backgroundImage = '';
-          nameEl.style.color = '';
-        }
         nameEl.style.opacity = '0';
-        display();
+        display(clickCount % 10 === 0);
       }
 
       document.addEventListener('keydown', e => {
