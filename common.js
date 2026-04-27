@@ -1,4 +1,4 @@
-window.RJ = window.RJ || {};
+window.Common = window.Common || {};
 
 (function() {
   const FAVICON_R_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><style>text{fill:#000}@media(prefers-color-scheme:dark){text{fill:#fff}}</style><text x="50" y="86" font-size="90" font-family="Georgia,serif" text-anchor="middle">R</text></svg>';
@@ -42,7 +42,7 @@ window.RJ = window.RJ || {};
     document.addEventListener('keydown', e => {
       if (e.key === '1' && !e.repeat && !e.metaKey && !e.ctrlKey) {
         document.body.classList.toggle('dark');
-        window.dispatchEvent(new CustomEvent('rj:darkmodechange'));
+        window.dispatchEvent(new CustomEvent('darkmodechange'));
       }
     });
   }
@@ -132,7 +132,7 @@ window.RJ = window.RJ || {};
     });
   }
 
-  Object.assign(window.RJ, {
+  Object.assign(window.Common, {
     setFaviconHref,
     paintFaviconR,
     paintFavicon,

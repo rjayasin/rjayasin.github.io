@@ -1,14 +1,14 @@
 let size = window.innerWidth < 640 ? 50 : 110;
 let spans = [];
 let mode = 'single';
-let currentFont = RJ.pickRandomGoogleFont();
+let currentFont = Common.pickRandomGoogleFont();
 
 function repaintFavicon() {
-  RJ.paintFavicon({ glyph: window.GLYPH, font: currentFont });
+  Common.paintFavicon({ glyph: window.GLYPH, font: currentFont });
 }
 
 async function applySingle(font) {
-  await RJ.loadGoogleFont(font);
+  await Common.loadGoogleFont(font);
   rebuild();
   repaintFavicon();
 }
@@ -30,7 +30,7 @@ function measureCell(font) {
 
 function currentCell() {
   if (mode === 'single') return Math.ceil(measureCell(currentFont));
-  const measurements = [...RJ.loadedGoogleFonts].map(measureCell).sort((a, b) => a - b);
+  const measurements = [...Common.loadedGoogleFonts].map(measureCell).sort((a, b) => a - b);
   if (measurements.length === 0) return Math.ceil(size * 0.4);
   const p90 = measurements[Math.floor(measurements.length * 0.9)] ?? measurements[measurements.length - 1];
   return Math.ceil(p90);
@@ -58,12 +58,12 @@ function rebuild() {
   }
   document.body.appendChild(frag);
   if (mode === 'single') spans.forEach(s => s.style.fontFamily = `'${currentFont}', serif`);
-  else spans.forEach(s => s.style.fontFamily = `'${RJ.pickLoadedGoogleFont()}', serif`);
+  else spans.forEach(s => s.style.fontFamily = `'${Common.pickLoadedGoogleFont()}', serif`);
 }
 
 applySingle(currentFont);
 
-window.addEventListener('rj:darkmodechange', repaintFavicon);
+window.addEventListener('darkmodechange', repaintFavicon);
 
 let resizeRaf = null;
 window.addEventListener('resize', () => {
@@ -85,7 +85,7 @@ document.addEventListener('keydown', e => {
   if (e.repeat) return;
   if (e.key === '1') return;
   if (e.key === 'g' || e.key === 'G') {
-    RJ.openFontSpecimen(currentFont);
+    Common.openFontSpecimen(currentFont);
     return;
   }
   const isLetterOrNumber = /^[a-zA-Z0-9]$/.test(e.key);
@@ -99,20 +99,20 @@ document.addEventListener('keydown', e => {
       applyMulti();
     } else {
       mode = 'single';
-      currentFont = RJ.pickRandomGoogleFont();
+      currentFont = Common.pickRandomGoogleFont();
       applySingle(currentFont);
     }
   } else if (mode === 'single') {
-    currentFont = RJ.pickRandomGoogleFont();
+    currentFont = Common.pickRandomGoogleFont();
     applySingle(currentFont);
   }
 });
 
-const tap = RJ.makeCooldown(500);
-RJ.onTap(() => {
+const tap = Common.makeCooldown(500);
+Common.onTap(() => {
   tap(() => {
     if (mode === 'single') {
-      currentFont = RJ.pickRandomGoogleFont();
+      currentFont = Common.pickRandomGoogleFont();
       applySingle(currentFont);
     }
   });

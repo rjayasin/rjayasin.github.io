@@ -60,9 +60,9 @@
   <div id="hint">+/− font size &nbsp;·&nbsp; ←/→ width &nbsp;·&nbsp; ↑/↓ height &nbsp;·&nbsp; click font &nbsp;·&nbsp; g google fonts &nbsp;·&nbsp; 1 dark</div>
   <div id="hint-zone"></div>
   <script>
-    RJ.paintFaviconR();
-    RJ.initDarkMode();
-    RJ.initCursorHide();
+    Common.paintFaviconR();
+    Common.initDarkMode();
+    Common.initCursorHide();
 
     const boxEl = document.getElementById('box');
     let fontSize = 40;
@@ -78,7 +78,7 @@
     }
 
     function render() {
-      const items = RJ.parseQueryItems();
+      const items = Common.parseQueryItems();
       boxEl.textContent = '';
       if (items.length === 0) return;
       const font = currentFont || 'serif';
@@ -103,12 +103,12 @@
     render();
     window.addEventListener('resize', render);
 
-    const cooldown = RJ.makeCooldown(500);
+    const cooldown = Common.makeCooldown(500);
     async function pickFont() {
       if (!window.googleFonts) return;
       cooldown(async () => {
-        const font = RJ.pickRandomGoogleFont();
-        await RJ.loadGoogleFont(font);
+        const font = Common.pickRandomGoogleFont();
+        await Common.loadGoogleFont(font);
         currentFont = font;
         boxEl.style.fontFamily = `'${font}', serif`;
         render();
@@ -117,7 +117,7 @@
 
     document.addEventListener('keydown', e => {
       if ((e.key === 'g' || e.key === 'G') && !e.repeat && currentFont) {
-        RJ.openFontSpecimen(currentFont);
+        Common.openFontSpecimen(currentFont);
         return;
       }
       if (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') {
@@ -153,9 +153,9 @@
     hintZone.addEventListener('mouseenter', showHint);
     hintZone.addEventListener('mousemove', showHint);
 
-    RJ.onTap(pickFont);
+    Common.onTap(pickFont);
 
-    RJ.loadScript('/fonts.js').then(pickFont);
+    Common.loadScript('/fonts.js').then(pickFont);
   </script>
 </body>
 </html>

@@ -57,9 +57,9 @@
 </head>
 <body>
   <script>
-    RJ.initDarkMode();
-    RJ.initCursorHide();
-    RJ.paintFaviconR();
+    Common.initDarkMode();
+    Common.initCursorHide();
+    Common.paintFaviconR();
 
     function glyphFromHash() {
       const raw = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
@@ -71,11 +71,11 @@
       document.body.classList.add('glyph-mode');
       document.title = hashGlyph;
       window.GLYPH = hashGlyph;
-      RJ.paintFavicon({ glyph: hashGlyph });
+      Common.paintFavicon({ glyph: hashGlyph });
       window.addEventListener('hashchange', () => {
         if (glyphFromHash() !== window.GLYPH) location.reload();
       });
-      RJ.loadScript('/fonts.js').then(() => RJ.loadScript('/glyph.js'));
+      Common.loadScript('/fonts.js').then(() => Common.loadScript('/glyph.js'));
     } else {
       document.body.insertAdjacentHTML('beforeend', `
         <span id="name">Ruvan</span>
@@ -89,12 +89,12 @@
 
       function updateHomeFavicon() {
         if (currentEmoji) {
-          RJ.paintFavicon({ glyph: currentEmoji, fontSize: 48, transparent: true });
+          Common.paintFavicon({ glyph: currentEmoji, fontSize: 48, transparent: true });
         } else if (currentHomeFont) {
-          RJ.paintFavicon({ glyph: 'R', font: currentHomeFont });
+          Common.paintFavicon({ glyph: 'R', font: currentHomeFont });
         }
       }
-      window.addEventListener('rj:darkmodechange', updateHomeFavicon);
+      window.addEventListener('darkmodechange', updateHomeFavicon);
 
       async function display(rainbow) {
         const fadeOut = new Promise(r => setTimeout(r, 100));
@@ -110,8 +110,8 @@
           currentHomeFont = null;
           updateHomeFavicon();
         } else {
-          const font = RJ.pickRandomGoogleFont();
-          const fontLoad = RJ.loadGoogleFont(font);
+          const font = Common.pickRandomGoogleFont();
+          const fontLoad = Common.loadGoogleFont(font);
           await Promise.all([fadeOut, fontLoad]);
           currentHomeFont = font;
           currentEmoji = null;
@@ -131,7 +131,7 @@
         }
       }
 
-      const cooldown = RJ.makeCooldown(500);
+      const cooldown = Common.makeCooldown(500);
       let clickCount = 0;
       function handleClick() {
         if (!window.googleFonts) return;
@@ -144,14 +144,14 @@
 
       document.addEventListener('keydown', e => {
         if ((e.key === 'g' || e.key === 'G') && !e.repeat && currentHomeFont) {
-          RJ.openFontSpecimen(currentHomeFont);
+          Common.openFontSpecimen(currentHomeFont);
         }
       });
 
-      RJ.onTap(handleClick);
+      Common.onTap(handleClick);
 
-      RJ.loadScript('/emojis.js');
-      RJ.loadScript('/fonts.js').then(() => display());
+      Common.loadScript('/emojis.js');
+      Common.loadScript('/fonts.js').then(() => display());
     }
   </script>
 </body>
