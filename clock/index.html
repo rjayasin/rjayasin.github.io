@@ -42,7 +42,7 @@
 </head>
 <body>
   <pre id="pre"></pre>
-  <div id="hint">+/− font size &nbsp;·&nbsp; 1 dark</div>
+  <div id="hint">+/− font size &nbsp;·&nbsp; n numbers &nbsp;·&nbsp; 1 dark</div>
   <div id="hint-zone"></div>
   <script>
     Common.paintFaviconR();
@@ -50,7 +50,69 @@
 
     const pre = document.getElementById('pre');
     const WORD = 'clock';
-    let charW, charH, cols, rows, fontSize = 0;
+    const MONO = 'ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace';
+    let charW, charH, cols, rows, fontSize = 0, showNumbers = false;
+
+    // Off-screen canvas for rendering digit glyphs.
+    const offCanvas = document.createElement('canvas');
+    const offCtx = offCanvas.getContext('2d');
+    let digitCache = new Map();
+
+    // Render digit character ch into a nCols×nRows character-cell grid by drawing
+    // it on an off-screen canvas at the correct pixel aspect ratio, then sampling
+    // each charW×charH pixel block. Results are cached per (ch, nCols, nRows).
+    function getDigitBitmap(ch, nCols, nRows) {
+      const key = `${ch}_${nCols}_${nRows}`;
+      if (digitCache.has(key)) return digitCache.get(key);
+
+      // Render at a quality scale so each cell is at least 16px wide/tall.
+      const Q = Math.max(1, Math.ceil(16 / Math.min(charW, charH)));
+      const pw = Math.ceil(nCols * charW * Q);
+      const ph = Math.ceil(nRows * charH * Q);
+
+      // Measure actual glyph bounding box at a large reference size.
+      const refSize = 500;
+      offCtx.font = `${refSize}px ${MONO}`;
+      const m0 = offCtx.measureText(ch);
+      const gW = m0.actualBoundingBoxRight - m0.actualBoundingBoxLeft;
+      const gH = m0.actualBoundingBoxAscent + m0.actualBoundingBoxDescent;
+
+      // Scale to fit the glyph inside the target canvas with a little padding.
+      const fitScale = Math.min(pw / gW, ph / gH) * 0.88;
+      const fontSize_ = refSize * fitScale;
+
+      offCanvas.width = pw + 2;
+      offCanvas.height = ph + 2;
+      offCtx.clearRect(0, 0, offCanvas.width, offCanvas.height);
+      offCtx.fillStyle = '#000';
+      offCtx.font = `${fontSize_}px ${MONO}`;
+
+      const m1 = offCtx.measureText(ch);
+      const drawX = (pw - (m1.actualBoundingBoxRight - m1.actualBoundingBoxLeft)) / 2
+                    - m1.actualBoundingBoxLeft;
+      const drawY = (ph - (m1.actualBoundingBoxAscent + m1.actualBoundingBoxDescent)) / 2
+                    + m1.actualBoundingBoxAscent;
+      offCtx.fillText(ch, drawX, drawY);
+
+      const imgData = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
+      const cw = charW * Q, ch_ = charH * Q;
+
+      const bitmap = Array.from({ length: nRows }, (_, row) =>
+        Array.from({ length: nCols }, (__, col) => {
+          const x0 = Math.round(col * cw), y0 = Math.round(row * ch_);
+          const x1 = Math.min(offCanvas.width,  Math.round((col + 1) * cw));
+          const y1 = Math.min(offCanvas.height, Math.round((row + 1) * ch_));
+          let sum = 0, n = 0;
+          for (let sy = y0; sy < y1; sy++)
+            for (let sx = x0; sx < x1; sx++)
+              sum += imgData.data[(sy * offCanvas.width + sx) * 4 + 3], n++;
+          return n > 0 && sum / n > 50 ? 1 : 0;
+        })
+      );
+
+      digitCache.set(key, bitmap);
+      return bitmap;
+    }
 
     function setup() {
       const vw = window.innerWidth, vh = window.innerHeight;
@@ -70,6 +132,7 @@
       cols = Math.floor(vw / charW);
       rows = Math.floor(vh / charH);
       lastText = '';
+      digitCache = new Map(); // invalidate on font-size change
     }
 
     function drawCircle(grid, cx, cy, rx, ry) {
@@ -108,6 +171,41 @@
       return [cx + rx * frac * Math.cos(angle), cy + ry * frac * Math.sin(angle)];
     }
 
+    // Place a number (1–12) centered at (centerCol, centerRow).
+    // Each digit is sampled from the actual monospace font glyph at nRows×nCols
+    // character cells, so the shapes match the font rather than a fixed bitmap.
+    function drawNumber(grid, num, centerCol, centerRow, nRows) {
+      const nCols = nRows;
+      const gap = Math.max(1, Math.round(nCols * 0.3));
+      const chars = String(num).split('');
+      const bitmaps = chars.map(ch => getDigitBitmap(ch, nCols, nRows));
+      const totalW = chars.length * nCols + (chars.length - 1) * gap;
+      const startC = Math.round(centerCol - totalW / 2);
+      const startR = Math.round(centerRow - nRows / 2);
+      let idx = 0;
+      for (let row = 0; row < nRows; row++) {
+        let c = startC;
+        for (const bmp of bitmaps) {
+          for (let dc = 0; dc < nCols; dc++) {
+            if (bmp[row][dc]) {
+              const gc = c + dc, gr = startR + row;
+              if (gc >= 0 && gc < cols && gr >= 0 && gr < rows)
+                grid[gr][gc] = WORD[idx++ % WORD.length];
+            }
+          }
+          c += nCols + gap;
+        }
+      }
+    }
+
+    // Draw a hand so text reads left→right (horizontal) or top→bottom (vertical).
+    function drawHand(grid, x0, y0, x1, y1, angle) {
+      const horiz = Math.abs(Math.cos(angle)) >= Math.abs(Math.sin(angle));
+      const flip  = horiz ? Math.round(x0) > Math.round(x1)
+                          : Math.round(y0) > Math.round(y1);
+      flip ? drawLine(grid, x1, y1, x0, y0) : drawLine(grid, x0, y0, x1, y1);
+    }
+
     let lastText = '';
 
     function draw() {
@@ -119,11 +217,18 @@
 
       drawCircle(grid, cx, cy, rx, ry);
 
+      const numRows = Math.max(4, Math.round(ry * 0.17));
       for (let h = 0; h < 12; h++) {
+        const num = h === 0 ? 12 : h;
         const t = (h / 12) * 2 * Math.PI - Math.PI / 2;
-        drawLine(grid,
-          cx + rx * 0.83 * Math.cos(t), cy + ry * 0.83 * Math.sin(t),
-          cx + rx * 0.93 * Math.cos(t), cy + ry * 0.93 * Math.sin(t));
+        if (showNumbers) {
+          drawNumber(grid, num, cx + rx * 0.76 * Math.cos(t), cy + ry * 0.76 * Math.sin(t), numRows);
+        } else {
+          drawHand(grid,
+            cx + rx * 0.83 * Math.cos(t), cy + ry * 0.83 * Math.sin(t),
+            cx + rx * 0.93 * Math.cos(t), cy + ry * 0.93 * Math.sin(t),
+            t);
+        }
       }
 
       const now = new Date();
@@ -136,14 +241,13 @@
 
       const [tx, ty] = pt(cx, cy, sa, rx, ry, -0.18);
       const [sx, sy] = pt(cx, cy, sa, rx, ry,  0.82);
-      drawLine(grid, tx, ty, cx, cy);
-      drawLine(grid, cx, cy, sx, sy);
+      drawHand(grid, tx, ty, sx, sy, sa);
 
       const [mx, my] = pt(cx, cy, ma, rx, ry, 0.70);
-      drawLine(grid, cx, cy, mx, my);
+      drawHand(grid, cx, cy, mx, my, ma);
 
       const [hx, hy] = pt(cx, cy, ha, rx, ry, 0.50);
-      drawLine(grid, cx, cy, hx, hy);
+      drawHand(grid, cx, cy, hx, hy, ha);
 
       const cc = Math.round(cx), cr = Math.round(cy);
       if (cc >= 0 && cc < cols && cr >= 0 && cr < rows) grid[cr][cc] = 'c';
@@ -161,8 +265,11 @@
     document.addEventListener('keydown', e => {
       if (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') {
         e.preventDefault();
-        fontSize = Math.max(6, Math.min(48, fontSize + (e.key === '+' || e.key === '=' ? 1 : -1)));
+        fontSize = Math.max(4, Math.min(48, fontSize + (e.key === '+' || e.key === '=' ? 1 : -1)));
         setup();
+        showHint();
+      } else if ((e.key === 'n' || e.key === 'N') && !e.repeat) {
+        showNumbers = !showNumbers;
         showHint();
       }
     });
