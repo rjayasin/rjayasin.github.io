@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ruvan / clock</title>
+  <link rel="icon" id="favicon">
+  <link rel="stylesheet" href="/common.css">
+  <style>
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    #pre {
+      position: absolute;
+      top: 0; left: 0;
+      font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+      line-height: 1;
+      overflow: hidden;
+      white-space: pre;
+      cursor: text;
+    }
+    #hint {
+      position: fixed;
+      left: 0; right: 0; bottom: 12px;
+      text-align: center;
+      font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+      font-size: 12px;
+      color: #888;
+      opacity: 1;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+      user-select: none;
+      z-index: 1;
+    }
+    #hint.hidden { opacity: 0; }
+    #hint-zone {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 60px;
+      z-index: 2;
+    }
+  </style>
+  <script src="/common.js"></script>
+</head>
+<body>
+  <pre id="pre"></pre>
+  <div id="hint">+/− font size &nbsp;·&nbsp; 1 dark</div>
+  <div id="hint-zone"></div>
+  <script>
+    Common.paintFaviconR();
+    Common.initDarkMode();
+
+    const pre = document.getElementById('pre');
+    const WORD = 'clock';
+    let charW, charH, cols, rows, fontSize = 0;
+
+    function setup() {
+      const vw = window.innerWidth, vh = window.innerHeight;
+      if (!fontSize) {
+        fontSize = Math.max(9, Math.min(16, Math.round(Math.min(vw, vh) / 50)));
+      }
+      pre.style.fontSize = fontSize + 'px';
+
+      const probe = document.createElement('span');
+      probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;line-height:1;font-family:inherit;font-size:inherit';
+      probe.textContent = 'o'.repeat(100);
+      pre.appendChild(probe);
+      charW = probe.getBoundingClientRect().width / 100;
+      pre.removeChild(probe);
+      charH = fontSize;
+
+      cols = Math.floor(vw / charW);
+      rows = Math.floor(vh / charH);
+      lastText = '';
+    }
+
+    function drawCircle(grid, cx, cy, rx, ry) {
+      const n = Math.ceil(4 * Math.max(rx, ry) * Math.PI);
+      const seen = new Set();
+      let idx = 0;
+      for (let i = 0; i < n; i++) {
+        const t = (i / n) * 2 * Math.PI - Math.PI / 2;
+        const c = Math.round(cx + rx * Math.cos(t));
+        const r = Math.round(cy + ry * Math.sin(t));
+        const k = r * 1e5 + c;
+        if (!seen.has(k) && c >= 0 && c < cols && r >= 0 && r < rows) {
+          seen.add(k);
+          grid[r][c] = WORD[idx++ % WORD.length];
+        }
+      }
+    }
+
+    function drawLine(grid, x0, y0, x1, y1) {
+      x0 = Math.round(x0); y0 = Math.round(y0);
+      x1 = Math.round(x1); y1 = Math.round(y1);
+      let dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+      let dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+      let err = dx + dy, idx = 0;
+      while (true) {
+        if (x0 >= 0 && x0 < cols && y0 >= 0 && y0 < rows)
+          grid[y0][x0] = WORD[idx++ % WORD.length];
+        if (x0 === x1 && y0 === y1) break;
+        const e2 = 2 * err;
+        if (e2 >= dy) { err += dy; x0 += sx; }
+        if (e2 <= dx) { err += dx; y0 += sy; }
+      }
+    }
+
+    function pt(cx, cy, angle, rx, ry, frac) {
+      return [cx + rx * frac * Math.cos(angle), cy + ry * frac * Math.sin(angle)];
+    }
+
+    let lastText = '';
+
+    function draw() {
+      const cx = cols / 2, cy = rows / 2;
+      const R_px = Math.min(cols * charW, rows * charH) * 0.42;
+      const rx = R_px / charW, ry = R_px / charH;
+
+      const grid = Array.from({ length: rows }, () => new Array(cols).fill(' '));
+
+      drawCircle(grid, cx, cy, rx, ry);
+
+      for (let h = 0; h < 12; h++) {
+        const t = (h / 12) * 2 * Math.PI - Math.PI / 2;
+        drawLine(grid,
+          cx + rx * 0.83 * Math.cos(t), cy + ry * 0.83 * Math.sin(t),
+          cx + rx * 0.93 * Math.cos(t), cy + ry * 0.93 * Math.sin(t));
+      }
+
+      const now = new Date();
+      const s = now.getSeconds() + now.getMilliseconds() / 1000;
+      const m = now.getMinutes() + s / 60;
+      const h = (now.getHours() % 12) + m / 60;
+      const sa = (s / 60) * 2 * Math.PI - Math.PI / 2;
+      const ma = (m / 60) * 2 * Math.PI - Math.PI / 2;
+      const ha = (h / 12) * 2 * Math.PI - Math.PI / 2;
+
+      const [tx, ty] = pt(cx, cy, sa, rx, ry, -0.18);
+      const [sx, sy] = pt(cx, cy, sa, rx, ry,  0.82);
+      drawLine(grid, tx, ty, cx, cy);
+      drawLine(grid, cx, cy, sx, sy);
+
+      const [mx, my] = pt(cx, cy, ma, rx, ry, 0.70);
+      drawLine(grid, cx, cy, mx, my);
+
+      const [hx, hy] = pt(cx, cy, ha, rx, ry, 0.50);
+      drawLine(grid, cx, cy, hx, hy);
+
+      const cc = Math.round(cx), cr = Math.round(cy);
+      if (cc >= 0 && cc < cols && cr >= 0 && cr < rows) grid[cr][cc] = 'c';
+
+      const text = grid.map(r => r.join('')).join('\n');
+      if (text !== lastText) pre.textContent = lastText = text;
+    }
+
+    function tick() { draw(); requestAnimationFrame(tick); }
+
+    setup();
+    tick();
+    window.addEventListener('resize', setup);
+
+    document.addEventListener('keydown', e => {
+      if (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') {
+        e.preventDefault();
+        fontSize = Math.max(6, Math.min(48, fontSize + (e.key === '+' || e.key === '=' ? 1 : -1)));
+        setup();
+        showHint();
+      }
+    });
+
+    const hintEl = document.getElementById('hint');
+    const hintZone = document.getElementById('hint-zone');
+    let hintTimer = null;
+    function showHint() {
+      hintEl.classList.remove('hidden');
+      clearTimeout(hintTimer);
+      hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 2500);
+    }
+    showHint();
+    hintZone.addEventListener('mouseenter', showHint);
+    hintZone.addEventListener('mousemove', showHint);
+  </script>
+</body>
+</html>
