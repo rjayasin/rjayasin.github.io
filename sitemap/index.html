@@ -5,18 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ruvan / sitemap</title>
   <link rel="icon" id="favicon">
+  <link rel="stylesheet" href="/common.css">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     body {
-      background: #ffffff;
-      color: #000000;
       font-family: monospace;
       font-size: 13px;
       line-height: 1.6;
       padding: 48px 32px;
       max-width: 720px;
-      transition: background-color 0.2s ease, color 0.2s ease;
     }
     a, h1 {
       transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
@@ -36,16 +32,13 @@
     li a { color: #000; text-decoration: none; }
     li a:hover { text-decoration: underline; }
     @media (max-width: 640px) {
-      h2 { font-size: 15px; }
-    }
-    @media (max-width: 640px) {
       body { font-size: 15px; padding: 32px 20px; }
-      h1 { font-size: 15px; }
+      h1, h2 { font-size: 15px; }
     }
-    body.dark { background: #111; color: #fff; }
     body.dark header a,
     body.dark li a { color: #fff; }
   </style>
+  <script src="/common.js"></script>
 </head>
 <body>
   <header>
@@ -71,34 +64,23 @@
     <li><span class="branch">    └── </span><a href="https://rjayasin.github.io/visualizer/video-player.html" target="_blank" rel="noopener">video-player</a></li>
   </ul>
   <script>
-    (function() {
-      const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><style>text{fill:#000}@media(prefers-color-scheme:dark){text{fill:#fff}}</style><text x="50" y="86" font-size="90" font-family="Georgia,serif" text-anchor="middle">R</text></svg>';
-      const link = document.createElement('link');
-      link.rel = 'icon';
-      link.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
-      document.head.appendChild(link);
-    })();
-
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      document.body.classList.add('dark');
-    }
-    document.addEventListener('keydown', e => {
-      if (e.key === '1' && !e.repeat && !e.metaKey && !e.ctrlKey) document.body.classList.toggle('dark');
-    });
+    Common.paintFaviconR();
+    Common.initDarkMode();
 
     let words = ['hello'];
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?@#&*';
-    function pickWord() { return words[Math.floor(Math.random() * words.length)]; }
-    function pickChar() { return chars[Math.floor(Math.random() * chars.length)]; }
+    const pickWord = () => words[Math.floor(Math.random() * words.length)];
+    const pickChar = () => chars[Math.floor(Math.random() * chars.length)];
     function randomize() {
       document.getElementById('box-link').href = '/box/?' + pickWord();
       document.getElementById('stack-link').href = '/stack/?' + pickWord();
       document.getElementById('grid-link').href = '/#/' + encodeURIComponent(pickChar());
     }
     randomize();
-    document.getElementById('box-link').addEventListener('mousedown', randomize);
-    document.getElementById('stack-link').addEventListener('mousedown', randomize);
-    document.getElementById('grid-link').addEventListener('mousedown', randomize);
+    ['box-link', 'stack-link', 'grid-link'].forEach(id => {
+      document.getElementById(id).addEventListener('mousedown', randomize);
+    });
+
     fetch('/words.txt').then(r => r.text()).then(t => {
       const list = t.split(/\s+/).filter(w => w.length > 0);
       if (list.length) { words = list; randomize(); }

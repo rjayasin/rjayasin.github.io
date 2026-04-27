@@ -1,0 +1,9 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  background: #ffffff;
+  color: #000000;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+body.dark { background: #111111; color: #ffffff; }
+body.hide-cursor, body.hide-cursor * { cursor: none !important; }
