@@ -3,6 +3,7 @@
 `text`
 
 - [`box`](https://rjayasin.github.io/box/?hello/world)
+- [`clock`](https://rjayasin.github.io/clock/)
 - [`grid`](https://rjayasin.github.io/#/*)
 - [`stack`](https://rjayasin.github.io/stack/?hello/world)
 
