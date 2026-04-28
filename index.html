@@ -146,6 +146,9 @@
         if ((e.key === 'g' || e.key === 'G') && !e.repeat && currentHomeFont) {
           Common.openFontSpecimen(currentHomeFont);
         }
+        if ((e.key === 's' || e.key === 'S') && !e.repeat) {
+          window.open('/sitemap/', '_blank', 'noopener');
+        }
       });
 
       Common.onTap(handleClick);
