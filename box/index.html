@@ -72,7 +72,7 @@
     Common.initCursorHide();
 
     const boxEl = document.getElementById('box');
-    let fontSize = 40;
+    let fontSize = window.innerWidth < 640 ? 20 : 40;
     let cols = 6;
     let rows = 6;
     let hGap = 0;
