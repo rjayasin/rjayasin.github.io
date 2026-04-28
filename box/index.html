@@ -69,6 +69,7 @@
     let cols = 6;
     let rows = 6;
     let currentFont = null;
+    let fallbackItems = null;
 
     const measureCanvas = document.createElement('canvas');
     const measureCtx = measureCanvas.getContext('2d');
@@ -93,9 +94,9 @@
     }
 
     function render() {
-      const items = Common.parseQueryItems();
+      const items = Common.parseQueryItems().length ? Common.parseQueryItems() : fallbackItems;
       boxEl.textContent = '';
-      if (items.length === 0) return;
+      if (!items || items.length === 0) return;
       const font = currentFont || 'serif';
       const { maxWidth, cellH } = measureItems(items, font);
       const cellW = Math.ceil(maxWidth + fontSize * 0.4);
@@ -117,6 +118,16 @@
     }
     render();
     window.addEventListener('resize', render);
+
+    if (Common.parseQueryItems().length === 0) {
+      fetch('/words.txt').then(r => r.text()).then(t => {
+        const list = t.split(/\s+/).filter(w => w.length > 0);
+        if (list.length) {
+          fallbackItems = [list[Math.floor(Math.random() * list.length)]];
+          render();
+        }
+      }).catch(() => {});
+    }
 
     const cooldown = Common.makeCooldown(500);
     async function pickFont() {

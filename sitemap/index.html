@@ -68,24 +68,13 @@
     Common.paintFaviconR();
     Common.initDarkMode();
 
-    let words = ['hello'];
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?@#&*';
-    const pickWord = () => words[Math.floor(Math.random() * words.length)];
     const pickChar = () => chars[Math.floor(Math.random() * chars.length)];
-    function randomize() {
-      document.getElementById('box-link').href = '/box/?' + pickWord();
-      document.getElementById('stack-link').href = '/stack/?' + pickWord();
+    function randomizeGrid() {
       document.getElementById('grid-link').href = '/#/' + encodeURIComponent(pickChar());
     }
-    randomize();
-    ['box-link', 'stack-link', 'grid-link'].forEach(id => {
-      document.getElementById(id).addEventListener('mousedown', randomize);
-    });
-
-    fetch('/words.txt').then(r => r.text()).then(t => {
-      const list = t.split(/\s+/).filter(w => w.length > 0);
-      if (list.length) { words = list; randomize(); }
-    }).catch(() => {});
+    randomizeGrid();
+    document.getElementById('grid-link').addEventListener('mousedown', randomizeGrid);
   </script>
 </body>
 </html>
