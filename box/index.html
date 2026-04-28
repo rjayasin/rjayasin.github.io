@@ -72,9 +72,24 @@
 
     const measureCanvas = document.createElement('canvas');
     const measureCtx = measureCanvas.getContext('2d');
-    function measureWord(t, font) {
+    function measureItems(items, font) {
       measureCtx.font = `${fontSize}px '${font}', serif`;
-      return measureCtx.measureText(t).width;
+      // fontBoundingBoxAscent is the CSS ascender metric used for line-height baseline placement.
+      // With lineHeight=cellH, baseline is at (cellH - fontSize)/2 + cssFontAscent from the cell top.
+      // ink bottom = baseline + maxInkDescent must fit within cellH, so:
+      //   cellH = 2*cssFontAscent + 2*maxInkDescent - fontSize + padding
+      const fm = measureCtx.measureText('x');
+      const cssFontAscent = fm.fontBoundingBoxAscent ?? fontSize * 0.8;
+      let maxWidth = 0, maxInkDescent = fontSize * 0.2;
+      for (const word of items) {
+        maxWidth = Math.max(maxWidth, measureCtx.measureText(word).width);
+        for (const ch of word) {
+          const cm = measureCtx.measureText(ch);
+          maxInkDescent = Math.max(maxInkDescent, cm.actualBoundingBoxDescent || 0);
+        }
+      }
+      const cellH = Math.ceil(2 * cssFontAscent + 2 * maxInkDescent - fontSize + fontSize * 0.1);
+      return { maxWidth, cellH };
     }
 
     function render() {
@@ -82,8 +97,8 @@
       boxEl.textContent = '';
       if (items.length === 0) return;
       const font = currentFont || 'serif';
-      const cellW = Math.ceil(Math.max(...items.map(w => measureWord(w, font))) + fontSize * 0.4);
-      const cellH = Math.ceil(fontSize * 1.0);
+      const { maxWidth, cellH } = measureItems(items, font);
+      const cellW = Math.ceil(maxWidth + fontSize * 0.4);
       boxEl.style.width = (cellW * cols) + 'px';
       boxEl.style.height = (cellH * rows) + 'px';
       const total = cols * rows;
