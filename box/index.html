@@ -199,7 +199,11 @@
     showHint();
     hintZone.addEventListener('mouseenter', showHint);
     hintZone.addEventListener('mousemove', showHint);
+    hintZone.addEventListener('touchstart', showHint, { passive: true });
+    hintZone.addEventListener('touchend', e => e.stopPropagation());
     hintEl.addEventListener('click', e => e.stopPropagation());
+    hintEl.addEventListener('touchstart', () => clearTimeout(hintTimer), { passive: true });
+    hintEl.addEventListener('touchend', e => { e.stopPropagation(); showHint(); });
     hintEl.addEventListener('mouseenter', () => { clearTimeout(hintTimer); hintEl.classList.remove('hidden'); });
     hintEl.addEventListener('mouseleave', showHint);
 
