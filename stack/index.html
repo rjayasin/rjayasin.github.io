@@ -35,13 +35,14 @@
 
     const stackEl = document.getElementById('stack');
     let fontSize = 40;
+    let fallbackItems = null;
     function applySize() { stackEl.style.fontSize = fontSize + 'px'; }
     applySize();
 
     function render() {
-      const items = Common.parseQueryItems();
+      const items = Common.parseQueryItems().length ? Common.parseQueryItems() : fallbackItems;
       stackEl.innerHTML = '';
-      if (items.length === 0) return;
+      if (!items || items.length === 0) return;
       const probe = document.createElement('div');
       probe.textContent = items[0];
       stackEl.appendChild(probe);
@@ -58,6 +59,16 @@
     }
     render();
     window.addEventListener('resize', render);
+
+    if (Common.parseQueryItems().length === 0) {
+      fetch('/words.txt').then(r => r.text()).then(t => {
+        const list = t.split(/\s+/).filter(w => w.length > 0);
+        if (list.length) {
+          fallbackItems = [list[Math.floor(Math.random() * list.length)]];
+          render();
+        }
+      }).catch(() => {});
+    }
 
     let currentFont = null;
     const cooldown = Common.makeCooldown(500);
