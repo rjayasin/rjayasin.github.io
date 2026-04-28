@@ -26,11 +26,18 @@
       color: #888;
       opacity: 1;
       transition: opacity 0.4s ease;
-      pointer-events: none;
       user-select: none;
-      z-index: 1;
+      z-index: 3;
     }
-    #hint.hidden { opacity: 0; }
+    #hint.hidden { opacity: 0; pointer-events: none; }
+    #hint .hint-btn {
+      cursor: pointer;
+      text-decoration: underline;
+      text-decoration-style: dotted;
+      text-underline-offset: 2px;
+    }
+    #hint .hint-btn:hover { color: #333; }
+    body.dark #hint .hint-btn:hover { color: #ccc; }
     #hint-zone {
       position: fixed;
       left: 0; right: 0; bottom: 0;
@@ -42,7 +49,7 @@
 </head>
 <body>
   <pre id="pre"></pre>
-  <div id="hint">+/− font size &nbsp;·&nbsp; n numbers &nbsp;·&nbsp; 1 dark</div>
+  <div id="hint"><span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd">−</span> font size &nbsp;·&nbsp; <span class="hint-btn" id="hb-num">n numbers</span> &nbsp;·&nbsp; <span class="hint-btn" id="hb-dark">1 dark</span></div>
   <div id="hint-zone"></div>
   <script>
     Common.paintFaviconR();
@@ -286,6 +293,14 @@
     showHint();
     hintZone.addEventListener('mouseenter', showHint);
     hintZone.addEventListener('mousemove', showHint);
+    hintEl.addEventListener('click', e => e.stopPropagation());
+    hintEl.addEventListener('mouseenter', () => { clearTimeout(hintTimer); hintEl.classList.remove('hidden'); });
+    hintEl.addEventListener('mouseleave', showHint);
+
+    document.getElementById('hb-fi').addEventListener('click', () => { fontSize = Math.max(4, Math.min(48, fontSize + 1)); setup(); showHint(); });
+    document.getElementById('hb-fd').addEventListener('click', () => { fontSize = Math.max(4, Math.min(48, fontSize - 1)); setup(); showHint(); });
+    document.getElementById('hb-num').addEventListener('click', () => { showNumbers = !showNumbers; showHint(); });
+    document.getElementById('hb-dark').addEventListener('click', () => { document.body.classList.toggle('dark'); window.dispatchEvent(new CustomEvent('darkmodechange')); showHint(); });
   </script>
 </body>
 </html>
