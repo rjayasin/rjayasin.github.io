@@ -64,7 +64,7 @@
 </head>
 <body>
   <div id="box"></div>
-  <div id="hint"><span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd">−</span> font size &nbsp;·&nbsp; <span class="hint-btn" id="hb-cl">←</span>/<span class="hint-btn" id="hb-cr">→</span> width &nbsp;·&nbsp; <span class="hint-btn" id="hb-ru">↑</span>/<span class="hint-btn" id="hb-rd">↓</span> height &nbsp;·&nbsp; <span class="hint-btn" id="hb-font">click font</span> &nbsp;·&nbsp; <span class="hint-btn" id="hb-goog">g google fonts</span> &nbsp;·&nbsp; <span class="hint-btn" id="hb-dark">1 dark</span></div>
+  <div id="hint"><span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd">−</span> font size &nbsp;·&nbsp; <span class="hint-btn" id="hb-cl">←</span>/<span class="hint-btn" id="hb-cr">→</span> width &nbsp;·&nbsp; <span class="hint-btn" id="hb-ru">↑</span>/<span class="hint-btn" id="hb-rd">↓</span> height &nbsp;·&nbsp; <span class="hint-btn" id="hb-hgd">⌥←</span>/<span class="hint-btn" id="hb-hgi">⌥→</span> word gap &nbsp;·&nbsp; <span class="hint-btn" id="hb-vgi">⌥↑</span>/<span class="hint-btn" id="hb-vgd">⌥↓</span> line gap &nbsp;·&nbsp; <span class="hint-btn" id="hb-font">click font</span> &nbsp;·&nbsp; <span class="hint-btn" id="hb-goog">g google fonts</span> &nbsp;·&nbsp; <span class="hint-btn" id="hb-dark">1 dark</span></div>
   <div id="hint-zone"></div>
   <script>
     Common.paintFaviconR();
@@ -75,6 +75,8 @@
     let fontSize = 40;
     let cols = 6;
     let rows = 6;
+    let hGap = 0;
+    let vGap = 0;
     let currentFont = null;
     let fallbackItems = null;
 
@@ -96,7 +98,7 @@
           maxInkDescent = Math.max(maxInkDescent, cm.actualBoundingBoxDescent || 0);
         }
       }
-      const cellH = Math.ceil(2 * cssFontAscent + 2 * maxInkDescent - fontSize + fontSize * 0.1);
+      const cellH = Math.ceil(2 * cssFontAscent + 2 * maxInkDescent - fontSize + fontSize * 0.1 + vGap);
       return { maxWidth, cellH };
     }
 
@@ -106,7 +108,7 @@
       if (!items || items.length === 0) return;
       const font = currentFont || 'serif';
       const { maxWidth, cellH } = measureItems(items, font);
-      const cellW = Math.ceil(maxWidth + fontSize * 0.4);
+      const cellW = Math.ceil(maxWidth + fontSize * 0.4 + hGap);
       boxEl.style.width = (cellW * cols) + 'px';
       boxEl.style.height = (cellH * rows) + 'px';
       const total = cols * rows;
@@ -160,6 +162,18 @@
         render();
         return;
       }
+      if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        e.preventDefault();
+        hGap += (e.key === 'ArrowRight' ? 4 : -4);
+        render();
+        return;
+      }
+      if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        e.preventDefault();
+        vGap += (e.key === 'ArrowUp' ? 4 : -4);
+        render();
+        return;
+      }
       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
         e.preventDefault();
         cols = Math.max(1, Math.min(200, cols + (e.key === 'ArrowRight' ? 1 : -1)));
@@ -195,6 +209,10 @@
     document.getElementById('hb-cr').addEventListener('click', () => { cols = Math.max(1, Math.min(200, cols + 1)); render(); showHint(); });
     document.getElementById('hb-ru').addEventListener('click', () => { rows = Math.max(1, Math.min(200, rows + 1)); render(); showHint(); });
     document.getElementById('hb-rd').addEventListener('click', () => { rows = Math.max(1, Math.min(200, rows - 1)); render(); showHint(); });
+    document.getElementById('hb-hgd').addEventListener('click', () => { hGap -= 4; render(); showHint(); });
+    document.getElementById('hb-hgi').addEventListener('click', () => { hGap += 4; render(); showHint(); });
+    document.getElementById('hb-vgi').addEventListener('click', () => { vGap += 4; render(); showHint(); });
+    document.getElementById('hb-vgd').addEventListener('click', () => { vGap -= 4; render(); showHint(); });
     document.getElementById('hb-font').addEventListener('click', pickFont);
     document.getElementById('hb-goog').addEventListener('click', () => { if (currentFont) Common.openFontSpecimen(currentFont); });
     document.getElementById('hb-dark').addEventListener('click', () => { document.body.classList.toggle('dark'); window.dispatchEvent(new CustomEvent('darkmodechange')); showHint(); });
