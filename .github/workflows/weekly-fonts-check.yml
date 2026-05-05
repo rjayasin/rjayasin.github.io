@@ -1,0 +1,36 @@
+name: Weekly Google Fonts check
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Detect new Google Fonts
+        run: node scripts/check-new-fonts.js
+
+      - name: Download missing .woff2 files
+        run: node scripts/fetch-fonts.js
+
+      - name: Commit and push if changed
+        run: |
+          if [[ -z "$(git status --porcelain)" ]]; then
+            echo "No changes."
+            exit 0
+          fi
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add fonts.js fonts/
+          git commit -m "add new google fonts (weekly auto-update)"
+          git push origin HEAD:main
