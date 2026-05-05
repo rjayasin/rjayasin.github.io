@@ -151,6 +151,7 @@ window.googleFonts = [
   "BIZ UDPGothic",
   "BIZ UDPMincho",
   "BJ Cree",
+  "BJCree",
   "Babylonica",
   "Bacasime Antique",
   "Bad Script",
