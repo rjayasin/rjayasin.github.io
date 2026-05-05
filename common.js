@@ -60,20 +60,24 @@ window.Common = window.Common || {};
     document.addEventListener('keydown', hide);
   }
 
+  function slugifyFont(name) {
+    return name.toLowerCase().replace(/ /g, '-');
+  }
+
   const loadedGoogleFonts = new Set();
   function loadGoogleFont(font) {
     if (loadedGoogleFonts.has(font)) {
       return document.fonts.load(`1em '${font}'`).catch(() => {});
     }
     loadedGoogleFonts.add(font);
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(font)}&display=block`;
-    return new Promise(resolve => {
-      link.onload = resolve;
-      link.onerror = resolve;
-      document.head.appendChild(link);
-    }).then(() => document.fonts.load(`1em '${font}'`).catch(() => {}));
+    const slug = slugifyFont(font);
+    const style = document.createElement('style');
+    style.dataset.font = slug;
+    style.textContent =
+      `@font-face{font-family:"${font}";font-display:block;` +
+      `src:url("/fonts/${slug}.woff2") format("woff2");}`;
+    document.head.appendChild(style);
+    return document.fonts.load(`1em '${font}'`).catch(() => {});
   }
 
   function pickRandomGoogleFont() {
@@ -140,6 +144,7 @@ window.Common = window.Common || {};
     initCursorHide,
     loadGoogleFont,
     loadedGoogleFonts,
+    slugifyFont,
     pickRandomGoogleFont,
     pickLoadedGoogleFont,
     openFontSpecimen,
