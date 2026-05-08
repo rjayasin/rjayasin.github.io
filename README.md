@@ -1,5 +1,9 @@
 <!-- Keep every section and sublist alphabetically ordered. -->
 
+`fun`
+
+- [`maze-canvas`](https://rjayasin.github.io/maze-canvas/)
+
 `text`
 
 - [`box`](https://rjayasin.github.io/box/?hello/world)
