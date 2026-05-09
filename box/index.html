@@ -41,6 +41,13 @@
       user-select: none;
       z-index: 3;
     }
+    #hint-inner {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: #fff;
+    }
+    body.dark #hint-inner { background: #000; }
     #hint.hidden { opacity: 0; pointer-events: none; }
     #hint .hint-btn {
       cursor: pointer;
@@ -63,7 +70,7 @@
 </head>
 <body>
   <div id="box"></div>
-  <div id="hint"><span style="white-space:nowrap"><span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd">−</span> font size</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-cl">←</span>/<span class="hint-btn" id="hb-cr">→</span> width</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-ru">↑</span>/<span class="hint-btn" id="hb-rd">↓</span> height</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-hgd">⌥←</span>/<span class="hint-btn" id="hb-hgi">⌥→</span> word gap</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-vgi">⌥↑</span>/<span class="hint-btn" id="hb-vgd">⌥↓</span> line gap</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-font">click font</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-goog">g google fonts</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 dark</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-text"><span id="hb-text-label"></span></span> text</span></div>
+  <div id="hint"><span id="hint-inner"><span style="white-space:nowrap"><span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd">−</span> font size</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-cl">←</span>/<span class="hint-btn" id="hb-cr">→</span> width</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-ru">↑</span>/<span class="hint-btn" id="hb-rd">↓</span> height</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-hgd">⌥←</span>/<span class="hint-btn" id="hb-hgi">⌥→</span> word gap</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-vgi">⌥↑</span>/<span class="hint-btn" id="hb-vgd">⌥↓</span> line gap</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-font">click font</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-goog">g google fonts</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 dark</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-text"><span id="hb-text-label"></span></span> text</span></span></div>
   <div id="hint-zone"></div>
   <script>
     Common.paintFaviconR();
