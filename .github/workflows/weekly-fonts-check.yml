@@ -23,6 +23,9 @@ jobs:
       - name: Download missing .woff2 files
         run: node scripts/fetch-fonts.js
 
+      - name: Refresh font licenses & attribution
+        run: node scripts/fetch-licenses.js
+
       - name: Commit and push if changed
         run: |
           if [[ -z "$(git status --porcelain)" ]]; then
