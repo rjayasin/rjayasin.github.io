@@ -194,9 +194,11 @@
     const hintEl = document.getElementById('hint');
     const hintZone = document.getElementById('hint-zone');
     let hintTimer = null;
+    let hintLocked = false;
     function showHint() {
       hintEl.classList.remove('hidden');
       clearTimeout(hintTimer);
+      if (hintLocked) return;
       hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 2500);
     }
     showHint();
@@ -229,8 +231,8 @@
       labelEl: document.getElementById('hb-text-label'),
       getItems: () => Common.parseQueryItems().length ? Common.parseQueryItems() : (fallbackItems || []),
       onCommit: render,
-      onEditStart: () => clearTimeout(hintTimer),
-      onEditEnd: showHint,
+      onEditStart: () => { hintLocked = true; clearTimeout(hintTimer); hintEl.classList.remove('hidden'); },
+      onEditEnd: () => { hintLocked = false; showHint(); },
     });
     const refreshTextLabel = textEditor.refresh;
 
