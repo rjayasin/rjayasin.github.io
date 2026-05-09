@@ -132,7 +132,9 @@
       fetch('/words.txt').then(r => r.text()).then(t => {
         const list = t.split(/\s+/).filter(w => w.length > 0);
         if (list.length) {
-          fallbackItems = [list[Math.floor(Math.random() * list.length)]];
+          const word = list[Math.floor(Math.random() * list.length)];
+          fallbackItems = [word];
+          history.replaceState(null, '', location.pathname + '?' + encodeURIComponent(word) + location.hash);
           render();
           refreshTextLabel();
         }
