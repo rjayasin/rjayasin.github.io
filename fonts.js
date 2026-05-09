@@ -1604,6 +1604,7 @@ window.googleFonts = [
   "Ruwudu",
   "Rye",
   "SN Pro",
+  "STIX Two Math",
   "STIX Two Text",
   "SUSE",
   "SUSE Mono",
