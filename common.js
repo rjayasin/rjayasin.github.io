@@ -126,6 +126,56 @@ window.Common = window.Common || {};
     }, { passive: false });
   }
 
+  function initTextEditor({ buttonEl, labelEl, getItems, onCommit, onEditStart, onEditEnd }) {
+    let label = labelEl;
+    function refresh() {
+      if (label && label.parentNode) label.textContent = getItems().join('/');
+    }
+    function commit(parts) {
+      const filtered = parts.filter(s => s.length > 0);
+      if (filtered.length === 0) return;
+      const newSearch = '?' + filtered.map(encodeURIComponent).join('/');
+      history.replaceState(null, '', location.pathname + newSearch + location.hash);
+      onCommit && onCommit();
+      refresh();
+    }
+    function start() {
+      if (buttonEl.querySelector('input')) return;
+      const cur = getItems().join('/');
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = cur;
+      input.className = 'hint-input';
+      input.size = Math.max(4, cur.length);
+      label.replaceWith(input);
+      input.focus();
+      input.select();
+      onEditStart && onEditStart();
+      let done = false;
+      const finish = (doCommit) => {
+        if (done) return;
+        done = true;
+        if (doCommit) commit(input.value.split('/'));
+        const span = document.createElement('span');
+        span.id = label.id;
+        input.replaceWith(span);
+        label = span;
+        refresh();
+        onEditEnd && onEditEnd();
+      };
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+        else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+      });
+      input.addEventListener('input', () => { input.size = Math.max(4, input.value.length); });
+      input.addEventListener('blur', () => finish(true));
+      input.addEventListener('click', e => e.stopPropagation());
+    }
+    buttonEl.addEventListener('click', e => { e.stopPropagation(); start(); });
+    refresh();
+    return { refresh };
+  }
+
   function loadScript(src) {
     return new Promise((resolve, reject) => {
       const s = document.createElement('script');
@@ -152,5 +202,6 @@ window.Common = window.Common || {};
     makeCooldown,
     onTap,
     loadScript,
+    initTextEditor,
   });
 })();
