@@ -97,7 +97,10 @@
           maxInkDescent = Math.max(maxInkDescent, cm.actualBoundingBoxDescent || 0);
         }
       }
-      const cellH = Math.ceil(2 * cssFontAscent + 2 * maxInkDescent - fontSize + fontSize * 0.1 + vGap);
+      const cellHBase = 2 * cssFontAscent + 2 * maxInkDescent - fontSize + fontSize * 0.1;
+      const minVGap = -cellHBase;
+      if (vGap < minVGap) vGap = minVGap;
+      const cellH = Math.max(0, Math.ceil(cellHBase + vGap));
       return { maxWidth, cellH };
     }
 
@@ -107,9 +110,15 @@
       if (!items || items.length === 0) return;
       const font = currentFont || 'serif';
       const { maxWidth, cellH } = measureItems(items, font);
-      const cellW = Math.ceil(maxWidth + fontSize * 0.4 + hGap);
+      const cellWBase = maxWidth + fontSize * 0.4;
+      const minHGap = -cellWBase;
+      if (hGap < minHGap) hGap = minHGap;
+      const cellW = Math.max(0, Math.ceil(cellWBase + hGap));
       boxEl.style.width = (cellW * cols) + 'px';
       boxEl.style.height = (cellH * rows) + 'px';
+      boxEl.style.display = 'grid';
+      boxEl.style.gridTemplateColumns = `repeat(${cols}, ${cellW}px)`;
+      boxEl.style.gridAutoRows = cellH + 'px';
       const total = cols * rows;
       const frag = document.createDocumentFragment();
       for (let i = 0; i < total; i++) {
@@ -167,13 +176,13 @@
       }
       if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
         e.preventDefault();
-        hGap = Math.max(0, hGap + (e.key === 'ArrowRight' ? 2 : -2));
+        hGap += (e.key === 'ArrowRight' ? 2 : -2);
         render();
         return;
       }
       if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
         e.preventDefault();
-        vGap = Math.max(0, vGap + (e.key === 'ArrowUp' ? 2 : -2));
+        vGap += (e.key === 'ArrowUp' ? 2 : -2);
         render();
         return;
       }
@@ -218,10 +227,10 @@
     document.getElementById('hb-cr').addEventListener('click', () => { cols = Math.max(1, Math.min(200, cols + 1)); render(); showHint(); });
     document.getElementById('hb-ru').addEventListener('click', () => { rows = Math.max(1, Math.min(200, rows + 1)); render(); showHint(); });
     document.getElementById('hb-rd').addEventListener('click', () => { rows = Math.max(1, Math.min(200, rows - 1)); render(); showHint(); });
-    document.getElementById('hb-hgd').addEventListener('click', () => { hGap = Math.max(0, hGap - 2); render(); showHint(); });
+    document.getElementById('hb-hgd').addEventListener('click', () => { hGap -= 2; render(); showHint(); });
     document.getElementById('hb-hgi').addEventListener('click', () => { hGap += 2; render(); showHint(); });
     document.getElementById('hb-vgi').addEventListener('click', () => { vGap += 2; render(); showHint(); });
-    document.getElementById('hb-vgd').addEventListener('click', () => { vGap = Math.max(0, vGap - 2); render(); showHint(); });
+    document.getElementById('hb-vgd').addEventListener('click', () => { vGap -= 2; render(); showHint(); });
     document.getElementById('hb-font').addEventListener('click', pickFont);
     document.getElementById('hb-goog').addEventListener('click', () => { if (currentFont) Common.openFontSpecimen(currentFont); });
     document.getElementById('hb-dark').addEventListener('click', () => { Common.toggleDark(); showHint(); });
