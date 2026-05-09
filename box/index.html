@@ -64,7 +64,7 @@
 </head>
 <body>
   <div id="box"></div>
-  <div id="hint"><span style="white-space:nowrap"><span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd">−</span> font size</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-cl">←</span>/<span class="hint-btn" id="hb-cr">→</span> width</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-ru">↑</span>/<span class="hint-btn" id="hb-rd">↓</span> height</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-hgd">⌥←</span>/<span class="hint-btn" id="hb-hgi">⌥→</span> word gap</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-vgi">⌥↑</span>/<span class="hint-btn" id="hb-vgd">⌥↓</span> line gap</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-font">click font</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-goog">g google fonts</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 dark</span></span></div>
+  <div id="hint"><span style="white-space:nowrap"><span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd">−</span> font size</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-cl">←</span>/<span class="hint-btn" id="hb-cr">→</span> width</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-ru">↑</span>/<span class="hint-btn" id="hb-rd">↓</span> height</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-hgd">⌥←</span>/<span class="hint-btn" id="hb-hgi">⌥→</span> word gap</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-vgi">⌥↑</span>/<span class="hint-btn" id="hb-vgd">⌥↓</span> line gap</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-font">click font</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-goog">g google fonts</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 dark</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-text"><span id="hb-text-label"></span></span> text</span></div>
   <div id="hint-zone"></div>
   <script>
     Common.paintFaviconR();
@@ -134,6 +134,7 @@
         if (list.length) {
           fallbackItems = [list[Math.floor(Math.random() * list.length)]];
           render();
+          refreshTextLabel();
         }
       }).catch(() => {});
     }
@@ -151,6 +152,7 @@
     }
 
     document.addEventListener('keydown', e => {
+      if (e.target.tagName === 'INPUT') return;
       if ((e.key === 'g' || e.key === 'G') && !e.repeat && currentFont) {
         Common.openFontSpecimen(currentFont);
         return;
@@ -220,6 +222,16 @@
     document.getElementById('hb-font').addEventListener('click', pickFont);
     document.getElementById('hb-goog').addEventListener('click', () => { if (currentFont) Common.openFontSpecimen(currentFont); });
     document.getElementById('hb-dark').addEventListener('click', () => { document.body.classList.toggle('dark'); window.dispatchEvent(new CustomEvent('darkmodechange')); showHint(); });
+
+    const textEditor = Common.initTextEditor({
+      buttonEl: document.getElementById('hb-text'),
+      labelEl: document.getElementById('hb-text-label'),
+      getItems: () => Common.parseQueryItems().length ? Common.parseQueryItems() : (fallbackItems || []),
+      onCommit: render,
+      onEditStart: () => clearTimeout(hintTimer),
+      onEditEnd: showHint,
+    });
+    const refreshTextLabel = textEditor.refresh;
 
     Common.onTap(pickFont);
 
