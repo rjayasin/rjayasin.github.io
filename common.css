@@ -6,6 +6,9 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 body.dark { background: #111111; color: #ffffff; }
+@media (prefers-color-scheme: dark) {
+  body:not(.light) { background: #111111; color: #ffffff; }
+}
 body.hide-cursor, body.hide-cursor * { cursor: none !important; }
 .hint-input {
   font: inherit;

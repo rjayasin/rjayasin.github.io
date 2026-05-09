@@ -300,7 +300,7 @@
     document.getElementById('hb-fi').addEventListener('click', () => { fontSize = Math.max(4, Math.min(48, fontSize + 1)); setup(); showHint(); });
     document.getElementById('hb-fd').addEventListener('click', () => { fontSize = Math.max(4, Math.min(48, fontSize - 1)); setup(); showHint(); });
     document.getElementById('hb-num').addEventListener('click', () => { showNumbers = !showNumbers; showHint(); });
-    document.getElementById('hb-dark').addEventListener('click', () => { document.body.classList.toggle('dark'); window.dispatchEvent(new CustomEvent('darkmodechange')); showHint(); });
+    document.getElementById('hb-dark').addEventListener('click', () => { Common.toggleDark(); showHint(); });
   </script>
 </body>
 </html>
