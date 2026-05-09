@@ -78,6 +78,8 @@
     const stackEl = document.getElementById('stack');
     let fontSize = 40;
     let fallbackItems = null;
+    let currentFont = null;
+    let multiFont = false;
     function applySize() { stackEl.style.fontSize = fontSize + 'px'; }
     applySize();
 
@@ -118,8 +120,6 @@
       }).catch(() => {});
     }
 
-    let currentFont = null;
-    let multiFont = false;
     const cooldown = Common.makeCooldown(500);
 
     async function pickFont() {
