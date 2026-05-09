@@ -35,14 +35,27 @@ window.Common = window.Common || {};
     setFaviconHref(c.toDataURL());
   }
 
+  function toggleDark() {
+    // Either .dark or .light is always the explicit override after init.
+    if (document.body.classList.contains('dark')) {
+      document.body.classList.remove('dark');
+      document.body.classList.add('light');
+    } else {
+      document.body.classList.remove('light');
+      document.body.classList.add('dark');
+    }
+    window.dispatchEvent(new CustomEvent('darkmodechange'));
+  }
+
   function initDarkMode() {
+    // CSS handles the system-pref initial paint; mirror it into a class so
+    // body.dark selectors elsewhere apply without a flash.
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       document.body.classList.add('dark');
     }
     document.addEventListener('keydown', e => {
       if (e.key === '1' && !e.repeat && !e.metaKey && !e.ctrlKey) {
-        document.body.classList.toggle('dark');
-        window.dispatchEvent(new CustomEvent('darkmodechange'));
+        toggleDark();
       }
     });
   }
@@ -191,6 +204,7 @@ window.Common = window.Common || {};
     paintFaviconR,
     paintFavicon,
     initDarkMode,
+    toggleDark,
     initCursorHide,
     loadGoogleFont,
     loadedGoogleFonts,
