@@ -13,8 +13,8 @@
 
 `tools`
 
-- [`commits`](https://rjayasin.github.io/commits/)
-- [`dodgers-notifier`](https://rjayasin.github.io/dodgers-notifier/)
 - `visualizer`
   - [`video-player`](https://rjayasin.github.io/visualizer/video-player.html)
   - [`spotify-auth`](https://rjayasin.github.io/visualizer/spotify-auth.html)
+- [`commits`](https://rjayasin.github.io/commits/)
+- [`dodgers-notifier`](https://rjayasin.github.io/dodgers-notifier/)
