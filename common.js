@@ -189,6 +189,20 @@ window.Common = window.Common || {};
     return { refresh };
   }
 
+  function openSitemap() {
+    window.open('/sitemap/', '_blank', 'noopener');
+  }
+
+  function initSitemapShortcut() {
+    document.addEventListener('keydown', e => {
+      if ((e.key === 's' || e.key === 'S') && !e.repeat && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const t = e.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        openSitemap();
+      }
+    });
+  }
+
   function loadScript(src) {
     return new Promise((resolve, reject) => {
       const s = document.createElement('script');
@@ -217,5 +231,7 @@ window.Common = window.Common || {};
     onTap,
     loadScript,
     initTextEditor,
+    openSitemap,
+    initSitemapShortcut,
   });
 })();

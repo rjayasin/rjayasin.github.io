@@ -72,6 +72,7 @@
     <div style="white-space:nowrap"><span class="hint-btn" id="hb-goog">g</span> google fonts</div>
     <div style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1</span> dark</div>
     <div style="white-space:nowrap"><span class="hint-btn" id="hb-text"><span id="hb-text-label"></span></span> text</div>
+    <div style="white-space:nowrap"><span class="hint-btn" id="hb-sitemap">s</span> sitemap</div>
   </div>
   <div id="hint-zone"></div>
   <script>
@@ -206,6 +207,8 @@
     document.getElementById('hb-mf').addEventListener('click', toggleMultiFont);
     document.getElementById('hb-goog').addEventListener('click', () => { if (currentFont) Common.openFontSpecimen(currentFont); });
     document.getElementById('hb-dark').addEventListener('click', () => { Common.toggleDark(); showHint(); });
+    document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
+    Common.initSitemapShortcut();
 
     const textEditor = Common.initTextEditor({
       buttonEl: document.getElementById('hb-text'),
