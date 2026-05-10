@@ -37,6 +37,10 @@
     }
     body.dark header a,
     body.dark li a { color: #fff; }
+    @media (prefers-color-scheme: dark) {
+      body:not(.light) header a,
+      body:not(.light) li a { color: #fff; }
+    }
   </style>
   <script src="/common.js"></script>
 </head>
