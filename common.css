@@ -1,4 +1,5 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
+:root { color-scheme: light dark; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
   background: #ffffff;
