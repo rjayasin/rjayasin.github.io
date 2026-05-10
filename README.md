@@ -10,6 +10,7 @@
 - [`stack`](https://rjayasin.github.io/stack/?hello/world)
 - [`box`](https://rjayasin.github.io/box/?hello/world)
 - [`clock`](https://rjayasin.github.io/clock/)
+- [`border`](https://rjayasin.github.io/border/)
 
 `tools`
 
