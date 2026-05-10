@@ -411,6 +411,7 @@
     }
 
     window.addEventListener('scroll', scheduleTopBar, { passive: true });
+    Common.initSitemapShortcut();
 
     const io = new IntersectionObserver(entries => {
       if (entries.some(e => e.isIntersecting)) loadMore();

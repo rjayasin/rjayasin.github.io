@@ -49,7 +49,7 @@
 </head>
 <body>
   <pre id="pre"></pre>
-  <div id="hint"><span style="white-space:nowrap"><span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd">−</span> font size</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-num">n numbers</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 dark</span></span></div>
+  <div id="hint"><span style="white-space:nowrap"><span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd">−</span> font size</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-num">n numbers</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 dark</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-sitemap">s sitemap</span></span></div>
   <div id="hint-zone"></div>
   <script>
     Common.paintFaviconR();
@@ -301,6 +301,8 @@
     document.getElementById('hb-fd').addEventListener('click', () => { fontSize = Math.max(4, Math.min(48, fontSize - 1)); setup(); showHint(); });
     document.getElementById('hb-num').addEventListener('click', () => { showNumbers = !showNumbers; showHint(); });
     document.getElementById('hb-dark').addEventListener('click', () => { Common.toggleDark(); showHint(); });
+    document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
+    Common.initSitemapShortcut();
   </script>
 </body>
 </html>
