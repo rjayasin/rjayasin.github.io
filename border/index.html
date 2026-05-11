@@ -13,24 +13,18 @@
       user-select: none;
       position: relative;
     }
-    .strip {
+    #border-svg {
       position: fixed;
-      overflow: hidden;
-      line-height: 1;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: block;
     }
-    .strip .track {
-      display: inline-block;
-      white-space: nowrap;
-      line-height: 1;
-      will-change: transform;
+    #border-svg text {
+      fill: currentColor;
+      dominant-baseline: alphabetic;
     }
-    .strip.horiz { left: 0; right: 0; }
-    .strip.horiz.top { top: 0; }
-    .strip.horiz.bot { bottom: 0; }
-    .strip.vert { width: auto; }
-    .strip.vert .track { writing-mode: vertical-rl; }
-    #s-lft { left: 0; }
-    #s-rgt { right: 0; }
     #hint {
       position: fixed;
       left: 0;
@@ -82,10 +76,14 @@
   <script src="/common.js"></script>
 </head>
 <body>
-  <div class="strip horiz top" id="s-top"><div class="track"></div></div>
-  <div class="strip horiz bot" id="s-bot"><div class="track"></div></div>
-  <div class="strip vert" id="s-lft"><div class="track"></div></div>
-  <div class="strip vert" id="s-rgt"><div class="track"></div></div>
+  <svg id="border-svg" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <path id="border-path" fill="none"></path>
+    </defs>
+    <text>
+      <textPath id="border-text" href="#border-path" startOffset="0"></textPath>
+    </text>
+  </svg>
   <div id="hint"><span id="hint-inner"><span style="white-space:nowrap"><span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd">−</span> font size</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-font">click font</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-goog">g google fonts</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 dark</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-sitemap">s sitemap</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-text"><span id="hb-text-label"></span></span> text</span></span></div>
   <div id="hint-zone"></div>
   <script>
@@ -101,12 +99,13 @@
     let currentFont = null;
     let fallbackItems = [FALLBACK];
 
-    const strips = [
-      { side: 'top', el: document.getElementById('s-top'), horiz: true,  dir: -1, flip: false, offset: 0, unit: 0 },
-      { side: 'rgt', el: document.getElementById('s-rgt'), horiz: false, dir: -1, flip: false, offset: 0, unit: 0 },
-      { side: 'bot', el: document.getElementById('s-bot'), horiz: true,  dir: +1, flip: true,  offset: 0, unit: 0 },
-      { side: 'lft', el: document.getElementById('s-lft'), horiz: false, dir: +1, flip: true,  offset: 0, unit: 0 },
-    ];
+    const pathEl = document.getElementById('border-path');
+    const textEl = document.querySelector('#border-svg text');
+    const textPathEl = document.getElementById('border-text');
+
+    let pathLen = 0;
+    let unitLen = 0;
+    let offset = 0;
 
     function unitText() {
       const items = Common.parseQueryItems().length ? Common.parseQueryItems() : fallbackItems;
@@ -114,56 +113,58 @@
       return items.join('/') + SEP;
     }
 
-    function applyFontTo(el) {
-      el.style.fontSize = fontSize + 'px';
-      el.style.fontFamily = currentFont ? `'${currentFont}', serif` : '';
+    function applyFont() {
+      textEl.style.fontSize = fontSize + 'px';
+      textEl.style.fontFamily = currentFont ? `'${currentFont}', serif` : '';
     }
 
     function rebuild() {
       const text = unitText();
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+
+      applyFont();
 
       const probe = document.createElement('span');
       probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;line-height:1;';
-      applyFontTo(probe);
+      probe.style.fontSize = fontSize + 'px';
+      probe.style.fontFamily = currentFont ? `'${currentFont}', serif` : '';
       probe.textContent = 'Mqgy';
       document.body.appendChild(probe);
-      const thickness = Math.ceil(probe.offsetHeight + fontSize * 0.6);
+      const textHeight = probe.offsetHeight;
       document.body.removeChild(probe);
 
-      for (const s of strips) {
-        if (s.horiz) {
-          s.el.style.height = thickness + 'px';
-          s.el.style.width = '';
-        } else {
-          s.el.style.width = thickness + 'px';
-          s.el.style.top = thickness + 'px';
-          s.el.style.bottom = thickness + 'px';
-        }
-        const track = s.el.querySelector('.track');
-        applyFontTo(track);
-        track.textContent = text || '';
-        if (!text) { s.unit = 0; track.style.transform = ''; continue; }
-        const unit = s.horiz ? track.offsetWidth : track.offsetHeight;
-        s.unit = unit;
-        if (unit === 0) continue;
-        const viewport = s.horiz ? window.innerWidth : window.innerHeight;
-        const repeats = Math.ceil((viewport + unit) / unit) + 1;
-        track.textContent = text.repeat(repeats);
+      // Inset the path so the text (which sits on the outer side of a CW path,
+      // with ascenders pointing outward) fits between the path and the edge.
+      const inset = Math.ceil(textHeight * 0.95);
+
+      // CW rectangle starting at the top-left corner — this corner is the seam.
+      const d = `M ${inset} ${inset} L ${W - inset} ${inset} L ${W - inset} ${H - inset} L ${inset} ${H - inset} Z`;
+      pathEl.setAttribute('d', d);
+      pathLen = pathEl.getTotalLength();
+
+      if (!text) {
+        textPathEl.textContent = '';
+        unitLen = 0;
+        return;
       }
+
+      textPathEl.textContent = text;
+      unitLen = textEl.getComputedTextLength();
+      if (unitLen === 0) return;
+
+      const repeats = Math.ceil((pathLen + 2 * unitLen) / unitLen);
+      textPathEl.textContent = text.repeat(repeats);
     }
 
     let lastT = performance.now();
     function tick(now) {
       const dt = Math.min(0.1, (now - lastT) / 1000);
       lastT = now;
-      for (const s of strips) {
-        if (!s.unit) continue;
-        s.offset += SPEED * dt;
-        const mod = ((s.offset % s.unit) + s.unit) % s.unit;
-        const translate = s.dir === 1 ? mod - s.unit : -mod;
-        const track = s.el.querySelector('.track');
-        const base = s.horiz ? `translateX(${translate}px)` : `translateY(${translate}px)`;
-        track.style.transform = s.flip ? `${base} rotate(180deg)` : base;
+      if (unitLen > 0) {
+        offset += SPEED * dt;
+        const startOff = -(((offset % unitLen) + unitLen) % unitLen);
+        textPathEl.setAttribute('startOffset', startOff);
       }
       requestAnimationFrame(tick);
     }
