@@ -102,10 +102,10 @@
     let fallbackItems = [FALLBACK];
 
     const strips = [
-      { side: 'top', el: document.getElementById('s-top'), horiz: true,  dir: -1, offset: 0, unit: 0 },
-      { side: 'rgt', el: document.getElementById('s-rgt'), horiz: false, dir: -1, offset: 0, unit: 0 },
-      { side: 'bot', el: document.getElementById('s-bot'), horiz: true,  dir: +1, offset: 0, unit: 0 },
-      { side: 'lft', el: document.getElementById('s-lft'), horiz: false, dir: +1, offset: 0, unit: 0 },
+      { side: 'top', el: document.getElementById('s-top'), horiz: true,  dir: -1, flip: false, offset: 0, unit: 0 },
+      { side: 'rgt', el: document.getElementById('s-rgt'), horiz: false, dir: -1, flip: false, offset: 0, unit: 0 },
+      { side: 'bot', el: document.getElementById('s-bot'), horiz: true,  dir: +1, flip: true,  offset: 0, unit: 0 },
+      { side: 'lft', el: document.getElementById('s-lft'), horiz: false, dir: +1, flip: true,  offset: 0, unit: 0 },
     ];
 
     function unitText() {
@@ -162,7 +162,8 @@
         const mod = ((s.offset % s.unit) + s.unit) % s.unit;
         const translate = s.dir === 1 ? mod - s.unit : -mod;
         const track = s.el.querySelector('.track');
-        track.style.transform = s.horiz ? `translateX(${translate}px)` : `translateY(${translate}px)`;
+        const base = s.horiz ? `translateX(${translate}px)` : `translateY(${translate}px)`;
+        track.style.transform = s.flip ? `${base} rotate(180deg)` : base;
       }
       requestAnimationFrame(tick);
     }
