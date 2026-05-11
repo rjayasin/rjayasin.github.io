@@ -1750,6 +1750,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Stick No Bills | OFL | Mooniak | Copyright 2021 The Stick No Bills Project Authors (https://github.com/mooniak/stick-no-bills-font) |
 | Stint Ultra Condensed | OFL | Astigmatic | Copyright (c) 2011 by Brian J. Bonislawsky DBA Astigmatic (AOETI) (astigma@astigmatic.com), with Reserved Font Name "Stint Ultra Condensed" |
 | Stint Ultra Expanded | OFL | Astigmatic | Copyright (c) 2012 by Brian J. Bonislawsky DBA Astigmatic (AOETI) (astigma@astigmatic.com), with Reserved Font Name "Stint Ultra Expanded" |
+| STIX Two Math | OFL | Tiro Typeworks, Ross Mills, John Hudson, Paul Hanslow | Copyright 2001-2021 The STIX Fonts Project Authors (https://github.com/stipub/stixfonts) |
 | STIX Two Text | OFL | Tiro Typeworks, Ross Mills, John Hudson, Paul Hanslow | Copyright 2001-2021 The STIX Fonts Project Authors (https://github.com/stipub/stixfonts) |
 | Stoke | OFL | Nicole Fally | Copyright (c) 2012, Sorkin Type Co (www.sorkintype.com eben@eyebytes.com), with Reserved Font Name \'Stoke\' |
 | Story Script | OFL | Lana Roulhac, Ben Buysse | Copyright 2022 The Story Script Project Authors (https://github.com/lroulh/story-script) |
