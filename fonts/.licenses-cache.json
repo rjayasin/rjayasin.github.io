@@ -12840,6 +12840,14 @@
       "copyright": "Copyright 2024 The SN Pro Project Authors (https://github.com/supernotes/sn-pro)",
       "resolved": true
     },
+    "STIX Two Math": {
+      "family": "STIX Two Math",
+      "slug": "stixtwomath",
+      "licenseCode": "OFL",
+      "designer": "Tiro Typeworks, Ross Mills, John Hudson, Paul Hanslow",
+      "copyright": "Copyright 2001-2021 The STIX Fonts Project Authors (https://github.com/stipub/stixfonts)",
+      "resolved": true
+    },
     "STIX Two Text": {
       "family": "STIX Two Text",
       "slug": "stixtwotext",
