@@ -102,10 +102,10 @@
     let fallbackItems = [FALLBACK];
 
     const strips = [
-      { side: 'top', el: document.getElementById('s-top'), horiz: true,  dir: +1, offset: 0, unit: 0 },
-      { side: 'rgt', el: document.getElementById('s-rgt'), horiz: false, dir: +1, offset: 0, unit: 0 },
-      { side: 'bot', el: document.getElementById('s-bot'), horiz: true,  dir: -1, offset: 0, unit: 0 },
-      { side: 'lft', el: document.getElementById('s-lft'), horiz: false, dir: -1, offset: 0, unit: 0 },
+      { side: 'top', el: document.getElementById('s-top'), horiz: true,  dir: -1, offset: 0, unit: 0 },
+      { side: 'rgt', el: document.getElementById('s-rgt'), horiz: false, dir: -1, offset: 0, unit: 0 },
+      { side: 'bot', el: document.getElementById('s-bot'), horiz: true,  dir: +1, offset: 0, unit: 0 },
+      { side: 'lft', el: document.getElementById('s-lft'), horiz: false, dir: +1, offset: 0, unit: 0 },
     ];
 
     function unitText() {
