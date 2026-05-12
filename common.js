@@ -35,6 +35,11 @@ window.Common = window.Common || {};
     setFaviconHref(c.toDataURL());
   }
 
+  function updateDarkToggleLabels() {
+    const text = document.body.classList.contains('dark') ? 'light' : 'dark';
+    document.querySelectorAll('.hb-dark-label').forEach(el => { el.textContent = text; });
+  }
+
   function toggleDark() {
     // Either .dark or .light is always the explicit override after init.
     if (document.body.classList.contains('dark')) {
@@ -44,6 +49,7 @@ window.Common = window.Common || {};
       document.body.classList.remove('light');
       document.body.classList.add('dark');
     }
+    updateDarkToggleLabels();
     window.dispatchEvent(new CustomEvent('darkmodechange'));
   }
 
@@ -53,6 +59,7 @@ window.Common = window.Common || {};
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       document.body.classList.add('dark');
     }
+    updateDarkToggleLabels();
     document.addEventListener('keydown', e => {
       if (e.key === '1' && !e.repeat && !e.metaKey && !e.ctrlKey) {
         toggleDark();
