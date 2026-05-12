@@ -138,16 +138,13 @@
       // with ascenders pointing outward) fits between the path and the edge.
       const inset = Math.ceil(textHeight * 0.95);
 
-      // CW rectangle starting at the top-left corner. The text is stretched
-      // so an integer number of unit repetitions cover the perimeter exactly,
-      // which puts the path's end-of-text seam at a SEP boundary — visually
-      // identical to every other unit-to-unit join on the perimeter.
+      // CW rectangle starting at the top-left corner. Text renders at the
+      // font's natural width; the path simply clips whatever glyphs fall
+      // past pathLen, so the marquee shows only as much text as fits at
+      // the current font size.
       const d = `M ${inset} ${inset} L ${W - inset} ${inset} L ${W - inset} ${H - inset} L ${inset} ${H - inset} Z`;
       pathEl.setAttribute('d', d);
       pathLen = pathEl.getTotalLength();
-
-      textPathEl.removeAttribute('textLength');
-      textPathEl.removeAttribute('lengthAdjust');
 
       if (!text) {
         textPathEl.textContent = '';
@@ -156,15 +153,11 @@
       }
 
       textPathEl.textContent = text;
-      const natural = textPathEl.getComputedTextLength();
-      if (natural === 0) { unitLen = 0; return; }
+      unitLen = textPathEl.getComputedTextLength();
+      if (unitLen === 0) return;
 
-      const N = Math.max(1, Math.round(pathLen / natural));
-      const repeats = N + 2;
+      const repeats = Math.ceil((pathLen + 2 * unitLen) / unitLen);
       textPathEl.textContent = text.repeat(repeats);
-      textPathEl.setAttribute('textLength', (repeats * pathLen) / N);
-      textPathEl.setAttribute('lengthAdjust', 'spacingAndGlyphs');
-      unitLen = pathLen / N;
     }
 
     let lastT = performance.now();
