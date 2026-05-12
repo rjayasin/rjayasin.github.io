@@ -152,11 +152,22 @@
         return;
       }
 
+      // Use the marginal length added by repeating the text once more as
+      // the true period of the repetition. This includes the kerning
+      // adjustment at the boundary between adjacent copies, so cycling
+      // the scroll by this value keeps the visible content stable across
+      // wraps. Measuring a single copy and assuming the period equals its
+      // length misses the boundary kerning and causes a visible jump every
+      // cycle — very noticeable when the text is short.
       textPathEl.textContent = text;
-      unitLen = textPathEl.getComputedTextLength();
-      if (unitLen === 0) return;
+      const single = textPathEl.getComputedTextLength();
+      textPathEl.textContent = text.repeat(2);
+      const double = textPathEl.getComputedTextLength();
+      unitLen = double - single;
+      if (unitLen <= 0) unitLen = single;
+      if (unitLen <= 0) return;
 
-      const repeats = Math.ceil((pathLen + 2 * unitLen) / unitLen);
+      const repeats = Math.max(2, Math.ceil((pathLen + 2 * unitLen) / unitLen));
       textPathEl.textContent = text.repeat(repeats);
     }
 
