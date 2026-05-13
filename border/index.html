@@ -24,6 +24,10 @@
     #border-svg text {
       fill: currentColor;
       dominant-baseline: alphabetic;
+      /* Firefox snaps textPath glyphs to the pixel grid by default, which
+         turns the smooth sub-pixel startOffset updates into visible jitter.
+         geometricPrecision keeps glyph positions on the float values we set. */
+      text-rendering: geometricPrecision;
     }
     #hint {
       position: fixed;
