@@ -7,187 +7,306 @@
   <link rel="icon" id="favicon">
   <link rel="stylesheet" href="/common.css">
   <style>
+    :root {
+      --success: #16a34a;
+      --success-soft: #dcfce7;
+      --failure: #dc2626;
+      --failure-soft: #fee2e2;
+      --pending: #d97706;
+      --pending-soft: #fef3c7;
+      --median: #7c3aed;
+      --grid: #e5e7eb;
+      --muted: #6b7280;
+      --fg: #111827;
+      --bg: #ffffff;
+      --card: #f9fafb;
+    }
     body {
-      font-family: monospace;
-      font-size: 13px;
-      line-height: 1.6;
-      padding: 48px 32px;
-      max-width: 720px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      padding: 40px 24px 80px;
+      max-width: 880px;
+      margin: 0 auto;
+      color: var(--fg);
     }
-    header,
-    .deploy a,
-    .stat-value,
-    .chart .bar,
-    .day {
-      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, fill 0.2s ease;
+    body.dark {
+      --success: #4ade80;
+      --success-soft: #14532d;
+      --failure: #f87171;
+      --failure-soft: #7f1d1d;
+      --pending: #fbbf24;
+      --pending-soft: #78350f;
+      --median: #a78bfa;
+      --grid: #2a2a2a;
+      --muted: #9ca3af;
+      --fg: #f5f5f5;
+      --bg: #111111;
+      --card: #1a1a1a;
     }
+    @media (prefers-color-scheme: dark) {
+      body:not(.light) {
+        --success: #4ade80;
+        --success-soft: #14532d;
+        --failure: #f87171;
+        --failure-soft: #7f1d1d;
+        --pending: #fbbf24;
+        --pending-soft: #78350f;
+        --median: #a78bfa;
+        --grid: #2a2a2a;
+        --muted: #9ca3af;
+        --fg: #f5f5f5;
+        --bg: #111111;
+        --card: #1a1a1a;
+      }
+    }
+
     header {
-      margin-bottom: 15px;
+      margin-bottom: 28px;
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       gap: 16px;
     }
-    header a { color: #000; text-decoration: none; }
+    header a { color: inherit; text-decoration: none; }
     header a:hover { text-decoration: underline; }
     h1 {
-      font-size: 13px;
-      font-weight: normal;
-      letter-spacing: 0.05em;
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 28px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
     }
+    h1 .crumb { color: var(--muted); font-weight: 400; }
     .subtitle {
-      color: #888;
+      color: var(--muted);
+      font-size: 13px;
       margin-top: 4px;
     }
+
     .stats {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin: 16px 0 20px;
+      gap: 10px;
+      margin-bottom: 28px;
     }
     .stat {
+      background: var(--card);
+      border-radius: 10px;
+      padding: 14px 16px;
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 4px;
     }
-    .stat-label { color: #888; font-size: 11px; }
-    .stat-value { color: #000; font-size: 13px; }
-    .chart-wrap {
-      margin: 0 0 24px;
-      border-top: 1px solid #ccc;
-      border-bottom: 1px solid #ccc;
-      padding: 14px 0 6px;
-    }
-    .chart-wrap[hidden] { display: none; }
-    .chart-title {
-      color: #888;
+    .stat-label {
+      color: var(--muted);
       font-size: 11px;
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
     }
-    .chart {
-      display: flex;
-      align-items: flex-end;
-      gap: 2px;
-      height: 90px;
-      width: 100%;
+    .stat-value {
+      font-size: 22px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.01em;
     }
-    .chart .bar {
-      flex: 1 1 0;
-      min-width: 2px;
-      background: #000;
-      cursor: pointer;
-      position: relative;
+    .stat.median .stat-value { color: var(--median); }
+    .stat.success .stat-value { color: var(--success); }
+    .stat.p90 .stat-value { color: var(--pending); }
+
+    .chart-card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 20px 20px 14px;
+      margin-bottom: 32px;
     }
-    .chart .bar.failure { background: #d33; }
-    .chart .bar:hover { opacity: 0.65; }
-    .chart-axis {
-      display: flex;
-      justify-content: space-between;
-      color: #888;
-      font-size: 11px;
-      padding-top: 6px;
-    }
-    .log {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-    }
-    .day {
-      display: flex;
-      flex-direction: column;
-      border-top: 1px solid #ccc;
-      padding: 4px 0 8px;
-    }
-    .day:last-child { border-bottom: 1px solid #f0f0f0; }
-    .day-header {
+    .chart-card[hidden] { display: none; }
+    .chart-head {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
-      gap: 24px;
-      padding: 4px 0 2px;
+      margin-bottom: 14px;
+      gap: 12px;
+    }
+    .chart-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .chart-meta {
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .legend-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      background: var(--success);
+    }
+    .legend-swatch.failure { background: var(--failure); }
+    .legend-swatch.median {
+      background: transparent;
+      border-top: 2px dashed var(--median);
+      border-radius: 0;
+      height: 0;
+      width: 14px;
+    }
+    .chart-svg {
+      width: 100%;
+      height: 220px;
+      display: block;
+      overflow: visible;
+    }
+    .chart-svg .bar { cursor: pointer; transition: opacity 0.15s; }
+    .chart-svg .bar:hover { opacity: 0.7; }
+    .chart-svg .grid-line { stroke: var(--grid); stroke-width: 1; }
+    .chart-svg .axis-label { fill: var(--muted); font-size: 10px; }
+    .chart-svg .median-line {
+      stroke: var(--median);
+      stroke-width: 1.5;
+      stroke-dasharray: 5 4;
+      fill: none;
+    }
+    .chart-svg .median-label {
+      fill: var(--median);
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .chart-axis-x {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 6px;
+    }
+
+    .log {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .day-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--grid);
     }
     .day-date {
-      color: #888;
-      font-size: 11px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--fg);
     }
     .day-count {
-      color: #888;
-      font-size: 11px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .deploys {
+      display: flex;
+      flex-direction: column;
     }
     .deploy {
       display: grid;
-      grid-template-columns: 8ch 1fr 7ch;
+      grid-template-columns: 64px 1fr auto;
       column-gap: 12px;
       align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--grid);
     }
-    .deploy .time { color: #888; }
-    .deploy .duration {
-      color: #888;
-      text-align: right;
+    .deploy:last-child { border-bottom: none; }
+    .deploy .time {
+      color: var(--muted);
+      font-size: 12px;
       font-variant-numeric: tabular-nums;
     }
     .deploy a {
-      color: #000;
+      color: var(--fg);
       text-decoration: none;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      font-size: 13px;
     }
     .deploy a:hover { text-decoration: underline; }
+    .deploy .duration {
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--success-soft);
+      color: var(--success);
+      font-weight: 600;
+    }
+    .deploy.failure .duration {
+      background: var(--failure-soft);
+      color: var(--failure);
+    }
+    .deploy.in_progress .duration,
+    .deploy.cancelled .duration {
+      background: var(--pending-soft);
+      color: var(--pending);
+    }
+    .deploy .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
     .deploy .dot {
       display: inline-block;
-      width: 6px;
-      height: 6px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
-      background: #2a2;
-      margin-right: 6px;
-      vertical-align: middle;
+      background: var(--success);
+      flex-shrink: 0;
     }
-    .deploy.failure .dot { background: #d33; }
-    .deploy.in_progress .dot { background: #c80; }
-    .deploy.cancelled .dot { background: #888; }
-    #status { color: #888; padding: 8px 0; }
+    .deploy.failure .dot { background: var(--failure); }
+    .deploy.in_progress .dot { background: var(--pending); }
+    .deploy.cancelled .dot { background: var(--muted); }
+
+    #status {
+      color: var(--muted);
+      padding: 16px 0;
+      font-size: 13px;
+    }
     #gh-auth {
       flex-shrink: 0;
-      width: 20px;
-      height: 20px;
+      width: 22px;
+      height: 22px;
       padding: 0;
       border: none;
       background: none;
       cursor: pointer;
-      color: #888;
-      opacity: 0.7;
-      transition: opacity 0.15s, color 0.15s;
+      color: var(--muted);
+      transition: color 0.15s;
     }
-    #gh-auth:hover { opacity: 1; color: #000; }
-    #gh-auth.authed { color: #000; opacity: 1; }
+    #gh-auth:hover { color: var(--fg); }
+    #gh-auth.authed { color: var(--success); }
     #gh-auth svg { width: 100%; height: 100%; display: block; fill: currentColor; }
+
     @media (max-width: 640px) {
-      body { font-size: 15px; padding: 32px 20px; }
-      h1 { font-size: 15px; }
-      .deploy { font-size: 13px; }
+      body { padding: 24px 16px 60px; }
+      h1 { font-size: 22px; }
       .stats { grid-template-columns: repeat(2, 1fr); }
+      .stat-value { font-size: 18px; }
+      .chart-svg { height: 180px; }
+      .deploy { grid-template-columns: 52px 1fr auto; }
     }
-    body.dark header a,
-    body.dark .deploy a,
-    body.dark .stat-value,
-    body.dark #gh-auth:hover,
-    body.dark #gh-auth.authed { color: #fff; }
-    body.dark .day { border-top-color: #333; }
-    body.dark .day:last-child { border-bottom-color: #1a1a1a; }
-    body.dark .chart-wrap { border-top-color: #333; border-bottom-color: #333; }
-    body.dark .chart .bar { background: #fff; }
-    body.dark .chart .bar.failure { background: #e55; }
   </style>
   <script src="/common.js"></script>
 </head>
 <body>
   <header>
     <div>
-      <h1><a href="/">Ruvan</a> / deploys</h1>
-      <p class="subtitle" id="range"></p>
+      <h1><a href="/">Ruvan</a> <span class="crumb">/ deploys</span></h1>
+      <p class="subtitle" id="range">GitHub Actions deploy durations</p>
     </div>
     <button id="gh-auth" type="button" aria-label="Log in with GitHub" title="Log in with GitHub">
       <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -201,27 +320,31 @@
       <span class="stat-label">runs</span>
       <span class="stat-value" id="stat-count">—</span>
     </div>
-    <div class="stat">
+    <div class="stat median">
       <span class="stat-label">median</span>
       <span class="stat-value" id="stat-median">—</span>
     </div>
-    <div class="stat">
+    <div class="stat p90">
       <span class="stat-label">p90</span>
       <span class="stat-value" id="stat-p90">—</span>
     </div>
-    <div class="stat">
+    <div class="stat success">
       <span class="stat-label">success</span>
       <span class="stat-value" id="stat-success">—</span>
     </div>
   </section>
 
-  <section class="chart-wrap" id="chart-wrap" hidden>
-    <div class="chart-title">
-      <span>duration · oldest → newest</span>
-      <span id="chart-max">—</span>
+  <section class="chart-card" id="chart-wrap" hidden>
+    <div class="chart-head">
+      <span class="chart-title">Deploy duration</span>
+      <span class="chart-meta">
+        <span class="legend-item"><span class="legend-swatch"></span>success</span>
+        <span class="legend-item"><span class="legend-swatch failure"></span>failure</span>
+        <span class="legend-item"><span class="legend-swatch median"></span>median</span>
+      </span>
     </div>
-    <div class="chart" id="chart"></div>
-    <div class="chart-axis">
+    <svg class="chart-svg" id="chart" preserveAspectRatio="none"></svg>
+    <div class="chart-axis-x">
       <span id="chart-start"></span>
       <span id="chart-end"></span>
     </div>
@@ -234,7 +357,7 @@
   <script>
     (function() {
       const path = 'M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z';
-      const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><style>path{fill:#000}@media(prefers-color-scheme:dark){path{fill:#fff}}</style><path fill-rule="evenodd" d="' + path + '"/></svg>';
+      const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><style>path{fill:#7c3aed}</style><path fill-rule="evenodd" d="' + path + '"/></svg>';
       Common.setFaviconHref('data:image/svg+xml,' + encodeURIComponent(svg));
     })();
 
@@ -245,6 +368,7 @@
     const TOKEN_KEY = 'gh_token';
     const PER_PAGE = 50;
     const MAX_PAGES = 10;
+    const SVG_NS = 'http://www.w3.org/2000/svg';
 
     const log = document.getElementById('log');
     const status = document.getElementById('status');
@@ -258,7 +382,6 @@
     const statSuccess = document.getElementById('stat-success');
     const chartWrap = document.getElementById('chart-wrap');
     const chart = document.getElementById('chart');
-    const chartMax = document.getElementById('chart-max');
     const chartStart = document.getElementById('chart-start');
     const chartEnd = document.getElementById('chart-end');
 
@@ -307,6 +430,11 @@
       return yyyy === CURRENT_YEAR ? `${mm}-${dd}` : `${yyyy}-${mm}-${dd}`;
     }
 
+    function fmtDayLong(iso) {
+      const d = new Date(iso);
+      return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+
     function fmtTime(iso) {
       const d = new Date(iso);
       let h = d.getHours();
@@ -332,6 +460,12 @@
       if (!sorted.length) return null;
       const idx = Math.min(sorted.length - 1, Math.floor(p * (sorted.length - 1)));
       return sorted[idx];
+    }
+
+    function median(sorted) {
+      if (!sorted.length) return null;
+      const m = Math.floor(sorted.length / 2);
+      return sorted.length % 2 ? sorted[m] : (sorted[m - 1] + sorted[m]) / 2;
     }
 
     let nextPage = 1;
@@ -376,10 +510,19 @@
       return (sha || '').slice(0, 7);
     }
 
+    function statusClass(d) {
+      const c = (d.conclusion || d.status || '').toLowerCase();
+      if (c === 'success') return 'success';
+      if (c === 'failure' || c === 'timed_out' || c === 'startup_failure') return 'failure';
+      if (c === 'cancelled') return 'cancelled';
+      return 'in_progress';
+    }
+
     function renderLog() {
       log.innerHTML = '';
       let currentDay = null;
       let dayEl = null;
+      let deploysEl = null;
       let dayCount = 0;
       let dayCountEl = null;
 
@@ -393,32 +536,26 @@
           dayEl.className = 'day';
           dayEl.innerHTML = `
             <div class="day-header">
-              <span class="day-date">${fmtDay(d.start)}</span>
+              <span class="day-date">${fmtDayLong(d.start)}</span>
               <span class="day-count"></span>
-            </div>`;
+            </div>
+            <div class="deploys"></div>`;
           log.appendChild(dayEl);
           dayCountEl = dayEl.querySelector('.day-count');
+          deploysEl = dayEl.querySelector('.deploys');
         }
         dayCount++;
 
-        const conclusion = (d.conclusion || d.status || '').toLowerCase();
-        const statusClass = conclusion === 'success'
-          ? 'success'
-          : conclusion === 'failure' || conclusion === 'timed_out' || conclusion === 'startup_failure'
-            ? 'failure'
-            : conclusion === 'cancelled'
-              ? 'cancelled'
-              : 'in_progress';
-
+        const cls = statusClass(d);
         const row = document.createElement('div');
-        row.className = `deploy ${statusClass}`;
+        row.className = `deploy ${cls}`;
         row.innerHTML = `
           <span class="time">${fmtTime(d.start)}</span>
-          <a href="${d.url}" target="_blank" rel="noopener" title="${escHtml(d.title)}">
-            <span class="dot"></span>${escHtml(d.label)}
+          <a href="${d.url}" target="_blank" rel="noopener" title="${escHtml(d.title)}" class="badge">
+            <span class="dot"></span><span>${escHtml(d.label)}</span>
           </a>
           <span class="duration">${fmtDuration(d.durationSec)}</span>`;
-        dayEl.appendChild(row);
+        deploysEl.appendChild(row);
       }
       if (dayCountEl) dayCountEl.textContent = `${dayCount} deploy${dayCount === 1 ? '' : 's'}`;
     }
@@ -432,7 +569,7 @@
         .sort((a, b) => a - b);
       const successes = allDeploys.filter(d => d.conclusion === 'success').length;
       statCount.textContent = String(allDeploys.length);
-      statMedian.textContent = fmtDuration(percentile(durations, 0.5));
+      statMedian.textContent = fmtDuration(median(durations));
       statP90.textContent = fmtDuration(percentile(durations, 0.9));
       const pct = allDeploys.length ? Math.round(100 * successes / allDeploys.length) : 0;
       statSuccess.textContent = `${pct}%`;
@@ -441,24 +578,100 @@
     function renderChart() {
       if (!allDeploys.length) return;
       chartWrap.hidden = false;
+
       // oldest → newest
       const ordered = [...allDeploys].reverse();
       const durations = ordered.map(d => d.durationSec || 0);
       const max = Math.max(1, ...durations);
-      chartMax.textContent = `max ${fmtDuration(max)}`;
-      chart.innerHTML = '';
-      for (const d of ordered) {
-        const sec = d.durationSec || 0;
-        const h = Math.max(2, Math.round((sec / max) * 100));
-        const bar = document.createElement('a');
-        bar.className = `bar ${d.conclusion === 'success' ? '' : 'failure'}`;
-        bar.style.height = `${h}%`;
-        bar.href = d.url;
-        bar.target = '_blank';
-        bar.rel = 'noopener';
-        bar.title = `${fmtDay(d.start)} ${fmtTime(d.start)} · ${fmtDuration(sec)} · ${d.conclusion || d.status}`;
-        chart.appendChild(bar);
+
+      const sorted = durations.slice().filter(s => s > 0).sort((a, b) => a - b);
+      const med = median(sorted) || 0;
+
+      const W = 1000;
+      const H = 220;
+      const PAD_L = 36;
+      const PAD_R = 12;
+      const PAD_T = 14;
+      const PAD_B = 8;
+      const innerW = W - PAD_L - PAD_R;
+      const innerH = H - PAD_T - PAD_B;
+
+      chart.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      while (chart.firstChild) chart.removeChild(chart.firstChild);
+
+      // Y-axis grid lines at 0/25/50/75/100% of max.
+      const ticks = 4;
+      for (let i = 0; i <= ticks; i++) {
+        const t = i / ticks;
+        const y = PAD_T + innerH * (1 - t);
+        const line = document.createElementNS(SVG_NS, 'line');
+        line.setAttribute('class', 'grid-line');
+        line.setAttribute('x1', PAD_L);
+        line.setAttribute('x2', W - PAD_R);
+        line.setAttribute('y1', y);
+        line.setAttribute('y2', y);
+        chart.appendChild(line);
+
+        const label = document.createElementNS(SVG_NS, 'text');
+        label.setAttribute('class', 'axis-label');
+        label.setAttribute('x', PAD_L - 6);
+        label.setAttribute('y', y + 3);
+        label.setAttribute('text-anchor', 'end');
+        label.textContent = fmtDuration(max * t);
+        chart.appendChild(label);
       }
+
+      // Bars.
+      const n = ordered.length;
+      const gap = n > 60 ? 1 : 2;
+      const barW = Math.max(2, (innerW - gap * (n - 1)) / n);
+      ordered.forEach((d, i) => {
+        const sec = d.durationSec || 0;
+        const h = Math.max(1.5, (sec / max) * innerH);
+        const x = PAD_L + i * (barW + gap);
+        const y = PAD_T + innerH - h;
+        const rect = document.createElementNS(SVG_NS, 'rect');
+        rect.setAttribute('class', 'bar');
+        rect.setAttribute('x', x);
+        rect.setAttribute('y', y);
+        rect.setAttribute('width', barW);
+        rect.setAttribute('height', h);
+        rect.setAttribute('rx', Math.min(1.5, barW / 3));
+        const cls = statusClass(d);
+        const color = cls === 'success'
+          ? 'var(--success)'
+          : cls === 'failure'
+            ? 'var(--failure)'
+            : 'var(--pending)';
+        rect.setAttribute('fill', color);
+        const title = document.createElementNS(SVG_NS, 'title');
+        title.textContent = `${fmtDay(d.start)} ${fmtTime(d.start)} · ${fmtDuration(sec)} · ${d.conclusion || d.status}`;
+        rect.appendChild(title);
+        rect.addEventListener('click', () => window.open(d.url, '_blank', 'noopener'));
+        chart.appendChild(rect);
+      });
+
+      // Median line.
+      if (med > 0) {
+        const medY = PAD_T + innerH * (1 - med / max);
+        const line = document.createElementNS(SVG_NS, 'line');
+        line.setAttribute('class', 'median-line');
+        line.setAttribute('x1', PAD_L);
+        line.setAttribute('x2', W - PAD_R);
+        line.setAttribute('y1', medY);
+        line.setAttribute('y2', medY);
+        chart.appendChild(line);
+
+        const label = document.createElementNS(SVG_NS, 'text');
+        label.setAttribute('class', 'median-label');
+        label.setAttribute('x', W - PAD_R - 4);
+        const above = medY > PAD_T + 14;
+        label.setAttribute('y', above ? medY - 4 : medY + 12);
+        label.setAttribute('text-anchor', 'end');
+        label.textContent = `median ${fmtDuration(med)}`;
+        chart.appendChild(label);
+      }
+
       chartStart.textContent = fmtDay(ordered[0].start);
       chartEnd.textContent = fmtDay(ordered[ordered.length - 1].start);
     }
@@ -485,7 +698,6 @@
         });
         added++;
       }
-      // Keep ordering by start desc.
       allDeploys.sort((a, b) => new Date(b.start) - new Date(a.start));
       return added;
     }
@@ -518,7 +730,7 @@
       renderChart();
       renderLog();
 
-      range.textContent = `${allDeploys.length} deploy${allDeploys.length === 1 ? '' : 's'}`;
+      range.textContent = `${allDeploys.length} deploy${allDeploys.length === 1 ? '' : 's'} · GitHub Actions`;
       nextPage++;
       if (runs.length < PER_PAGE || nextPage > MAX_PAGES) {
         exhausted = true;
