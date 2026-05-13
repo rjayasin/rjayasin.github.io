@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ruvan / deploys</title>
+  <link rel="icon" id="favicon">
+  <link rel="stylesheet" href="/common.css">
+  <style>
+    body {
+      font-family: monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      padding: 48px 32px;
+      max-width: 720px;
+    }
+    header,
+    .deploy a,
+    .stat-value,
+    .chart .bar,
+    .day {
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, fill 0.2s ease;
+    }
+    header {
+      margin-bottom: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    header a { color: #000; text-decoration: none; }
+    header a:hover { text-decoration: underline; }
+    h1 {
+      font-size: 13px;
+      font-weight: normal;
+      letter-spacing: 0.05em;
+    }
+    .subtitle {
+      color: #888;
+      margin-top: 4px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 16px 0 20px;
+    }
+    .stat {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .stat-label { color: #888; font-size: 11px; }
+    .stat-value { color: #000; font-size: 13px; }
+    .chart-wrap {
+      margin: 0 0 24px;
+      border-top: 1px solid #ccc;
+      border-bottom: 1px solid #ccc;
+      padding: 14px 0 6px;
+    }
+    .chart-wrap[hidden] { display: none; }
+    .chart-title {
+      color: #888;
+      font-size: 11px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 90px;
+      width: 100%;
+    }
+    .chart .bar {
+      flex: 1 1 0;
+      min-width: 2px;
+      background: #000;
+      cursor: pointer;
+      position: relative;
+    }
+    .chart .bar.failure { background: #d33; }
+    .chart .bar:hover { opacity: 0.65; }
+    .chart-axis {
+      display: flex;
+      justify-content: space-between;
+      color: #888;
+      font-size: 11px;
+      padding-top: 6px;
+    }
+    .log {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+    .day {
+      display: flex;
+      flex-direction: column;
+      border-top: 1px solid #ccc;
+      padding: 4px 0 8px;
+    }
+    .day:last-child { border-bottom: 1px solid #f0f0f0; }
+    .day-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 24px;
+      padding: 4px 0 2px;
+    }
+    .day-date {
+      color: #888;
+      font-size: 11px;
+    }
+    .day-count {
+      color: #888;
+      font-size: 11px;
+    }
+    .deploy {
+      display: grid;
+      grid-template-columns: 8ch 1fr 7ch;
+      column-gap: 12px;
+      align-items: center;
+    }
+    .deploy .time { color: #888; }
+    .deploy .duration {
+      color: #888;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .deploy a {
+      color: #000;
+      text-decoration: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .deploy a:hover { text-decoration: underline; }
+    .deploy .dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #2a2;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .deploy.failure .dot { background: #d33; }
+    .deploy.in_progress .dot { background: #c80; }
+    .deploy.cancelled .dot { background: #888; }
+    #status { color: #888; padding: 8px 0; }
+    #gh-auth {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      border: none;
+      background: none;
+      cursor: pointer;
+      color: #888;
+      opacity: 0.7;
+      transition: opacity 0.15s, color 0.15s;
+    }
+    #gh-auth:hover { opacity: 1; color: #000; }
+    #gh-auth.authed { color: #000; opacity: 1; }
+    #gh-auth svg { width: 100%; height: 100%; display: block; fill: currentColor; }
+    @media (max-width: 640px) {
+      body { font-size: 15px; padding: 32px 20px; }
+      h1 { font-size: 15px; }
+      .deploy { font-size: 13px; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+    }
+    body.dark header a,
+    body.dark .deploy a,
+    body.dark .stat-value,
+    body.dark #gh-auth:hover,
+    body.dark #gh-auth.authed { color: #fff; }
+    body.dark .day { border-top-color: #333; }
+    body.dark .day:last-child { border-bottom-color: #1a1a1a; }
+    body.dark .chart-wrap { border-top-color: #333; border-bottom-color: #333; }
+    body.dark .chart .bar { background: #fff; }
+    body.dark .chart .bar.failure { background: #e55; }
+  </style>
+  <script src="/common.js"></script>
+</head>
+<body>
+  <header>
+    <div>
+      <h1><a href="/">Ruvan</a> / deploys</h1>
+      <p class="subtitle" id="range"></p>
+    </div>
+    <button id="gh-auth" type="button" aria-label="Log in with GitHub" title="Log in with GitHub">
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+      </svg>
+    </button>
+  </header>
+
+  <section class="stats" id="stats" hidden>
+    <div class="stat">
+      <span class="stat-label">runs</span>
+      <span class="stat-value" id="stat-count">—</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">median</span>
+      <span class="stat-value" id="stat-median">—</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">p90</span>
+      <span class="stat-value" id="stat-p90">—</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">success</span>
+      <span class="stat-value" id="stat-success">—</span>
+    </div>
+  </section>
+
+  <section class="chart-wrap" id="chart-wrap" hidden>
+    <div class="chart-title">
+      <span>duration · oldest → newest</span>
+      <span id="chart-max">—</span>
+    </div>
+    <div class="chart" id="chart"></div>
+    <div class="chart-axis">
+      <span id="chart-start"></span>
+      <span id="chart-end"></span>
+    </div>
+  </section>
+
+  <div class="log" id="log"></div>
+  <p id="status">loading…</p>
+  <div id="sentinel"></div>
+
+  <script>
+    (function() {
+      const path = 'M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z';
+      const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><style>path{fill:#000}@media(prefers-color-scheme:dark){path{fill:#fff}}</style><path fill-rule="evenodd" d="' + path + '"/></svg>';
+      Common.setFaviconHref('data:image/svg+xml,' + encodeURIComponent(svg));
+    })();
+
+    Common.initDarkMode();
+    Common.initSitemapShortcut();
+
+    const REPO = 'rjayasin/rjayasin.github.io';
+    const TOKEN_KEY = 'gh_token';
+    const PER_PAGE = 50;
+    const MAX_PAGES = 10;
+
+    const log = document.getElementById('log');
+    const status = document.getElementById('status');
+    const range = document.getElementById('range');
+    const sentinel = document.getElementById('sentinel');
+    const authBtn = document.getElementById('gh-auth');
+    const statsEl = document.getElementById('stats');
+    const statCount = document.getElementById('stat-count');
+    const statMedian = document.getElementById('stat-median');
+    const statP90 = document.getElementById('stat-p90');
+    const statSuccess = document.getElementById('stat-success');
+    const chartWrap = document.getElementById('chart-wrap');
+    const chart = document.getElementById('chart');
+    const chartMax = document.getElementById('chart-max');
+    const chartStart = document.getElementById('chart-start');
+    const chartEnd = document.getElementById('chart-end');
+
+    function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+
+    function refreshAuthBtn() {
+      if (getToken()) {
+        authBtn.classList.add('authed');
+        authBtn.title = 'Logged in to GitHub (click to log out)';
+      } else {
+        authBtn.classList.remove('authed');
+        authBtn.title = 'Log in with GitHub for higher rate limits';
+      }
+    }
+
+    authBtn.addEventListener('click', () => {
+      if (getToken()) {
+        if (confirm('Log out of GitHub?')) {
+          localStorage.removeItem(TOKEN_KEY);
+          location.reload();
+        }
+        return;
+      }
+      const msg =
+        'Paste a GitHub personal access token for higher rate limits.\n\n' +
+        'Create one at https://github.com/settings/tokens\n' +
+        '  • Classic token: scope "public_repo" is enough\n' +
+        '  • Fine-grained: read access to "Actions" + "Metadata"\n\n' +
+        'The token is stored only in this browser (localStorage).';
+      const token = prompt(msg, '');
+      if (token && token.trim()) {
+        localStorage.setItem(TOKEN_KEY, token.trim());
+        location.reload();
+      }
+    });
+
+    refreshAuthBtn();
+
+    const CURRENT_YEAR = new Date().getFullYear();
+
+    function fmtDay(iso) {
+      const d = new Date(iso);
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      return yyyy === CURRENT_YEAR ? `${mm}-${dd}` : `${yyyy}-${mm}-${dd}`;
+    }
+
+    function fmtTime(iso) {
+      const d = new Date(iso);
+      let h = d.getHours();
+      const ampm = h >= 12 ? 'pm' : 'am';
+      h = h % 12 || 12;
+      const min = String(d.getMinutes()).padStart(2, '0');
+      return `${h}:${min}${ampm}`;
+    }
+
+    function fmtDuration(sec) {
+      if (sec == null || !isFinite(sec) || sec < 0) return '—';
+      if (sec < 60) return `${sec.toFixed(0)}s`;
+      const m = Math.floor(sec / 60);
+      const s = Math.round(sec - m * 60);
+      return s === 0 ? `${m}m` : `${m}m${String(s).padStart(2, '0')}s`;
+    }
+
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function percentile(sorted, p) {
+      if (!sorted.length) return null;
+      const idx = Math.min(sorted.length - 1, Math.floor(p * (sorted.length - 1)));
+      return sorted[idx];
+    }
+
+    let nextPage = 1;
+    let loading = false;
+    let exhausted = false;
+    const allDeploys = [];
+    const seen = new Set();
+
+    async function fetchRuns(page) {
+      const headers = { Accept: 'application/vnd.github+json' };
+      const token = getToken();
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const url =
+        `https://api.github.com/repos/${REPO}/actions/runs` +
+        `?per_page=${PER_PAGE}&page=${page}`;
+      const r = await fetch(url, { headers });
+      if (r.status === 401) {
+        localStorage.removeItem(TOKEN_KEY);
+        refreshAuthBtn();
+        throw new Error('GitHub token rejected; logged out');
+      }
+      if (!r.ok) throw new Error(`GitHub API ${r.status}`);
+      return r.json();
+    }
+
+    function isDeployRun(run) {
+      const name = (run.name || '').toLowerCase();
+      const wname = (run.workflow_name || '').toLowerCase();
+      return name.includes('pages') || wname.includes('pages') || run.event === 'dynamic';
+    }
+
+    function runDurationSec(run) {
+      const start = run.run_started_at || run.created_at;
+      const end = run.updated_at;
+      if (!start || !end) return null;
+      const ms = new Date(end).getTime() - new Date(start).getTime();
+      if (!isFinite(ms) || ms < 0) return null;
+      return ms / 1000;
+    }
+
+    function shortSha(sha) {
+      return (sha || '').slice(0, 7);
+    }
+
+    function renderLog() {
+      log.innerHTML = '';
+      let currentDay = null;
+      let dayEl = null;
+      let dayCount = 0;
+      let dayCountEl = null;
+
+      for (const d of allDeploys) {
+        const day = new Date(d.start).toDateString();
+        if (currentDay !== day) {
+          if (dayCountEl) dayCountEl.textContent = `${dayCount} deploy${dayCount === 1 ? '' : 's'}`;
+          currentDay = day;
+          dayCount = 0;
+          dayEl = document.createElement('div');
+          dayEl.className = 'day';
+          dayEl.innerHTML = `
+            <div class="day-header">
+              <span class="day-date">${fmtDay(d.start)}</span>
+              <span class="day-count"></span>
+            </div>`;
+          log.appendChild(dayEl);
+          dayCountEl = dayEl.querySelector('.day-count');
+        }
+        dayCount++;
+
+        const conclusion = (d.conclusion || d.status || '').toLowerCase();
+        const statusClass = conclusion === 'success'
+          ? 'success'
+          : conclusion === 'failure' || conclusion === 'timed_out' || conclusion === 'startup_failure'
+            ? 'failure'
+            : conclusion === 'cancelled'
+              ? 'cancelled'
+              : 'in_progress';
+
+        const row = document.createElement('div');
+        row.className = `deploy ${statusClass}`;
+        row.innerHTML = `
+          <span class="time">${fmtTime(d.start)}</span>
+          <a href="${d.url}" target="_blank" rel="noopener" title="${escHtml(d.title)}">
+            <span class="dot"></span>${escHtml(d.label)}
+          </a>
+          <span class="duration">${fmtDuration(d.durationSec)}</span>`;
+        dayEl.appendChild(row);
+      }
+      if (dayCountEl) dayCountEl.textContent = `${dayCount} deploy${dayCount === 1 ? '' : 's'}`;
+    }
+
+    function renderStats() {
+      if (!allDeploys.length) return;
+      statsEl.hidden = false;
+      const durations = allDeploys
+        .map(d => d.durationSec)
+        .filter(s => s != null && s >= 0)
+        .sort((a, b) => a - b);
+      const successes = allDeploys.filter(d => d.conclusion === 'success').length;
+      statCount.textContent = String(allDeploys.length);
+      statMedian.textContent = fmtDuration(percentile(durations, 0.5));
+      statP90.textContent = fmtDuration(percentile(durations, 0.9));
+      const pct = allDeploys.length ? Math.round(100 * successes / allDeploys.length) : 0;
+      statSuccess.textContent = `${pct}%`;
+    }
+
+    function renderChart() {
+      if (!allDeploys.length) return;
+      chartWrap.hidden = false;
+      // oldest → newest
+      const ordered = [...allDeploys].reverse();
+      const durations = ordered.map(d => d.durationSec || 0);
+      const max = Math.max(1, ...durations);
+      chartMax.textContent = `max ${fmtDuration(max)}`;
+      chart.innerHTML = '';
+      for (const d of ordered) {
+        const sec = d.durationSec || 0;
+        const h = Math.max(2, Math.round((sec / max) * 100));
+        const bar = document.createElement('a');
+        bar.className = `bar ${d.conclusion === 'success' ? '' : 'failure'}`;
+        bar.style.height = `${h}%`;
+        bar.href = d.url;
+        bar.target = '_blank';
+        bar.rel = 'noopener';
+        bar.title = `${fmtDay(d.start)} ${fmtTime(d.start)} · ${fmtDuration(sec)} · ${d.conclusion || d.status}`;
+        chart.appendChild(bar);
+      }
+      chartStart.textContent = fmtDay(ordered[0].start);
+      chartEnd.textContent = fmtDay(ordered[ordered.length - 1].start);
+    }
+
+    function ingest(runs) {
+      let added = 0;
+      for (const run of runs) {
+        if (!isDeployRun(run)) continue;
+        if (seen.has(run.id)) continue;
+        seen.add(run.id);
+        const start = run.run_started_at || run.created_at;
+        const sha = run.head_sha;
+        const msg = (run.head_commit && run.head_commit.message ? run.head_commit.message : '').split('\n')[0];
+        allDeploys.push({
+          id: run.id,
+          start,
+          end: run.updated_at,
+          durationSec: runDurationSec(run),
+          conclusion: run.conclusion,
+          status: run.status,
+          url: run.html_url,
+          label: msg ? `${shortSha(sha)} ${msg}` : `${shortSha(sha)} · ${run.workflow_name || run.name || 'deploy'}`,
+          title: `run #${run.run_number} · ${run.workflow_name || run.name}`,
+        });
+        added++;
+      }
+      // Keep ordering by start desc.
+      allDeploys.sort((a, b) => new Date(b.start) - new Date(a.start));
+      return added;
+    }
+
+    async function loadMore() {
+      if (loading || exhausted) return;
+      loading = true;
+      status.textContent = 'loading…';
+
+      let data;
+      try {
+        data = await fetchRuns(nextPage);
+      } catch (e) {
+        status.textContent = e.message;
+        loading = false;
+        exhausted = true;
+        return;
+      }
+
+      const runs = data.workflow_runs || [];
+      if (!runs.length && !allDeploys.length) {
+        status.textContent = 'no deployments';
+        exhausted = true;
+        loading = false;
+        return;
+      }
+
+      ingest(runs);
+      renderStats();
+      renderChart();
+      renderLog();
+
+      range.textContent = `${allDeploys.length} deploy${allDeploys.length === 1 ? '' : 's'}`;
+      nextPage++;
+      if (runs.length < PER_PAGE || nextPage > MAX_PAGES) {
+        exhausted = true;
+        status.textContent = '';
+      } else {
+        status.textContent = '';
+      }
+      loading = false;
+    }
+
+    const io = new IntersectionObserver(entries => {
+      if (entries.some(e => e.isIntersecting)) loadMore();
+    }, { rootMargin: '400px' });
+    io.observe(sentinel);
+  </script>
+</body>
+</html>

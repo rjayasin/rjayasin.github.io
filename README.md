@@ -19,3 +19,4 @@
   - [`spotify-auth`](https://rjayasin.github.io/visualizer/spotify-auth.html)
 - [`commits`](https://rjayasin.github.io/commits/)
 - [`dodgers-notifier`](https://rjayasin.github.io/dodgers-notifier/)
+- [`deploys`](https://rjayasin.github.io/deploys/)
