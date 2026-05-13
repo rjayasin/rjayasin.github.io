@@ -13,21 +13,31 @@
       user-select: none;
       position: relative;
     }
-    #border-svg {
+    #border-frame {
       position: fixed;
       inset: 0;
-      width: 100%;
-      height: 100%;
       pointer-events: none;
-      display: block;
+      z-index: 1;
     }
-    #border-svg text {
-      fill: currentColor;
-      dominant-baseline: alphabetic;
-      /* Firefox snaps textPath glyphs to the pixel grid by default, which
-         turns the smooth sub-pixel startOffset updates into visible jitter.
-         geometricPrecision keeps glyph positions on the float values we set. */
-      text-rendering: geometricPrecision;
+    .marquee {
+      position: absolute;
+      top: 0;
+      left: 0;
+      overflow: hidden;
+      transform-origin: 0 0;
+    }
+    .track {
+      position: absolute;
+      top: 0;
+      left: 0;
+      white-space: nowrap;
+      line-height: 1;
+      /* GPU-composite each track so per-frame transforms don't trigger
+         text re-layout. SVG textPath couldn't do this — Firefox re-laid
+         out every glyph on every startOffset update, which was fine at
+         small sizes but stuttered at fullscreen where the perimeter
+         held hundreds more glyphs per frame. */
+      will-change: transform;
     }
     #hint {
       position: fixed;
@@ -80,14 +90,12 @@
   <script src="/common.js"></script>
 </head>
 <body>
-  <svg id="border-svg" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <path id="border-path" fill="none"></path>
-    </defs>
-    <text>
-      <textPath id="border-text" href="#border-path" startOffset="0"></textPath>
-    </text>
-  </svg>
+  <div id="border-frame">
+    <div class="marquee" data-side="top"><div class="track"></div></div>
+    <div class="marquee" data-side="right"><div class="track"></div></div>
+    <div class="marquee" data-side="bottom"><div class="track"></div></div>
+    <div class="marquee" data-side="left"><div class="track"></div></div>
+  </div>
   <div id="hint"><span id="hint-inner"><span style="white-space:nowrap"><span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd">−</span> font size</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-font">click font</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-goog">g google fonts</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 <span class="hb-dark-label">dark</span></span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-sitemap">s sitemap</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-text"><span id="hb-text-label"></span></span> text</span></span></div>
   <div id="hint-zone"></div>
   <script>
@@ -98,18 +106,25 @@
     const FALLBACK = "Curious cats chase shimmering shadows past silent rooftops while drowsy moths drift toward the lantern, dreaming of yesterday's almanac and tomorrow's tide; somewhere a clock forgets the hour, the wind learns a new vowel, and the river writes its memoirs in the margins of moss.";
     const SEP = ' ';
     const SPEED = 60;
+    const SIDES = ['top', 'right', 'bottom', 'left'];
 
     let fontSize = window.innerWidth < 640 ? 18 : 28;
     let currentFont = null;
     let fallbackItems = [FALLBACK];
 
-    const pathEl = document.getElementById('border-path');
-    const textEl = document.querySelector('#border-svg text');
-    const textPathEl = document.getElementById('border-text');
+    const marquees = {};
+    const tracks = {};
+    for (const s of SIDES) {
+      marquees[s] = document.querySelector(`.marquee[data-side="${s}"]`);
+      tracks[s] = marquees[s].querySelector('.track');
+    }
 
-    let pathLen = 0;
+    // sideStarts give each side's offset along the CW perimeter so the
+    // text stream stays continuous across corners: the glyph leaving the
+    // top-right corner is the same one entering the right side.
     let unitLen = 0;
     let offset = 0;
+    let sideStarts = { top: 0, right: 0, bottom: 0, left: 0 };
 
     function unitText() {
       const items = Common.parseQueryItems().length ? Common.parseQueryItems() : fallbackItems;
@@ -118,8 +133,22 @@
     }
 
     function applyFont() {
-      textEl.style.fontSize = fontSize + 'px';
-      textEl.style.fontFamily = currentFont ? `'${currentFont}', serif` : '';
+      for (const s of SIDES) {
+        tracks[s].style.fontSize = fontSize + 'px';
+        tracks[s].style.fontFamily = currentFont ? `'${currentFont}', serif` : '';
+      }
+    }
+
+    function measure(text) {
+      const probe = document.createElement('span');
+      probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;line-height:1;left:-99999px;top:0;';
+      probe.style.fontSize = fontSize + 'px';
+      probe.style.fontFamily = currentFont ? `'${currentFont}', serif` : '';
+      probe.textContent = text;
+      document.body.appendChild(probe);
+      const rect = probe.getBoundingClientRect();
+      document.body.removeChild(probe);
+      return { width: rect.width, height: rect.height };
     }
 
     function rebuild() {
@@ -129,50 +158,53 @@
 
       applyFont();
 
-      const probe = document.createElement('span');
-      probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;line-height:1;';
-      probe.style.fontSize = fontSize + 'px';
-      probe.style.fontFamily = currentFont ? `'${currentFont}', serif` : '';
-      probe.textContent = 'Mqgy';
-      document.body.appendChild(probe);
-      const textHeight = probe.offsetHeight;
-      document.body.removeChild(probe);
+      const m = measure('Mqgy');
+      const textHeight = Math.ceil(m.height);
 
-      // Inset the path so the text (which sits on the outer side of a CW path,
-      // with ascenders pointing outward) fits between the path and the edge.
-      const inset = Math.ceil(textHeight * 0.95);
+      // Position each marquee at its edge in screen space. The marquee's
+      // local +x axis runs in the CW path direction along that side; +y
+      // runs inward from the screen edge. Each side has length sideLen[s]
+      // and depth textHeight. Transforms place the local origin at the
+      // appropriate corner.
+      const sideLen = { top: W, right: H, bottom: W, left: H };
+      const transforms = {
+        top:    `translate(0px, 0px)`,
+        right:  `translate(${W}px, 0px) rotate(90deg)`,
+        bottom: `translate(${W}px, ${H}px) rotate(180deg)`,
+        left:   `translate(0px, ${H}px) rotate(-90deg)`,
+      };
+      for (const s of SIDES) {
+        marquees[s].style.width = sideLen[s] + 'px';
+        marquees[s].style.height = textHeight + 'px';
+        marquees[s].style.transform = transforms[s];
+      }
 
-      // CW rectangle starting at the top-left corner. Text renders at the
-      // font's natural width; the path simply clips whatever glyphs fall
-      // past pathLen, so the marquee shows only as much text as fits at
-      // the current font size.
-      const d = `M ${inset} ${inset} L ${W - inset} ${inset} L ${W - inset} ${H - inset} L ${inset} ${H - inset} Z`;
-      pathEl.setAttribute('d', d);
-      pathLen = pathEl.getTotalLength();
+      sideStarts = {
+        top: 0,
+        right: W,
+        bottom: W + H,
+        left: 2 * W + H,
+      };
 
       if (!text) {
-        textPathEl.textContent = '';
+        for (const s of SIDES) tracks[s].textContent = '';
         unitLen = 0;
         return;
       }
 
-      // Use the marginal length added by repeating the text once more as
-      // the true period of the repetition. This includes the kerning
-      // adjustment at the boundary between adjacent copies, so cycling
-      // the scroll by this value keeps the visible content stable across
-      // wraps. Measuring a single copy and assuming the period equals its
-      // length misses the boundary kerning and causes a visible jump every
-      // cycle — very noticeable when the text is short.
-      textPathEl.textContent = text;
-      const single = textPathEl.getComputedTextLength();
-      textPathEl.textContent = text.repeat(2);
-      const double = textPathEl.getComputedTextLength();
+      // Measure marginal length of one extra repeat so the period
+      // accounts for kerning at the seam — same trick as the SVG
+      // version. Without it the wrap-around jumps every cycle.
+      const single = measure(text).width;
+      const double = measure(text.repeat(2)).width;
       unitLen = double - single;
       if (unitLen <= 0) unitLen = single;
       if (unitLen <= 0) return;
 
-      const repeats = Math.max(2, Math.ceil((pathLen + 2 * unitLen) / unitLen));
-      textPathEl.textContent = text.repeat(repeats);
+      const longest = Math.max(W, H);
+      const repeats = Math.max(2, Math.ceil((longest + 2 * unitLen) / unitLen));
+      const content = text.repeat(repeats);
+      for (const s of SIDES) tracks[s].textContent = content;
     }
 
     let lastT = performance.now();
@@ -181,8 +213,13 @@
       lastT = now;
       if (unitLen > 0) {
         offset += SPEED * dt;
-        const startOff = -(((offset % unitLen) + unitLen) % unitLen);
-        textPathEl.setAttribute('startOffset', startOff);
+        for (const s of SIDES) {
+          const raw = (offset + sideStarts[s]) % unitLen;
+          const x = -((raw + unitLen) % unitLen);
+          // translate3d keeps the track on its own compositor layer so
+          // updates are pure paint-free transforms.
+          tracks[s].style.transform = `translate3d(${x}px, 0, 0)`;
+        }
       }
       requestAnimationFrame(tick);
     }
