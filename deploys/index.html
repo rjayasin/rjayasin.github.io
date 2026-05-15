@@ -228,8 +228,8 @@
 
     .chart-svg .median-line {
       stroke: var(--median);
-      stroke-width: 1.5;
-      stroke-dasharray: 5 4;
+      stroke-width: 2;
+      stroke-dasharray: 4 3;
       fill: none;
     }
 
@@ -237,6 +237,12 @@
       fill: var(--median);
       font-size: 11px;
       font-weight: 600;
+    }
+
+    .chart-svg .median-label-bg {
+      fill: var(--card);
+      stroke: var(--median);
+      stroke-width: 1;
     }
 
     .chart-axis-x {
@@ -462,7 +468,7 @@
         <span class="legend-item"><span class="legend-swatch median"></span>median</span>
       </span>
     </div>
-    <svg class="chart-svg" id="chart" preserveAspectRatio="none"></svg>
+    <svg class="chart-svg" id="chart"></svg>
     <div class="chart-axis-x">
       <span id="chart-start"></span>
       <span id="chart-end"></span>
@@ -706,9 +712,11 @@
       const sorted = durations.slice().filter(s => s > 0).sort((a, b) => a - b);
       const med = median(sorted) || 0;
 
-      const W = 1000;
+      const W = Math.max(320, Math.round(
+        chart.clientWidth || chart.getBoundingClientRect().width || 1000
+      ));
       const H = 220;
-      const PAD_L = 36;
+      const PAD_L = 44;
       const PAD_R = 12;
       const PAD_T = 14;
       const PAD_B = 8;
@@ -783,12 +791,23 @@
 
         const label = document.createElementNS(SVG_NS, 'text');
         label.setAttribute('class', 'median-label');
-        label.setAttribute('x', W - PAD_R - 4);
-        const above = medY > PAD_T + 14;
-        label.setAttribute('y', above ? medY - 4 : medY + 12);
+        label.setAttribute('x', W - PAD_R - 6);
+        label.setAttribute('y', medY);
         label.setAttribute('text-anchor', 'end');
+        label.setAttribute('dominant-baseline', 'central');
         label.textContent = `median ${fmtDuration(med)}`;
         chart.appendChild(label);
+
+        // Background pill so the label stays legible over bars.
+        const bbox = label.getBBox();
+        const bg = document.createElementNS(SVG_NS, 'rect');
+        bg.setAttribute('class', 'median-label-bg');
+        bg.setAttribute('x', bbox.x - 6);
+        bg.setAttribute('y', bbox.y - 2);
+        bg.setAttribute('width', bbox.width + 12);
+        bg.setAttribute('height', bbox.height + 4);
+        bg.setAttribute('rx', (bbox.height + 4) / 2);
+        chart.insertBefore(bg, label);
       }
 
       chartStart.textContent = fmtDay(ordered[0].start);
@@ -864,6 +883,19 @@
       if (entries.some(e => e.isIntersecting)) loadMore();
     }, { rootMargin: '400px' });
     io.observe(sentinel);
+
+    if (typeof ResizeObserver !== 'undefined') {
+      let lastW = 0;
+      const ro = new ResizeObserver(entries => {
+        if (!allDeploys.length) return;
+        const w = Math.round(entries[0].contentRect.width);
+        if (w && w !== lastW) {
+          lastW = w;
+          renderChart();
+        }
+      });
+      ro.observe(chart);
+    }
   </script>
 </body>
 
