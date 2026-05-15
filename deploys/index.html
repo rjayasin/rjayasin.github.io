@@ -233,24 +233,14 @@
       fill: none;
     }
 
-    .chart-svg .median-label {
-      fill: var(--median);
-      font-size: 11px;
-      font-weight: 600;
-    }
-
-    .chart-svg .median-label-bg {
-      fill: var(--card);
-      stroke: var(--median);
-      stroke-width: 1;
-    }
-
     .chart-axis-x {
       display: flex;
       justify-content: space-between;
       color: var(--muted);
       font-size: 11px;
       margin-top: 6px;
+      padding-left: 44px;
+      padding-right: 4px;
     }
 
     .log {
@@ -465,7 +455,7 @@
       <span class="chart-meta">
         <span class="legend-item"><span class="legend-swatch"></span>success</span>
         <span class="legend-item"><span class="legend-swatch failure"></span>failure</span>
-        <span class="legend-item"><span class="legend-swatch median"></span>median</span>
+        <span class="legend-item"><span class="legend-swatch median"></span><span id="legend-median">median</span></span>
       </span>
     </div>
     <svg class="chart-svg" id="chart"></svg>
@@ -509,6 +499,7 @@
     const chart = document.getElementById('chart');
     const chartStart = document.getElementById('chart-start');
     const chartEnd = document.getElementById('chart-end');
+    const legendMedian = document.getElementById('legend-median');
 
     function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
 
@@ -712,12 +703,15 @@
       const sorted = durations.slice().filter(s => s > 0).sort((a, b) => a - b);
       const med = median(sorted) || 0;
 
+      // Force layout, then measure the chart's actual rendered width so
+      // viewBox coordinates map 1:1 with pixels (no text stretching).
+      void chartWrap.offsetWidth;
       const W = Math.max(320, Math.round(
-        chart.clientWidth || chart.getBoundingClientRect().width || 1000
+        chart.getBoundingClientRect().width || chart.clientWidth || 1000
       ));
       const H = 220;
       const PAD_L = 44;
-      const PAD_R = 12;
+      const PAD_R = 4;
       const PAD_T = 14;
       const PAD_B = 8;
       const innerW = W - PAD_L - PAD_R;
@@ -778,7 +772,8 @@
         chart.appendChild(rect);
       });
 
-      // Median line.
+      // Median line. The value is rendered in the legend (see below) so
+      // there is no in-chart label overlapping the bars.
       if (med > 0) {
         const medY = PAD_T + innerH * (1 - med / max);
         const line = document.createElementNS(SVG_NS, 'line');
@@ -788,26 +783,9 @@
         line.setAttribute('y1', medY);
         line.setAttribute('y2', medY);
         chart.appendChild(line);
-
-        const label = document.createElementNS(SVG_NS, 'text');
-        label.setAttribute('class', 'median-label');
-        label.setAttribute('x', W - PAD_R - 6);
-        label.setAttribute('y', medY);
-        label.setAttribute('text-anchor', 'end');
-        label.setAttribute('dominant-baseline', 'central');
-        label.textContent = `median ${fmtDuration(med)}`;
-        chart.appendChild(label);
-
-        // Background pill so the label stays legible over bars.
-        const bbox = label.getBBox();
-        const bg = document.createElementNS(SVG_NS, 'rect');
-        bg.setAttribute('class', 'median-label-bg');
-        bg.setAttribute('x', bbox.x - 6);
-        bg.setAttribute('y', bbox.y - 2);
-        bg.setAttribute('width', bbox.width + 12);
-        bg.setAttribute('height', bbox.height + 4);
-        bg.setAttribute('rx', (bbox.height + 4) / 2);
-        chart.insertBefore(bg, label);
+      }
+      if (legendMedian) {
+        legendMedian.textContent = med > 0 ? `median ${fmtDuration(med)}` : 'median';
       }
 
       chartStart.textContent = fmtDay(ordered[0].start);
