@@ -162,6 +162,7 @@
       align-items: baseline;
       margin-bottom: 14px;
       gap: 12px;
+      flex-wrap: wrap;
     }
 
     .chart-title {
@@ -251,7 +252,7 @@
 
     .chart-svg {
       width: 100%;
-      height: 220px;
+      height: 240px;
       display: block;
       overflow: visible;
     }
@@ -284,6 +285,29 @@
       stroke-width: 2;
       stroke-dasharray: 4 3;
       fill: none;
+    }
+
+    .chart-svg .size-area {
+      fill: var(--size);
+      fill-opacity: 0.14;
+      stroke: none;
+      pointer-events: none;
+    }
+
+    .chart-svg .size-line {
+      fill: none;
+      stroke: var(--size);
+      stroke-width: 1.75;
+      stroke-linejoin: round;
+      stroke-linecap: round;
+      pointer-events: none;
+    }
+
+    .chart-svg .size-dot {
+      fill: var(--card);
+      stroke: var(--size);
+      stroke-width: 1.5;
+      cursor: pointer;
     }
 
     .chart-axis-x {
@@ -442,7 +466,7 @@
 
     @media (max-width: 640px) {
       body {
-        padding: 24px 16px 60px;
+        padding: 24px 12px 60px;
       }
 
       h1 {
@@ -457,8 +481,29 @@
         font-size: 18px;
       }
 
+      .chart-card {
+        padding: 16px 12px 12px;
+      }
+
+      .chart-head {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .chart-meta {
+        font-size: 11px;
+        gap: 10px;
+        row-gap: 6px;
+      }
+
       .chart-svg {
-        height: 180px;
+        height: 260px;
+      }
+
+      .chart-axis-x {
+        font-size: 10px;
       }
 
       .deploy {
@@ -853,13 +898,13 @@
         return null;
       })();
 
-      // Force layout, then measure the chart's actual rendered width so
-      // viewBox coordinates map 1:1 with pixels (no text stretching).
+      // Force layout, then measure the chart's actual rendered size so
+      // viewBox coordinates map 1:1 with pixels (no text stretching or
+      // letterboxing when CSS height varies between breakpoints).
       void chartWrap.offsetWidth;
-      const W = Math.max(320, Math.round(
-        chart.getBoundingClientRect().width || chart.clientWidth || 1000
-      ));
-      const H = 220;
+      const box = chart.getBoundingClientRect();
+      const W = Math.max(320, Math.round(box.width || chart.clientWidth || 1000));
+      const H = Math.max(160, Math.round(box.height || chart.clientHeight || 240));
       const PAD_L = 44;
       // Reserve room for the right-side size axis when shown.
       const PAD_R = showSize ? 44 : 4;
@@ -905,28 +950,26 @@
         }
       }
 
-      // Bars. When size is shown each slot holds a duration bar on the
-      // left and a size bar on the right so both metrics share the time
-      // axis.
+      // Duration bars use the full slot width. Repo size, when enabled,
+      // overlays as an area + line so neither metric gets squashed.
       const n = ordered.length;
-      const gap = n > 60 ? 1 : 2;
+      const gap = n > 60 ? 1 : n > 30 ? 1.5 : 2;
       const slotW = Math.max(2, (innerW - gap * (n - 1)) / n);
-      const innerGap = showSize && slotW >= 4 ? 1 : 0;
-      const dBarW = showSize ? Math.max(1, (slotW - innerGap) / 2) : slotW;
-      const sBarW = showSize ? Math.max(1, slotW - dBarW - innerGap) : 0;
+      const barW = slotW;
+      const slotCenters = new Array(n);
       ordered.forEach((d, i) => {
         const slotX = PAD_L + i * (slotW + gap);
+        slotCenters[i] = slotX + barW / 2;
         const sec = d.durationSec || 0;
         const h = Math.max(1.5, (sec / max) * innerH);
-        const x = slotX;
         const y = PAD_T + innerH - h;
         const rect = document.createElementNS(SVG_NS, 'rect');
         rect.setAttribute('class', 'bar');
-        rect.setAttribute('x', x);
+        rect.setAttribute('x', slotX);
         rect.setAttribute('y', y);
-        rect.setAttribute('width', dBarW);
+        rect.setAttribute('width', barW);
         rect.setAttribute('height', h);
-        rect.setAttribute('rx', Math.min(1.5, dBarW / 3));
+        rect.setAttribute('rx', Math.min(2, barW / 3));
         const cls = statusClass(d);
         const color = cls === 'success'
           ? 'var(--success)'
@@ -946,26 +989,59 @@
         rect.appendChild(title);
         rect.addEventListener('click', () => window.open(d.url, '_blank', 'noopener'));
         chart.appendChild(rect);
-
-        if (showSize && maxSize > 0 && sizeBytes != null && sizeBytes > 0) {
-          const sh = Math.max(1.5, (sizeBytes / maxSize) * innerH);
-          const sx = slotX + dBarW + innerGap;
-          const sy = PAD_T + innerH - sh;
-          const srect = document.createElementNS(SVG_NS, 'rect');
-          srect.setAttribute('class', 'bar bar-size');
-          srect.setAttribute('x', sx);
-          srect.setAttribute('y', sy);
-          srect.setAttribute('width', sBarW);
-          srect.setAttribute('height', sh);
-          srect.setAttribute('rx', Math.min(1.5, sBarW / 3));
-          srect.setAttribute('fill', 'var(--size)');
-          const stitle = document.createElementNS(SVG_NS, 'title');
-          stitle.textContent = `${fmtDay(d.start)} ${fmtTime(d.start)} · size ${fmtSize(sizeBytes)}`;
-          srect.appendChild(stitle);
-          srect.addEventListener('click', () => window.open(d.url, '_blank', 'noopener'));
-          chart.appendChild(srect);
-        }
       });
+
+      // Repo size: smooth area + line overlay across deploys that have a
+      // known size, with markers on each data point.
+      if (showSize && maxSize > 0) {
+        const sizeY = v => PAD_T + innerH * (1 - v / maxSize);
+        const segments = [];
+        let current = null;
+        for (let i = 0; i < n; i++) {
+          const v = sizes[i];
+          if (v != null && v > 0) {
+            if (!current) {
+              current = [];
+              segments.push(current);
+            }
+            current.push({ i, x: slotCenters[i], y: sizeY(v), v });
+          } else if (current) {
+            current = null;
+          }
+        }
+        const showDots = slotW >= 8;
+        const dotR = Math.min(3, Math.max(1.8, slotW * 0.35));
+        for (const seg of segments) {
+          if (seg.length >= 2) {
+            const baseY = PAD_T + innerH;
+            const areaPts = seg.map(p => `${p.x},${p.y}`).join(' ');
+            const area = document.createElementNS(SVG_NS, 'polygon');
+            area.setAttribute('class', 'size-area');
+            area.setAttribute('points',
+              `${seg[0].x},${baseY} ${areaPts} ${seg[seg.length - 1].x},${baseY}`);
+            chart.appendChild(area);
+
+            const line = document.createElementNS(SVG_NS, 'polyline');
+            line.setAttribute('class', 'size-line');
+            line.setAttribute('points', areaPts);
+            chart.appendChild(line);
+          }
+          if (!showDots) continue;
+          for (const p of seg) {
+            const dot = document.createElementNS(SVG_NS, 'circle');
+            dot.setAttribute('class', 'size-dot');
+            dot.setAttribute('cx', p.x);
+            dot.setAttribute('cy', p.y);
+            dot.setAttribute('r', dotR);
+            const d = ordered[p.i];
+            const dtitle = document.createElementNS(SVG_NS, 'title');
+            dtitle.textContent = `${fmtDay(d.start)} ${fmtTime(d.start)} · size ${fmtSize(p.v)}`;
+            dot.appendChild(dtitle);
+            dot.addEventListener('click', () => window.open(d.url, '_blank', 'noopener'));
+            chart.appendChild(dot);
+          }
+        }
+      }
 
       // Median line. The value is rendered in the legend (see below) so
       // there is no in-chart label overlapping the bars.
@@ -1066,11 +1142,15 @@
 
     if (typeof ResizeObserver !== 'undefined') {
       let lastW = 0;
+      let lastH = 0;
       const ro = new ResizeObserver(entries => {
         if (!allDeploys.length) return;
-        const w = Math.round(entries[0].contentRect.width);
-        if (w && w !== lastW) {
+        const r = entries[0].contentRect;
+        const w = Math.round(r.width);
+        const h = Math.round(r.height);
+        if ((w && w !== lastW) || (h && h !== lastH)) {
           lastW = w;
+          lastH = h;
           renderChart();
         }
       });
