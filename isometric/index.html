@@ -89,34 +89,39 @@
     let renderToken = 0;
     let measureCanvas = null;
 
+    const SUPERSAMPLE = 4;
+
     async function getContours(word, fontPx) {
       const family = currentFont ? `'${currentFont}', serif` : 'serif';
       const key = `${word}|${fontPx}|${family}`;
       if (contourCache.key === key) return contourCache.contours;
       try { await document.fonts.load(`${fontPx}px ${family}`); } catch (e) {}
 
+      const ssPx = fontPx * SUPERSAMPLE;
       if (!measureCanvas) measureCanvas = document.createElement('canvas');
       const canvas = measureCanvas;
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      ctx.font = `${fontPx}px ${family}`;
+      ctx.font = `${ssPx}px ${family}`;
       const m = ctx.measureText(word);
-      const ascent = Math.ceil((m.actualBoundingBoxAscent || fontPx * 0.85) + 2);
-      const descent = Math.ceil((m.actualBoundingBoxDescent || fontPx * 0.25) + 2);
-      const textW = Math.max(1, Math.ceil(m.width + 4));
+      const pad = 2 * SUPERSAMPLE;
+      const ascent = Math.ceil((m.actualBoundingBoxAscent || ssPx * 0.85) + pad);
+      const descent = Math.ceil((m.actualBoundingBoxDescent || ssPx * 0.25) + pad);
+      const textW = Math.max(1, Math.ceil(m.width + pad * 2));
       const textH = ascent + descent;
       canvas.width = textW;
       canvas.height = textH;
-      ctx.font = `${fontPx}px ${family}`;
+      ctx.font = `${ssPx}px ${family}`;
       ctx.textBaseline = 'alphabetic';
       ctx.fillStyle = '#000';
-      ctx.fillText(word, 2, ascent);
+      ctx.fillText(word, pad, ascent);
 
-      const contours = rasterToContours(canvas);
+      const contours = rasterToContours(canvas, SUPERSAMPLE);
       contourCache = { key, contours };
       return contours;
     }
 
-    function rasterToContours(canvas) {
+    function rasterToContours(canvas, scale) {
+      scale = scale || 1;
       const w = canvas.width, h = canvas.height;
       const data = canvas.getContext('2d').getImageData(0, 0, w, h).data;
       function inAt(x, y) {
@@ -178,7 +183,8 @@
         }
         if (loop.length >= 4) out.push(loop);
       }
-      return out.map(c => simplifyContour(c, 0.9));
+      const inv = 1 / scale;
+      return out.map(c => simplifyContour(c.map(p => [p[0] * inv, p[1] * inv]), 0.4));
     }
 
     function pointLineDist2(p, a, b) {
