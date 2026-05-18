@@ -431,10 +431,33 @@
 
     document.getElementById('hb-fi').addEventListener('click', () => { fontSize = Math.max(8, Math.min(800, fontSize + 8)); render(); showHint(); });
     document.getElementById('hb-fd').addEventListener('click', () => { fontSize = Math.max(8, Math.min(800, fontSize - 8)); render(); showHint(); });
-    document.getElementById('hb-dd').addEventListener('click', () => { angle = ((angle + 5) % 360 + 360) % 360; render(); showHint(); });
-    document.getElementById('hb-di').addEventListener('click', () => { angle = ((angle - 5) % 360 + 360) % 360; render(); showHint(); });
-    document.getElementById('hb-au').addEventListener('click', () => { depth = Math.max(0, Math.min(500, depth + 4)); render(); showHint(); });
-    document.getElementById('hb-ad').addEventListener('click', () => { depth = Math.max(0, Math.min(500, depth - 4)); render(); showHint(); });
+    function bindRepeat(id, step) {
+      const el = document.getElementById(id);
+      let initialTimer = null;
+      let intervalTimer = null;
+      const stop = () => {
+        clearTimeout(initialTimer);
+        clearInterval(intervalTimer);
+        initialTimer = intervalTimer = null;
+      };
+      const start = e => {
+        if (e.button !== undefined && e.button !== 0) return;
+        e.preventDefault();
+        step();
+        initialTimer = setTimeout(() => {
+          intervalTimer = setInterval(step, 30);
+        }, 400);
+      };
+      el.addEventListener('mousedown', start);
+      el.addEventListener('touchstart', start, { passive: false });
+      ['mouseup', 'mouseleave', 'touchend', 'touchcancel', 'blur'].forEach(ev => el.addEventListener(ev, stop));
+      window.addEventListener('mouseup', stop);
+      el.addEventListener('click', e => e.preventDefault());
+    }
+    bindRepeat('hb-dd', () => { angle = ((angle + 5) % 360 + 360) % 360; render(); showHint(); });
+    bindRepeat('hb-di', () => { angle = ((angle - 5) % 360 + 360) % 360; render(); showHint(); });
+    bindRepeat('hb-au', () => { depth = Math.max(0, Math.min(500, depth + 4)); render(); showHint(); });
+    bindRepeat('hb-ad', () => { depth = Math.max(0, Math.min(500, depth - 4)); render(); showHint(); });
     document.getElementById('hb-font').addEventListener('click', pickFont);
     document.getElementById('hb-goog').addEventListener('click', () => { if (currentFont) Common.openFontSpecimen(currentFont); });
     document.getElementById('hb-dark').addEventListener('click', () => { Common.toggleDark(); showHint(); });
