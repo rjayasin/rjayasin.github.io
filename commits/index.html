@@ -279,6 +279,7 @@
             commit: { committer: { date: c.commit.committer.date }, message: c.commit.message },
             repository: { full_name: BOT_REPO },
             html_url: c.html_url,
+            isBot: true,
           });
         }
         if (items.length < 100) break;
@@ -333,7 +334,8 @@
       const date = c.commit.committer.date;
       const day = new Date(date).toDateString();
       const repo = c.repository.full_name;
-      const msg = c.commit.message.split('\n')[0];
+      const rawMsg = c.commit.message.split('\n')[0];
+      const msg = c.isBot ? `🤖 ${rawMsg}` : rawMsg;
 
       if (currentDay !== day) {
         currentDay = day;
