@@ -1124,7 +1124,7 @@
       renderLog();
       if (showSize) loadSizes();
 
-      range.textContent = `${allDeploys.length} deploy${allDeploys.length === 1 ? '' : 's'} · GitHub Actions`;
+      range.innerHTML = `<a href="https://github.com/rjayasin/rjayasin.github.io">rjayasin.github.io</a> · ${allDeploys.length} deploy${allDeploys.length === 1 ? '' : 's'} · <a href="https://github.com/rjayasin/rjayasin.github.io/actions">GitHub Actions</a>`;
       nextPage++;
       if (runs.length < PER_PAGE || nextPage > MAX_PAGES) {
         exhausted = true;
