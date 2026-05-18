@@ -202,6 +202,8 @@
     Common.initDarkMode();
 
     const USER = 'rjayasin';
+    const BOT_REPO = 'rjayasin/rjayasin.github.io';
+    const BOT_AUTHOR = '41898282+github-actions[bot]@users.noreply.github.com';
     const TOKEN_KEY = 'gh_token';
     const log = document.getElementById('log');
     const status = document.getElementById('status');
@@ -257,6 +259,35 @@
     let currentDayContainer = null;
     let hasFirstSection = false;
     let total = 0;
+    let botCommits = [];
+
+    async function fetchBotCommits() {
+      const headers = { Accept: 'application/vnd.github+json' };
+      const token = getToken();
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const out = [];
+      for (let page = 1; page <= 10; page++) {
+        const r = await fetch(
+          `https://api.github.com/repos/${BOT_REPO}/commits?author=${encodeURIComponent(BOT_AUTHOR)}&per_page=100&page=${page}`,
+          { headers }
+        );
+        if (!r.ok) break;
+        const items = await r.json();
+        if (!items.length) break;
+        for (const c of items) {
+          out.push({
+            commit: { committer: { date: c.commit.committer.date }, message: c.commit.message },
+            repository: { full_name: BOT_REPO },
+            html_url: c.html_url,
+          });
+        }
+        if (items.length < 100) break;
+      }
+      out.sort((a, b) => new Date(b.commit.committer.date) - new Date(a.commit.committer.date));
+      botCommits = out;
+    }
+
+    const botPromise = fetchBotCommits().catch(() => {});
 
     const CURRENT_YEAR = new Date().getFullYear();
 
@@ -298,6 +329,58 @@
       return r.json();
     }
 
+    function renderCommit(c) {
+      const date = c.commit.committer.date;
+      const day = new Date(date).toDateString();
+      const repo = c.repository.full_name;
+      const msg = c.commit.message.split('\n')[0];
+
+      if (currentDay !== day) {
+        currentDay = day;
+        currentDayRepos = new Map();
+        currentDayContainer = document.createElement('div');
+        currentDayContainer.className = 'day';
+        log.appendChild(currentDayContainer);
+      }
+
+      let commitsEl = currentDayRepos.get(repo);
+      if (!commitsEl) {
+        const isDayStart = currentDayRepos.size === 0;
+        const isVeryFirst = !hasFirstSection;
+        hasFirstSection = true;
+        const sec = document.createElement('section');
+        sec.className = 'section';
+        sec.dataset.repo = repo;
+        sec.dataset.date = fmtDay(date);
+        const dateSpan = isDayStart ? `<span class="date">${fmtDay(date)}</span>` : '';
+        const headerHtml = isVeryFirst ? '' : `
+          <header class="section-header">
+            <a class="repo" href="https://github.com/${repo}" target="_blank" rel="noopener">${escHtml(repo)}</a>
+            ${dateSpan}
+          </header>`;
+        sec.innerHTML = `${headerHtml}
+          <div class="commits"></div>`;
+        currentDayContainer.appendChild(sec);
+        commitsEl = sec.querySelector('.commits');
+        currentDayRepos.set(repo, commitsEl);
+      }
+
+      commitsEl.insertAdjacentHTML('beforeend', `
+        <div class="commit"><span class="time">${fmtTime(date)}</span><a href="${c.html_url}" target="_blank" rel="noopener">${escHtml(msg)}</a></div>`);
+    }
+
+    function drainBotsBefore(cutoffIso) {
+      const cutoff = cutoffIso ? new Date(cutoffIso).getTime() : -Infinity;
+      let drained = 0;
+      while (botCommits.length) {
+        const t = new Date(botCommits[0].commit.committer.date).getTime();
+        if (t < cutoff) break;
+        renderCommit(botCommits.shift());
+        drained++;
+      }
+      return drained;
+    }
+
     async function loadMore() {
       if (loading || exhausted) return;
       loading = true;
@@ -305,7 +388,7 @@
 
       let data;
       try {
-        data = await fetchPage(nextPage);
+        [data] = await Promise.all([fetchPage(nextPage), botPromise]);
       } catch (e) {
         status.textContent = e.message;
         loading = false;
@@ -314,63 +397,33 @@
       }
 
       const items = data.items || [];
-      if (!items.length && total === 0) {
+      if (!items.length && total === 0 && !botCommits.length) {
         status.textContent = 'no commits';
         exhausted = true;
         loading = false;
         return;
       }
 
+      let added = 0;
       for (const c of items) {
-        const date = c.commit.committer.date;
-        const day = new Date(date).toDateString();
-        const repo = c.repository.full_name;
-        const msg = c.commit.message.split('\n')[0];
-
-        if (currentDay !== day) {
-          currentDay = day;
-          currentDayRepos = new Map();
-          currentDayContainer = document.createElement('div');
-          currentDayContainer.className = 'day';
-          log.appendChild(currentDayContainer);
-        }
-
-        let commitsEl = currentDayRepos.get(repo);
-        if (!commitsEl) {
-          const isDayStart = currentDayRepos.size === 0;
-          const isVeryFirst = !hasFirstSection;
-          hasFirstSection = true;
-          const sec = document.createElement('section');
-          sec.className = 'section';
-          sec.dataset.repo = repo;
-          sec.dataset.date = fmtDay(date);
-          const dateSpan = isDayStart ? `<span class="date">${fmtDay(date)}</span>` : '';
-          const headerHtml = isVeryFirst ? '' : `
-            <header class="section-header">
-              <a class="repo" href="https://github.com/${repo}" target="_blank" rel="noopener">${escHtml(repo)}</a>
-              ${dateSpan}
-            </header>`;
-          sec.innerHTML = `${headerHtml}
-            <div class="commits"></div>`;
-          currentDayContainer.appendChild(sec);
-          commitsEl = sec.querySelector('.commits');
-          currentDayRepos.set(repo, commitsEl);
-        }
-
-        commitsEl.insertAdjacentHTML('beforeend', `
-          <div class="commit"><span class="time">${fmtTime(date)}</span><a href="${c.html_url}" target="_blank" rel="noopener">${escHtml(msg)}</a></div>`);
+        added += drainBotsBefore(c.commit.committer.date);
+        renderCommit(c);
+        added++;
       }
 
-      total += items.length;
+      const lastPage = items.length < 100 || nextPage >= 10;
+      if (lastPage) {
+        added += drainBotsBefore(null);
+      }
+
+      total += added;
       range.textContent = `${total} commit${total === 1 ? '' : 's'}`;
       nextPage++;
 
-      if (items.length < 100 || nextPage > 10) {
+      if (lastPage) {
         exhausted = true;
-        status.textContent = '';
-      } else {
-        status.textContent = '';
       }
+      status.textContent = '';
       loading = false;
       scheduleTopBar();
     }
