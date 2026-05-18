@@ -4,7 +4,7 @@ let mode = 'single';
 let currentFont = Common.pickRandomGoogleFont();
 
 function repaintFavicon() {
-  Common.paintFavicon({ glyph: window.GLYPH, font: currentFont });
+  Common.paintFavicon({ glyph: window.GRID, font: currentFont });
 }
 
 async function applySingle(font) {
@@ -22,7 +22,7 @@ const measureCtx = measureCanvas.getContext('2d');
 
 function measureCell(font) {
   measureCtx.font = `${size}px '${font}', serif`;
-  const m = measureCtx.measureText(window.GLYPH);
+  const m = measureCtx.measureText(window.GRID);
   const w = (m.actualBoundingBoxLeft || 0) + (m.actualBoundingBoxRight || m.width || 0);
   const h = (m.actualBoundingBoxAscent || 0) + (m.actualBoundingBoxDescent || 0);
   return Math.max(w, h, size * 0.4) + size * 0.2;
@@ -48,8 +48,8 @@ function rebuild() {
   const frag = document.createDocumentFragment();
   for (let i = 0; i < total; i++) {
     const span = document.createElement('span');
-    span.className = 'glyph';
-    span.textContent = window.GLYPH;
+    span.className = 'grid';
+    span.textContent = window.GRID;
     span.style.width = cell + 'px';
     span.style.height = cell + 'px';
     span.style.fontSize = size + 'px';

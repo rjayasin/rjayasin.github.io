@@ -37,16 +37,16 @@
       margin: 0 6px;
     }
     #sitemap a:hover { text-decoration: underline; }
-    body.glyph-mode {
+    body.grid-mode {
       height: 100%;
       display: flex;
       flex-wrap: wrap;
-      align-content: flex-start;
+      align-content: center;
       align-items: stretch;
-      justify-content: flex-start;
+      justify-content: center;
     }
-    html:has(body.glyph-mode), body.glyph-mode { width: 100%; height: 100%; overflow: hidden; }
-    .glyph {
+    html:has(body.grid-mode), body.grid-mode { width: 100%; height: 100%; overflow: hidden; }
+    .grid {
       line-height: 1;
       display: flex;
       align-items: center;
@@ -61,21 +61,21 @@
     Common.initCursorHide();
     Common.paintFaviconR();
 
-    function glyphFromHash() {
+    function gridFromHash() {
       const raw = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
       return [...raw][0] || '';
     }
 
-    const hashGlyph = glyphFromHash();
-    if (hashGlyph) {
-      document.body.classList.add('glyph-mode');
-      document.title = hashGlyph;
-      window.GLYPH = hashGlyph;
-      Common.paintFavicon({ glyph: hashGlyph });
+    const hashGrid = gridFromHash();
+    if (hashGrid) {
+      document.body.classList.add('grid-mode');
+      document.title = hashGrid;
+      window.GRID = hashGrid;
+      Common.paintFavicon({ glyph: hashGrid });
       window.addEventListener('hashchange', () => {
-        if (glyphFromHash() !== window.GLYPH) location.reload();
+        if (gridFromHash() !== window.GRID) location.reload();
       });
-      Common.loadScript('/fonts.js').then(() => Common.loadScript('/glyph.js'));
+      Common.loadScript('/fonts.js').then(() => Common.loadScript('/grid.js'));
     } else {
       document.body.insertAdjacentHTML('beforeend', `
         <span id="name">Ruvan</span>
