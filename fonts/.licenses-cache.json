@@ -192,6 +192,14 @@
       "copyright": "Copyright 2022 The Akshar Type Project Authors (https://github.com/tallchai/akshar-type)",
       "resolved": true
     },
+    "Akt": {
+      "family": "Akt",
+      "slug": "akt",
+      "licenseCode": "OFL",
+      "designer": "Dmitry Grenev",
+      "copyright": "Copyright 2024 The Akt Project Authors (https://github.com/dimgrenev/akt)",
+      "resolved": true
+    },
     "Aladin": {
       "family": "Aladin",
       "slug": "aladin",
@@ -3840,6 +3848,14 @@
       "copyright": "Copyright (c) 2011, Angelica Diaz Rivera (www.typereview.wordpress.com angiecina@gmail.com), with Reserved Font Name \"Esteban\"",
       "resolved": true
     },
+    "Estedad": {
+      "family": "Estedad",
+      "slug": "estedad",
+      "licenseCode": "OFL",
+      "designer": "Amin Abedi, Fontamin",
+      "copyright": "Copyright 2026 The Estedad Project Authors (https://github.com/aminabedi68/Estedad)",
+      "resolved": true
+    },
     "Estonia": {
       "family": "Estonia",
       "slug": "estonia",
@@ -4059,6 +4075,22 @@
     "Finlandica": {
       "family": "Finlandica",
       "slug": "finlandica",
+      "licenseCode": "OFL",
+      "designer": "Helsinki Type Studio, Niklas Ekholm, Juho Hiilivirta, Jaakko Suomalainen",
+      "copyright": "Copyright 2015 The Finlandica Project Authors (https://github.com/HelsinkiTypeStudio/Finlandica)",
+      "resolved": true
+    },
+    "Finlandica Headline": {
+      "family": "Finlandica Headline",
+      "slug": "finlandicaheadline",
+      "licenseCode": "OFL",
+      "designer": "Helsinki Type Studio, Niklas Ekholm, Juho Hiilivirta, Jaakko Suomalainen",
+      "copyright": "Copyright 2015 The Finlandica Project Authors (https://github.com/HelsinkiTypeStudio/Finlandica)",
+      "resolved": true
+    },
+    "Finlandica Text": {
+      "family": "Finlandica Text",
+      "slug": "finlandicatext",
       "licenseCode": "OFL",
       "designer": "Helsinki Type Studio, Niklas Ekholm, Juho Hiilivirta, Jaakko Suomalainen",
       "copyright": "Copyright 2015 The Finlandica Project Authors (https://github.com/HelsinkiTypeStudio/Finlandica)",
@@ -7142,6 +7174,14 @@
       "licenseCode": "OFL",
       "designer": "Coji Morishita, M+ Fonts Project",
       "copyright": "Copyright 2016 The Rounded M+ Project Authors.",
+      "resolved": true
+    },
+    "M PLUS U": {
+      "family": "M PLUS U",
+      "slug": "mplusu",
+      "licenseCode": "OFL",
+      "designer": "Coji Morishita",
+      "copyright": "Copyright 2025 The M+ FONTS Project Authors (https://github.com/coz-m/MPLUS_FONTS)",
       "resolved": true
     },
     "Ma Shan Zheng": {
@@ -13958,6 +13998,14 @@
       "licenseCode": "OFL",
       "designer": "Eduardo Tunni",
       "copyright": "Copyright 2012 The Strait Project Authors (https://github.com/etunni/strait), with Reserved Font Name \\'Strait\\'",
+      "resolved": true
+    },
+    "Strichpunkt Sans": {
+      "family": "Strichpunkt Sans",
+      "slug": "strichpunktsans",
+      "licenseCode": "OFL",
+      "designer": "René Bieder",
+      "copyright": "Copyright 2026 The Strichpunkt Sans Project Authors (https://github.com/strichpunkt-design/Strichpunkt_Sans)",
       "resolved": true
     },
     "Style Script": {

@@ -35,6 +35,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Akaya Telivigala | OFL | Vaishnavi Murthy, Juan Luis Blanco | Copyright 2015 The Akaya Telivigala Project Authors (https://github.com/vaishnavimurthy/Akaya-Telivigala) |
 | Akronim | OFL | Grzegorz Klimczewski | Copyright (c) 2012 Grzegorz Klimczewski, Fonty.PL (www.fonty.pl), with Reserved Font Name \'Akronim\' |
 | Akshar | OFL | Tall Chai | Copyright 2022 The Akshar Type Project Authors (https://github.com/tallchai/akshar-type) |
+| Akt | OFL | Dmitry Grenev | Copyright 2024 The Akt Project Authors (https://github.com/dimgrenev/akt) |
 | Aladin | OFL | Sudtipos | Copyright (c) 2009 Angel Koziupa (sudtipos@sudtipos.com), Copyright (c) 2009 Alejandro Paul (sudtipos@sudtipos.com), with Reserved Font Name "Aladin" |
 | Alan Sans | OFL | Raphaël Ronot | Copyright 2025 The Alan Sans Project Authors (https://github.com/alan-eu/Alan-Sans) |
 | Alata | OFL | Spyros Zevelakis, Eben Sorkin | Copyright 2019 The Alata Project Authors (https://github.com/SorkinType/Alata) |
@@ -492,6 +493,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Epunda Slab | OFL | Typofactur | Copyright 2023 The Epunda Slab Project Authors (https://github.com/typofactur/epundaslab.git) |
 | Erica One | OFL | Miguel Hernandez | Copyright (c) 2011 by LatinoType Limitada (info@latinotype.com), with Reserved Font Names "Erica" "Erica One" |
 | Esteban | OFL | Angélica Díaz | Copyright (c) 2011, Angelica Diaz Rivera (www.typereview.wordpress.com angiecina@gmail.com), with Reserved Font Name "Esteban" |
+| Estedad | OFL | Amin Abedi, Fontamin | Copyright 2026 The Estedad Project Authors (https://github.com/aminabedi68/Estedad) |
 | Estonia | OFL | Robert Leuschke | Copyright 2010-2021 The Estonia Project Authors (https://github.com/googlefonts/estonia) |
 | Euphoria Script | OFL | Sabrina Mariela Lopez | Copyright (c) 2012 Sabrina Mariela Lopez (typesenses@live.com.ar), with Reserved Font Name "Euphoria Script" |
 | Ewert | OFL | Johan Kallas, Mihkel Virkus | Copyright (c) 2011, Johan Kallas (johankallas@gmail.com), Copyright (c) 2011 Mihkel Virkus (mihkelvirkus@gmail.com) with Reserved Font Name Ewert. |
@@ -520,6 +522,8 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Figtree | OFL | Erik Kennedy | Copyright 2022 The Figtree Project Authors (https://github.com/erikdkennedy/figtree) |
 | Finger Paint | OFL | Carrois Apostrophe | Copyright (c) 2011 by Ralph du Carrois, with Reserved Font Name \'Finger Paint\' |
 | Finlandica | OFL | Helsinki Type Studio, Niklas Ekholm, Juho Hiilivirta, Jaakko Suomalainen | Copyright 2015 The Finlandica Project Authors (https://github.com/HelsinkiTypeStudio/Finlandica) |
+| Finlandica Headline | OFL | Helsinki Type Studio, Niklas Ekholm, Juho Hiilivirta, Jaakko Suomalainen | Copyright 2015 The Finlandica Project Authors (https://github.com/HelsinkiTypeStudio/Finlandica) |
+| Finlandica Text | OFL | Helsinki Type Studio, Niklas Ekholm, Juho Hiilivirta, Jaakko Suomalainen | Copyright 2015 The Finlandica Project Authors (https://github.com/HelsinkiTypeStudio/Finlandica) |
 | Fira Code | OFL | The Mozilla Foundation, Telefonica S.A., Nikita Prokopov | Copyright 2014-2020 The Fira Code Project Authors (https://github.com/tonsky/FiraCode) |
 | Fira Mono | OFL | Carrois Apostrophe | Digitized data copyright  2012-2015, The Mozilla Foundation and Telefonica S.A. |
 | Fira Sans | OFL | Carrois Apostrophe | Digitized data copyright 2012-2016, The Mozilla Foundation and Telefonica S.A. |
@@ -905,6 +909,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | M PLUS 2 | OFL | Coji Morishita | Copyright 2021 The M+ FONTS Project Authors (https://github.com/coz-m/MPLUS_FONTS) |
 | M PLUS Code Latin | OFL | Coji Morishita | Copyright 2021 The M+ FONTS Project Authors (https://github.com/coz-m/MPLUS_FONTS) |
 | M PLUS Rounded 1c | OFL | Coji Morishita, M+ Fonts Project | Copyright 2016 The Rounded M+ Project Authors. |
+| M PLUS U | OFL | Coji Morishita | Copyright 2025 The M+ FONTS Project Authors (https://github.com/coz-m/MPLUS_FONTS) |
 | Ma Shan Zheng | OFL | Ma ShanZheng | Copyright 2018 The MaShanZheng Project Authors (https://github.com/googlefonts/mashanzheng) |
 | Macondo | OFL | John Vargas Beltrán | Copyright (c) 1997 - 2011, John Vargas Beltran. (www.johnvargasbeltran.com\|john.vargasbeltran@gmail.com), with Reserved Font Name "Macondo" |
 | Macondo Swash Caps | OFL | John Vargas Beltrán | Copyright (c) 1997 - 2011, John Vargas Beltran. (www.johnvargasbeltran.com\|john.vargasbeltran@gmail.com), with Reserved Font Name "Macondo" |
@@ -1755,6 +1760,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Stoke | OFL | Nicole Fally | Copyright (c) 2012, Sorkin Type Co (www.sorkintype.com eben@eyebytes.com), with Reserved Font Name \'Stoke\' |
 | Story Script | OFL | Lana Roulhac, Ben Buysse | Copyright 2022 The Story Script Project Authors (https://github.com/lroulh/story-script) |
 | Strait | OFL | Eduardo Tunni | Copyright 2012 The Strait Project Authors (https://github.com/etunni/strait), with Reserved Font Name \'Strait\' |
+| Strichpunkt Sans | OFL | René Bieder | Copyright 2026 The Strichpunkt Sans Project Authors (https://github.com/strichpunkt-design/Strichpunkt_Sans) |
 | Style Script | OFL | Robert Leuschke | Copyright 2013 The Style Script Project Authors (https://github.com/googlefonts/style-script) |
 | Stylish | OFL | AsiaSoft Inc | Copyright (c) 1992-2018 AsiaSoft Inc. Seoul Korea All Rights Reserved. |
 | Sue Ellen Francisco | OFL | Kimberly Geswein | Copyright (c) 2010, Kimberly Geswein (kimberlygeswein.com kimberlygeswein@gmail.com) |
