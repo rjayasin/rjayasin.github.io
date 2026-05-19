@@ -310,16 +310,6 @@
       cursor: pointer;
     }
 
-    .chart-axis-x {
-      display: flex;
-      justify-content: space-between;
-      color: var(--muted);
-      font-size: 11px;
-      margin-top: 6px;
-      padding-left: var(--chart-pad-l, 44px);
-      padding-right: var(--chart-pad-r, 4px);
-    }
-
     .log {
       display: flex;
       flex-direction: column;
@@ -502,10 +492,6 @@
         height: 260px;
       }
 
-      .chart-axis-x {
-        font-size: 10px;
-      }
-
       .deploy {
         grid-template-columns: 52px 1fr auto;
       }
@@ -562,10 +548,6 @@
       </span>
     </div>
     <svg class="chart-svg" id="chart"></svg>
-    <div class="chart-axis-x">
-      <span id="chart-start"></span>
-      <span id="chart-end"></span>
-    </div>
   </section>
 
   <div class="log" id="log"></div>
@@ -600,8 +582,6 @@
     const statSuccess = document.getElementById('stat-success');
     const chartWrap = document.getElementById('chart-wrap');
     const chart = document.getElementById('chart');
-    const chartStart = document.getElementById('chart-start');
-    const chartEnd = document.getElementById('chart-end');
     const legendMedian = document.getElementById('legend-median');
     const legendSize = document.getElementById('legend-size');
     const toggleSize = document.getElementById('toggle-size');
@@ -909,13 +889,11 @@
       // Reserve room for the right-side size axis when shown.
       const PAD_R = showSize ? 44 : 4;
       const PAD_T = 14;
-      const PAD_B = 8;
+      const PAD_B = 22;
       const innerW = W - PAD_L - PAD_R;
       const innerH = H - PAD_T - PAD_B;
 
       chart.setAttribute('viewBox', `0 0 ${W} ${H}`);
-      chartWrap.style.setProperty('--chart-pad-l', `${PAD_L}px`);
-      chartWrap.style.setProperty('--chart-pad-r', `${PAD_R}px`);
       while (chart.firstChild) chart.removeChild(chart.firstChild);
 
       // Y-axis grid lines + duration labels (left) and size labels (right).
@@ -1064,8 +1042,29 @@
           : 'repo size';
       }
 
-      chartStart.textContent = fmtDay(ordered[0].start);
-      chartEnd.textContent = fmtDay(ordered[ordered.length - 1].start);
+      // X-axis date labels along the bottom. Pick ~one label per 80px and
+      // dedupe by day so same-day deploys don't repeat the same label.
+      const xLabelY = PAD_T + innerH + 14;
+      const targetLabels = Math.min(n, Math.max(2, Math.floor(innerW / 80)));
+      const seenLabels = new Set();
+      for (let i = 0; i < targetLabels; i++) {
+        const denom = Math.max(1, targetLabels - 1);
+        const idx = Math.round((i / denom) * (n - 1));
+        const text = fmtDay(ordered[idx].start);
+        if (seenLabels.has(text)) continue;
+        seenLabels.add(text);
+        const txt = document.createElementNS(SVG_NS, 'text');
+        txt.setAttribute('class', 'axis-label');
+        txt.setAttribute('y', xLabelY);
+        const anchor = idx === 0 ? 'start' : idx === n - 1 ? 'end' : 'middle';
+        txt.setAttribute('text-anchor', anchor);
+        let x = slotCenters[idx];
+        if (idx === 0) x = PAD_L;
+        else if (idx === n - 1) x = W - PAD_R;
+        txt.setAttribute('x', x);
+        txt.textContent = text;
+        chart.appendChild(txt);
+      }
     }
 
     function ingest(runs) {
