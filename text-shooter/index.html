@@ -151,7 +151,7 @@
 
     // --- physics ---
     const RESTITUTION = 0.25;
-    const DAMPING = 0.992;        // per substep velocity decay
+    const DAMPING = 0.982;        // per substep velocity decay
     const SLEEP_SPEED = 1.5;      // px/s below which we zero out velocity
     const MARGIN = 60;            // off-screen distance before removal
 
@@ -310,7 +310,7 @@
       const dist = Math.hypot(dx, dy);
       const minDim = Math.min(W, H);
       // speed scales with drag length relative to screen, capped.
-      const speed = Math.min(dist / minDim, 1) * 4200 + 600;
+      const speed = Math.min(dist / minDim, 1) * 2400 + 500;
       if (dist < 4) { dx = 0; dy = -1; } // pure tap: fire upward gently
       const inv = dist > 0 ? 1 / dist : 1;
       const nx = dx * inv, ny = dy * inv;
