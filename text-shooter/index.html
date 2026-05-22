@@ -69,8 +69,19 @@
       [0xAC00, 0xD7A3],                                     // Hangul
       [0x2190, 0x21FF], [0x2200, 0x22FF],                   // arrows + math symbols
     ];
-    function randScriptChar() {
-      const [lo, hi] = CHAR_RANGES[Math.floor(Math.random() * CHAR_RANGES.length)];
+    // Densely-assigned emoji blocks. A few code points in these spans are
+    // unassigned and may show as a box on platforms with older emoji fonts.
+    const EMOJI_RANGES = [
+      [0x1F300, 0x1F5FF], // misc symbols & pictographs
+      [0x1F600, 0x1F64F], // emoticons (faces)
+      [0x1F680, 0x1F6FF], // transport & map
+      [0x1F900, 0x1F9FF], // supplemental symbols & pictographs
+      [0x1FA70, 0x1FAFF], // symbols & pictographs extended-A
+      [0x2600, 0x26FF],   // misc symbols
+      [0x2700, 0x27BF],   // dingbats
+    ];
+    function pickFromRanges(ranges) {
+      const [lo, hi] = ranges[Math.floor(Math.random() * ranges.length)];
       return String.fromCodePoint(lo + Math.floor(Math.random() * (hi - lo + 1)));
     }
     // Shown instantly and used whenever the Wikipedia fetch is unavailable.
@@ -343,11 +354,9 @@
     // --- input ---
     const drag = { active: false, id: null, sx: 0, sy: 0, cx: 0, cy: 0, ch: '' };
     function randChar() {
-      // Roughly one shot in five is an emoji, once the curated list has loaded.
-      if (window.EMOJIS && window.EMOJIS.length && Math.random() < 0.2) {
-        return window.EMOJIS[Math.floor(Math.random() * window.EMOJIS.length)];
-      }
-      return randScriptChar();
+      // Roughly one shot in five is an emoji; the rest are letters from the
+      // script ranges above.
+      return pickFromRanges(Math.random() < 0.2 ? EMOJI_RANGES : CHAR_RANGES);
     }
 
     function localPoint(e) {
@@ -450,7 +459,6 @@
 
     resize();
     loadNewText();
-    Common.loadScript('/emojis.js');
     requestAnimationFrame(frame);
   </script>
 </body>
