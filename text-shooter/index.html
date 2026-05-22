@@ -49,7 +49,30 @@
     Common.initDarkMode();
 
     const MONO = 'ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace';
-    const FIRE_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?@#&*';
+    // Fired glyphs are drawn from a spread of scripts (plus emoji), so each
+    // shot can be a letter from almost any of the world's writing systems.
+    // Ranges are inclusive code-point spans chosen to be densely assigned with
+    // standalone, renderable base characters (combining-mark blocks avoided).
+    const CHAR_RANGES = [
+      [0x0041, 0x005A], [0x0061, 0x007A], [0x0030, 0x0039], // Latin + digits
+      [0x00C0, 0x00FF], [0x0100, 0x017F],                   // accented Latin
+      [0x0391, 0x03A9], [0x03B1, 0x03C9],                   // Greek
+      [0x0410, 0x044F],                                     // Cyrillic
+      [0x0531, 0x0556], [0x0561, 0x0586],                   // Armenian
+      [0x05D0, 0x05EA],                                     // Hebrew
+      [0x0621, 0x064A],                                     // Arabic
+      [0x0905, 0x0939],                                     // Devanagari
+      [0x0E01, 0x0E2E],                                     // Thai
+      [0x10D0, 0x10FA],                                     // Georgian
+      [0x3041, 0x3096], [0x30A1, 0x30FA],                   // Hiragana + Katakana
+      [0x4E00, 0x9FA0],                                     // CJK
+      [0xAC00, 0xD7A3],                                     // Hangul
+      [0x2190, 0x21FF], [0x2200, 0x22FF],                   // arrows + math symbols
+    ];
+    function randScriptChar() {
+      const [lo, hi] = CHAR_RANGES[Math.floor(Math.random() * CHAR_RANGES.length)];
+      return String.fromCodePoint(lo + Math.floor(Math.random() * (hi - lo + 1)));
+    }
     // Shown instantly and used whenever the Wikipedia fetch is unavailable.
     const FALLBACK_TEXTS = [
       'Letters are small machines for thought, each one a shape agreed upon ' +
@@ -319,7 +342,13 @@
 
     // --- input ---
     const drag = { active: false, id: null, sx: 0, sy: 0, cx: 0, cy: 0, ch: '' };
-    const randChar = () => FIRE_CHARS[Math.floor(Math.random() * FIRE_CHARS.length)];
+    function randChar() {
+      // Roughly one shot in five is an emoji, once the curated list has loaded.
+      if (window.EMOJIS && window.EMOJIS.length && Math.random() < 0.2) {
+        return window.EMOJIS[Math.floor(Math.random() * window.EMOJIS.length)];
+      }
+      return randScriptChar();
+    }
 
     function localPoint(e) {
       const rect = canvas.getBoundingClientRect();
@@ -421,6 +450,7 @@
 
     resize();
     loadNewText();
+    Common.loadScript('/emojis.js');
     requestAnimationFrame(frame);
   </script>
 </body>
