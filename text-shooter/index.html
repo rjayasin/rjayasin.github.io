@@ -128,7 +128,7 @@
     }
 
     function makeBody(x, y, ch, vx, vy) {
-      return { x, y, vx: vx || 0, vy: vy || 0, r: radius, ch };
+      return { x, y, vx: vx || 0, vy: vy || 0, angle: 0, av: 0, r: radius, ch };
     }
 
     function buildBlock() {
@@ -177,6 +177,10 @@
     const DAMPING = 0.982;        // per substep velocity decay
     const SLEEP_SPEED = 1.5;      // px/s below which we zero out velocity
     const MARGIN = 60;            // off-screen distance before removal
+    const ANG_DAMPING = 0.985;    // per substep spin decay
+    const ANG_SLEEP = 0.04;       // rad/s below which we stop spinning
+    const SPIN_FACTOR = 0.45;     // how much glancing contact induces spin
+    const MAX_AV = 18;            // rad/s spin cap
 
     function step(dt) {
       // integrate
@@ -187,6 +191,9 @@
         b.vy *= DAMPING;
         if (Math.abs(b.vx) < SLEEP_SPEED) b.vx = 0;
         if (Math.abs(b.vy) < SLEEP_SPEED) b.vy = 0;
+        b.angle += b.av * dt;
+        b.av *= ANG_DAMPING;
+        if (Math.abs(b.av) < ANG_SLEEP) b.av = 0;
       }
 
       // broadphase: spatial hash grid
@@ -251,6 +258,13 @@
       const ix = jImp * nx, iy = jImp * ny;
       a.vx -= ix; a.vy -= iy;
       b.vx += ix; b.vy += iy;
+
+      // glancing (tangential) contact spins the glyphs instead of leaving
+      // them locked upright.
+      const vt = rvx * -ny + rvy * nx;
+      const spin = (vt / a.r) * SPIN_FACTOR;
+      a.av = Math.max(-MAX_AV, Math.min(MAX_AV, a.av - spin));
+      b.av = Math.max(-MAX_AV, Math.min(MAX_AV, b.av + spin));
     }
 
     function draw() {
@@ -259,7 +273,16 @@
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = inkColor();
-      for (const b of bodies) ctx.fillText(b.ch, b.x, b.y);
+      for (const b of bodies) {
+        if (b.angle) {
+          ctx.translate(b.x, b.y);
+          ctx.rotate(b.angle);
+          ctx.fillText(b.ch, 0, 0);
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        } else {
+          ctx.fillText(b.ch, b.x, b.y);
+        }
+      }
 
       if (drag.active) {
         ctx.save();
