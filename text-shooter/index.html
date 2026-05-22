@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Ruvan / text-shooter</title>
+  <link rel="icon" id="favicon">
+  <link rel="stylesheet" href="/common.css">
+  <style>
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    #game {
+      position: fixed;
+      inset: 0;
+      display: block;
+      touch-action: none;
+      cursor: crosshair;
+    }
+    #hint {
+      position: fixed;
+      left: 0; right: 0; bottom: 12px;
+      text-align: center;
+      font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+      font-size: 12px;
+      color: #888;
+      opacity: 1;
+      transition: opacity 0.4s ease;
+      user-select: none;
+      z-index: 3;
+      pointer-events: none;
+    }
+    #hint.hidden { opacity: 0; }
+    #hint .hint-btn {
+      cursor: pointer;
+      pointer-events: auto;
+      text-decoration: underline;
+      text-decoration-style: dotted;
+      text-underline-offset: 2px;
+    }
+    #hint .hint-btn:hover { color: #333; }
+    body.dark #hint .hint-btn:hover { color: #ccc; }
+  </style>
+  <script src="/common.js"></script>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="hint"><span style="white-space:nowrap">drag &amp; release to fire</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-reset">r reset</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 <span class="hb-dark-label">dark</span></span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-sitemap">s sitemap</span></span></div>
+  <script>
+    Common.paintFaviconR();
+    Common.initDarkMode();
+
+    const MONO = 'ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace';
+    const FIRE_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?@#&*';
+    const PARAGRAPH = (
+      'Letters are small machines for thought, each one a shape agreed upon ' +
+      'long ago and carried forward by every hand that ever wrote a word. ' +
+      'Set them in a tidy square and they sit still, patient and justified, ' +
+      'waiting for a nudge. Throw one across the page and watch the rest ' +
+      'scatter like startled birds, tumbling over the edge and out of sight, ' +
+      'leaving a quieter grid behind to be filled again with fresh meaning.'
+    ).split(/\s+/);
+
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    let W = 0, H = 0, dpr = 1;
+    let fontSize, charW, charH, radius;
+    let bodies = [];
+
+    function isDark() {
+      if (document.body.classList.contains('dark')) return true;
+      if (document.body.classList.contains('light')) return false;
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    function inkColor() { return isDark() ? '#f0f0f0' : '#111111'; }
+
+    function spread(words, cols) {
+      if (words.length === 1) return words[0].slice(0, cols).padEnd(cols);
+      const textLen = words.reduce((a, w) => a + w.length, 0);
+      const gaps = words.length - 1;
+      const totalSpaces = Math.max(gaps, cols - textLen);
+      const base = Math.floor(totalSpaces / gaps);
+      const extra = totalSpaces % gaps;
+      let s = words[0];
+      for (let i = 1; i < words.length; i++) {
+        s += ' '.repeat(base + (i <= extra ? 1 : 0)) + words[i];
+      }
+      return s.slice(0, cols);
+    }
+
+    function buildLines(cols, rows) {
+      const lines = [];
+      let line = [], len = 0, wi = 0, guard = 0;
+      while (lines.length < rows && guard++ < rows * cols + 1000) {
+        let w = PARAGRAPH[wi % PARAGRAPH.length];
+        wi++;
+        if (w.length > cols) w = w.slice(0, cols);
+        if (line.length && len + 1 + w.length > cols) {
+          lines.push(spread(line, cols));
+          line = []; len = 0;
+        }
+        len += (line.length ? 1 : 0) + w.length;
+        line.push(w);
+      }
+      return lines;
+    }
+
+    function makeBody(x, y, ch, vx, vy) {
+      return { x, y, vx: vx || 0, vy: vy || 0, r: radius, ch };
+    }
+
+    function buildBlock() {
+      const minDim = Math.min(W, H);
+      fontSize = Math.max(13, Math.min(30, Math.round(minDim / 22)));
+      ctx.font = fontSize + 'px ' + MONO;
+      charW = ctx.measureText('M').width;
+      charH = fontSize * 1.15;
+      radius = charW * 0.46;
+
+      const target = minDim * 0.46;
+      const cols = Math.max(6, Math.round(target / charW));
+      const rows = Math.max(4, Math.round(target / charH));
+
+      const blockW = cols * charW;
+      const blockH = rows * charH;
+      const x0 = (W - blockW) / 2 + charW / 2;
+      const y0 = (H - blockH) / 2 + charH / 2;
+
+      const lines = buildLines(cols, rows);
+      bodies = [];
+      for (let r = 0; r < lines.length; r++) {
+        const line = lines[r];
+        for (let c = 0; c < line.length; c++) {
+          const ch = line[c];
+          if (ch === ' ') continue;
+          bodies.push(makeBody(x0 + c * charW, y0 + r * charH, ch));
+        }
+      }
+    }
+
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      buildBlock();
+    }
+
+    // --- physics ---
+    const RESTITUTION = 0.25;
+    const DAMPING = 0.992;        // per substep velocity decay
+    const SLEEP_SPEED = 1.5;      // px/s below which we zero out velocity
+    const MARGIN = 60;            // off-screen distance before removal
+
+    function step(dt) {
+      // integrate
+      for (const b of bodies) {
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        b.vx *= DAMPING;
+        b.vy *= DAMPING;
+        if (Math.abs(b.vx) < SLEEP_SPEED) b.vx = 0;
+        if (Math.abs(b.vy) < SLEEP_SPEED) b.vy = 0;
+      }
+
+      // broadphase: spatial hash grid
+      const cell = radius * 2.2;
+      const grid = new Map();
+      const key = (cx, cy) => cx + ',' + cy;
+      for (let i = 0; i < bodies.length; i++) {
+        const b = bodies[i];
+        const cx = Math.floor(b.x / cell);
+        const cy = Math.floor(b.y / cell);
+        const k = key(cx, cy);
+        let arr = grid.get(k);
+        if (!arr) grid.set(k, arr = []);
+        arr.push(i);
+      }
+
+      const checked = new Set();
+      for (let i = 0; i < bodies.length; i++) {
+        const b = bodies[i];
+        const cx = Math.floor(b.x / cell);
+        const cy = Math.floor(b.y / cell);
+        for (let ox = -1; ox <= 1; ox++) {
+          for (let oy = -1; oy <= 1; oy++) {
+            const arr = grid.get(key(cx + ox, cy + oy));
+            if (!arr) continue;
+            for (const j of arr) {
+              if (j <= i) continue;
+              const pairKey = i * 100000 + j;
+              if (checked.has(pairKey)) continue;
+              checked.add(pairKey);
+              resolve(b, bodies[j]);
+            }
+          }
+        }
+      }
+
+      // cull bodies pushed off the page
+      bodies = bodies.filter(b =>
+        b.x > -MARGIN && b.x < W + MARGIN && b.y > -MARGIN && b.y < H + MARGIN);
+    }
+
+    function resolve(a, b) {
+      let dx = b.x - a.x, dy = b.y - a.y;
+      const minDist = a.r + b.r;
+      let d2 = dx * dx + dy * dy;
+      if (d2 >= minDist * minDist) return;
+      let dist = Math.sqrt(d2) || 0.0001;
+      if (d2 === 0) { dx = 0.01; dy = 0; dist = 0.01; }
+      const nx = dx / dist, ny = dy / dist;
+      const overlap = minDist - dist;
+
+      // positional correction (equal mass)
+      const corr = overlap / 2;
+      a.x -= nx * corr; a.y -= ny * corr;
+      b.x += nx * corr; b.y += ny * corr;
+
+      // velocity impulse along normal
+      const rvx = b.vx - a.vx, rvy = b.vy - a.vy;
+      const vn = rvx * nx + rvy * ny;
+      if (vn > 0) return; // separating
+      const jImp = -(1 + RESTITUTION) * vn / 2;
+      const ix = jImp * nx, iy = jImp * ny;
+      a.vx -= ix; a.vy -= iy;
+      b.vx += ix; b.vy += iy;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      ctx.font = fontSize + 'px ' + MONO;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = inkColor();
+      for (const b of bodies) ctx.fillText(b.ch, b.x, b.y);
+
+      if (drag.active) {
+        ctx.save();
+        ctx.strokeStyle = isDark() ? 'rgba(240,240,240,0.5)' : 'rgba(17,17,17,0.4)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(drag.sx, drag.sy);
+        ctx.lineTo(drag.cx, drag.cy);
+        ctx.stroke();
+        ctx.fillStyle = inkColor();
+        ctx.font = fontSize + 'px ' + MONO;
+        ctx.globalAlpha = 0.7;
+        ctx.fillText(drag.ch, drag.sx, drag.sy);
+        ctx.restore();
+      }
+    }
+
+    let lastT = performance.now();
+    let acc = 0;
+    const FIXED = 1 / 120; // seconds
+    function frame(now) {
+      let elapsed = (now - lastT) / 1000;
+      lastT = now;
+      if (elapsed > 0.05) elapsed = 0.05; // clamp after tab switch / hitch
+      acc += elapsed;
+      let iters = 0;
+      while (acc >= FIXED && iters++ < 8) {
+        step(FIXED);
+        acc -= FIXED;
+      }
+      draw();
+      requestAnimationFrame(frame);
+    }
+
+    // --- input ---
+    const drag = { active: false, id: null, sx: 0, sy: 0, cx: 0, cy: 0, ch: '' };
+    const randChar = () => FIRE_CHARS[Math.floor(Math.random() * FIRE_CHARS.length)];
+
+    function localPoint(e) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    canvas.addEventListener('pointerdown', e => {
+      if (drag.active) return;
+      hideHintSoon();
+      const p = localPoint(e);
+      drag.active = true;
+      drag.id = e.pointerId;
+      drag.sx = drag.cx = p.x;
+      drag.sy = drag.cy = p.y;
+      drag.ch = randChar();
+      if (canvas.setPointerCapture) {
+        try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+      }
+    });
+
+    canvas.addEventListener('pointermove', e => {
+      if (!drag.active || e.pointerId !== drag.id) return;
+      const p = localPoint(e);
+      drag.cx = p.x;
+      drag.cy = p.y;
+    });
+
+    function endDrag(e) {
+      if (!drag.active || e.pointerId !== drag.id) return;
+      const p = localPoint(e);
+      drag.cx = p.x;
+      drag.cy = p.y;
+      let dx = drag.cx - drag.sx, dy = drag.cy - drag.sy;
+      const dist = Math.hypot(dx, dy);
+      const minDim = Math.min(W, H);
+      // speed scales with drag length relative to screen, capped.
+      const speed = Math.min(dist / minDim, 1) * 4200 + 600;
+      if (dist < 4) { dx = 0; dy = -1; } // pure tap: fire upward gently
+      const inv = dist > 0 ? 1 / dist : 1;
+      const nx = dx * inv, ny = dy * inv;
+      bodies.push(makeBody(drag.sx, drag.sy, drag.ch, nx * speed, ny * speed));
+      drag.active = false;
+      drag.id = null;
+    }
+
+    canvas.addEventListener('pointerup', endDrag);
+    canvas.addEventListener('pointercancel', e => {
+      if (e.pointerId === drag.id) { drag.active = false; drag.id = null; }
+    });
+    // iOS Safari: stop scroll/zoom gestures from stealing touches.
+    canvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+
+    // --- hint + controls ---
+    const hintEl = document.getElementById('hint');
+    let hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 4000);
+    function hideHintSoon() {
+      clearTimeout(hintTimer);
+      hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 1200);
+    }
+    function showHint() {
+      hintEl.classList.remove('hidden');
+      clearTimeout(hintTimer);
+      hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 2500);
+    }
+
+    document.addEventListener('keydown', e => {
+      if ((e.key === 'r' || e.key === 'R') && !e.repeat) { buildBlock(); showHint(); }
+    });
+    document.getElementById('hb-reset').addEventListener('click', () => { buildBlock(); showHint(); });
+    document.getElementById('hb-dark').addEventListener('click', () => { Common.toggleDark(); showHint(); });
+    document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
+    Common.initSitemapShortcut();
+
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(resize, 150);
+    });
+
+    resize();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>

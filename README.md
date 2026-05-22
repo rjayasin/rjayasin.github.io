@@ -3,6 +3,7 @@
 `fun`
 
 - [`maze-canvas`](https://rjayasin.github.io/maze-canvas/)
+- [`text-shooter`](https://rjayasin.github.io/text-shooter/)
 
 `text`
 
