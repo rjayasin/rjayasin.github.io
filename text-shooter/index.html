@@ -50,14 +50,36 @@
 
     const MONO = 'ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace';
     const FIRE_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?@#&*';
-    const PARAGRAPH = (
+    // Shown instantly and used whenever the Wikipedia fetch is unavailable.
+    const FALLBACK_TEXTS = [
       'Letters are small machines for thought, each one a shape agreed upon ' +
       'long ago and carried forward by every hand that ever wrote a word. ' +
       'Set them in a tidy square and they sit still, patient and justified, ' +
       'waiting for a nudge. Throw one across the page and watch the rest ' +
-      'scatter like startled birds, tumbling over the edge and out of sight, ' +
-      'leaving a quieter grid behind to be filled again with fresh meaning.'
-    ).split(/\s+/);
+      'scatter like startled birds, tumbling over the edge and out of sight.',
+      'A square of text is a quiet thing until you disturb it. Aim, drag, ' +
+      'and let go: a single character flies off and the orderly grid breaks ' +
+      'apart, glyphs spilling past the margins one collision at a time.',
+      'Type is everywhere and mostly invisible, doing its work without asking ' +
+      'for attention. Here the letters get to misbehave for once, knocked ' +
+      'loose from their lines and sent skidding toward the edge of the page.',
+      'Every paragraph is a crowd of characters standing very still. Give one ' +
+      'of them a push and the whole arrangement remembers that it was only ' +
+      'ever a loose pile of shapes, ready to scatter at the slightest nudge.'
+    ];
+
+    const WIKI_URL = 'https://en.wikipedia.org/w/api.php?format=json&origin=*' +
+      '&action=query&generator=random&grnnamespace=0&grnlimit=1' +
+      '&prop=extracts&exintro=1&explaintext=1&exchars=1500';
+
+    let wordSource = [];
+    function toWords(text) {
+      return text.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+    }
+    function applyFallback() {
+      wordSource = toWords(FALLBACK_TEXTS[Math.floor(Math.random() * FALLBACK_TEXTS.length)]);
+    }
+    applyFallback();
 
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
@@ -65,6 +87,7 @@
     let W = 0, H = 0, dpr = 1;
     let fontSize, charW, charH, radius;
     let bodies = [];
+    let hasFired = false;
 
     function isDark() {
       if (document.body.classList.contains('dark')) return true;
@@ -91,7 +114,7 @@
       const lines = [];
       let line = [], len = 0, wi = 0, guard = 0;
       while (lines.length < rows && guard++ < rows * cols + 1000) {
-        let w = PARAGRAPH[wi % PARAGRAPH.length];
+        let w = wordSource[wi % wordSource.length];
         wi++;
         if (w.length > cols) w = w.slice(0, cols);
         if (line.length && len + 1 + w.length > cols) {
@@ -315,6 +338,7 @@
       const inv = dist > 0 ? 1 / dist : 1;
       const nx = dx * inv, ny = dy * inv;
       bodies.push(makeBody(drag.sx, drag.sy, drag.ch, nx * speed, ny * speed));
+      hasFired = true;
       drag.active = false;
       drag.id = null;
     }
@@ -339,10 +363,29 @@
       hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 2500);
     }
 
+    // Fresh text on each load and reset: show a random local fallback
+    // immediately, then swap in a random Wikipedia article if the fetch
+    // succeeds (and the player hasn't started firing yet).
+    async function loadNewText() {
+      hasFired = false;
+      applyFallback();
+      buildBlock();
+      try {
+        const res = await fetch(WIKI_URL, { cache: 'no-store' });
+        const data = await res.json();
+        const page = Object.values(data.query.pages)[0];
+        const words = toWords((page && page.extract) || '');
+        if (words.length >= 12 && !hasFired) {
+          wordSource = words;
+          buildBlock();
+        }
+      } catch (_) { /* keep the fallback text */ }
+    }
+
     document.addEventListener('keydown', e => {
-      if ((e.key === 'r' || e.key === 'R') && !e.repeat) { buildBlock(); showHint(); }
+      if ((e.key === 'r' || e.key === 'R') && !e.repeat) { loadNewText(); showHint(); }
     });
-    document.getElementById('hb-reset').addEventListener('click', () => { buildBlock(); showHint(); });
+    document.getElementById('hb-reset').addEventListener('click', () => { loadNewText(); showHint(); });
     document.getElementById('hb-dark').addEventListener('click', () => { Common.toggleDark(); showHint(); });
     document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
     Common.initSitemapShortcut();
@@ -354,6 +397,7 @@
     });
 
     resize();
+    loadNewText();
     requestAnimationFrame(frame);
   </script>
 </body>
