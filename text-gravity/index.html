@@ -246,7 +246,11 @@
     const TILT_ANG_FRICTION = 0.96;  // gentler angular friction when tilt is sliding chars
     const CONTACT_ANG_DAMP = 0.9;  // per body-body contact; mimics mutual surface friction
     const WALL_TANGENT_FRICTION = 0.45; // kinetic friction at pinned-body contact
-    const WALL_STATIC_SLIP = 10;   // px/s; tangential slip below this is treated as static contact
+    // px/s; tangential slip below this is treated as static contact. Needs
+    // to clear gravity's per-substep tangential nudge (sin(θ)·GRAVITY·dt),
+    // inflated by kinetic-friction steady state to ≈ sin(θ)·37. 30 covers
+    // contact angles up to ~55° off vertical.
+    const WALL_STATIC_SLIP = 30;
     const ANG_SLEEP = 0.04;
     const SPIN_FACTOR = 0.45;
     const MAX_AV = 18;
