@@ -1,15 +1,20 @@
-name: Weekly fonts auto-update
+name: Update sitemap dates
 
 on:
-  schedule:
-    - cron: '17 6 * * 1'
+  push:
+    branches: [main]
   workflow_dispatch: {}
 
 permissions:
   contents: write
 
+concurrency:
+  group: update-sitemap-dates
+  cancel-in-progress: false
+
 jobs:
-  check:
+  update:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,22 +29,18 @@ jobs:
           git config user.name  'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
-      - name: Detect new Google Fonts
-        run: node scripts/check-new-fonts.js
+      - name: Refresh sitemap dates
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/build-sitemap-dates.js
 
-      - name: Download missing .woff2 files
-        run: node scripts/fetch-fonts.js
-
-      - name: Refresh font licenses & attribution
-        run: node scripts/fetch-licenses.js
-
-      - name: Commit font updates
+      - name: Commit sitemap date updates
         run: |
-          if git diff --quiet -- fonts.js fonts/; then
-            echo "No font changes."
+          if git diff --quiet -- sitemap/dates.json; then
+            echo "No sitemap date changes."
           else
-            git add fonts.js fonts/
-            git commit -m "add new google fonts (weekly auto-update)"
+            git add sitemap/dates.json
+            git commit -m "sitemap: refresh dates"
           fi
 
       - name: Push
