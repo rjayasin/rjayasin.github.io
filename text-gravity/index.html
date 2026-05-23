@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Ruvan / text-gravity</title>
+  <link rel="icon" id="favicon">
+  <link rel="stylesheet" href="/common.css">
+  <style>
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    #game {
+      position: fixed;
+      inset: 0;
+      display: block;
+      touch-action: none;
+      cursor: crosshair;
+    }
+    #hint {
+      position: fixed;
+      left: 0; right: 0; bottom: 12px;
+      text-align: center;
+      font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+      font-size: 12px;
+      color: #888;
+      opacity: 1;
+      transition: opacity 0.4s ease;
+      user-select: none;
+      z-index: 3;
+      pointer-events: none;
+    }
+    #hint.hidden { opacity: 0; }
+    #hint .hint-btn {
+      cursor: pointer;
+      pointer-events: auto;
+      text-decoration: underline;
+      text-decoration-style: dotted;
+      text-underline-offset: 2px;
+    }
+    #hint .hint-btn:hover { color: #333; }
+    body.dark #hint .hint-btn:hover { color: #ccc; }
+  </style>
+  <script src="/common.js"></script>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="hint"><span style="white-space:nowrap">drag &amp; release to fire</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-reset">r reset</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 <span class="hb-dark-label">dark</span></span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-sitemap">s sitemap</span></span></div>
+  <script>
+    Common.paintFaviconR();
+    Common.initDarkMode();
+
+    const MONO = 'ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace';
+    // Fired glyphs are drawn from a spread of scripts (plus emoji), so each
+    // shot can be a letter from almost any of the world's writing systems.
+    const CHAR_RANGES = [
+      [0x0041, 0x005A], [0x0061, 0x007A], [0x0030, 0x0039], // Latin + digits
+      [0x00C0, 0x00FF], [0x0100, 0x017F],                   // accented Latin
+      [0x0391, 0x03A9], [0x03B1, 0x03C9],                   // Greek
+      [0x0410, 0x044F],                                     // Cyrillic
+      [0x0531, 0x0556], [0x0561, 0x0586],                   // Armenian
+      [0x05D0, 0x05EA],                                     // Hebrew
+      [0x0621, 0x064A],                                     // Arabic
+      [0x0905, 0x0939],                                     // Devanagari
+      [0x0E01, 0x0E2E],                                     // Thai
+      [0x10D0, 0x10FA],                                     // Georgian
+      [0x3041, 0x3096], [0x30A1, 0x30FA],                   // Hiragana + Katakana
+      [0x4E00, 0x9FA0],                                     // CJK
+      [0xAC00, 0xD7A3],                                     // Hangul
+      [0x2190, 0x21FF], [0x2200, 0x22FF],                   // arrows + math symbols
+    ];
+    const EMOJI_RANGES = [
+      [0x1F300, 0x1F5FF],
+      [0x1F600, 0x1F64F],
+      [0x1F680, 0x1F6FF],
+      [0x1F900, 0x1F9FF],
+      [0x1FA70, 0x1FAFF],
+      [0x2600, 0x26FF],
+      [0x2700, 0x27BF],
+    ];
+    function pickFromRanges(ranges) {
+      const [lo, hi] = ranges[Math.floor(Math.random() * ranges.length)];
+      return String.fromCodePoint(lo + Math.floor(Math.random() * (hi - lo + 1)));
+    }
+    const FALLBACK_TEXTS = [
+      'Gravity is the quietest force in the room, always there, never raising ' +
+      'its voice, content to wait until something stops holding itself up. ' +
+      'A square of letters can ignore it for a while, pinned in place by ' +
+      'whatever convention keeps text from falling off the page, but the ' +
+      'instant a stray glyph clatters in, the rule lifts and the alphabet ' +
+      'begins to pour toward the floor.',
+      'Letters hover in their grid like patient guests waiting for a host ' +
+      'to seat them. Lob a single character into the crowd and the spell ' +
+      'breaks: one by one they accept that nothing was holding them up but ' +
+      'agreement, and the room fills with the soft thud of glyphs settling ' +
+      'into a pile at the bottom.',
+      'A paragraph at rest is a small lie about weight. Tell the truth by ' +
+      'tossing one letter at another and watch the page give in to physics, ' +
+      'characters tumbling and stacking the way pebbles do when the bucket ' +
+      'tips.',
+      'There is a hush before the first collision and a heap afterwards. ' +
+      'In between, the square of text remembers that it was always just a ' +
+      'crowd of shapes, and crowds, when nudged, fall down.'
+    ];
+
+    const WIKI_URL = 'https://en.wikipedia.org/w/api.php?format=json&origin=*' +
+      '&action=query&generator=random&grnnamespace=0&grnlimit=1' +
+      '&prop=extracts&exintro=1&explaintext=1&exchars=1500';
+
+    let wordSource = [];
+    function toWords(text) {
+      return text.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+    }
+    function applyFallback() {
+      wordSource = toWords(FALLBACK_TEXTS[Math.floor(Math.random() * FALLBACK_TEXTS.length)]);
+    }
+    applyFallback();
+
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    let W = 0, H = 0, dpr = 1;
+    let fontSize, charW, charH, radius;
+    let bodies = [];
+    let hasFired = false;
+
+    function isDark() {
+      if (document.body.classList.contains('dark')) return true;
+      if (document.body.classList.contains('light')) return false;
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    function inkColor() { return isDark() ? '#f0f0f0' : '#111111'; }
+
+    function spread(words, cols) {
+      if (words.length === 1) return words[0].slice(0, cols).padEnd(cols);
+      const textLen = words.reduce((a, w) => a + w.length, 0);
+      const gaps = words.length - 1;
+      const totalSpaces = Math.max(gaps, cols - textLen);
+      const base = Math.floor(totalSpaces / gaps);
+      const extra = totalSpaces % gaps;
+      let s = words[0];
+      for (let i = 1; i < words.length; i++) {
+        s += ' '.repeat(base + (i <= extra ? 1 : 0)) + words[i];
+      }
+      return s.slice(0, cols);
+    }
+
+    function buildLines(cols, rows) {
+      const lines = [];
+      let line = [], len = 0, wi = 0, guard = 0;
+      while (lines.length < rows && guard++ < rows * cols + 1000) {
+        let w = wordSource[wi % wordSource.length];
+        wi++;
+        if (w.length > cols) w = w.slice(0, cols);
+        if (line.length && len + 1 + w.length > cols) {
+          lines.push(spread(line, cols));
+          line = []; len = 0;
+        }
+        len += (line.length ? 1 : 0) + w.length;
+        line.push(w);
+      }
+      return lines;
+    }
+
+    function makeBody(x, y, ch, vx, vy, fixed) {
+      return { x, y, vx: vx || 0, vy: vy || 0, angle: 0, av: 0, r: radius, ch, fixed: !!fixed };
+    }
+
+    function buildBlock() {
+      const minDim = Math.min(W, H);
+      fontSize = Math.max(13, Math.min(30, Math.round(minDim / 22)));
+      ctx.font = fontSize + 'px ' + MONO;
+      charW = ctx.measureText('M').width;
+      charH = fontSize * 1.15;
+      radius = charW * 0.46;
+
+      const target = minDim * 0.46;
+      const cols = Math.max(6, Math.round(target / charW));
+      const rows = Math.max(4, Math.round(target / charH));
+
+      const blockW = cols * charW;
+      const blockH = rows * charH;
+      const x0 = (W - blockW) / 2 + charW / 2;
+      const y0 = (H - blockH) / 2 + charH / 2;
+
+      const lines = buildLines(cols, rows);
+      bodies = [];
+      for (let r = 0; r < lines.length; r++) {
+        const line = lines[r];
+        for (let c = 0; c < line.length; c++) {
+          const ch = line[c];
+          if (ch === ' ') continue;
+          bodies.push(makeBody(x0 + c * charW, y0 + r * charH, ch, 0, 0, true));
+        }
+      }
+    }
+
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      buildBlock();
+    }
+
+    // --- physics ---
+    const GRAVITY = 2000;         // px/s^2 downward
+    const RESTITUTION = 0.18;     // body-body bounciness
+    const WALL_RESTITUTION = 0.28;
+    const DAMPING = 0.9985;       // per substep air drag
+    const FLOOR_FRICTION = 0.86;  // per substep, applied to vx when on floor
+    const REST_VY = 40;           // bounce slower than this just stops
+    const MARGIN = 60;            // off-screen distance before culling (sides/top only)
+    const ANG_DAMPING = 0.985;
+    const ANG_SLEEP = 0.04;
+    const SPIN_FACTOR = 0.45;
+    const MAX_AV = 18;
+
+    function step(dt) {
+      // integrate (fixed bodies stay put)
+      for (const b of bodies) {
+        if (b.fixed) continue;
+        b.vy += GRAVITY * dt;
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        b.vx *= DAMPING;
+        b.vy *= DAMPING;
+        b.angle += b.av * dt;
+        b.av *= ANG_DAMPING;
+        if (Math.abs(b.av) < ANG_SLEEP) b.av = 0;
+      }
+
+      // broadphase: spatial hash grid
+      const cell = radius * 2.2;
+      const grid = new Map();
+      const key = (cx, cy) => cx + ',' + cy;
+      for (let i = 0; i < bodies.length; i++) {
+        const b = bodies[i];
+        const cx = Math.floor(b.x / cell);
+        const cy = Math.floor(b.y / cell);
+        const k = key(cx, cy);
+        let arr = grid.get(k);
+        if (!arr) grid.set(k, arr = []);
+        arr.push(i);
+      }
+
+      const checked = new Set();
+      for (let i = 0; i < bodies.length; i++) {
+        const b = bodies[i];
+        const cx = Math.floor(b.x / cell);
+        const cy = Math.floor(b.y / cell);
+        for (let ox = -1; ox <= 1; ox++) {
+          for (let oy = -1; oy <= 1; oy++) {
+            const arr = grid.get(key(cx + ox, cy + oy));
+            if (!arr) continue;
+            for (const j of arr) {
+              if (j <= i) continue;
+              const pairKey = i * 100000 + j;
+              if (checked.has(pairKey)) continue;
+              checked.add(pairKey);
+              resolve(b, bodies[j]);
+            }
+          }
+        }
+      }
+
+      // floor collision: impermeable bottom, characters pile up here
+      const floorY = H;
+      for (const b of bodies) {
+        if (b.fixed) continue;
+        const limit = floorY - b.r;
+        if (b.y > limit) {
+          b.y = limit;
+          if (b.vy > 0) {
+            b.vy = -b.vy * WALL_RESTITUTION;
+            if (Math.abs(b.vy) < REST_VY) b.vy = 0;
+          }
+          b.vx *= FLOOR_FRICTION;
+          if (Math.abs(b.vx) < 1) b.vx = 0;
+        }
+      }
+
+      // cull bodies pushed off the page sideways or out the top.
+      // The floor is impermeable so we never cull from the bottom.
+      bodies = bodies.filter(b =>
+        b.x > -MARGIN && b.x < W + MARGIN && b.y > -MARGIN);
+    }
+
+    function resolve(a, b) {
+      // two stationary fixed bodies never overlap by construction.
+      if (a.fixed && b.fixed) return;
+
+      let dx = b.x - a.x, dy = b.y - a.y;
+      const minDist = a.r + b.r;
+      let d2 = dx * dx + dy * dy;
+      if (d2 >= minDist * minDist) return;
+      let dist = Math.sqrt(d2) || 0.0001;
+      if (d2 === 0) { dx = 0.01; dy = 0; dist = 0.01; }
+      const nx = dx / dist, ny = dy / dist;
+      const overlap = minDist - dist;
+
+      // any contact involving a moving body unfixes the fixed one,
+      // so the cascade can propagate from the first shot outward.
+      if (a.fixed) a.fixed = false;
+      if (b.fixed) b.fixed = false;
+
+      // positional correction (equal mass)
+      const corr = overlap / 2;
+      a.x -= nx * corr; a.y -= ny * corr;
+      b.x += nx * corr; b.y += ny * corr;
+
+      // velocity impulse along normal
+      const rvx = b.vx - a.vx, rvy = b.vy - a.vy;
+      const vn = rvx * nx + rvy * ny;
+      if (vn > 0) return;
+      const jImp = -(1 + RESTITUTION) * vn / 2;
+      const ix = jImp * nx, iy = jImp * ny;
+      a.vx -= ix; a.vy -= iy;
+      b.vx += ix; b.vy += iy;
+
+      // glancing (tangential) contact spins the glyphs.
+      const vt = rvx * -ny + rvy * nx;
+      const spin = (vt / a.r) * SPIN_FACTOR;
+      a.av = Math.max(-MAX_AV, Math.min(MAX_AV, a.av - spin));
+      b.av = Math.max(-MAX_AV, Math.min(MAX_AV, b.av + spin));
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      ctx.font = fontSize + 'px ' + MONO;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = inkColor();
+      for (const b of bodies) {
+        if (b.angle) {
+          ctx.translate(b.x, b.y);
+          ctx.rotate(b.angle);
+          ctx.fillText(b.ch, 0, 0);
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        } else {
+          ctx.fillText(b.ch, b.x, b.y);
+        }
+      }
+
+      if (drag.active) {
+        ctx.save();
+        ctx.strokeStyle = isDark() ? 'rgba(240,240,240,0.5)' : 'rgba(17,17,17,0.4)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(drag.sx, drag.sy);
+        ctx.lineTo(drag.cx, drag.cy);
+        ctx.stroke();
+        ctx.fillStyle = inkColor();
+        ctx.font = fontSize + 'px ' + MONO;
+        ctx.globalAlpha = 0.7;
+        ctx.fillText(drag.ch, drag.sx, drag.sy);
+        ctx.restore();
+      }
+    }
+
+    let lastT = performance.now();
+    let acc = 0;
+    const FIXED = 1 / 120; // seconds
+    function frame(now) {
+      let elapsed = (now - lastT) / 1000;
+      lastT = now;
+      if (elapsed > 0.05) elapsed = 0.05;
+      acc += elapsed;
+      let iters = 0;
+      while (acc >= FIXED && iters++ < 8) {
+        step(FIXED);
+        acc -= FIXED;
+      }
+      draw();
+      requestAnimationFrame(frame);
+    }
+
+    // --- input ---
+    const drag = { active: false, id: null, sx: 0, sy: 0, cx: 0, cy: 0, ch: '' };
+    function randChar() {
+      return pickFromRanges(Math.random() < 0.2 ? EMOJI_RANGES : CHAR_RANGES);
+    }
+
+    function localPoint(e) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    canvas.addEventListener('pointerdown', e => {
+      if (drag.active) return;
+      hideHintSoon();
+      const p = localPoint(e);
+      drag.active = true;
+      drag.id = e.pointerId;
+      drag.sx = drag.cx = p.x;
+      drag.sy = drag.cy = p.y;
+      drag.ch = randChar();
+      if (canvas.setPointerCapture) {
+        try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+      }
+    });
+
+    canvas.addEventListener('pointermove', e => {
+      if (!drag.active || e.pointerId !== drag.id) return;
+      const p = localPoint(e);
+      drag.cx = p.x;
+      drag.cy = p.y;
+    });
+
+    function endDrag(e) {
+      if (!drag.active || e.pointerId !== drag.id) return;
+      const p = localPoint(e);
+      drag.cx = p.x;
+      drag.cy = p.y;
+      let dx = drag.cx - drag.sx, dy = drag.cy - drag.sy;
+      const dist = Math.hypot(dx, dy);
+      const minDim = Math.min(W, H);
+      const speed = Math.min(dist / minDim, 1) * 2400 + 500;
+      if (dist < 4) { dx = 0; dy = -1; }
+      const inv = dist > 0 ? 1 / dist : 1;
+      const nx = dx * inv, ny = dy * inv;
+      bodies.push(makeBody(drag.sx, drag.sy, drag.ch, nx * speed, ny * speed, false));
+      hasFired = true;
+      drag.active = false;
+      drag.id = null;
+    }
+
+    canvas.addEventListener('pointerup', endDrag);
+    canvas.addEventListener('pointercancel', e => {
+      if (e.pointerId === drag.id) { drag.active = false; drag.id = null; }
+    });
+    canvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+
+    // --- hint + controls ---
+    const hintEl = document.getElementById('hint');
+    let hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 4000);
+    function hideHintSoon() {
+      clearTimeout(hintTimer);
+      hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 1200);
+    }
+    function showHint() {
+      hintEl.classList.remove('hidden');
+      clearTimeout(hintTimer);
+      hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 2500);
+    }
+
+    async function loadNewText() {
+      hasFired = false;
+      applyFallback();
+      buildBlock();
+      try {
+        const res = await fetch(WIKI_URL, { cache: 'no-store' });
+        const data = await res.json();
+        const page = Object.values(data.query.pages)[0];
+        const words = toWords((page && page.extract) || '');
+        if (words.length >= 12 && !hasFired) {
+          wordSource = words;
+          buildBlock();
+        }
+      } catch (_) { /* keep the fallback text */ }
+    }
+
+    document.addEventListener('keydown', e => {
+      if ((e.key === 'r' || e.key === 'R') && !e.repeat) { loadNewText(); showHint(); }
+    });
+    document.getElementById('hb-reset').addEventListener('click', () => { loadNewText(); showHint(); });
+    document.getElementById('hb-dark').addEventListener('click', () => { Common.toggleDark(); showHint(); });
+    document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
+    Common.initSitemapShortcut();
+
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(resize, 150);
+    });
+
+    resize();
+    loadNewText();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
