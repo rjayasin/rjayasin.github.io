@@ -28,6 +28,13 @@
       z-index: 3;
       pointer-events: none;
     }
+    #hint-inner {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: #ffffff;
+    }
+    body.dark #hint-inner { background: #111111; }
     #hint.hidden { opacity: 0; }
     #hint .hint-btn {
       cursor: pointer;
@@ -43,7 +50,7 @@
 </head>
 <body>
   <canvas id="game"></canvas>
-  <div id="hint"><span style="white-space:nowrap">drag &amp; release to fire</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-reset">r reset</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 <span class="hb-dark-label">dark</span></span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-sitemap">s sitemap</span></span></div>
+  <div id="hint"><span id="hint-inner"><span style="white-space:nowrap">drag &amp; release to fire</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-reset">r reset</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 <span class="hb-dark-label">dark</span></span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-sitemap">s sitemap</span></span></span></div>
   <script>
     Common.paintFaviconR();
     Common.initDarkMode();
