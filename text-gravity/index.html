@@ -219,7 +219,8 @@
     const ANG_DAMPING = 0.985;     // per substep air drag on spin
     const FLOOR_ANG_FRICTION = 0.78; // per substep when resting on floor
     const CONTACT_ANG_DAMP = 0.9;  // per body-body contact; mimics mutual surface friction
-    const WALL_TANGENT_FRICTION = 0.45; // per pinned-body contact; how much of the slip is shed
+    const WALL_TANGENT_FRICTION = 0.45; // kinetic friction at pinned-body contact
+    const WALL_STATIC_SLIP = 10;   // px/s; tangential slip below this is treated as static contact
     const ANG_SLEEP = 0.04;
     const SPIN_FACTOR = 0.45;
     const MAX_AV = 18;
@@ -328,19 +329,25 @@
           const jImp = -(1 + RESTITUTION) * vn;
           m.vx += jImp * wnx;
           m.vy += jImp * wny;
-          // Tangential (Coulomb) friction at the contact. Without it,
-          // the normal impulse leaves slip velocity untouched, so a
-          // body resting on a pinned neighbor under gravity bounces
-          // every substep and each bounce re-injects spin in the same
-          // direction (av spools up to MAX_AV → endless clockwise
-          // rolling along the grid). Shedding part of the slip kills
-          // the source of the runaway spin.
           const tx = -wny, ty = wnx;
           const vt = m.vx * tx + m.vy * ty;
-          m.vx -= vt * WALL_TANGENT_FRICTION * tx;
-          m.vy -= vt * WALL_TANGENT_FRICTION * ty;
-          const spin = (vt / m.r) * SPIN_FACTOR;
-          m.av = Math.max(-MAX_AV, Math.min(MAX_AV, m.av + spin));
+          // Split static vs kinetic contact by slip speed. With only
+          // kinetic friction, gravity drives a tiny re-bounce every
+          // substep; the angled normal projects a sliver of vx and
+          // the spin formula injects same-direction spin each time,
+          // reaching a small but visible steady-state rotation. Below
+          // the slip threshold, treat the contact as static: kill all
+          // tangential motion and skip spin injection so a body resting
+          // on a pinned neighbor actually comes to rest.
+          if (Math.abs(vt) < WALL_STATIC_SLIP) {
+            m.vx -= vt * tx;
+            m.vy -= vt * ty;
+          } else {
+            m.vx -= vt * WALL_TANGENT_FRICTION * tx;
+            m.vy -= vt * WALL_TANGENT_FRICTION * ty;
+            const spin = (vt / m.r) * SPIN_FACTOR;
+            m.av = Math.max(-MAX_AV, Math.min(MAX_AV, m.av + spin));
+          }
         }
         m.av *= CONTACT_ANG_DAMP;
         return;
