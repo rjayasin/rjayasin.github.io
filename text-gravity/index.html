@@ -50,7 +50,7 @@
 </head>
 <body>
   <canvas id="game"></canvas>
-  <div id="hint"><span id="hint-inner"><span style="white-space:nowrap">drag &amp; release to fire</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-reset">r reset</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 <span class="hb-dark-label">dark</span></span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-sitemap">s sitemap</span></span></span></div>
+  <div id="hint"><span id="hint-inner"><span style="white-space:nowrap">drag &amp; release to fire</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-reset">r reset</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 <span class="hb-dark-label">dark</span></span></span><span id="hb-tilt-wrap" style="display:none">&nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-tilt">tilt</span></span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-sitemap">s sitemap</span></span></span></div>
   <script>
     Common.paintFaviconR();
     Common.initDarkMode();
@@ -221,10 +221,12 @@
     const WALL_RESTITUTION = 0.28;
     const DAMPING = 0.9985;       // per substep air drag
     const FLOOR_FRICTION = 0.86;  // per substep, applied to vx when on floor
+    const TILT_WALL_FRICTION = 0.992; // gentler friction when phone tilt slides chars
     const REST_VY = 40;           // bounce slower than this just stops
     const MARGIN = 60;            // off-screen distance before culling (sides/top only)
     const ANG_DAMPING = 0.985;     // per substep air drag on spin
     const FLOOR_ANG_FRICTION = 0.78; // per substep when resting on floor
+    const TILT_ANG_FRICTION = 0.96;  // gentler angular friction when tilt is sliding chars
     const CONTACT_ANG_DAMP = 0.9;  // per body-body contact; mimics mutual surface friction
     const WALL_TANGENT_FRICTION = 0.45; // kinetic friction at pinned-body contact
     const WALL_STATIC_SLIP = 10;   // px/s; tangential slip below this is treated as static contact
@@ -232,11 +234,32 @@
     const SPIN_FACTOR = 0.45;
     const MAX_AV = 18;
 
+    // --- accelerometer state ---
+    // gravityX/Y is a normalized direction vector; magnitude is GRAVITY.
+    // Default is straight down; deviceorientation tilts it.
+    let motionEnabled = false;
+    let gravityX = 0, gravityY = 1;
+    let lastShakeT = 0;
+    const accelBase = { x: 0, y: 0, z: 0 };
+    let accelBaseInit = false;
+
+    function getScreenAngle() {
+      if (screen.orientation && typeof screen.orientation.angle === 'number') {
+        return screen.orientation.angle;
+      }
+      if (typeof window.orientation === 'number') return window.orientation;
+      return 0;
+    }
+
     function step(dt) {
-      // integrate (fixed bodies stay put)
+      // integrate (fixed bodies stay put). Gravity is a 2D vector so phone
+      // tilt re-aims it; the default (0, 1) keeps the desktop feel.
+      const gax = gravityX * GRAVITY;
+      const gay = gravityY * GRAVITY;
       for (const b of bodies) {
         if (b.fixed) continue;
-        b.vy += GRAVITY * dt;
+        b.vx += gax * dt;
+        b.vy += gay * dt;
         b.x += b.vx * dt;
         b.y += b.vy * dt;
         b.vx *= DAMPING;
@@ -280,21 +303,58 @@
         }
       }
 
-      // floor collision: impermeable bottom, characters pile up here
-      const floorY = H;
+      // floor collision: impermeable bottom, characters pile up here.
+      // When motion is on, walls/ceiling are also impermeable so tilt can
+      // slide the pile across the screen without losing chars off the edge.
+      // Friction at tilt-time is lighter so chars actually slide instead
+      // of locking in place under the strong per-substep damping.
+      const tangentFriction = motionEnabled ? TILT_WALL_FRICTION : FLOOR_FRICTION;
+      const tangentAngFriction = motionEnabled ? TILT_ANG_FRICTION : FLOOR_ANG_FRICTION;
       for (const b of bodies) {
         if (b.fixed) continue;
-        const limit = floorY - b.r;
-        if (b.y > limit) {
-          b.y = limit;
+        if (b.y > H - b.r) {
+          b.y = H - b.r;
           if (b.vy > 0) {
             b.vy = -b.vy * WALL_RESTITUTION;
             if (Math.abs(b.vy) < REST_VY) b.vy = 0;
           }
-          b.vx *= FLOOR_FRICTION;
+          b.vx *= tangentFriction;
           if (Math.abs(b.vx) < 1) b.vx = 0;
-          // surface friction also drags rotation to a stop
-          b.av *= FLOOR_ANG_FRICTION;
+          b.av *= tangentAngFriction;
+          if (Math.abs(b.av) < ANG_SLEEP) b.av = 0;
+        }
+        if (!motionEnabled) continue;
+        if (b.y < b.r) {
+          b.y = b.r;
+          if (b.vy < 0) {
+            b.vy = -b.vy * WALL_RESTITUTION;
+            if (Math.abs(b.vy) < REST_VY) b.vy = 0;
+          }
+          b.vx *= tangentFriction;
+          if (Math.abs(b.vx) < 1) b.vx = 0;
+          b.av *= tangentAngFriction;
+          if (Math.abs(b.av) < ANG_SLEEP) b.av = 0;
+        }
+        if (b.x < b.r) {
+          b.x = b.r;
+          if (b.vx < 0) {
+            b.vx = -b.vx * WALL_RESTITUTION;
+            if (Math.abs(b.vx) < REST_VY) b.vx = 0;
+          }
+          b.vy *= tangentFriction;
+          if (Math.abs(b.vy) < 1) b.vy = 0;
+          b.av *= tangentAngFriction;
+          if (Math.abs(b.av) < ANG_SLEEP) b.av = 0;
+        }
+        if (b.x > W - b.r) {
+          b.x = W - b.r;
+          if (b.vx > 0) {
+            b.vx = -b.vx * WALL_RESTITUTION;
+            if (Math.abs(b.vx) < REST_VY) b.vx = 0;
+          }
+          b.vy *= tangentFriction;
+          if (Math.abs(b.vy) < 1) b.vy = 0;
+          b.av *= tangentAngFriction;
           if (Math.abs(b.av) < ANG_SLEEP) b.av = 0;
         }
       }
@@ -302,7 +362,10 @@
       // cull bodies pushed off the page sideways. Top and bottom are
       // both kept: the floor is impermeable, and shots fired upward
       // off the top should arc back down rather than vanish.
-      bodies = bodies.filter(b => b.x > -MARGIN && b.x < W + MARGIN);
+      // Side walls handle containment when motion is enabled.
+      if (!motionEnabled) {
+        bodies = bodies.filter(b => b.x > -MARGIN && b.x < W + MARGIN);
+      }
     }
 
     function resolve(a, b) {
@@ -486,6 +549,104 @@
       if (e.pointerId === drag.id) { drag.active = false; drag.id = null; }
     });
     canvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+
+    // --- accelerometer ---
+    // Heuristic mapping: gamma (left/right roll) drives horizontal gravity,
+    // beta (front/back pitch) drives vertical. This isn't the textbook
+    // device-frame projection of world gravity (which zeroes the sideways
+    // component when the phone is held upright), but it matches how people
+    // expect a tilt toy to feel: lean right and the pile slides right.
+    function applyOrientation(e) {
+      if (e.beta == null && e.gamma == null) return;
+      const beta = e.beta || 0;
+      const gamma = e.gamma || 0;
+      const rad = Math.PI / 180;
+      let gx = Math.sin(gamma * rad);
+      let gy = Math.sin(beta * rad);
+      const ang = getScreenAngle();
+      if (ang === 90) { const t = gx; gx = -gy; gy = t; }
+      else if (ang === -90 || ang === 270) { const t = gx; gx = gy; gy = -t; }
+      else if (ang === 180) { gx = -gx; gy = -gy; }
+      gravityX = gx;
+      gravityY = gy;
+    }
+
+    function applyMotion(e) {
+      let ax, ay, az;
+      const a = e.acceleration;
+      if (a && (a.x != null || a.y != null || a.z != null)) {
+        ax = a.x || 0; ay = a.y || 0; az = a.z || 0;
+      } else {
+        const ag = e.accelerationIncludingGravity;
+        if (!ag) return;
+        const gx = ag.x || 0, gy = ag.y || 0, gz = ag.z || 0;
+        if (!accelBaseInit) {
+          accelBase.x = gx; accelBase.y = gy; accelBase.z = gz;
+          accelBaseInit = true;
+        }
+        ax = gx - accelBase.x;
+        ay = gy - accelBase.y;
+        az = gz - accelBase.z;
+        // slow-track the baseline so steady-state gravity doesn't read as shake
+        accelBase.x = accelBase.x * 0.95 + gx * 0.05;
+        accelBase.y = accelBase.y * 0.95 + gy * 0.05;
+        accelBase.z = accelBase.z * 0.95 + gz * 0.05;
+      }
+      const mag = Math.hypot(ax, ay, az);
+      const now = performance.now();
+      if (mag > 8 && now - lastShakeT > 60) {
+        lastShakeT = now;
+        const intensity = Math.min((mag - 8) / 12, 1.5);
+        for (const b of bodies) {
+          if (b.fixed) continue;
+          const dir = Math.random() * Math.PI * 2;
+          const s = 120 + intensity * 380;
+          b.vx += Math.cos(dir) * s;
+          b.vy += Math.sin(dir) * s;
+          b.av += (Math.random() - 0.5) * (3 + intensity * 6);
+        }
+      }
+    }
+
+    const tiltWrap = document.getElementById('hb-tilt-wrap');
+    const tiltBtn = document.getElementById('hb-tilt');
+    const touchLike = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
+                      ('ontouchstart' in window);
+    if ('DeviceOrientationEvent' in window && touchLike) tiltWrap.style.display = '';
+
+    function disableMotion() {
+      window.removeEventListener('deviceorientation', applyOrientation);
+      window.removeEventListener('devicemotion', applyMotion);
+      motionEnabled = false;
+      gravityX = 0; gravityY = 1;
+      accelBaseInit = false;
+      tiltBtn.textContent = 'tilt';
+    }
+
+    async function enableMotion() {
+      // iOS 13+ gates orientation/motion behind a permission request that
+      // must originate from a user gesture; Android browsers just attach.
+      try {
+        if (typeof DeviceOrientationEvent !== 'undefined' &&
+            typeof DeviceOrientationEvent.requestPermission === 'function') {
+          const r = await DeviceOrientationEvent.requestPermission();
+          if (r !== 'granted') return;
+        }
+        if (typeof DeviceMotionEvent !== 'undefined' &&
+            typeof DeviceMotionEvent.requestPermission === 'function') {
+          try { await DeviceMotionEvent.requestPermission(); } catch (_) {}
+        }
+      } catch (_) { return; }
+      window.addEventListener('deviceorientation', applyOrientation);
+      window.addEventListener('devicemotion', applyMotion);
+      motionEnabled = true;
+      tiltBtn.textContent = 'tilt on';
+    }
+
+    tiltBtn.addEventListener('click', () => {
+      if (motionEnabled) disableMotion(); else enableMotion();
+      showHint();
+    });
 
     // --- hint + controls ---
     const hintEl = document.getElementById('hint');
