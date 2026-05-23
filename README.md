@@ -4,6 +4,7 @@
 
 - [`maze-canvas`](https://rjayasin.github.io/maze-canvas/)
 - [`text-shooter`](https://rjayasin.github.io/text-shooter/)
+- [`text-gravity`](https://rjayasin.github.io/text-gravity/)
 
 `text`
 
@@ -12,6 +13,7 @@
 - [`box`](https://rjayasin.github.io/box/?hello/world)
 - [`clock`](https://rjayasin.github.io/clock/)
 - [`border`](https://rjayasin.github.io/border/)
+- [`isometric`](https://rjayasin.github.io/isometric/)
 
 `tools`
 

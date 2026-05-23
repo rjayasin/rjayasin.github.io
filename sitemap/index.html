@@ -78,6 +78,8 @@
     <button type="button" data-view="tree" class="active">tree</button>
     <span class="sep">·</span>
     <button type="button" data-view="recent">recent</button>
+    <span class="sep">·</span>
+    <button type="button" data-view="alpha">alpha</button>
   </nav>
   <div id="tree-view">
   <!-- Keep every section and sublist ordered by date added, oldest at the top and newest at the bottom. -->
@@ -107,6 +109,7 @@
   </ul>
   </div>
   <ul id="recent-view" hidden></ul>
+  <ul id="alpha-view" hidden></ul>
   <script>
     Common.paintFaviconR();
     Common.initDarkMode();
@@ -127,6 +130,7 @@
     const VIEW_KEY = 'sitemap-view';
     const treeView = document.getElementById('tree-view');
     const recentView = document.getElementById('recent-view');
+    const alphaView = document.getElementById('alpha-view');
     const buttons = document.querySelectorAll('.view-toggle button');
 
     function relativeWhen(iso, now = Date.now()) {
@@ -195,6 +199,21 @@
       return Number.isFinite(t) ? t : NaN;
     }
 
+    function makeFlatLi(link) {
+      const li = document.createElement('li');
+      const bullet = document.createElement('span');
+      bullet.className = 'branch';
+      bullet.textContent = '• ';
+      li.appendChild(bullet);
+      const a = document.createElement('a');
+      a.href = link.href;
+      a.textContent = link.label;
+      if (link.external) { a.target = '_blank'; a.rel = 'noopener'; }
+      if (link.gridLink) a.setAttribute('data-grid-link', '');
+      li.appendChild(a);
+      return li;
+    }
+
     function buildRecent(dates) {
       const links = collectLinks();
       links.sort((a, b) => {
@@ -209,21 +228,18 @@
       });
       recentEntries.clear();
       recentView.replaceChildren(...links.map((l) => {
-        const li = document.createElement('li');
-        const bullet = document.createElement('span');
-        bullet.className = 'branch';
-        bullet.textContent = '• ';
-        li.appendChild(bullet);
-        const a = document.createElement('a');
-        a.href = l.href;
-        a.textContent = l.label;
-        if (l.external) { a.target = '_blank'; a.rel = 'noopener'; }
-        if (l.gridLink) a.setAttribute('data-grid-link', '');
-        li.appendChild(a);
+        const li = makeFlatLi(l);
         setWhen(li, dates[dateKey(l.href)]);
         recentEntries.set(dateKey(l.href), li);
         return li;
       }));
+      randomizeGrid();
+    }
+
+    function buildAlpha() {
+      const links = collectLinks();
+      links.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+      alphaView.replaceChildren(...links.map(makeFlatLi));
       randomizeGrid();
     }
 
@@ -286,9 +302,9 @@
     }
 
     function setView(view) {
-      const isRecent = view === 'recent';
-      treeView.hidden = isRecent;
-      recentView.hidden = !isRecent;
+      treeView.hidden = view !== 'tree';
+      recentView.hidden = view !== 'recent';
+      alphaView.hidden = view !== 'alpha';
       buttons.forEach((b) => b.classList.toggle('active', b.dataset.view === view));
       try { localStorage.setItem(VIEW_KEY, view); } catch {}
     }
@@ -304,19 +320,30 @@
       return recentReady;
     }
 
-    buttons.forEach((b) => b.addEventListener('click', () => {
-      if (b.dataset.view === 'recent') ensureRecent().then(() => setView('recent'));
+    let alphaReady = false;
+    function ensureAlpha() {
+      if (!alphaReady) { buildAlpha(); alphaReady = true; }
+    }
+
+    function switchTo(view) {
+      if (view === 'recent') ensureRecent().then(() => setView('recent'));
+      else if (view === 'alpha') { ensureAlpha(); setView('alpha'); }
       else setView('tree');
-    }));
+    }
+
+    buttons.forEach((b) => b.addEventListener('click', () => switchTo(b.dataset.view)));
+
+    function shortcutTarget(e) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return null;
+      const t = e.target;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return null;
+      return e.key.toLowerCase();
+    }
 
     document.addEventListener('keydown', (e) => {
-      if (e.key !== 't' && e.key !== 'T') return;
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      const t = e.target;
-      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
-      const next = recentView.hidden ? 'recent' : 'tree';
-      if (next === 'recent') ensureRecent().then(() => setView('recent'));
-      else setView('tree');
+      const k = shortcutTarget(e);
+      if (k === 't') switchTo(recentView.hidden ? 'recent' : 'tree');
+      else if (k === 'a') switchTo(alphaView.hidden ? 'alpha' : 'tree');
     });
 
     let datesPromise = null;
@@ -333,6 +360,10 @@
     try { initialView = localStorage.getItem(VIEW_KEY) || 'tree'; } catch {}
     if (initialView === 'recent') {
       ensureRecent().then(() => setView('recent'));
+    } else if (initialView === 'alpha') {
+      ensureAlpha();
+      setView('alpha');
+      ensureRecent();
     } else {
       ensureRecent();
     }
