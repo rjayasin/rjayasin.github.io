@@ -166,6 +166,10 @@
       });
       recentView.replaceChildren(...links.map((l) => {
         const li = document.createElement('li');
+        const bullet = document.createElement('span');
+        bullet.className = 'branch';
+        bullet.textContent = '• ';
+        li.appendChild(bullet);
         const a = document.createElement('a');
         a.href = l.href;
         a.textContent = l.label;
