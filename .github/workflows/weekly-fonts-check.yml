@@ -1,4 +1,4 @@
-name: Weekly Google Fonts check
+name: Weekly auto-updates
 
 on:
   schedule:
@@ -13,9 +13,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+
+      - name: Configure git identity
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
       - name: Detect new Google Fonts
         run: node scripts/check-new-fonts.js
@@ -26,14 +33,33 @@ jobs:
       - name: Refresh font licenses & attribution
         run: node scripts/fetch-licenses.js
 
-      - name: Commit and push if changed
+      - name: Commit font updates
         run: |
-          if [[ -z "$(git status --porcelain)" ]]; then
-            echo "No changes."
-            exit 0
+          if git diff --quiet -- fonts.js fonts/; then
+            echo "No font changes."
+          else
+            git add fonts.js fonts/
+            git commit -m "add new google fonts (weekly auto-update)"
           fi
-          git config user.name  'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add fonts.js fonts/
-          git commit -m "add new google fonts (weekly auto-update)"
-          git push origin HEAD:main
+
+      - name: Refresh sitemap dates
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/build-sitemap-dates.js
+
+      - name: Commit sitemap date updates
+        run: |
+          if git diff --quiet -- sitemap/dates.json; then
+            echo "No sitemap date changes."
+          else
+            git add sitemap/dates.json
+            git commit -m "sitemap: refresh dates (weekly auto-update)"
+          fi
+
+      - name: Push
+        run: |
+          if [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]]; then
+            echo "Nothing to push."
+          else
+            git push origin HEAD:main
+          fi
