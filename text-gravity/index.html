@@ -213,7 +213,9 @@
     const FLOOR_FRICTION = 0.86;  // per substep, applied to vx when on floor
     const REST_VY = 40;           // bounce slower than this just stops
     const MARGIN = 60;            // off-screen distance before culling (sides/top only)
-    const ANG_DAMPING = 0.985;
+    const ANG_DAMPING = 0.985;     // per substep air drag on spin
+    const FLOOR_ANG_FRICTION = 0.78; // per substep when resting on floor
+    const CONTACT_ANG_DAMP = 0.9;  // per body-body contact; mimics mutual surface friction
     const ANG_SLEEP = 0.04;
     const SPIN_FACTOR = 0.45;
     const MAX_AV = 18;
@@ -279,6 +281,9 @@
           }
           b.vx *= FLOOR_FRICTION;
           if (Math.abs(b.vx) < 1) b.vx = 0;
+          // surface friction also drags rotation to a stop
+          b.av *= FLOOR_ANG_FRICTION;
+          if (Math.abs(b.av) < ANG_SLEEP) b.av = 0;
         }
       }
 
@@ -323,6 +328,7 @@
           const spin = (vt / m.r) * SPIN_FACTOR;
           m.av = Math.max(-MAX_AV, Math.min(MAX_AV, m.av + spin));
         }
+        m.av *= CONTACT_ANG_DAMP;
         return;
       }
 
@@ -343,6 +349,8 @@
       const spin = (vt / a.r) * SPIN_FACTOR;
       a.av = Math.max(-MAX_AV, Math.min(MAX_AV, a.av - spin));
       b.av = Math.max(-MAX_AV, Math.min(MAX_AV, b.av + spin));
+      a.av *= CONTACT_ANG_DAMP;
+      b.av *= CONTACT_ANG_DAMP;
     }
 
     function draw() {
