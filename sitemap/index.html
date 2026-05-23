@@ -159,6 +159,20 @@
       return noHash || '/';
     }
 
+    const recentEntries = new Map();
+
+    function setWhen(li, entry) {
+      const old = li.querySelector('.when');
+      if (old) old.remove();
+      if (!entry?.date) return;
+      const when = document.createElement(entry.url ? 'a' : 'span');
+      when.className = 'when';
+      when.textContent = relativeWhen(entry.date);
+      when.title = new Date(entry.date).toLocaleString();
+      if (entry.url) { when.href = entry.url; when.target = '_blank'; when.rel = 'noopener'; }
+      li.appendChild(when);
+    }
+
     function buildRecent(dates) {
       const links = collectLinks();
       links.sort((a, b) => {
@@ -169,6 +183,7 @@
         if (db) return 1;
         return 0;
       });
+      recentEntries.clear();
       recentView.replaceChildren(...links.map((l) => {
         const li = document.createElement('li');
         const bullet = document.createElement('span');
@@ -181,18 +196,69 @@
         if (l.external) { a.target = '_blank'; a.rel = 'noopener'; }
         if (l.gridLink) a.setAttribute('data-grid-link', '');
         li.appendChild(a);
-        const entry = dates[dateKey(l.href)];
-        if (entry?.date) {
-          const when = document.createElement(entry.url ? 'a' : 'span');
-          when.className = 'when';
-          when.textContent = relativeWhen(entry.date);
-          when.title = new Date(entry.date).toLocaleString();
-          if (entry.url) { when.href = entry.url; when.target = '_blank'; when.rel = 'noopener'; }
-          li.appendChild(when);
-        }
+        setWhen(li, dates[dateKey(l.href)]);
+        recentEntries.set(dateKey(l.href), li);
         return li;
       }));
       randomizeGrid();
+    }
+
+    const USER_HOST = 'rjayasin.github.io';
+    const SELF_REPO = 'rjayasin.github.io';
+    const PATH_OVERRIDES = { '/': 'grid.js' };
+
+    function internalPath(href) {
+      if (PATH_OVERRIDES[href]) return PATH_OVERRIDES[href];
+      if (href === '/') return 'index.html';
+      if (!href.startsWith('/')) return null;
+      const clean = href.replace(/^\/+/, '').replace(/\/+$/, '');
+      return clean || 'index.html';
+    }
+
+    function parseUserHost(href) {
+      let url;
+      try { url = new URL(href, location.origin); } catch { return null; }
+      if (url.host !== USER_HOST) return null;
+      const segs = url.pathname.split('/').filter(Boolean);
+      if (!segs.length) return null;
+      return { repo: segs[0], path: segs.slice(1).join('/') };
+    }
+
+    let rateLimited = false;
+    async function fetchFreshEntry(href) {
+      if (rateLimited) return null;
+      let repo, subPath;
+      const rel = internalPath(href);
+      if (rel) { repo = SELF_REPO; subPath = rel; }
+      else {
+        const ext = parseUserHost(href);
+        if (!ext) return null;
+        repo = ext.repo; subPath = ext.path;
+      }
+      const params = new URLSearchParams({ per_page: '1' });
+      if (subPath) params.set('path', subPath);
+      const apiUrl = `https://api.github.com/repos/rjayasin/${repo}/commits?${params}`;
+      let res;
+      try { res = await fetch(apiUrl, { headers: { Accept: 'application/vnd.github+json' } }); }
+      catch { return null; }
+      if (res.status === 403 || res.status === 429) { rateLimited = true; return null; }
+      if (!res.ok) return null;
+      const data = await res.json();
+      const c = Array.isArray(data) ? data[0] : null;
+      const date = c?.commit?.committer?.date || c?.commit?.author?.date;
+      if (!date) return null;
+      return { date, url: c.html_url || null };
+    }
+
+    let refreshing = false;
+    async function refreshDatesInline() {
+      if (refreshing) return;
+      refreshing = true;
+      for (const [href, li] of recentEntries) {
+        if (rateLimited) break;
+        const fresh = await fetchFreshEntry(href);
+        if (fresh) setWhen(li, fresh);
+      }
     }
 
     function setView(view) {
@@ -203,7 +269,21 @@
       try { localStorage.setItem(VIEW_KEY, view); } catch {}
     }
 
-    buttons.forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
+    let recentReady = null;
+    function ensureRecent() {
+      if (!recentReady) {
+        recentReady = loadDates().then((dates) => {
+          buildRecent(dates);
+          refreshDatesInline();
+        });
+      }
+      return recentReady;
+    }
+
+    buttons.forEach((b) => b.addEventListener('click', () => {
+      if (b.dataset.view === 'recent') ensureRecent().then(() => setView('recent'));
+      else setView('tree');
+    }));
 
     document.addEventListener('keydown', (e) => {
       if (e.key !== 't' && e.key !== 'T') return;
@@ -211,7 +291,7 @@
       const t = e.target;
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
       const next = recentView.hidden ? 'recent' : 'tree';
-      if (next === 'recent') loadDates().then((dates) => { buildRecent(dates); setView('recent'); });
+      if (next === 'recent') ensureRecent().then(() => setView('recent'));
       else setView('tree');
     });
 
@@ -228,9 +308,9 @@
     let initialView = 'tree';
     try { initialView = localStorage.getItem(VIEW_KEY) || 'tree'; } catch {}
     if (initialView === 'recent') {
-      loadDates().then((dates) => { buildRecent(dates); setView('recent'); });
+      ensureRecent().then(() => setView('recent'));
     } else {
-      loadDates().then((dates) => buildRecent(dates));
+      ensureRecent();
     }
   </script>
 </body>

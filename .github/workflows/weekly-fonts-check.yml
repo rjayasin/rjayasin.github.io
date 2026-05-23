@@ -1,4 +1,4 @@
-name: Weekly fonts auto-update
+name: Weekly auto-updates
 
 on:
   schedule:
@@ -40,6 +40,20 @@ jobs:
           else
             git add fonts.js fonts/
             git commit -m "add new google fonts (weekly auto-update)"
+          fi
+
+      - name: Refresh sitemap dates
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/build-sitemap-dates.js
+
+      - name: Commit sitemap date updates
+        run: |
+          if git diff --quiet -- sitemap/dates.json; then
+            echo "No sitemap date changes."
+          else
+            git add sitemap/dates.json
+            git commit -m "sitemap: refresh dates (weekly auto-update)"
           fi
 
       - name: Push
