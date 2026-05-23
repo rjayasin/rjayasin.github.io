@@ -32,6 +32,7 @@
     li .when { color: #888; margin-left: 8px; }
     li a { color: #000; text-decoration: none; }
     li a:hover { text-decoration: underline; }
+    li a.when { color: #888; }
     .view-toggle {
       display: flex;
       gap: 4px;
@@ -57,12 +58,12 @@
       h1, h2 { font-size: 15px; }
     }
     body.dark header a,
-    body.dark li a,
+    body.dark li a:not(.when),
     body.dark .view-toggle button:hover,
     body.dark .view-toggle button.active { color: #fff; }
     @media (prefers-color-scheme: dark) {
       body:not(.light) header a,
-      body:not(.light) li a,
+      body:not(.light) li a:not(.when),
       body:not(.light) .view-toggle button:hover,
       body:not(.light) .view-toggle button.active { color: #fff; }
     }
@@ -132,8 +133,12 @@
       const t = new Date(iso).getTime();
       if (!Number.isFinite(t)) return '';
       const diff = Math.max(0, now - t);
-      const day = 24 * 60 * 60 * 1000;
-      if (diff < day) return 'today';
+      const minute = 60 * 1000;
+      const hour = 60 * minute;
+      const day = 24 * hour;
+      if (diff < minute) return 'just now';
+      if (diff < hour) return `${Math.floor(diff / minute)}m ago`;
+      if (diff < day) return `${Math.floor(diff / hour)}h ago`;
       if (diff < 2 * day) return 'yesterday';
       if (diff < 30 * day) return `${Math.floor(diff / day)}d ago`;
       if (diff < 365 * day) return `${Math.floor(diff / (30 * day))}mo ago`;
@@ -157,8 +162,8 @@
     function buildRecent(dates) {
       const links = collectLinks();
       links.sort((a, b) => {
-        const da = dates[dateKey(a.href)];
-        const db = dates[dateKey(b.href)];
+        const da = dates[dateKey(a.href)]?.date;
+        const db = dates[dateKey(b.href)]?.date;
         if (da && db) return da < db ? 1 : da > db ? -1 : 0;
         if (da) return -1;
         if (db) return 1;
@@ -176,12 +181,14 @@
         if (l.external) { a.target = '_blank'; a.rel = 'noopener'; }
         if (l.gridLink) a.setAttribute('data-grid-link', '');
         li.appendChild(a);
-        const when = dates[dateKey(l.href)];
-        if (when) {
-          const span = document.createElement('span');
-          span.className = 'when';
-          span.textContent = relativeWhen(when);
-          li.appendChild(span);
+        const entry = dates[dateKey(l.href)];
+        if (entry?.date) {
+          const when = document.createElement(entry.url ? 'a' : 'span');
+          when.className = 'when';
+          when.textContent = relativeWhen(entry.date);
+          when.title = new Date(entry.date).toLocaleString();
+          if (entry.url) { when.href = entry.url; when.target = '_blank'; when.rel = 'noopener'; }
+          li.appendChild(when);
         }
         return li;
       }));
