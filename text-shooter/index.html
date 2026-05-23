@@ -426,6 +426,9 @@
       clearTimeout(hintTimer);
       hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 2500);
     }
+    window.addEventListener('pointermove', e => {
+      if (e.clientY >= window.innerHeight - 60) showHint();
+    });
 
     // Fresh text on each load and reset: show a random local fallback
     // immediately, then swap in a random Wikipedia article if the fetch
