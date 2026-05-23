@@ -205,6 +205,16 @@
 
     buttons.forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
 
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 't' && e.key !== 'T') return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      const next = recentView.hidden ? 'recent' : 'tree';
+      if (next === 'recent') loadDates().then((dates) => { buildRecent(dates); setView('recent'); });
+      else setView('tree');
+    });
+
     let datesPromise = null;
     function loadDates() {
       if (!datesPromise) {
