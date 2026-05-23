@@ -59,7 +59,7 @@
 </head>
 <body>
   <canvas id="game"></canvas>
-  <div id="hint"><span id="hint-inner"><span style="white-space:nowrap">drag &amp; release to fire</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-reset">r reset</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 <span class="hb-dark-label">dark</span></span></span><span id="hb-tilt-wrap" style="display:none">&nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-tilt">tilt</span></span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-sitemap">s sitemap</span></span></span></div>
+  <div id="hint"><span id="hint-inner"><span style="white-space:nowrap">drag &amp; release to fire</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-reset">r reset</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 <span class="hb-dark-label">dark</span></span></span><span id="hb-tilt-wrap" style="display:none">&nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-tilt">tilt</span></span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-smaller">−</span>/<span class="hint-btn" id="hb-bigger">+</span> size</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-sitemap">s sitemap</span></span></span></div>
   <div id="hint-zone"></div>
   <script>
     Common.paintFaviconR();
@@ -120,7 +120,7 @@
 
     const WIKI_URL = 'https://en.wikipedia.org/w/api.php?format=json&origin=*' +
       '&action=query&generator=random&grnnamespace=0&grnlimit=1' +
-      '&prop=extracts&exintro=1&explaintext=1&exchars=1500';
+      '&prop=extracts&explaintext=1&exchars=5000';
 
     let wordSource = [];
     function toWords(text) {
@@ -136,6 +136,10 @@
 
     let W = 0, H = 0, dpr = 1;
     let fontSize, charW, charH, radius;
+    let userFontSize = null;
+    const FONT_MIN = 8;
+    const FONT_MAX = 60;
+    const FONT_STEP = 2;
     let bodies = [];
     let hasFired = false;
 
@@ -186,7 +190,10 @@
 
     function buildBlock() {
       const minDim = Math.min(W, H);
-      fontSize = Math.max(13, Math.min(30, Math.round(minDim / 22)));
+      const autoSize = Math.max(13, Math.min(30, Math.round(minDim / 22)));
+      fontSize = userFontSize != null
+        ? Math.max(FONT_MIN, Math.min(FONT_MAX, userFontSize))
+        : autoSize;
       ctx.font = fontSize + 'px ' + MONO;
       charW = ctx.measureText('M').width;
       charH = fontSize * 1.15;
@@ -695,11 +702,21 @@
       } catch (_) { /* keep the fallback text */ }
     }
 
+    function adjustFont(delta) {
+      const next = Math.max(FONT_MIN, Math.min(FONT_MAX, fontSize + delta));
+      if (next === fontSize) return;
+      userFontSize = next;
+      buildBlock();
+    }
     document.addEventListener('keydown', e => {
       if ((e.key === 'r' || e.key === 'R') && !e.repeat) { loadNewText(); showHint(); }
+      else if (e.key === '+' || e.key === '=') { adjustFont(FONT_STEP); showHint(); }
+      else if (e.key === '-' || e.key === '_') { adjustFont(-FONT_STEP); showHint(); }
     });
     document.getElementById('hb-reset').addEventListener('click', () => { loadNewText(); showHint(); });
     document.getElementById('hb-dark').addEventListener('click', () => { Common.toggleDark(); showHint(); });
+    document.getElementById('hb-bigger').addEventListener('click', () => { adjustFont(FONT_STEP); showHint(); });
+    document.getElementById('hb-smaller').addEventListener('click', () => { adjustFont(-FONT_STEP); showHint(); });
     document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
     Common.initSitemapShortcut();
 
