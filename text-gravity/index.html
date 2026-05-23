@@ -446,7 +446,7 @@
       let dx = drag.cx - drag.sx, dy = drag.cy - drag.sy;
       const dist = Math.hypot(dx, dy);
       const minDim = Math.min(W, H);
-      const speed = Math.min(dist / minDim, 1) * 1500 + 300;
+      const speed = Math.min(dist / minDim, 1) * 2000 + 400;
       if (dist < 4) { dx = 0; dy = -1; }
       const inv = dist > 0 ? 1 / dist : 1;
       const nx = dx * inv, ny = dy * inv;
