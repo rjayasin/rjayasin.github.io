@@ -457,10 +457,23 @@
       a.vx -= ix; a.vy -= iy;
       b.vx += ix; b.vy += iy;
 
-      const vt = rvx * -ny + rvy * nx;
-      const spin = (vt / a.r) * SPIN_FACTOR;
-      a.av = Math.max(-MAX_AV, Math.min(MAX_AV, a.av - spin));
-      b.av = Math.max(-MAX_AV, Math.min(MAX_AV, b.av + spin));
+      const tx = -ny, ty = nx;
+      const vt = rvx * tx + rvy * ty;
+      // Same static-vs-kinetic split as the pinned branch. Without this,
+      // stacked unfixed bodies whose bottom is clipped by the floor keep
+      // receiving a per-substep gravity-induced rvt, so the kinetic spin
+      // formula injects same-sign spin forever into both bodies.
+      if (Math.abs(vt) < WALL_STATIC_SLIP) {
+        const halfVt = vt / 2;
+        a.vx += halfVt * tx;
+        a.vy += halfVt * ty;
+        b.vx -= halfVt * tx;
+        b.vy -= halfVt * ty;
+      } else {
+        const spin = (vt / a.r) * SPIN_FACTOR;
+        a.av = Math.max(-MAX_AV, Math.min(MAX_AV, a.av - spin));
+        b.av = Math.max(-MAX_AV, Math.min(MAX_AV, b.av + spin));
+      }
       a.av *= CONTACT_ANG_DAMP;
       b.av *= CONTACT_ANG_DAMP;
     }
