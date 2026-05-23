@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// Parses ../sitemap/index.html, looks up the last-updated date for every link
-// (git log for internal paths, the GitHub commits API for links into other
-// rjayasin.github.io repos), and writes ../sitemap/dates.json mapping each
-// href to an ISO timestamp. Skips hrefs whose dates can't be determined so
-// the page can render them last in the "recent" view.
+// Parses ../sitemap/index.html, looks up the last-updated date and commit URL
+// for every link (git log for internal paths, the GitHub commits API for
+// links into other rjayasin.github.io repos), and writes ../sitemap/dates.json
+// mapping each href to { date, url }. Skips hrefs whose dates can't be
+// determined so the page can render them last in the "recent" view.
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -13,6 +13,7 @@ const ROOT = path.resolve(__dirname, '..');
 const SITEMAP = path.join(ROOT, 'sitemap', 'index.html');
 const OUT = path.join(ROOT, 'sitemap', 'dates.json');
 const USER_HOST = 'rjayasin.github.io';
+const SELF_REPO = 'rjayasin/rjayasin.github.io';
 
 // For pages whose behavior lives in a file other than their default directory
 // — e.g. the grid page is served by the repo root's index.html but its logic
@@ -34,14 +35,17 @@ function extractHrefs(html) {
   return [...new Set(hrefs)];
 }
 
-function gitDate(relPath) {
+function gitEntry(relPath) {
   try {
     const out = execFileSync(
       'git',
-      ['log', '-1', '--format=%cI', '--', relPath],
+      ['log', '-1', '--format=%cI%x09%H', '--', relPath],
       { cwd: ROOT, encoding: 'utf8' }
     ).trim();
-    return out || null;
+    if (!out) return null;
+    const [date, sha] = out.split('\t');
+    if (!date || !sha) return null;
+    return { date, url: `https://github.com/${SELF_REPO}/commit/${sha}` };
   } catch {
     return null;
   }
@@ -66,7 +70,7 @@ function parseUserHost(href) {
   return { repo, path: subPath };
 }
 
-async function ghCommitDate(repo, subPath) {
+async function ghCommitEntry(repo, subPath) {
   const params = new URLSearchParams({ per_page: '1' });
   if (subPath) params.set('path', subPath);
   const url = `https://api.github.com/repos/rjayasin/${repo}/commits?${params}`;
@@ -78,33 +82,47 @@ async function ghCommitDate(repo, subPath) {
     return null;
   }
   const data = await res.json();
-  const iso = data?.[0]?.commit?.committer?.date || data?.[0]?.commit?.author?.date;
-  return iso || null;
+  const commit = data?.[0];
+  const date = commit?.commit?.committer?.date || commit?.commit?.author?.date;
+  if (!date) return null;
+  return { date, url: commit.html_url || null };
+}
+
+function asEntry(v) {
+  if (!v) return null;
+  if (typeof v === 'string') return { date: v, url: null };
+  if (typeof v === 'object' && v.date) return { date: v.date, url: v.url || null };
+  return null;
 }
 
 async function main() {
   const html = fs.readFileSync(SITEMAP, 'utf8');
   const hrefs = extractHrefs(html);
   const existing = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : {};
-  const dates = {};
+  const entries = {};
   for (const href of hrefs) {
-    let date = null;
+    let entry = null;
     const rel = internalPath(href);
     if (rel) {
-      date = gitDate(rel);
+      entry = gitEntry(rel);
     } else {
       const ext = parseUserHost(href);
       if (ext) {
-        try { date = await ghCommitDate(ext.repo, ext.path); }
+        try { entry = await ghCommitEntry(ext.repo, ext.path); }
         catch (e) { process.stderr.write(`  ${e.message}\n`); }
       }
     }
-    if (!date && existing[href]) date = existing[href];
-    if (date) dates[href] = date;
-    process.stdout.write(`${date || '       skip       '}  ${href}\n`);
+    const prior = asEntry(existing[href]);
+    if (!entry && prior) entry = prior;
+    else if (entry && prior) {
+      if (!entry.date && prior.date) entry.date = prior.date;
+      if (!entry.url && prior.url) entry.url = prior.url;
+    }
+    if (entry?.date) entries[href] = entry;
+    process.stdout.write(`${entry?.date || '       skip       '}  ${href}\n`);
   }
   const ordered = Object.fromEntries(
-    Object.entries(dates).sort(([, a], [, b]) => (a < b ? 1 : -1))
+    Object.entries(entries).sort(([, a], [, b]) => (a.date < b.date ? 1 : -1))
   );
   fs.writeFileSync(OUT, JSON.stringify(ordered, null, 2) + '\n');
   process.stdout.write(`\nwrote ${Object.keys(ordered).length} entries to ${path.relative(ROOT, OUT)}\n`);
