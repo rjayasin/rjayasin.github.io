@@ -160,8 +160,8 @@
       return lines;
     }
 
-    function makeBody(x, y, ch, vx, vy, fixed) {
-      return { x, y, vx: vx || 0, vy: vy || 0, angle: 0, av: 0, r: radius, ch, fixed: !!fixed };
+    function makeBody(x, y, ch, vx, vy, fixed, shot) {
+      return { x, y, vx: vx || 0, vy: vy || 0, angle: 0, av: 0, r: radius, ch, fixed: !!fixed, shot: !!shot };
     }
 
     function buildBlock() {
@@ -188,7 +188,7 @@
         for (let c = 0; c < line.length; c++) {
           const ch = line[c];
           if (ch === ' ') continue;
-          bodies.push(makeBody(x0 + c * charW, y0 + r * charH, ch, 0, 0, true));
+          bodies.push(makeBody(x0 + c * charW, y0 + r * charH, ch, 0, 0, true, false));
         }
       }
     }
@@ -301,17 +301,36 @@
       const nx = dx / dist, ny = dy / dist;
       const overlap = minDist - dist;
 
-      // any contact involving a moving body unfixes the fixed one,
-      // so the cascade can propagate from the first shot outward.
-      if (a.fixed) a.fixed = false;
-      if (b.fixed) b.fixed = false;
+      // Only shots knock the grid loose. A loose-but-not-shot body
+      // (a square char that's already falling) bounces off pinned
+      // neighbors instead of unfixing them.
+      if (a.fixed && b.shot) a.fixed = false;
+      if (b.fixed && a.shot) b.fixed = false;
 
-      // positional correction (equal mass)
+      if (a.fixed || b.fixed) {
+        // Pinned body acts as an immovable wall for the moving one.
+        const m = a.fixed ? b : a;
+        const wnx = a.fixed ? nx : -nx;
+        const wny = a.fixed ? ny : -ny;
+        m.x += wnx * overlap;
+        m.y += wny * overlap;
+        const vn = m.vx * wnx + m.vy * wny;
+        if (vn < 0) {
+          const jImp = -(1 + RESTITUTION) * vn;
+          m.vx += jImp * wnx;
+          m.vy += jImp * wny;
+          const vt = m.vx * -wny + m.vy * wnx;
+          const spin = (vt / m.r) * SPIN_FACTOR;
+          m.av = Math.max(-MAX_AV, Math.min(MAX_AV, m.av + spin));
+        }
+        return;
+      }
+
+      // both non-fixed: equal-mass collision
       const corr = overlap / 2;
       a.x -= nx * corr; a.y -= ny * corr;
       b.x += nx * corr; b.y += ny * corr;
 
-      // velocity impulse along normal
       const rvx = b.vx - a.vx, rvy = b.vy - a.vy;
       const vn = rvx * nx + rvy * ny;
       if (vn > 0) return;
@@ -320,7 +339,6 @@
       a.vx -= ix; a.vy -= iy;
       b.vx += ix; b.vy += iy;
 
-      // glancing (tangential) contact spins the glyphs.
       const vt = rvx * -ny + rvy * nx;
       const spin = (vt / a.r) * SPIN_FACTOR;
       a.av = Math.max(-MAX_AV, Math.min(MAX_AV, a.av - spin));
@@ -421,7 +439,7 @@
       if (dist < 4) { dx = 0; dy = -1; }
       const inv = dist > 0 ? 1 / dist : 1;
       const nx = dx * inv, ny = dy * inv;
-      bodies.push(makeBody(drag.sx, drag.sy, drag.ch, nx * speed, ny * speed, false));
+      bodies.push(makeBody(drag.sx, drag.sy, drag.ch, nx * speed, ny * speed, false, true));
       hasFired = true;
       drag.active = false;
       drag.id = null;
