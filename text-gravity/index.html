@@ -290,10 +290,10 @@
         }
       }
 
-      // cull bodies pushed off the page sideways or out the top.
-      // The floor is impermeable so we never cull from the bottom.
-      bodies = bodies.filter(b =>
-        b.x > -MARGIN && b.x < W + MARGIN && b.y > -MARGIN);
+      // cull bodies pushed off the page sideways. Top and bottom are
+      // both kept: the floor is impermeable, and shots fired upward
+      // off the top should arc back down rather than vanish.
+      bodies = bodies.filter(b => b.x > -MARGIN && b.x < W + MARGIN);
     }
 
     function resolve(a, b) {
