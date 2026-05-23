@@ -129,33 +129,36 @@
     }
     function inkColor() { return isDark() ? '#f0f0f0' : '#111111'; }
 
-    function spread(words, cols) {
-      if (words.length === 1) return words[0].slice(0, cols).padEnd(cols);
-      const textLen = words.reduce((a, w) => a + w.length, 0);
-      const gaps = words.length - 1;
-      const totalSpaces = Math.max(gaps, cols - textLen);
-      const base = Math.floor(totalSpaces / gaps);
-      const extra = totalSpaces % gaps;
-      let s = words[0];
-      for (let i = 1; i < words.length; i++) {
-        s += ' '.repeat(base + (i <= extra ? 1 : 0)) + words[i];
-      }
-      return s.slice(0, cols);
-    }
-
     function buildLines(cols, rows) {
+      // Pack words separated by single spaces and slice into fixed-width
+      // lines. If a word doesn't fit the remainder of a line, break it
+      // mid-character so every line is exactly cols wide.
       const lines = [];
-      let line = [], len = 0, wi = 0, guard = 0;
-      while (lines.length < rows && guard++ < rows * cols + 1000) {
-        let w = wordSource[wi % wordSource.length];
-        wi++;
-        if (w.length > cols) w = w.slice(0, cols);
-        if (line.length && len + 1 + w.length > cols) {
-          lines.push(spread(line, cols));
-          line = []; len = 0;
+      let line = '';
+      let pending = '';
+      let wi = 0;
+      while (lines.length < rows) {
+        if (line === '' && pending) pending = pending.replace(/^ +/, '');
+        while (line.length < cols) {
+          let next;
+          if (pending) {
+            next = pending;
+            pending = '';
+          } else {
+            const w = wordSource[wi % wordSource.length];
+            wi++;
+            next = (line.length > 0 ? ' ' : '') + w;
+          }
+          const remaining = cols - line.length;
+          if (next.length <= remaining) {
+            line += next;
+          } else {
+            line += next.slice(0, remaining);
+            pending = next.slice(remaining);
+          }
         }
-        len += (line.length ? 1 : 0) + w.length;
-        line.push(w);
+        lines.push(line);
+        line = '';
       }
       return lines;
     }
