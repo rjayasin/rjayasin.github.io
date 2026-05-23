@@ -219,6 +219,7 @@
     const ANG_DAMPING = 0.985;     // per substep air drag on spin
     const FLOOR_ANG_FRICTION = 0.78; // per substep when resting on floor
     const CONTACT_ANG_DAMP = 0.9;  // per body-body contact; mimics mutual surface friction
+    const WALL_TANGENT_FRICTION = 0.45; // per pinned-body contact; how much of the slip is shed
     const ANG_SLEEP = 0.04;
     const SPIN_FACTOR = 0.45;
     const MAX_AV = 18;
@@ -327,7 +328,17 @@
           const jImp = -(1 + RESTITUTION) * vn;
           m.vx += jImp * wnx;
           m.vy += jImp * wny;
-          const vt = m.vx * -wny + m.vy * wnx;
+          // Tangential (Coulomb) friction at the contact. Without it,
+          // the normal impulse leaves slip velocity untouched, so a
+          // body resting on a pinned neighbor under gravity bounces
+          // every substep and each bounce re-injects spin in the same
+          // direction (av spools up to MAX_AV → endless clockwise
+          // rolling along the grid). Shedding part of the slip kills
+          // the source of the runaway spin.
+          const tx = -wny, ty = wnx;
+          const vt = m.vx * tx + m.vy * ty;
+          m.vx -= vt * WALL_TANGENT_FRICTION * tx;
+          m.vy -= vt * WALL_TANGENT_FRICTION * ty;
           const spin = (vt / m.r) * SPIN_FACTOR;
           m.av = Math.max(-MAX_AV, Math.min(MAX_AV, m.av + spin));
         }
