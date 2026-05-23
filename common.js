@@ -136,11 +136,16 @@ window.Common = window.Common || {};
   }
 
   function onTap(handler) {
+    function isInteractive(target) {
+      return target && target.closest && target.closest('a, button, input, textarea, select, label');
+    }
     document.addEventListener('click', e => {
       if (e.pointerType === 'touch') return;
+      if (isInteractive(e.target)) return;
       handler(e);
     });
     document.addEventListener('touchend', e => {
+      if (isInteractive(e.target)) return;
       e.preventDefault();
       handler(e);
     }, { passive: false });

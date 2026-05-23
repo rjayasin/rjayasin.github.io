@@ -23,18 +23,20 @@
     }
     #sitemap {
       position: fixed;
-      bottom: 12px;
+      bottom: 0;
       left: 0;
       right: 0;
       text-align: center;
       font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
       font-size: 12px;
       color: #656d76;
+      padding: 4px 0;
     }
     #sitemap a {
       color: inherit;
       text-decoration: none;
-      margin: 0 6px;
+      display: inline-block;
+      padding: 12px 20px;
     }
     #sitemap a:hover { text-decoration: underline; }
     body.grid-mode {
@@ -133,8 +135,9 @@
 
       const cooldown = Common.makeCooldown(500);
       let clickCount = 0;
-      function handleClick() {
+      function handleClick(e) {
         if (!window.googleFonts) return;
+        if (e && e.target && e.target.closest && e.target.closest('#sitemap')) return;
         cooldown(() => {
           clickCount++;
           nameEl.style.opacity = '0';
