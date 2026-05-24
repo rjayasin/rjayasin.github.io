@@ -28,7 +28,15 @@
       z-index: 3;
       pointer-events: none;
     }
+    #hint-inner {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: #ffffff;
+    }
+    body.dark #hint-inner { background: #111111; }
     #hint.hidden { opacity: 0; }
+    #hint.hidden .hint-btn { pointer-events: none; }
     #hint .hint-btn {
       cursor: pointer;
       pointer-events: auto;
@@ -38,12 +46,21 @@
     }
     #hint .hint-btn:hover { color: #333; }
     body.dark #hint .hint-btn:hover { color: #ccc; }
+    #hint-zone {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 60px;
+      z-index: 2;
+      pointer-events: none;
+    }
+    #hint.hidden ~ #hint-zone { pointer-events: auto; }
   </style>
   <script src="/common.js"></script>
 </head>
 <body>
   <canvas id="game"></canvas>
-  <div id="hint"><span style="white-space:nowrap">drag &amp; release to fire</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-reset">r reset</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 <span class="hb-dark-label">dark</span></span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-smaller">−</span>/<span class="hint-btn" id="hb-bigger">+</span> size</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-sitemap">s sitemap</span></span></div>
+  <div id="hint"><span id="hint-inner"><span style="white-space:nowrap">drag &amp; release to fire</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-reset">r reset</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 <span class="hb-dark-label">dark</span></span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-smaller">−</span>/<span class="hint-btn" id="hb-bigger">+</span> size</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-sitemap">s sitemap</span></span></span></div>
+  <div id="hint-zone"></div>
   <script>
     Common.paintFaviconR();
     Common.initDarkMode();
@@ -436,6 +453,11 @@
     window.addEventListener('pointermove', e => {
       if (e.clientY >= window.innerHeight - 60) showHint();
     });
+    // While the hint is hidden, the zone overlay catches pointerdowns in the
+    // bottom band before they reach the canvas, so a tap there reveals the
+    // hint instead of firing a stray shot. Once the hint is up, the CSS flips
+    // the zone back to pointer-events:none and drag-to-fire works again.
+    document.getElementById('hint-zone').addEventListener('pointerdown', showHint);
 
     // Fresh text on each load and reset: show a random local fallback
     // immediately, then swap in a random Wikipedia article if the fetch
