@@ -484,6 +484,42 @@
     });
     const refreshTextLabel = textEditor.refresh;
 
+    let touchStart = null;
+    let touchStartAngle = 0;
+    let touchDidDrag = false;
+    const DRAG_THRESHOLD_PX = 8;
+    const DEG_PER_PX = 0.5;
+    document.addEventListener('touchstart', e => {
+      if (e.touches.length !== 1) { touchStart = null; return; }
+      const t = e.target;
+      if (t && t.closest && t.closest('#hint, #hint-zone, input, a, button')) {
+        touchStart = null;
+        return;
+      }
+      touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      touchStartAngle = angle;
+      touchDidDrag = false;
+    }, { passive: true });
+    document.addEventListener('touchmove', e => {
+      if (!touchStart || e.touches.length !== 1) return;
+      const dx = e.touches[0].clientX - touchStart.x;
+      const dy = e.touches[0].clientY - touchStart.y;
+      if (!touchDidDrag && Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
+      touchDidDrag = true;
+      e.preventDefault();
+      const next = touchStartAngle - dx * DEG_PER_PX;
+      angle = ((next % 360) + 360) % 360;
+      render();
+      showHint();
+    }, { passive: false });
+    document.addEventListener('touchend', e => {
+      if (touchDidDrag) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+      touchStart = null;
+    }, { capture: true, passive: false });
+
     Common.onTap(pickFont);
 
     Common.loadScript('/fonts.js').then(pickFont);
