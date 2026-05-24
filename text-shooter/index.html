@@ -223,8 +223,8 @@
     const MARGIN = 60;            // off-screen distance before removal
     const ANG_DAMPING = 0.985;    // per substep spin decay
     const ANG_SLEEP = 0.04;       // rad/s below which we stop spinning
-    const SPIN_FACTOR = 0.45;     // how much glancing contact induces spin
-    const MAX_AV = 18;            // rad/s spin cap
+    const SPIN_FACTOR = 0.2;      // how much glancing contact induces spin
+    const MAX_AV = 10;            // rad/s spin cap
 
     function step(dt) {
       // integrate
