@@ -342,8 +342,9 @@
 
     document.addEventListener('keydown', (e) => {
       const k = shortcutTarget(e);
-      if (k === 't') switchTo(recentView.hidden ? 'recent' : 'tree');
-      else if (k === 'a') switchTo(alphaView.hidden ? 'alpha' : 'tree');
+      if (k === 't') switchTo('tree');
+      else if (k === 'r') switchTo('recent');
+      else if (k === 'a') switchTo('alpha');
     });
 
     let datesPromise = null;
