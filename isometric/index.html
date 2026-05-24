@@ -488,7 +488,7 @@
     let touchStartAngle = 0;
     let touchDidDrag = false;
     const DRAG_THRESHOLD_PX = 8;
-    const DEG_PER_PX = 0.5;
+    const DEG_PER_PX = 1;
     document.addEventListener('touchstart', e => {
       if (e.touches.length !== 1) { touchStart = null; return; }
       const t = e.target;
