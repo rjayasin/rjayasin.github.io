@@ -4,6 +4,12 @@
 // links into other rjayasin.github.io repos), and writes ../sitemap/dates.json
 // mapping each href to { date, url }. Skips hrefs whose dates can't be
 // determined so the page can render them last in the "recent" view.
+//
+// Key order in dates.json follows the existing file (so a typical run only
+// touches the date/url values, keeping diffs small); brand-new hrefs are
+// appended in the order they appear in sitemap/index.html, and hrefs no
+// longer in the sitemap are dropped. The page sorts entries by date at
+// render time, so the on-disk order is purely cosmetic.
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -127,9 +133,13 @@ async function main() {
     if (entry?.date) entries[href] = entry;
     process.stdout.write(`${entry?.date || '       skip       '}  ${href}\n`);
   }
-  const ordered = Object.fromEntries(
-    Object.entries(entries).sort(([, a], [, b]) => (a.date < b.date ? 1 : -1))
-  );
+  const ordered = {};
+  for (const href of Object.keys(existing)) {
+    if (entries[href]) ordered[href] = entries[href];
+  }
+  for (const href of hrefs) {
+    if (entries[href] && !(href in ordered)) ordered[href] = entries[href];
+  }
   fs.writeFileSync(OUT, JSON.stringify(ordered, null, 2) + '\n');
   process.stdout.write(
     `\nwrote ${Object.keys(ordered).length} entries to ${path.relative(ROOT, OUT)}\n`
