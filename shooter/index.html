@@ -210,7 +210,6 @@
       function applyFallback() {
         wordSource = toWords(FALLBACK_TEXTS[Math.floor(Math.random() * FALLBACK_TEXTS.length)]);
       }
-      applyFallback();
 
       const canvas = document.getElementById('game');
       const ctx = canvas.getContext('2d');
@@ -319,9 +318,11 @@
         const x0 = (W - blockW) / 2 + charW / 2;
         const y0 = (H - blockH) / 2 + charH / 2;
 
-        const lines = buildLines(cols, rows);
         const shots = preserveShots ? bodies.filter((b) => b.shot) : [];
         bodies = [];
+        // No source text yet (initial load before wiki responds): leave the
+        // grid empty rather than flashing the fallback text for a frame.
+        const lines = wordSource.length ? buildLines(cols, rows) : [];
         for (let r = 0; r < lines.length; r++) {
           const line = lines[r];
           for (let c = 0; c < line.length; c++) {
@@ -604,12 +605,13 @@
       // the zone back to pointer-events:none and drag-to-fire works again.
       document.getElementById('hint-zone').addEventListener('pointerdown', showHint);
 
-      // Fresh text on each load and reset: show a random local fallback
-      // immediately, then swap in a random Wikipedia article if the fetch
-      // succeeds (and the player hasn't started firing yet).
+      // Fresh text on each load and reset: try a random Wikipedia article
+      // first, falling back to a local string only if the fetch fails or
+      // returns too little text. Keeps the grid empty during the request so
+      // the fallback doesn't flash for a frame before the real text arrives.
       async function loadNewText() {
         hasFired = false;
-        applyFallback();
+        wordSource = [];
         buildBlock();
         try {
           const res = await fetch(WIKI_URL, { cache: 'no-store' });
@@ -619,9 +621,14 @@
           if (words.length >= 12 && !hasFired) {
             wordSource = words;
             buildBlock();
+            return;
           }
         } catch (_) {
-          /* keep the fallback text */
+          /* fall through to fallback */
+        }
+        if (!hasFired && !wordSource.length) {
+          applyFallback();
+          buildBlock();
         }
       }
 
