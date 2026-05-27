@@ -786,7 +786,10 @@
       function renderStats() {
         if (!allDeploys.length) return;
         statsEl.hidden = false;
+        // Median/p90 reflect typical deploy time — exclude failed/cancelled
+        // runs whose durations don't represent a real deploy.
         const durations = allDeploys
+          .filter((d) => d.conclusion === 'success')
           .map((d) => d.durationSec)
           .filter((s) => s != null && s >= 0)
           .sort((a, b) => a - b);
@@ -886,8 +889,9 @@
         const durations = ordered.map((d) => d.durationSec || 0);
         const max = Math.max(1, ...durations);
 
-        const sorted = durations
-          .slice()
+        const sorted = ordered
+          .filter((d) => d.conclusion === 'success')
+          .map((d) => d.durationSec || 0)
           .filter((s) => s > 0)
           .sort((a, b) => a - b);
         const med = median(sorted) || 0;
