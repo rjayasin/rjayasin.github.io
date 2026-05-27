@@ -265,6 +265,52 @@ window.Common = window.Common || {};
     return emojisPromise;
   }
 
+  // Wires up the footer-style hint bar shared by border/box/clock/isometric/
+  // stack/wave/spiral: show on init, hide after `hideDelay`, reveal again
+  // when the cursor enters the hint zone (or the bar itself), keep the bar
+  // up while it's hovered. Returns { show, setLocked }. setLocked(true)
+  // pins the bar open (used by the text-editor input).
+  function initHintBar({ hintEl, hintZoneEl, hideDelay = 2500 }) {
+    let hintTimer = null;
+    let locked = false;
+    function show() {
+      hintEl.classList.remove('hidden');
+      clearTimeout(hintTimer);
+      if (locked) return;
+      hintTimer = setTimeout(() => hintEl.classList.add('hidden'), hideDelay);
+    }
+    show();
+    if (hintZoneEl) {
+      hintZoneEl.addEventListener('mouseenter', show);
+      hintZoneEl.addEventListener('mousemove', show);
+      hintZoneEl.addEventListener('touchstart', show, { passive: true });
+      hintZoneEl.addEventListener('touchend', (e) => e.stopPropagation());
+    }
+    hintEl.addEventListener('click', (e) => e.stopPropagation());
+    hintEl.addEventListener('touchstart', () => clearTimeout(hintTimer), { passive: true });
+    hintEl.addEventListener('touchend', (e) => {
+      e.stopPropagation();
+      show();
+    });
+    hintEl.addEventListener('mouseenter', () => {
+      clearTimeout(hintTimer);
+      hintEl.classList.remove('hidden');
+    });
+    hintEl.addEventListener('mouseleave', show);
+    return {
+      show,
+      setLocked: (v) => {
+        locked = v;
+        if (locked) {
+          clearTimeout(hintTimer);
+          hintEl.classList.remove('hidden');
+        } else {
+          show();
+        }
+      },
+    };
+  }
+
   Object.assign(window.Common, {
     setFaviconHref,
     paintFaviconR,
@@ -283,6 +329,7 @@ window.Common = window.Common || {};
     onTap,
     loadScript,
     ensureEmojis,
+    initHintBar,
     initTextEditor,
     openSitemap,
     initSitemapShortcut,

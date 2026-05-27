@@ -371,23 +371,10 @@
         }
       });
 
-      const hintEl = document.getElementById('hint');
-      const hintZone = document.getElementById('hint-zone');
-      let hintTimer = null;
-      function showHint() {
-        hintEl.classList.remove('hidden');
-        clearTimeout(hintTimer);
-        hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 2500);
-      }
-      showHint();
-      hintZone.addEventListener('mouseenter', showHint);
-      hintZone.addEventListener('mousemove', showHint);
-      hintEl.addEventListener('click', (e) => e.stopPropagation());
-      hintEl.addEventListener('mouseenter', () => {
-        clearTimeout(hintTimer);
-        hintEl.classList.remove('hidden');
+      const { show: showHint } = Common.initHintBar({
+        hintEl: document.getElementById('hint'),
+        hintZoneEl: document.getElementById('hint-zone'),
       });
-      hintEl.addEventListener('mouseleave', showHint);
 
       document.getElementById('hb-fi').addEventListener('click', () => {
         fontSize = Math.max(4, Math.min(48, fontSize + 1));
