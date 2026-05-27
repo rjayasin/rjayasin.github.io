@@ -126,6 +126,7 @@
               { length: 5 },
               () => window.EMOJIS[Math.floor(Math.random() * window.EMOJIS.length)]
             );
+            console.log('emojis:', emojis.join(''));
             await fadeOut;
             nameEl.style.backgroundImage = '';
             nameEl.style.color = '';
@@ -139,6 +140,7 @@
             const font = Common.pickRandomGoogleFont();
             const fontLoad = Common.loadGoogleFont(font);
             await Promise.all([fadeOut, fontLoad]);
+            console.log('font:', font);
             currentHomeFont = font;
             currentEmoji = null;
             nameEl.style.fontFamily = `'${font}', serif`;
