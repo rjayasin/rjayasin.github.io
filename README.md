@@ -16,6 +16,7 @@
 - [`border`](https://rjayasin.github.io/border/)
 - [`isometric`](https://rjayasin.github.io/isometric/)
 - [`wave`](https://rjayasin.github.io/wave/)
+- [`spiral`](https://rjayasin.github.io/spiral/)
 
 `tools`
 
