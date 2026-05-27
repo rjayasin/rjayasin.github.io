@@ -2,24 +2,24 @@
 
 `fun`
 
-- [`maze-canvas`](https://rjayasin.github.io/maze-canvas/)
-- [`text-shooter`](https://rjayasin.github.io/text-shooter/)
-- [`text-gravity`](https://rjayasin.github.io/text-gravity/)
+-   [`maze-canvas`](https://rjayasin.github.io/maze-canvas/)
+-   [`text-shooter`](https://rjayasin.github.io/text-shooter/)
+-   [`text-gravity`](https://rjayasin.github.io/text-gravity/)
 
 `text`
 
-- [`grid`](https://rjayasin.github.io/#/*)
-- [`stack`](https://rjayasin.github.io/stack/?hello/world)
-- [`box`](https://rjayasin.github.io/box/?hello/world)
-- [`clock`](https://rjayasin.github.io/clock/)
-- [`border`](https://rjayasin.github.io/border/)
-- [`isometric`](https://rjayasin.github.io/isometric/)
+-   [`grid`](https://rjayasin.github.io/#/*)
+-   [`stack`](https://rjayasin.github.io/stack/?hello/world)
+-   [`box`](https://rjayasin.github.io/box/?hello/world)
+-   [`clock`](https://rjayasin.github.io/clock/)
+-   [`border`](https://rjayasin.github.io/border/)
+-   [`isometric`](https://rjayasin.github.io/isometric/)
 
 `tools`
 
-- `visualizer`
-  - [`video-player`](https://rjayasin.github.io/visualizer/video-player.html)
-  - [`spotify-auth`](https://rjayasin.github.io/visualizer/spotify-auth.html)
-- [`commits`](https://rjayasin.github.io/commits/)
-- [`dodgers-notifier`](https://rjayasin.github.io/dodgers-notifier/)
-- [`deploys`](https://rjayasin.github.io/deploys/)
+-   `visualizer`
+    -   [`video-player`](https://rjayasin.github.io/visualizer/video-player.html)
+    -   [`spotify-auth`](https://rjayasin.github.io/visualizer/spotify-auth.html)
+-   [`commits`](https://rjayasin.github.io/commits/)
+-   [`dodgers-notifier`](https://rjayasin.github.io/dodgers-notifier/)
+-   [`deploys`](https://rjayasin.github.io/deploys/)

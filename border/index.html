@@ -1,264 +1,350 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ruvan / border</title>
-  <link rel="icon" id="favicon">
-  <link rel="stylesheet" href="/common.css">
-  <style>
-    html, body { width: 100%; height: 100%; overflow: hidden; }
-    body {
-      cursor: pointer;
-      user-select: none;
-      position: relative;
-    }
-    #border-svg {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      display: block;
-    }
-    #border-svg text {
-      fill: currentColor;
-      dominant-baseline: alphabetic;
-      /* Firefox snaps textPath glyphs to the pixel grid by default, which
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Ruvan / border</title>
+        <link rel="icon" id="favicon" />
+        <link rel="stylesheet" href="/common.css" />
+        <style>
+            html,
+            body {
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+            }
+            body {
+                cursor: pointer;
+                user-select: none;
+                position: relative;
+            }
+            #border-svg {
+                position: fixed;
+                inset: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                display: block;
+            }
+            #border-svg text {
+                fill: currentColor;
+                dominant-baseline: alphabetic;
+                /* Firefox snaps textPath glyphs to the pixel grid by default, which
          turns the smooth sub-pixel startOffset updates into visible jitter.
          geometricPrecision keeps glyph positions on the float values we set. */
-      text-rendering: geometricPrecision;
-    }
-    #hint {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 12px;
-      text-align: center;
-      font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
-      font-size: 12px;
-      color: #888;
-      opacity: 1;
-      transition: opacity 0.4s ease;
-      user-select: none;
-      z-index: 3;
-    }
-    #hint-inner {
-      display: inline-block;
-      padding: 6px 10px;
-      border-radius: 6px;
-      background: #ffffff;
-    }
-    body.dark #hint-inner { background: #111111; }
-    #hint.hidden { opacity: 0; pointer-events: none; }
-    #hint .hint-btn {
-      cursor: pointer;
-      text-decoration: underline;
-      text-decoration-style: dotted;
-      text-underline-offset: 2px;
-    }
-    #hint .hint-btn:hover { color: #333; }
-    body.dark #hint .hint-btn:hover { color: #ccc; }
-    #hint-zone {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 60px;
-      z-index: 2;
-    }
-    #hb-text-label {
-      display: inline-block;
-      max-width: 220px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      vertical-align: bottom;
-    }
-    #hb-text .hint-input { max-width: 50vw; }
-  </style>
-  <script src="/common.js"></script>
-</head>
-<body>
-  <svg id="border-svg" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <path id="border-path" fill="none"></path>
-    </defs>
-    <text>
-      <textPath id="border-text" href="#border-path" startOffset="0"></textPath>
-    </text>
-  </svg>
-  <div id="hint"><span id="hint-inner"><span style="white-space:nowrap"><span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd">−</span> font size</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-font">click font</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-goog">g google fonts</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 <span class="hb-dark-label">dark</span></span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-sitemap">s sitemap</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-text"><span id="hb-text-label"></span></span> text</span></span></div>
-  <div id="hint-zone"></div>
-  <script>
-    Common.paintFaviconR();
-    Common.initDarkMode();
-    Common.initCursorHide();
+                text-rendering: geometricPrecision;
+            }
+            #hint {
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 12px;
+                text-align: center;
+                font-family:
+                    ui-monospace,
+                    SFMono-Regular,
+                    SF Mono,
+                    Menlo,
+                    Consolas,
+                    Liberation Mono,
+                    monospace;
+                font-size: 12px;
+                color: #888;
+                opacity: 1;
+                transition: opacity 0.4s ease;
+                user-select: none;
+                z-index: 3;
+            }
+            #hint-inner {
+                display: inline-block;
+                padding: 6px 10px;
+                border-radius: 6px;
+                background: #ffffff;
+            }
+            body.dark #hint-inner {
+                background: #111111;
+            }
+            #hint.hidden {
+                opacity: 0;
+                pointer-events: none;
+            }
+            #hint .hint-btn {
+                cursor: pointer;
+                text-decoration: underline;
+                text-decoration-style: dotted;
+                text-underline-offset: 2px;
+            }
+            #hint .hint-btn:hover {
+                color: #333;
+            }
+            body.dark #hint .hint-btn:hover {
+                color: #ccc;
+            }
+            #hint-zone {
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                height: 60px;
+                z-index: 2;
+            }
+            #hb-text-label {
+                display: inline-block;
+                max-width: 220px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                vertical-align: bottom;
+            }
+            #hb-text .hint-input {
+                max-width: 50vw;
+            }
+        </style>
+        <script src="/common.js"></script>
+    </head>
+    <body>
+        <svg id="border-svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <path id="border-path" fill="none"></path>
+            </defs>
+            <text>
+                <textPath id="border-text" href="#border-path" startOffset="0"></textPath>
+            </text>
+        </svg>
+        <div id="hint">
+            <span id="hint-inner"
+                ><span style="white-space: nowrap"
+                    ><span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd"
+                        >−</span
+                    >
+                    font size</span
+                >
+                &nbsp;·&nbsp;
+                <span style="white-space: nowrap"
+                    ><span class="hint-btn" id="hb-font">click font</span></span
+                >
+                &nbsp;·&nbsp;
+                <span style="white-space: nowrap"
+                    ><span class="hint-btn" id="hb-goog">g google fonts</span></span
+                >
+                &nbsp;·&nbsp;
+                <span style="white-space: nowrap"
+                    ><span class="hint-btn" id="hb-dark"
+                        >1 <span class="hb-dark-label">dark</span></span
+                    ></span
+                >
+                &nbsp;·&nbsp;
+                <span style="white-space: nowrap"
+                    ><span class="hint-btn" id="hb-sitemap">s sitemap</span></span
+                >
+                &nbsp;·&nbsp;
+                <span style="white-space: nowrap"
+                    ><span class="hint-btn" id="hb-text"><span id="hb-text-label"></span></span>
+                    text</span
+                ></span
+            >
+        </div>
+        <div id="hint-zone"></div>
+        <script>
+            Common.paintFaviconR();
+            Common.initDarkMode();
+            Common.initCursorHide();
 
-    const FALLBACK = "Curious cats chase shimmering shadows past silent rooftops while drowsy moths drift toward the lantern, dreaming of yesterday's almanac and tomorrow's tide; somewhere a clock forgets the hour, the wind learns a new vowel, and the river writes its memoirs in the margins of moss.";
-    const SEP = ' ';
-    const SPEED = 60;
+            const FALLBACK =
+                "Curious cats chase shimmering shadows past silent rooftops while drowsy moths drift toward the lantern, dreaming of yesterday's almanac and tomorrow's tide; somewhere a clock forgets the hour, the wind learns a new vowel, and the river writes its memoirs in the margins of moss.";
+            const SEP = ' ';
+            const SPEED = 60;
 
-    let fontSize = window.innerWidth < 640 ? 18 : 28;
-    let currentFont = null;
-    let fallbackItems = [FALLBACK];
+            let fontSize = window.innerWidth < 640 ? 18 : 28;
+            let currentFont = null;
+            let fallbackItems = [FALLBACK];
 
-    const pathEl = document.getElementById('border-path');
-    const textEl = document.querySelector('#border-svg text');
-    const textPathEl = document.getElementById('border-text');
+            const pathEl = document.getElementById('border-path');
+            const textEl = document.querySelector('#border-svg text');
+            const textPathEl = document.getElementById('border-text');
 
-    let pathLen = 0;
-    let unitLen = 0;
-    let offset = 0;
+            let pathLen = 0;
+            let unitLen = 0;
+            let offset = 0;
 
-    function unitText() {
-      const items = Common.parseQueryItems().length ? Common.parseQueryItems() : fallbackItems;
-      if (!items.length) return '';
-      return items.join('/') + SEP;
-    }
+            function unitText() {
+                const items = Common.parseQueryItems().length
+                    ? Common.parseQueryItems()
+                    : fallbackItems;
+                if (!items.length) return '';
+                return items.join('/') + SEP;
+            }
 
-    function applyFont() {
-      textEl.style.fontSize = fontSize + 'px';
-      textEl.style.fontFamily = currentFont ? `'${currentFont}', serif` : '';
-    }
+            function applyFont() {
+                textEl.style.fontSize = fontSize + 'px';
+                textEl.style.fontFamily = currentFont ? `'${currentFont}', serif` : '';
+            }
 
-    function rebuild() {
-      const text = unitText();
-      const W = window.innerWidth;
-      const H = window.innerHeight;
+            function rebuild() {
+                const text = unitText();
+                const W = window.innerWidth;
+                const H = window.innerHeight;
 
-      applyFont();
+                applyFont();
 
-      const probe = document.createElement('span');
-      probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;line-height:1;';
-      probe.style.fontSize = fontSize + 'px';
-      probe.style.fontFamily = currentFont ? `'${currentFont}', serif` : '';
-      probe.textContent = 'Mqgy';
-      document.body.appendChild(probe);
-      const textHeight = probe.offsetHeight;
-      document.body.removeChild(probe);
+                const probe = document.createElement('span');
+                probe.style.cssText =
+                    'position:absolute;visibility:hidden;white-space:nowrap;line-height:1;';
+                probe.style.fontSize = fontSize + 'px';
+                probe.style.fontFamily = currentFont ? `'${currentFont}', serif` : '';
+                probe.textContent = 'Mqgy';
+                document.body.appendChild(probe);
+                const textHeight = probe.offsetHeight;
+                document.body.removeChild(probe);
 
-      // Inset the path so the text (which sits on the outer side of a CW path,
-      // with ascenders pointing outward) fits between the path and the edge.
-      const inset = Math.ceil(textHeight * 0.95);
+                // Inset the path so the text (which sits on the outer side of a CW path,
+                // with ascenders pointing outward) fits between the path and the edge.
+                const inset = Math.ceil(textHeight * 0.95);
 
-      // CW rectangle starting at the top-left corner. Text renders at the
-      // font's natural width; the path simply clips whatever glyphs fall
-      // past pathLen, so the marquee shows only as much text as fits at
-      // the current font size.
-      const d = `M ${inset} ${inset} L ${W - inset} ${inset} L ${W - inset} ${H - inset} L ${inset} ${H - inset} Z`;
-      pathEl.setAttribute('d', d);
-      pathLen = pathEl.getTotalLength();
+                // CW rectangle starting at the top-left corner. Text renders at the
+                // font's natural width; the path simply clips whatever glyphs fall
+                // past pathLen, so the marquee shows only as much text as fits at
+                // the current font size.
+                const d = `M ${inset} ${inset} L ${W - inset} ${inset} L ${W - inset} ${H - inset} L ${inset} ${H - inset} Z`;
+                pathEl.setAttribute('d', d);
+                pathLen = pathEl.getTotalLength();
 
-      if (!text) {
-        textPathEl.textContent = '';
-        unitLen = 0;
-        return;
-      }
+                if (!text) {
+                    textPathEl.textContent = '';
+                    unitLen = 0;
+                    return;
+                }
 
-      // Use the marginal length added by repeating the text once more as
-      // the true period of the repetition. This includes the kerning
-      // adjustment at the boundary between adjacent copies, so cycling
-      // the scroll by this value keeps the visible content stable across
-      // wraps. Measuring a single copy and assuming the period equals its
-      // length misses the boundary kerning and causes a visible jump every
-      // cycle — very noticeable when the text is short.
-      textPathEl.textContent = text;
-      const single = textPathEl.getComputedTextLength();
-      textPathEl.textContent = text.repeat(2);
-      const double = textPathEl.getComputedTextLength();
-      unitLen = double - single;
-      if (unitLen <= 0) unitLen = single;
-      if (unitLen <= 0) return;
+                // Use the marginal length added by repeating the text once more as
+                // the true period of the repetition. This includes the kerning
+                // adjustment at the boundary between adjacent copies, so cycling
+                // the scroll by this value keeps the visible content stable across
+                // wraps. Measuring a single copy and assuming the period equals its
+                // length misses the boundary kerning and causes a visible jump every
+                // cycle — very noticeable when the text is short.
+                textPathEl.textContent = text;
+                const single = textPathEl.getComputedTextLength();
+                textPathEl.textContent = text.repeat(2);
+                const double = textPathEl.getComputedTextLength();
+                unitLen = double - single;
+                if (unitLen <= 0) unitLen = single;
+                if (unitLen <= 0) return;
 
-      const repeats = Math.max(2, Math.ceil((pathLen + 2 * unitLen) / unitLen));
-      textPathEl.textContent = text.repeat(repeats);
-    }
+                const repeats = Math.max(2, Math.ceil((pathLen + 2 * unitLen) / unitLen));
+                textPathEl.textContent = text.repeat(repeats);
+            }
 
-    let lastT = performance.now();
-    function tick(now) {
-      const dt = Math.min(0.1, (now - lastT) / 1000);
-      lastT = now;
-      if (unitLen > 0) {
-        offset += SPEED * dt;
-        const startOff = -(((offset % unitLen) + unitLen) % unitLen);
-        textPathEl.setAttribute('startOffset', startOff);
-      }
-      requestAnimationFrame(tick);
-    }
+            let lastT = performance.now();
+            function tick(now) {
+                const dt = Math.min(0.1, (now - lastT) / 1000);
+                lastT = now;
+                if (unitLen > 0) {
+                    offset += SPEED * dt;
+                    const startOff = -(((offset % unitLen) + unitLen) % unitLen);
+                    textPathEl.setAttribute('startOffset', startOff);
+                }
+                requestAnimationFrame(tick);
+            }
 
-    rebuild();
-    requestAnimationFrame(tick);
-    window.addEventListener('resize', rebuild);
+            rebuild();
+            requestAnimationFrame(tick);
+            window.addEventListener('resize', rebuild);
 
-    const cooldown = Common.makeCooldown(500);
-    async function pickFont() {
-      if (!window.googleFonts) return;
-      cooldown(async () => {
-        const font = Common.pickRandomGoogleFont();
-        await Common.loadGoogleFont(font);
-        currentFont = font;
-        rebuild();
-      });
-    }
+            const cooldown = Common.makeCooldown(500);
+            async function pickFont() {
+                if (!window.googleFonts) return;
+                cooldown(async () => {
+                    const font = Common.pickRandomGoogleFont();
+                    await Common.loadGoogleFont(font);
+                    currentFont = font;
+                    rebuild();
+                });
+            }
 
-    document.addEventListener('keydown', e => {
-      if (e.target.tagName === 'INPUT') return;
-      if ((e.key === 'g' || e.key === 'G') && !e.repeat && currentFont) {
-        Common.openFontSpecimen(currentFont);
-        return;
-      }
-      if (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') {
-        e.preventDefault();
-        const delta = (e.key === '+' || e.key === '=') ? 4 : -4;
-        fontSize = Math.max(8, Math.min(256, fontSize + delta));
-        rebuild();
-        showHint();
-        return;
-      }
-    });
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT') return;
+                if ((e.key === 'g' || e.key === 'G') && !e.repeat && currentFont) {
+                    Common.openFontSpecimen(currentFont);
+                    return;
+                }
+                if (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') {
+                    e.preventDefault();
+                    const delta = e.key === '+' || e.key === '=' ? 4 : -4;
+                    fontSize = Math.max(8, Math.min(256, fontSize + delta));
+                    rebuild();
+                    showHint();
+                    return;
+                }
+            });
 
-    const hintEl = document.getElementById('hint');
-    const hintZone = document.getElementById('hint-zone');
-    let hintTimer = null;
-    let hintLocked = false;
-    function showHint() {
-      hintEl.classList.remove('hidden');
-      clearTimeout(hintTimer);
-      if (hintLocked) return;
-      hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 2500);
-    }
-    showHint();
-    hintZone.addEventListener('mouseenter', showHint);
-    hintZone.addEventListener('mousemove', showHint);
-    hintZone.addEventListener('touchstart', showHint, { passive: true });
-    hintZone.addEventListener('touchend', e => e.stopPropagation());
-    hintEl.addEventListener('click', e => e.stopPropagation());
-    hintEl.addEventListener('touchstart', () => clearTimeout(hintTimer), { passive: true });
-    hintEl.addEventListener('touchend', e => { e.stopPropagation(); showHint(); });
-    hintEl.addEventListener('mouseenter', () => { clearTimeout(hintTimer); hintEl.classList.remove('hidden'); });
-    hintEl.addEventListener('mouseleave', showHint);
+            const hintEl = document.getElementById('hint');
+            const hintZone = document.getElementById('hint-zone');
+            let hintTimer = null;
+            let hintLocked = false;
+            function showHint() {
+                hintEl.classList.remove('hidden');
+                clearTimeout(hintTimer);
+                if (hintLocked) return;
+                hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 2500);
+            }
+            showHint();
+            hintZone.addEventListener('mouseenter', showHint);
+            hintZone.addEventListener('mousemove', showHint);
+            hintZone.addEventListener('touchstart', showHint, { passive: true });
+            hintZone.addEventListener('touchend', (e) => e.stopPropagation());
+            hintEl.addEventListener('click', (e) => e.stopPropagation());
+            hintEl.addEventListener('touchstart', () => clearTimeout(hintTimer), { passive: true });
+            hintEl.addEventListener('touchend', (e) => {
+                e.stopPropagation();
+                showHint();
+            });
+            hintEl.addEventListener('mouseenter', () => {
+                clearTimeout(hintTimer);
+                hintEl.classList.remove('hidden');
+            });
+            hintEl.addEventListener('mouseleave', showHint);
 
-    document.getElementById('hb-fi').addEventListener('click', () => { fontSize = Math.max(8, Math.min(256, fontSize + 4)); rebuild(); showHint(); });
-    document.getElementById('hb-fd').addEventListener('click', () => { fontSize = Math.max(8, Math.min(256, fontSize - 4)); rebuild(); showHint(); });
-    document.getElementById('hb-font').addEventListener('click', pickFont);
-    document.getElementById('hb-goog').addEventListener('click', () => { if (currentFont) Common.openFontSpecimen(currentFont); });
-    document.getElementById('hb-dark').addEventListener('click', () => { Common.toggleDark(); showHint(); });
-    document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
-    Common.initSitemapShortcut();
+            document.getElementById('hb-fi').addEventListener('click', () => {
+                fontSize = Math.max(8, Math.min(256, fontSize + 4));
+                rebuild();
+                showHint();
+            });
+            document.getElementById('hb-fd').addEventListener('click', () => {
+                fontSize = Math.max(8, Math.min(256, fontSize - 4));
+                rebuild();
+                showHint();
+            });
+            document.getElementById('hb-font').addEventListener('click', pickFont);
+            document.getElementById('hb-goog').addEventListener('click', () => {
+                if (currentFont) Common.openFontSpecimen(currentFont);
+            });
+            document.getElementById('hb-dark').addEventListener('click', () => {
+                Common.toggleDark();
+                showHint();
+            });
+            document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
+            Common.initSitemapShortcut();
 
-    const textEditor = Common.initTextEditor({
-      buttonEl: document.getElementById('hb-text'),
-      labelEl: document.getElementById('hb-text-label'),
-      getItems: () => Common.parseQueryItems().length ? Common.parseQueryItems() : fallbackItems,
-      onCommit: rebuild,
-      onEditStart: () => { hintLocked = true; clearTimeout(hintTimer); hintEl.classList.remove('hidden'); },
-      onEditEnd: () => { hintLocked = false; showHint(); },
-    });
+            const textEditor = Common.initTextEditor({
+                buttonEl: document.getElementById('hb-text'),
+                labelEl: document.getElementById('hb-text-label'),
+                getItems: () =>
+                    Common.parseQueryItems().length ? Common.parseQueryItems() : fallbackItems,
+                onCommit: rebuild,
+                onEditStart: () => {
+                    hintLocked = true;
+                    clearTimeout(hintTimer);
+                    hintEl.classList.remove('hidden');
+                },
+                onEditEnd: () => {
+                    hintLocked = false;
+                    showHint();
+                },
+            });
 
-    Common.onTap(pickFont);
+            Common.onTap(pickFont);
 
-    Common.loadScript('/fonts.js').then(pickFont);
-  </script>
-</body>
+            Common.loadScript('/fonts.js').then(pickFont);
+        </script>
+    </body>
 </html>

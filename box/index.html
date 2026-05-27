@@ -1,262 +1,414 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ruvan / box</title>
-  <link rel="icon" id="favicon">
-  <link rel="stylesheet" href="/common.css">
-  <style>
-    html, body { width: 100%; height: 100%; overflow: hidden; }
-    body {
-      cursor: pointer;
-      user-select: none;
-      position: relative;
-    }
-    #box {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      line-height: 1;
-      font-size: 0;
-    }
-    #box .cell {
-      display: inline-block;
-      text-align: center;
-      vertical-align: top;
-      white-space: nowrap;
-    }
-    #hint {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 12px;
-      text-align: center;
-      font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
-      font-size: 12px;
-      color: #888;
-      opacity: 1;
-      transition: opacity 0.4s ease;
-      user-select: none;
-      z-index: 3;
-    }
-    #hint-inner {
-      display: inline-block;
-      padding: 6px 10px;
-      border-radius: 6px;
-      background: #ffffff;
-    }
-    body.dark #hint-inner { background: #111111; }
-    #hint.hidden { opacity: 0; pointer-events: none; }
-    #hint .hint-btn {
-      cursor: pointer;
-      text-decoration: underline;
-      text-decoration-style: dotted;
-      text-underline-offset: 2px;
-    }
-    #hint .hint-btn:hover { color: #333; }
-    body.dark #hint .hint-btn:hover { color: #ccc; }
-    #hint-zone {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 60px;
-      z-index: 2;
-    }
-  </style>
-  <script src="/common.js"></script>
-</head>
-<body>
-  <div id="box"></div>
-  <div id="hint"><span id="hint-inner"><span style="white-space:nowrap"><span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd">−</span> font size</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-cl">←</span>/<span class="hint-btn" id="hb-cr">→</span> columns</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-ru">↑</span>/<span class="hint-btn" id="hb-rd">↓</span> rows</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-hgd">⌥←</span>/<span class="hint-btn" id="hb-hgi">⌥→</span> word gap</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-vgi">⌥↑</span>/<span class="hint-btn" id="hb-vgd">⌥↓</span> line gap</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-font">click font</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-goog">g google fonts</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 <span class="hb-dark-label">dark</span></span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-sitemap">s sitemap</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-text"><span id="hb-text-label"></span></span> text</span></span></div>
-  <div id="hint-zone"></div>
-  <script>
-    Common.paintFaviconR();
-    Common.initDarkMode();
-    Common.initCursorHide();
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Ruvan / box</title>
+        <link rel="icon" id="favicon" />
+        <link rel="stylesheet" href="/common.css" />
+        <style>
+            html,
+            body {
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+            }
+            body {
+                cursor: pointer;
+                user-select: none;
+                position: relative;
+            }
+            #box {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                line-height: 1;
+                font-size: 0;
+            }
+            #box .cell {
+                display: inline-block;
+                text-align: center;
+                vertical-align: top;
+                white-space: nowrap;
+            }
+            #hint {
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 12px;
+                text-align: center;
+                font-family:
+                    ui-monospace,
+                    SFMono-Regular,
+                    SF Mono,
+                    Menlo,
+                    Consolas,
+                    Liberation Mono,
+                    monospace;
+                font-size: 12px;
+                color: #888;
+                opacity: 1;
+                transition: opacity 0.4s ease;
+                user-select: none;
+                z-index: 3;
+            }
+            #hint-inner {
+                display: inline-block;
+                padding: 6px 10px;
+                border-radius: 6px;
+                background: #ffffff;
+            }
+            body.dark #hint-inner {
+                background: #111111;
+            }
+            #hint.hidden {
+                opacity: 0;
+                pointer-events: none;
+            }
+            #hint .hint-btn {
+                cursor: pointer;
+                text-decoration: underline;
+                text-decoration-style: dotted;
+                text-underline-offset: 2px;
+            }
+            #hint .hint-btn:hover {
+                color: #333;
+            }
+            body.dark #hint .hint-btn:hover {
+                color: #ccc;
+            }
+            #hint-zone {
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                height: 60px;
+                z-index: 2;
+            }
+        </style>
+        <script src="/common.js"></script>
+    </head>
+    <body>
+        <div id="box"></div>
+        <div id="hint">
+            <span id="hint-inner"
+                ><span style="white-space: nowrap"
+                    ><span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd"
+                        >−</span
+                    >
+                    font size</span
+                >
+                &nbsp;·&nbsp;
+                <span style="white-space: nowrap"
+                    ><span class="hint-btn" id="hb-cl">←</span>/<span class="hint-btn" id="hb-cr"
+                        >→</span
+                    >
+                    columns</span
+                >
+                &nbsp;·&nbsp;
+                <span style="white-space: nowrap"
+                    ><span class="hint-btn" id="hb-ru">↑</span>/<span class="hint-btn" id="hb-rd"
+                        >↓</span
+                    >
+                    rows</span
+                >
+                &nbsp;·&nbsp;
+                <span style="white-space: nowrap"
+                    ><span class="hint-btn" id="hb-hgd">⌥←</span>/<span class="hint-btn" id="hb-hgi"
+                        >⌥→</span
+                    >
+                    word gap</span
+                >
+                &nbsp;·&nbsp;
+                <span style="white-space: nowrap"
+                    ><span class="hint-btn" id="hb-vgi">⌥↑</span>/<span class="hint-btn" id="hb-vgd"
+                        >⌥↓</span
+                    >
+                    line gap</span
+                >
+                &nbsp;·&nbsp;
+                <span style="white-space: nowrap"
+                    ><span class="hint-btn" id="hb-font">click font</span></span
+                >
+                &nbsp;·&nbsp;
+                <span style="white-space: nowrap"
+                    ><span class="hint-btn" id="hb-goog">g google fonts</span></span
+                >
+                &nbsp;·&nbsp;
+                <span style="white-space: nowrap"
+                    ><span class="hint-btn" id="hb-dark"
+                        >1 <span class="hb-dark-label">dark</span></span
+                    ></span
+                >
+                &nbsp;·&nbsp;
+                <span style="white-space: nowrap"
+                    ><span class="hint-btn" id="hb-sitemap">s sitemap</span></span
+                >
+                &nbsp;·&nbsp;
+                <span style="white-space: nowrap"
+                    ><span class="hint-btn" id="hb-text"><span id="hb-text-label"></span></span>
+                    text</span
+                ></span
+            >
+        </div>
+        <div id="hint-zone"></div>
+        <script>
+            Common.paintFaviconR();
+            Common.initDarkMode();
+            Common.initCursorHide();
 
-    const boxEl = document.getElementById('box');
-    let fontSize = window.innerWidth < 640 ? 20 : 40;
-    let cols = 6;
-    let rows = 6;
-    let hGap = 0;
-    let vGap = 0;
-    let currentFont = null;
-    let fallbackItems = null;
+            const boxEl = document.getElementById('box');
+            let fontSize = window.innerWidth < 640 ? 20 : 40;
+            let cols = 6;
+            let rows = 6;
+            let hGap = 0;
+            let vGap = 0;
+            let currentFont = null;
+            let fallbackItems = null;
 
-    const measureCanvas = document.createElement('canvas');
-    const measureCtx = measureCanvas.getContext('2d');
-    function measureItems(items, font) {
-      measureCtx.font = `${fontSize}px '${font}', serif`;
-      // fontBoundingBoxAscent is the CSS ascender metric used for line-height baseline placement.
-      // With lineHeight=cellH, baseline is at (cellH - fontSize)/2 + cssFontAscent from the cell top.
-      // ink bottom = baseline + maxInkDescent must fit within cellH, so:
-      //   cellH = 2*cssFontAscent + 2*maxInkDescent - fontSize + padding
-      const fm = measureCtx.measureText('x');
-      const cssFontAscent = fm.fontBoundingBoxAscent ?? fontSize * 0.8;
-      let maxWidth = 0, maxInkDescent = fontSize * 0.2;
-      for (const word of items) {
-        maxWidth = Math.max(maxWidth, measureCtx.measureText(word).width);
-        for (const ch of word) {
-          const cm = measureCtx.measureText(ch);
-          maxInkDescent = Math.max(maxInkDescent, cm.actualBoundingBoxDescent || 0);
-        }
-      }
-      const cellHBase = 2 * cssFontAscent + 2 * maxInkDescent - fontSize + fontSize * 0.1;
-      const minVGap = -cellHBase;
-      if (vGap < minVGap) vGap = minVGap;
-      const cellH = Math.max(0, Math.ceil(cellHBase + vGap));
-      return { maxWidth, cellH };
-    }
+            const measureCanvas = document.createElement('canvas');
+            const measureCtx = measureCanvas.getContext('2d');
+            function measureItems(items, font) {
+                measureCtx.font = `${fontSize}px '${font}', serif`;
+                // fontBoundingBoxAscent is the CSS ascender metric used for line-height baseline placement.
+                // With lineHeight=cellH, baseline is at (cellH - fontSize)/2 + cssFontAscent from the cell top.
+                // ink bottom = baseline + maxInkDescent must fit within cellH, so:
+                //   cellH = 2*cssFontAscent + 2*maxInkDescent - fontSize + padding
+                const fm = measureCtx.measureText('x');
+                const cssFontAscent = fm.fontBoundingBoxAscent ?? fontSize * 0.8;
+                let maxWidth = 0,
+                    maxInkDescent = fontSize * 0.2;
+                for (const word of items) {
+                    maxWidth = Math.max(maxWidth, measureCtx.measureText(word).width);
+                    for (const ch of word) {
+                        const cm = measureCtx.measureText(ch);
+                        maxInkDescent = Math.max(maxInkDescent, cm.actualBoundingBoxDescent || 0);
+                    }
+                }
+                const cellHBase = 2 * cssFontAscent + 2 * maxInkDescent - fontSize + fontSize * 0.1;
+                const minVGap = -cellHBase;
+                if (vGap < minVGap) vGap = minVGap;
+                const cellH = Math.max(0, Math.ceil(cellHBase + vGap));
+                return { maxWidth, cellH };
+            }
 
-    function render() {
-      const items = Common.parseQueryItems().length ? Common.parseQueryItems() : fallbackItems;
-      boxEl.textContent = '';
-      if (!items || items.length === 0) return;
-      const font = currentFont || 'serif';
-      const { maxWidth, cellH } = measureItems(items, font);
-      const cellWBase = maxWidth + fontSize * 0.4;
-      const minHGap = -cellWBase;
-      if (hGap < minHGap) hGap = minHGap;
-      const cellW = Math.max(0, Math.ceil(cellWBase + hGap));
-      boxEl.style.width = (cellW * cols) + 'px';
-      boxEl.style.height = (cellH * rows) + 'px';
-      boxEl.style.display = 'grid';
-      boxEl.style.gridTemplateColumns = `repeat(${cols}, ${cellW}px)`;
-      boxEl.style.gridAutoRows = cellH + 'px';
-      const total = cols * rows;
-      const frag = document.createDocumentFragment();
-      for (let i = 0; i < total; i++) {
-        const span = document.createElement('span');
-        span.className = 'cell';
-        span.style.width = cellW + 'px';
-        span.style.height = cellH + 'px';
-        span.style.fontSize = fontSize + 'px';
-        span.style.lineHeight = cellH + 'px';
-        span.textContent = items[i % items.length];
-        frag.appendChild(span);
-      }
-      boxEl.appendChild(frag);
-    }
-    render();
-    window.addEventListener('resize', render);
+            function render() {
+                const items = Common.parseQueryItems().length
+                    ? Common.parseQueryItems()
+                    : fallbackItems;
+                boxEl.textContent = '';
+                if (!items || items.length === 0) return;
+                const font = currentFont || 'serif';
+                const { maxWidth, cellH } = measureItems(items, font);
+                const cellWBase = maxWidth + fontSize * 0.4;
+                const minHGap = -cellWBase;
+                if (hGap < minHGap) hGap = minHGap;
+                const cellW = Math.max(0, Math.ceil(cellWBase + hGap));
+                boxEl.style.width = cellW * cols + 'px';
+                boxEl.style.height = cellH * rows + 'px';
+                boxEl.style.display = 'grid';
+                boxEl.style.gridTemplateColumns = `repeat(${cols}, ${cellW}px)`;
+                boxEl.style.gridAutoRows = cellH + 'px';
+                const total = cols * rows;
+                const frag = document.createDocumentFragment();
+                for (let i = 0; i < total; i++) {
+                    const span = document.createElement('span');
+                    span.className = 'cell';
+                    span.style.width = cellW + 'px';
+                    span.style.height = cellH + 'px';
+                    span.style.fontSize = fontSize + 'px';
+                    span.style.lineHeight = cellH + 'px';
+                    span.textContent = items[i % items.length];
+                    frag.appendChild(span);
+                }
+                boxEl.appendChild(frag);
+            }
+            render();
+            window.addEventListener('resize', render);
 
-    if (Common.parseQueryItems().length === 0) {
-      fetch('/words.txt').then(r => r.text()).then(t => {
-        const list = t.split(/\s+/).filter(w => w.length > 0);
-        if (list.length) {
-          const word = list[Math.floor(Math.random() * list.length)];
-          fallbackItems = [word];
-          history.replaceState(null, '', location.pathname + '?' + encodeURIComponent(word) + location.hash);
-          render();
-          refreshTextLabel();
-        }
-      }).catch(() => {});
-    }
+            if (Common.parseQueryItems().length === 0) {
+                fetch('/words.txt')
+                    .then((r) => r.text())
+                    .then((t) => {
+                        const list = t.split(/\s+/).filter((w) => w.length > 0);
+                        if (list.length) {
+                            const word = list[Math.floor(Math.random() * list.length)];
+                            fallbackItems = [word];
+                            history.replaceState(
+                                null,
+                                '',
+                                location.pathname + '?' + encodeURIComponent(word) + location.hash
+                            );
+                            render();
+                            refreshTextLabel();
+                        }
+                    })
+                    .catch(() => {});
+            }
 
-    const cooldown = Common.makeCooldown(500);
-    async function pickFont() {
-      if (!window.googleFonts) return;
-      cooldown(async () => {
-        const font = Common.pickRandomGoogleFont();
-        await Common.loadGoogleFont(font);
-        currentFont = font;
-        boxEl.style.fontFamily = `'${font}', serif`;
-        render();
-      });
-    }
+            const cooldown = Common.makeCooldown(500);
+            async function pickFont() {
+                if (!window.googleFonts) return;
+                cooldown(async () => {
+                    const font = Common.pickRandomGoogleFont();
+                    await Common.loadGoogleFont(font);
+                    currentFont = font;
+                    boxEl.style.fontFamily = `'${font}', serif`;
+                    render();
+                });
+            }
 
-    document.addEventListener('keydown', e => {
-      if (e.target.tagName === 'INPUT') return;
-      if ((e.key === 'g' || e.key === 'G') && !e.repeat && currentFont) {
-        Common.openFontSpecimen(currentFont);
-        return;
-      }
-      if (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') {
-        e.preventDefault();
-        const delta = (e.key === '+' || e.key === '=') ? 4 : -4;
-        fontSize = Math.max(8, Math.min(512, fontSize + delta));
-        render();
-        return;
-      }
-      if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
-        e.preventDefault();
-        hGap += (e.key === 'ArrowRight' ? 2 : -2);
-        render();
-        return;
-      }
-      if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
-        e.preventDefault();
-        vGap += (e.key === 'ArrowUp' ? 2 : -2);
-        render();
-        return;
-      }
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-        e.preventDefault();
-        cols = Math.max(1, Math.min(200, cols + (e.key === 'ArrowRight' ? 1 : -1)));
-        render();
-        return;
-      }
-      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-        e.preventDefault();
-        rows = Math.max(1, Math.min(200, rows + (e.key === 'ArrowUp' ? 1 : -1)));
-        render();
-        return;
-      }
-    });
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT') return;
+                if ((e.key === 'g' || e.key === 'G') && !e.repeat && currentFont) {
+                    Common.openFontSpecimen(currentFont);
+                    return;
+                }
+                if (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') {
+                    e.preventDefault();
+                    const delta = e.key === '+' || e.key === '=' ? 4 : -4;
+                    fontSize = Math.max(8, Math.min(512, fontSize + delta));
+                    render();
+                    return;
+                }
+                if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+                    e.preventDefault();
+                    hGap += e.key === 'ArrowRight' ? 2 : -2;
+                    render();
+                    return;
+                }
+                if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+                    e.preventDefault();
+                    vGap += e.key === 'ArrowUp' ? 2 : -2;
+                    render();
+                    return;
+                }
+                if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    cols = Math.max(1, Math.min(200, cols + (e.key === 'ArrowRight' ? 1 : -1)));
+                    render();
+                    return;
+                }
+                if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    rows = Math.max(1, Math.min(200, rows + (e.key === 'ArrowUp' ? 1 : -1)));
+                    render();
+                    return;
+                }
+            });
 
-    const hintEl = document.getElementById('hint');
-    const hintZone = document.getElementById('hint-zone');
-    let hintTimer = null;
-    let hintLocked = false;
-    function showHint() {
-      hintEl.classList.remove('hidden');
-      clearTimeout(hintTimer);
-      if (hintLocked) return;
-      hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 2500);
-    }
-    showHint();
-    hintZone.addEventListener('mouseenter', showHint);
-    hintZone.addEventListener('mousemove', showHint);
-    hintZone.addEventListener('touchstart', showHint, { passive: true });
-    hintZone.addEventListener('touchend', e => e.stopPropagation());
-    hintEl.addEventListener('click', e => e.stopPropagation());
-    hintEl.addEventListener('touchstart', () => clearTimeout(hintTimer), { passive: true });
-    hintEl.addEventListener('touchend', e => { e.stopPropagation(); showHint(); });
-    hintEl.addEventListener('mouseenter', () => { clearTimeout(hintTimer); hintEl.classList.remove('hidden'); });
-    hintEl.addEventListener('mouseleave', showHint);
+            const hintEl = document.getElementById('hint');
+            const hintZone = document.getElementById('hint-zone');
+            let hintTimer = null;
+            let hintLocked = false;
+            function showHint() {
+                hintEl.classList.remove('hidden');
+                clearTimeout(hintTimer);
+                if (hintLocked) return;
+                hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 2500);
+            }
+            showHint();
+            hintZone.addEventListener('mouseenter', showHint);
+            hintZone.addEventListener('mousemove', showHint);
+            hintZone.addEventListener('touchstart', showHint, { passive: true });
+            hintZone.addEventListener('touchend', (e) => e.stopPropagation());
+            hintEl.addEventListener('click', (e) => e.stopPropagation());
+            hintEl.addEventListener('touchstart', () => clearTimeout(hintTimer), { passive: true });
+            hintEl.addEventListener('touchend', (e) => {
+                e.stopPropagation();
+                showHint();
+            });
+            hintEl.addEventListener('mouseenter', () => {
+                clearTimeout(hintTimer);
+                hintEl.classList.remove('hidden');
+            });
+            hintEl.addEventListener('mouseleave', showHint);
 
-    document.getElementById('hb-fi').addEventListener('click', () => { fontSize = Math.max(8, Math.min(512, fontSize + 4)); render(); showHint(); });
-    document.getElementById('hb-fd').addEventListener('click', () => { fontSize = Math.max(8, Math.min(512, fontSize - 4)); render(); showHint(); });
-    document.getElementById('hb-cl').addEventListener('click', () => { cols = Math.max(1, Math.min(200, cols - 1)); render(); showHint(); });
-    document.getElementById('hb-cr').addEventListener('click', () => { cols = Math.max(1, Math.min(200, cols + 1)); render(); showHint(); });
-    document.getElementById('hb-ru').addEventListener('click', () => { rows = Math.max(1, Math.min(200, rows + 1)); render(); showHint(); });
-    document.getElementById('hb-rd').addEventListener('click', () => { rows = Math.max(1, Math.min(200, rows - 1)); render(); showHint(); });
-    document.getElementById('hb-hgd').addEventListener('click', () => { hGap -= 2; render(); showHint(); });
-    document.getElementById('hb-hgi').addEventListener('click', () => { hGap += 2; render(); showHint(); });
-    document.getElementById('hb-vgi').addEventListener('click', () => { vGap += 2; render(); showHint(); });
-    document.getElementById('hb-vgd').addEventListener('click', () => { vGap -= 2; render(); showHint(); });
-    document.getElementById('hb-font').addEventListener('click', pickFont);
-    document.getElementById('hb-goog').addEventListener('click', () => { if (currentFont) Common.openFontSpecimen(currentFont); });
-    document.getElementById('hb-dark').addEventListener('click', () => { Common.toggleDark(); showHint(); });
-    document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
-    Common.initSitemapShortcut();
+            document.getElementById('hb-fi').addEventListener('click', () => {
+                fontSize = Math.max(8, Math.min(512, fontSize + 4));
+                render();
+                showHint();
+            });
+            document.getElementById('hb-fd').addEventListener('click', () => {
+                fontSize = Math.max(8, Math.min(512, fontSize - 4));
+                render();
+                showHint();
+            });
+            document.getElementById('hb-cl').addEventListener('click', () => {
+                cols = Math.max(1, Math.min(200, cols - 1));
+                render();
+                showHint();
+            });
+            document.getElementById('hb-cr').addEventListener('click', () => {
+                cols = Math.max(1, Math.min(200, cols + 1));
+                render();
+                showHint();
+            });
+            document.getElementById('hb-ru').addEventListener('click', () => {
+                rows = Math.max(1, Math.min(200, rows + 1));
+                render();
+                showHint();
+            });
+            document.getElementById('hb-rd').addEventListener('click', () => {
+                rows = Math.max(1, Math.min(200, rows - 1));
+                render();
+                showHint();
+            });
+            document.getElementById('hb-hgd').addEventListener('click', () => {
+                hGap -= 2;
+                render();
+                showHint();
+            });
+            document.getElementById('hb-hgi').addEventListener('click', () => {
+                hGap += 2;
+                render();
+                showHint();
+            });
+            document.getElementById('hb-vgi').addEventListener('click', () => {
+                vGap += 2;
+                render();
+                showHint();
+            });
+            document.getElementById('hb-vgd').addEventListener('click', () => {
+                vGap -= 2;
+                render();
+                showHint();
+            });
+            document.getElementById('hb-font').addEventListener('click', pickFont);
+            document.getElementById('hb-goog').addEventListener('click', () => {
+                if (currentFont) Common.openFontSpecimen(currentFont);
+            });
+            document.getElementById('hb-dark').addEventListener('click', () => {
+                Common.toggleDark();
+                showHint();
+            });
+            document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
+            Common.initSitemapShortcut();
 
-    const textEditor = Common.initTextEditor({
-      buttonEl: document.getElementById('hb-text'),
-      labelEl: document.getElementById('hb-text-label'),
-      getItems: () => Common.parseQueryItems().length ? Common.parseQueryItems() : (fallbackItems || []),
-      onCommit: render,
-      onEditStart: () => { hintLocked = true; clearTimeout(hintTimer); hintEl.classList.remove('hidden'); },
-      onEditEnd: () => { hintLocked = false; showHint(); },
-    });
-    const refreshTextLabel = textEditor.refresh;
+            const textEditor = Common.initTextEditor({
+                buttonEl: document.getElementById('hb-text'),
+                labelEl: document.getElementById('hb-text-label'),
+                getItems: () =>
+                    Common.parseQueryItems().length
+                        ? Common.parseQueryItems()
+                        : fallbackItems || [],
+                onCommit: render,
+                onEditStart: () => {
+                    hintLocked = true;
+                    clearTimeout(hintTimer);
+                    hintEl.classList.remove('hidden');
+                },
+                onEditEnd: () => {
+                    hintLocked = false;
+                    showHint();
+                },
+            });
+            const refreshTextLabel = textEditor.refresh;
 
-    Common.onTap(pickFont);
+            Common.onTap(pickFont);
 
-    Common.loadScript('/fonts.js').then(pickFont);
-  </script>
-</body>
+            Common.loadScript('/fonts.js').then(pickFont);
+        </script>
+    </body>
 </html>
