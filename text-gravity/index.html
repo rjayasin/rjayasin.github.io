@@ -131,6 +131,10 @@
                 >
                 &nbsp;·&nbsp;
                 <span style="white-space: nowrap"
+                    ><span class="hint-btn" id="hb-bounce">bounce</span></span
+                >
+                &nbsp;·&nbsp;
+                <span style="white-space: nowrap"
                     ><span class="hint-btn" id="hb-sitemap">s sitemap</span></span
                 ></span
             >
@@ -516,8 +520,15 @@
                 // Only shots knock the grid loose. A loose-but-not-shot body
                 // (a square char that's already falling) bounces off pinned
                 // neighbors instead of unfixing them.
-                if (a.fixed && b.shot) a.fixed = false;
-                if (b.fixed && a.shot) b.fixed = false;
+                // Default: unfix immediately, then fall through to the equal-mass
+                // collision below — the shot punches through with energy loss.
+                // Bounce mode: keep the target fixed so the wall branch runs
+                // first (shot bounces off as if hitting a wall), then unfix.
+                const shotUnstick = (a.fixed && b.shot) || (b.fixed && a.shot);
+                if (!bounceMode) {
+                    if (a.fixed && b.shot) a.fixed = false;
+                    if (b.fixed && a.shot) b.fixed = false;
+                }
 
                 if (a.fixed || b.fixed) {
                     // Pinned body acts as an immovable wall for the moving one.
@@ -553,6 +564,10 @@
                         }
                     }
                     m.av *= CONTACT_ANG_DAMP;
+                    if (bounceMode && shotUnstick) {
+                        if (a.fixed && b.shot) a.fixed = false;
+                        if (b.fixed && a.shot) b.fixed = false;
+                    }
                     return;
                 }
 
@@ -650,6 +665,7 @@
             // --- input ---
             const drag = { active: false, id: null, sx: 0, sy: 0, cx: 0, cy: 0, ch: '' };
             let emojiMode = false;
+            let bounceMode = false;
             function pickEmoji() {
                 if (!window.EMOJIS) return pickFromRanges(CHAR_RANGES);
                 return window.EMOJIS[Math.floor(Math.random() * window.EMOJIS.length)];
@@ -951,6 +967,12 @@
             emojiBtn.addEventListener('click', () => {
                 emojiMode = !emojiMode;
                 emojiBtn.textContent = emojiMode ? 'emoji on' : 'emoji';
+                showHint();
+            });
+            const bounceBtn = document.getElementById('hb-bounce');
+            bounceBtn.addEventListener('click', () => {
+                bounceMode = !bounceMode;
+                bounceBtn.textContent = bounceMode ? 'bounce on' : 'bounce';
                 showHint();
             });
             document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
