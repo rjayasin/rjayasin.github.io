@@ -59,7 +59,7 @@
 </head>
 <body>
   <canvas id="game"></canvas>
-  <div id="hint"><span id="hint-inner"><span style="white-space:nowrap">drag &amp; release to fire</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-reset">r reset</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 <span class="hb-dark-label">dark</span></span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-smaller">−</span>/<span class="hint-btn" id="hb-bigger">+</span> size</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-sitemap">s sitemap</span></span></span></div>
+  <div id="hint"><span id="hint-inner"><span style="white-space:nowrap">drag &amp; release to fire</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-reset">r reset</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 <span class="hb-dark-label">dark</span></span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-smaller">−</span>/<span class="hint-btn" id="hb-bigger">+</span> size</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-emoji">emoji</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-sitemap">s sitemap</span></span></span></div>
   <div id="hint-zone"></div>
   <script>
     Common.paintFaviconR();
@@ -380,9 +380,11 @@
 
     // --- input ---
     const drag = { active: false, id: null, sx: 0, sy: 0, cx: 0, cy: 0, ch: '' };
+    let emojiMode = false;
     function randChar() {
       // Roughly one shot in five is an emoji; the rest are letters from the
-      // script ranges above.
+      // script ranges above. In emoji mode every shot is an emoji.
+      if (emojiMode) return pickFromRanges(EMOJI_RANGES);
       return pickFromRanges(Math.random() < 0.2 ? EMOJI_RANGES : CHAR_RANGES);
     }
 
@@ -493,6 +495,12 @@
     document.getElementById('hb-dark').addEventListener('click', () => { Common.toggleDark(); showHint(); });
     document.getElementById('hb-bigger').addEventListener('click', () => { adjustFont(FONT_STEP); showHint(); });
     document.getElementById('hb-smaller').addEventListener('click', () => { adjustFont(-FONT_STEP); showHint(); });
+    const emojiBtn = document.getElementById('hb-emoji');
+    emojiBtn.addEventListener('click', () => {
+      emojiMode = !emojiMode;
+      emojiBtn.textContent = emojiMode ? 'emoji on' : 'emoji';
+      showHint();
+    });
     document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
     Common.initSitemapShortcut();
 
