@@ -14,6 +14,7 @@
 - [`clock`](https://rjayasin.github.io/clock/)
 - [`border`](https://rjayasin.github.io/border/)
 - [`isometric`](https://rjayasin.github.io/isometric/)
+- [`wave`](https://rjayasin.github.io/wave/)
 
 `tools`
 
