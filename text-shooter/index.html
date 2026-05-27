@@ -211,6 +211,7 @@
       const SHOT_MULT_MAX = 6;
       let shotSizeMult = 1;
       let bodies = [];
+      const broadphaseGrid = new Map();
       let hasFired = false;
 
       function isDark() {
@@ -341,34 +342,33 @@
           if (Math.abs(b.av) < ANG_SLEEP) b.av = 0;
         }
 
-        // broadphase: spatial hash grid
+        // broadphase: spatial hash grid. Map and per-cell arrays are reused
+        // across substeps (cleared, not reallocated) to avoid GC pressure at
+        // 120Hz. The j <= i filter below makes each pair land exactly once,
+        // so no checked-set is needed.
         const cell = radius * 2.2;
-        const grid = new Map();
+        for (const arr of broadphaseGrid.values()) arr.length = 0;
         const key = (cx, cy) => cx + ',' + cy;
         for (let i = 0; i < bodies.length; i++) {
           const b = bodies[i];
           const cx = Math.floor(b.x / cell);
           const cy = Math.floor(b.y / cell);
           const k = key(cx, cy);
-          let arr = grid.get(k);
-          if (!arr) grid.set(k, (arr = []));
+          let arr = broadphaseGrid.get(k);
+          if (!arr) broadphaseGrid.set(k, (arr = []));
           arr.push(i);
         }
 
-        const checked = new Set();
         for (let i = 0; i < bodies.length; i++) {
           const b = bodies[i];
           const cx = Math.floor(b.x / cell);
           const cy = Math.floor(b.y / cell);
           for (let ox = -1; ox <= 1; ox++) {
             for (let oy = -1; oy <= 1; oy++) {
-              const arr = grid.get(key(cx + ox, cy + oy));
+              const arr = broadphaseGrid.get(key(cx + ox, cy + oy));
               if (!arr) continue;
               for (const j of arr) {
                 if (j <= i) continue;
-                const pairKey = i * 100000 + j;
-                if (checked.has(pairKey)) continue;
-                checked.add(pairKey);
                 resolve(b, bodies[j]);
               }
             }
