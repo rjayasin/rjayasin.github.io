@@ -5,6 +5,7 @@
 - [`maze-canvas`](https://rjayasin.github.io/maze-canvas/)
 - [`text-shooter`](https://rjayasin.github.io/text-shooter/)
 - [`text-gravity`](https://rjayasin.github.io/text-gravity/)
+- [`ripple`](https://rjayasin.github.io/ripple/)
 
 `text`
 
