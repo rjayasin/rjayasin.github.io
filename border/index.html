@@ -273,32 +273,10 @@
         }
       });
 
-      const hintEl = document.getElementById('hint');
-      const hintZone = document.getElementById('hint-zone');
-      let hintTimer = null;
-      let hintLocked = false;
-      function showHint() {
-        hintEl.classList.remove('hidden');
-        clearTimeout(hintTimer);
-        if (hintLocked) return;
-        hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 2500);
-      }
-      showHint();
-      hintZone.addEventListener('mouseenter', showHint);
-      hintZone.addEventListener('mousemove', showHint);
-      hintZone.addEventListener('touchstart', showHint, { passive: true });
-      hintZone.addEventListener('touchend', (e) => e.stopPropagation());
-      hintEl.addEventListener('click', (e) => e.stopPropagation());
-      hintEl.addEventListener('touchstart', () => clearTimeout(hintTimer), { passive: true });
-      hintEl.addEventListener('touchend', (e) => {
-        e.stopPropagation();
-        showHint();
+      const { show: showHint, setLocked: setHintLocked } = Common.initHintBar({
+        hintEl: document.getElementById('hint'),
+        hintZoneEl: document.getElementById('hint-zone'),
       });
-      hintEl.addEventListener('mouseenter', () => {
-        clearTimeout(hintTimer);
-        hintEl.classList.remove('hidden');
-      });
-      hintEl.addEventListener('mouseleave', showHint);
 
       document.getElementById('hb-fi').addEventListener('click', () => {
         fontSize = Math.max(8, Math.min(256, fontSize + 4));
@@ -327,15 +305,8 @@
         getItems: () =>
           Common.parseQueryItems().length ? Common.parseQueryItems() : fallbackItems,
         onCommit: rebuild,
-        onEditStart: () => {
-          hintLocked = true;
-          clearTimeout(hintTimer);
-          hintEl.classList.remove('hidden');
-        },
-        onEditEnd: () => {
-          hintLocked = false;
-          showHint();
-        },
+        onEditStart: () => setHintLocked(true),
+        onEditEnd: () => setHintLocked(false),
       });
 
       Common.onTap(pickFont);
