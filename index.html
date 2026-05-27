@@ -1,187 +1,187 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Ruvan</title>
-        <link rel="icon" id="favicon" />
-        <link rel="stylesheet" href="/common.css" />
-        <style>
-            body {
-                height: 100vh;
-                height: 100dvh;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            #name {
-                font-size: 10vw;
-                opacity: 0;
-                cursor: pointer;
-                user-select: none;
-                transition: opacity 0.1s ease;
-            }
-            #sitemap {
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                text-align: center;
-                font-family:
-                    ui-monospace,
-                    SFMono-Regular,
-                    SF Mono,
-                    Menlo,
-                    Consolas,
-                    Liberation Mono,
-                    monospace;
-                font-size: 12px;
-                color: #656d76;
-                padding: 4px 0;
-            }
-            #sitemap a {
-                color: inherit;
-                text-decoration: none;
-                display: inline-block;
-                padding: 12px 20px;
-            }
-            #sitemap a:hover {
-                text-decoration: underline;
-            }
-            body.grid-mode {
-                height: 100%;
-                display: flex;
-                flex-wrap: wrap;
-                align-content: center;
-                align-items: stretch;
-                justify-content: center;
-            }
-            html:has(body.grid-mode),
-            body.grid-mode {
-                width: 100%;
-                height: 100%;
-                overflow: hidden;
-            }
-            .grid {
-                line-height: 1;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-        </style>
-        <script src="/common.js"></script>
-    </head>
-    <body>
-        <script>
-            Common.initDarkMode();
-            Common.initCursorHide();
-            Common.paintFaviconR();
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ruvan</title>
+    <link rel="icon" id="favicon" />
+    <link rel="stylesheet" href="/common.css" />
+    <style>
+      body {
+        height: 100vh;
+        height: 100dvh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #name {
+        font-size: 10vw;
+        opacity: 0;
+        cursor: pointer;
+        user-select: none;
+        transition: opacity 0.1s ease;
+      }
+      #sitemap {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        font-size: 12px;
+        color: #656d76;
+        padding: 4px 0;
+      }
+      #sitemap a {
+        color: inherit;
+        text-decoration: none;
+        display: inline-block;
+        padding: 12px 20px;
+      }
+      #sitemap a:hover {
+        text-decoration: underline;
+      }
+      body.grid-mode {
+        height: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        align-content: center;
+        align-items: stretch;
+        justify-content: center;
+      }
+      html:has(body.grid-mode),
+      body.grid-mode {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      .grid {
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    </style>
+    <script src="/common.js"></script>
+  </head>
+  <body>
+    <script>
+      Common.initDarkMode();
+      Common.initCursorHide();
+      Common.paintFaviconR();
 
-            function gridFromHash() {
-                const raw = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
-                return [...raw][0] || '';
-            }
+      function gridFromHash() {
+        const raw = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
+        return [...raw][0] || '';
+      }
 
-            const hashGrid = gridFromHash();
-            if (hashGrid) {
-                document.body.classList.add('grid-mode');
-                document.title = hashGrid;
-                window.GRID = hashGrid;
-                Common.paintFavicon({ glyph: hashGrid });
-                window.addEventListener('hashchange', () => {
-                    if (gridFromHash() !== window.GRID) location.reload();
-                });
-                Common.loadScript('/fonts.js').then(() => Common.loadScript('/grid.js'));
-            } else {
-                document.body.insertAdjacentHTML(
-                    'beforeend',
-                    `
+      const hashGrid = gridFromHash();
+      if (hashGrid) {
+        document.body.classList.add('grid-mode');
+        document.title = hashGrid;
+        window.GRID = hashGrid;
+        Common.paintFavicon({ glyph: hashGrid });
+        window.addEventListener('hashchange', () => {
+          if (gridFromHash() !== window.GRID) location.reload();
+        });
+        Common.loadScript('/fonts.js').then(() => Common.loadScript('/grid.js'));
+      } else {
+        document.body.insertAdjacentHTML(
+          'beforeend',
+          `
         <span id="name">Ruvan</span>
         <footer id="sitemap">
           <a href="/sitemap/" target="_blank" rel="noopener">sitemap</a>
         </footer>
       `
-                );
-                const nameEl = document.getElementById('name');
-                let currentHomeFont = null;
-                let currentEmoji = null;
+        );
+        const nameEl = document.getElementById('name');
+        let currentHomeFont = null;
+        let currentEmoji = null;
 
-                function updateHomeFavicon() {
-                    if (currentEmoji) {
-                        Common.paintFavicon({
-                            glyph: currentEmoji,
-                            fontSize: 48,
-                            transparent: true,
-                        });
-                    } else if (currentHomeFont) {
-                        Common.paintFavicon({ glyph: 'R', font: currentHomeFont });
-                    }
-                }
-                window.addEventListener('darkmodechange', updateHomeFavicon);
+        function updateHomeFavicon() {
+          if (currentEmoji) {
+            Common.paintFavicon({
+              glyph: currentEmoji,
+              fontSize: 48,
+              transparent: true,
+            });
+          } else if (currentHomeFont) {
+            Common.paintFavicon({ glyph: 'R', font: currentHomeFont });
+          }
+        }
+        window.addEventListener('darkmodechange', updateHomeFavicon);
 
-                async function display(rainbow) {
-                    const fadeOut = new Promise((r) => setTimeout(r, 100));
-                    if (Math.random() < 1 / 7 && window.EMOJIS) {
-                        const emojis = Array.from(
-                            { length: 5 },
-                            () => window.EMOJIS[Math.floor(Math.random() * window.EMOJIS.length)]
-                        );
-                        await fadeOut;
-                        nameEl.style.backgroundImage = '';
-                        nameEl.style.color = '';
-                        nameEl.style.fontFamily = '';
-                        nameEl.textContent = emojis.join('');
-                        nameEl.style.opacity = '1';
-                        currentEmoji = emojis[0];
-                        currentHomeFont = null;
-                        updateHomeFavicon();
-                    } else {
-                        const font = Common.pickRandomGoogleFont();
-                        const fontLoad = Common.loadGoogleFont(font);
-                        await Promise.all([fadeOut, fontLoad]);
-                        currentHomeFont = font;
-                        currentEmoji = null;
-                        nameEl.style.fontFamily = `'${font}', serif`;
-                        nameEl.textContent = 'Ruvan';
-                        if (rainbow) {
-                            nameEl.style.backgroundImage =
-                                'linear-gradient(90deg, #ff0000, #ff8800, #ffee00, #22cc22, #0088ff, #4422cc, #8800cc)';
-                            nameEl.style.webkitBackgroundClip = 'text';
-                            nameEl.style.backgroundClip = 'text';
-                            nameEl.style.color = 'transparent';
-                        } else {
-                            nameEl.style.backgroundImage = '';
-                            nameEl.style.color = '';
-                        }
-                        nameEl.style.opacity = '1';
-                        updateHomeFavicon();
-                    }
-                }
-
-                const cooldown = Common.makeCooldown(500);
-                let clickCount = 0;
-                function handleClick(e) {
-                    if (!window.googleFonts) return;
-                    if (e && e.target && e.target.closest && e.target.closest('#sitemap')) return;
-                    cooldown(() => {
-                        clickCount++;
-                        nameEl.style.opacity = '0';
-                        display(clickCount % 10 === 0);
-                    });
-                }
-
-                document.addEventListener('keydown', (e) => {
-                    if ((e.key === 'g' || e.key === 'G') && !e.repeat && currentHomeFont) {
-                        Common.openFontSpecimen(currentHomeFont);
-                    }
-                });
-                Common.initSitemapShortcut();
-
-                Common.onTap(handleClick);
-
-                Common.loadScript('/emojis.js');
-                Common.loadScript('/fonts.js').then(() => display());
+        async function display(rainbow) {
+          const fadeOut = new Promise((r) => setTimeout(r, 100));
+          if (Math.random() < 1 / 7 && window.EMOJIS) {
+            const emojis = Array.from(
+              { length: 5 },
+              () => window.EMOJIS[Math.floor(Math.random() * window.EMOJIS.length)]
+            );
+            await fadeOut;
+            nameEl.style.backgroundImage = '';
+            nameEl.style.color = '';
+            nameEl.style.fontFamily = '';
+            nameEl.textContent = emojis.join('');
+            nameEl.style.opacity = '1';
+            currentEmoji = emojis[0];
+            currentHomeFont = null;
+            updateHomeFavicon();
+          } else {
+            const font = Common.pickRandomGoogleFont();
+            const fontLoad = Common.loadGoogleFont(font);
+            await Promise.all([fadeOut, fontLoad]);
+            currentHomeFont = font;
+            currentEmoji = null;
+            nameEl.style.fontFamily = `'${font}', serif`;
+            nameEl.textContent = 'Ruvan';
+            if (rainbow) {
+              nameEl.style.backgroundImage =
+                'linear-gradient(90deg, #ff0000, #ff8800, #ffee00, #22cc22, #0088ff, #4422cc, #8800cc)';
+              nameEl.style.webkitBackgroundClip = 'text';
+              nameEl.style.backgroundClip = 'text';
+              nameEl.style.color = 'transparent';
+            } else {
+              nameEl.style.backgroundImage = '';
+              nameEl.style.color = '';
             }
-        </script>
-    </body>
+            nameEl.style.opacity = '1';
+            updateHomeFavicon();
+          }
+        }
+
+        const cooldown = Common.makeCooldown(500);
+        let clickCount = 0;
+        function handleClick(e) {
+          if (!window.googleFonts) return;
+          if (e && e.target && e.target.closest && e.target.closest('#sitemap')) return;
+          cooldown(() => {
+            clickCount++;
+            nameEl.style.opacity = '0';
+            display(clickCount % 10 === 0);
+          });
+        }
+
+        document.addEventListener('keydown', (e) => {
+          if ((e.key === 'g' || e.key === 'G') && !e.repeat && currentHomeFont) {
+            Common.openFontSpecimen(currentHomeFont);
+          }
+        });
+        Common.initSitemapShortcut();
+
+        Common.onTap(handleClick);
+
+        Common.loadScript('/emojis.js');
+        Common.loadScript('/fonts.js').then(() => display());
+      }
+    </script>
+  </body>
 </html>

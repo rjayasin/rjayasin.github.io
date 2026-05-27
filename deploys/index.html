@@ -1,1211 +1,1194 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Ruvan / deploys</title>
-        <link rel="icon" id="favicon" />
-        <link rel="stylesheet" href="/common.css" />
-        <style>
-            :root {
-                --success: #16a34a;
-                --success-soft: #dcfce7;
-                --failure: #dc2626;
-                --failure-soft: #fee2e2;
-                --pending: #d97706;
-                --pending-soft: #fef3c7;
-                --median: #00a2ff;
-                --size: #7c3aed;
-                --grid: #e5e7eb;
-                --muted: #6b7280;
-                --fg: #111827;
-                --bg: #ffffff;
-                --card: #f9fafb;
-            }
-
-            body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
-                    sans-serif;
-                font-size: 14px;
-                line-height: 1.5;
-                padding: 40px 24px 80px;
-                max-width: 880px;
-                margin: 0 auto;
-                color: var(--fg);
-            }
-
-            body.dark {
-                --success: #4ade80;
-                --success-soft: #14532d;
-                --failure: #f87171;
-                --failure-soft: #7f1d1d;
-                --pending: #fbbf24;
-                --pending-soft: #78350f;
-                --median: #00a2ff;
-                --size: #a78bfa;
-                --grid: #2a2a2a;
-                --muted: #9ca3af;
-                --fg: #f5f5f5;
-                --bg: #111111;
-                --card: #1a1a1a;
-            }
-
-            @media (prefers-color-scheme: dark) {
-                body:not(.light) {
-                    --success: #4ade80;
-                    --success-soft: #14532d;
-                    --failure: #f87171;
-                    --failure-soft: #7f1d1d;
-                    --pending: #fbbf24;
-                    --pending-soft: #78350f;
-                    --median: #00a2ff;
-                    --size: #a78bfa;
-                    --grid: #2a2a2a;
-                    --muted: #9ca3af;
-                    --fg: #f5f5f5;
-                    --bg: #111111;
-                    --card: #1a1a1a;
-                }
-            }
-
-            header {
-                margin-bottom: 28px;
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start;
-                gap: 16px;
-            }
-
-            header a {
-                color: inherit;
-                text-decoration: none;
-            }
-
-            header a:hover {
-                text-decoration: underline;
-            }
-
-            h1 {
-                font-family: Georgia, 'Times New Roman', serif;
-                font-size: 28px;
-                font-weight: 500;
-                letter-spacing: -0.01em;
-            }
-
-            h1 .crumb {
-                color: var(--muted);
-                font-weight: 400;
-            }
-
-            .subtitle {
-                color: var(--muted);
-                font-size: 13px;
-                margin-top: 4px;
-            }
-
-            .stats {
-                display: grid;
-                grid-template-columns: repeat(4, 1fr);
-                gap: 10px;
-                margin-bottom: 28px;
-            }
-
-            .stat {
-                background: var(--card);
-                border-radius: 10px;
-                padding: 14px 16px;
-                display: flex;
-                flex-direction: column;
-                gap: 4px;
-            }
-
-            .stat-label {
-                color: var(--muted);
-                font-size: 11px;
-                text-transform: uppercase;
-                letter-spacing: 0.06em;
-            }
-
-            .stat-value {
-                font-size: 22px;
-                font-weight: 600;
-                font-variant-numeric: tabular-nums;
-                letter-spacing: -0.01em;
-            }
-
-            .stat.median .stat-value {
-                color: var(--median);
-            }
-
-            .stat.success .stat-value {
-                color: var(--success);
-            }
-
-            .stat.p90 .stat-value {
-                color: var(--pending);
-            }
-
-            .chart-card {
-                background: var(--card);
-                border-radius: 12px;
-                padding: 20px 20px 14px;
-                margin-bottom: 32px;
-            }
-
-            .chart-card[hidden] {
-                display: none;
-            }
-
-            .chart-head {
-                display: flex;
-                justify-content: space-between;
-                align-items: baseline;
-                margin-bottom: 14px;
-                gap: 12px;
-                flex-wrap: wrap;
-            }
-
-            .chart-title {
-                font-size: 15px;
-                font-weight: 600;
-            }
-
-            .chart-meta {
-                font-size: 12px;
-                color: var(--muted);
-                display: flex;
-                align-items: center;
-                gap: 14px;
-                flex-wrap: wrap;
-            }
-
-            .legend-item {
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-            }
-
-            .legend-swatch {
-                width: 10px;
-                height: 10px;
-                border-radius: 2px;
-                background: var(--success);
-            }
-
-            .legend-swatch.failure {
-                background: var(--failure);
-            }
-
-            .legend-swatch.median {
-                background: transparent;
-                border-top: 2px dashed var(--median);
-                border-radius: 0;
-                height: 0;
-                width: 14px;
-            }
-
-            .legend-swatch.size {
-                background: var(--size);
-            }
-
-            .legend-toggle {
-                cursor: pointer;
-                user-select: none;
-                color: var(--muted);
-                transition: color 0.15s;
-            }
-
-            .legend-toggle:hover {
-                color: var(--fg);
-            }
-
-            .legend-toggle input {
-                appearance: none;
-                -webkit-appearance: none;
-                width: 12px;
-                height: 12px;
-                margin: 0;
-                border: 1.5px solid currentColor;
-                border-radius: 3px;
-                background: transparent;
-                cursor: pointer;
-                flex-shrink: 0;
-                position: relative;
-            }
-
-            .legend-toggle input:checked {
-                background: var(--size);
-                border-color: var(--size);
-            }
-
-            .legend-toggle input:checked::after {
-                content: '';
-                position: absolute;
-                left: 2px;
-                top: -1px;
-                width: 4px;
-                height: 8px;
-                border: solid #fff;
-                border-width: 0 2px 2px 0;
-                transform: rotate(45deg);
-            }
-
-            .chart-svg {
-                width: 100%;
-                height: 240px;
-                display: block;
-                overflow: visible;
-            }
-
-            .chart-svg .bar {
-                cursor: pointer;
-                transition: opacity 0.15s;
-            }
-
-            .chart-svg .bar:hover {
-                opacity: 0.7;
-            }
-
-            .chart-svg .grid-line {
-                stroke: var(--grid);
-                stroke-width: 1;
-            }
-
-            .chart-svg .axis-label {
-                fill: var(--muted);
-                font-size: 10px;
-            }
-
-            .chart-svg .axis-label-size {
-                fill: var(--size);
-            }
-
-            .chart-svg .median-line {
-                stroke: var(--median);
-                stroke-width: 2;
-                stroke-dasharray: 4 3;
-                fill: none;
-            }
-
-            .chart-svg .size-area {
-                fill: var(--size);
-                fill-opacity: 0.14;
-                stroke: none;
-                pointer-events: none;
-            }
-
-            .chart-svg .size-line {
-                fill: none;
-                stroke: var(--size);
-                stroke-width: 1.75;
-                stroke-linejoin: round;
-                stroke-linecap: round;
-                pointer-events: none;
-            }
-
-            .chart-svg .size-dot {
-                fill: var(--card);
-                stroke: var(--size);
-                stroke-width: 1.5;
-                cursor: pointer;
-            }
-
-            .log {
-                display: flex;
-                flex-direction: column;
-                gap: 18px;
-            }
-
-            .day-header {
-                display: flex;
-                align-items: baseline;
-                justify-content: space-between;
-                margin-bottom: 6px;
-                padding-bottom: 6px;
-                border-bottom: 1px solid var(--grid);
-            }
-
-            .day-date {
-                font-size: 13px;
-                font-weight: 600;
-                color: var(--fg);
-            }
-
-            .day-count {
-                color: var(--muted);
-                font-size: 12px;
-            }
-
-            .deploys {
-                display: flex;
-                flex-direction: column;
-            }
-
-            .deploy {
-                display: grid;
-                grid-template-columns: 64px 1fr auto;
-                column-gap: 12px;
-                align-items: center;
-                padding: 6px 0;
-                border-bottom: 1px solid var(--grid);
-            }
-
-            .deploy:last-child {
-                border-bottom: none;
-            }
-
-            .deploy .time {
-                color: var(--muted);
-                font-size: 12px;
-                font-variant-numeric: tabular-nums;
-            }
-
-            .deploy a {
-                color: var(--fg);
-                text-decoration: none;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-                font-size: 13px;
-            }
-
-            .deploy a:hover {
-                text-decoration: underline;
-            }
-
-            .deploy .duration {
-                font-size: 12px;
-                font-variant-numeric: tabular-nums;
-                padding: 2px 8px;
-                border-radius: 999px;
-                background: var(--success-soft);
-                color: var(--success);
-                font-weight: 600;
-            }
-
-            .deploy.failure .duration {
-                background: var(--failure-soft);
-                color: var(--failure);
-            }
-
-            .deploy.in_progress .duration,
-            .deploy.cancelled .duration {
-                background: var(--pending-soft);
-                color: var(--pending);
-            }
-
-            .deploy .badge {
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-            }
-
-            .deploy .dot {
-                display: inline-block;
-                width: 8px;
-                height: 8px;
-                border-radius: 50%;
-                background: var(--success);
-                flex-shrink: 0;
-            }
-
-            .deploy.failure .dot {
-                background: var(--failure);
-            }
-
-            .deploy.in_progress .dot {
-                background: var(--pending);
-            }
-
-            .deploy.cancelled .dot {
-                background: var(--muted);
-            }
-
-            #status {
-                color: var(--muted);
-                padding: 16px 0;
-                font-size: 13px;
-            }
-
-            #gh-auth {
-                flex-shrink: 0;
-                width: 22px;
-                height: 22px;
-                padding: 0;
-                border: none;
-                background: none;
-                cursor: pointer;
-                color: var(--muted);
-                transition: color 0.15s;
-            }
-
-            #gh-auth:hover {
-                color: var(--fg);
-            }
-
-            #gh-auth.authed {
-                color: var(--success);
-            }
-
-            #gh-auth svg {
-                width: 100%;
-                height: 100%;
-                display: block;
-                fill: currentColor;
-            }
-
-            @media (max-width: 640px) {
-                body {
-                    padding: 24px 12px 60px;
-                }
-
-                h1 {
-                    font-size: 22px;
-                }
-
-                .stats {
-                    grid-template-columns: repeat(2, 1fr);
-                }
-
-                .stat-value {
-                    font-size: 18px;
-                }
-
-                .chart-card {
-                    padding: 16px 12px 12px;
-                }
-
-                .chart-head {
-                    flex-direction: column;
-                    align-items: flex-start;
-                    gap: 8px;
-                    margin-bottom: 10px;
-                }
-
-                .chart-meta {
-                    font-size: 11px;
-                    gap: 10px;
-                    row-gap: 6px;
-                }
-
-                .chart-svg {
-                    height: 260px;
-                }
-
-                .deploy {
-                    grid-template-columns: 52px 1fr auto;
-                }
-            }
-        </style>
-        <script src="/common.js"></script>
-    </head>
-
-    <body>
-        <header>
-            <div>
-                <h1><a href="/">Ruvan</a> <span class="crumb">/ deploys</span></h1>
-                <p class="subtitle" id="range">GitHub Actions deploy durations</p>
-            </div>
-            <button
-                id="gh-auth"
-                type="button"
-                aria-label="Log in with GitHub"
-                title="Log in with GitHub"
-            >
-                <svg viewBox="0 0 16 16" aria-hidden="true">
-                    <path
-                        fill-rule="evenodd"
-                        d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
-                    />
-                </svg>
-            </button>
-        </header>
-
-        <section class="stats" id="stats" hidden>
-            <div class="stat">
-                <span class="stat-label">runs</span>
-                <span class="stat-value" id="stat-count">—</span>
-            </div>
-            <div class="stat median">
-                <span class="stat-label">median</span>
-                <span class="stat-value" id="stat-median">—</span>
-            </div>
-            <div class="stat p90">
-                <span class="stat-label">p90</span>
-                <span class="stat-value" id="stat-p90">—</span>
-            </div>
-            <div class="stat success">
-                <span class="stat-label">success</span>
-                <span class="stat-value" id="stat-success">—</span>
-            </div>
-        </section>
-
-        <section class="chart-card" id="chart-wrap" hidden>
-            <div class="chart-head">
-                <span class="chart-title">Deploy duration</span>
-                <span class="chart-meta">
-                    <span class="legend-item"><span class="legend-swatch"></span>success</span>
-                    <span class="legend-item"
-                        ><span class="legend-swatch failure"></span>failure</span
-                    >
-                    <span class="legend-item"
-                        ><span class="legend-swatch median"></span
-                        ><span id="legend-median">median</span></span
-                    >
-                    <label
-                        class="legend-item legend-toggle"
-                        title="Also chart repository size at each deploy"
-                    >
-                        <input type="checkbox" id="toggle-size" />
-                        <span class="legend-swatch size"></span>
-                        <span id="legend-size">repo size</span>
-                    </label>
-                </span>
-            </div>
-            <svg class="chart-svg" id="chart"></svg>
-        </section>
-
-        <div class="log" id="log"></div>
-        <p id="status">loading…</p>
-        <div id="sentinel"></div>
-
-        <script>
-            (function () {
-                const path =
-                    'M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z';
-                const svg =
-                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><style>path{fill:#7c3aed}</style><path fill-rule="evenodd" d="' +
-                    path +
-                    '"/></svg>';
-                Common.setFaviconHref('data:image/svg+xml,' + encodeURIComponent(svg));
-            })();
-
-            Common.initDarkMode();
-            Common.initSitemapShortcut();
-
-            const REPO = 'rjayasin/rjayasin.github.io';
-            const TOKEN_KEY = 'gh_token';
-            const PER_PAGE = 50;
-            const MAX_PAGES = 10;
-            const SVG_NS = 'http://www.w3.org/2000/svg';
-
-            const log = document.getElementById('log');
-            const status = document.getElementById('status');
-            const range = document.getElementById('range');
-            const sentinel = document.getElementById('sentinel');
-            const authBtn = document.getElementById('gh-auth');
-            const statsEl = document.getElementById('stats');
-            const statCount = document.getElementById('stat-count');
-            const statMedian = document.getElementById('stat-median');
-            const statP90 = document.getElementById('stat-p90');
-            const statSuccess = document.getElementById('stat-success');
-            const chartWrap = document.getElementById('chart-wrap');
-            const chart = document.getElementById('chart');
-            const legendMedian = document.getElementById('legend-median');
-            const legendSize = document.getElementById('legend-size');
-            const toggleSize = document.getElementById('toggle-size');
-
-            function getToken() {
-                return localStorage.getItem(TOKEN_KEY) || '';
-            }
-
-            function refreshAuthBtn() {
-                if (getToken()) {
-                    authBtn.classList.add('authed');
-                    authBtn.title = 'Logged in to GitHub (click to log out)';
-                } else {
-                    authBtn.classList.remove('authed');
-                    authBtn.title = 'Log in with GitHub for higher rate limits';
-                }
-            }
-
-            authBtn.addEventListener('click', () => {
-                if (getToken()) {
-                    if (confirm('Log out of GitHub?')) {
-                        localStorage.removeItem(TOKEN_KEY);
-                        location.reload();
-                    }
-                    return;
-                }
-                const msg =
-                    'Paste a GitHub personal access token for higher rate limits.\n\n' +
-                    'Create one at https://github.com/settings/tokens\n' +
-                    '  • Classic token: scope "public_repo" is enough\n' +
-                    '  • Fine-grained: read access to "Actions" + "Metadata"\n\n' +
-                    'The token is stored only in this browser (localStorage).';
-                const token = prompt(msg, '');
-                if (token && token.trim()) {
-                    localStorage.setItem(TOKEN_KEY, token.trim());
-                    location.reload();
-                }
-            });
-
-            refreshAuthBtn();
-
-            const CURRENT_YEAR = new Date().getFullYear();
-
-            function fmtDay(iso) {
-                const d = new Date(iso);
-                const mm = String(d.getMonth() + 1).padStart(2, '0');
-                const dd = String(d.getDate()).padStart(2, '0');
-                const yyyy = d.getFullYear();
-                return yyyy === CURRENT_YEAR ? `${mm}-${dd}` : `${yyyy}-${mm}-${dd}`;
-            }
-
-            function fmtDayLong(iso) {
-                const d = new Date(iso);
-                return d.toLocaleDateString(undefined, {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric',
-                });
-            }
-
-            function fmtTime(iso) {
-                const d = new Date(iso);
-                let h = d.getHours();
-                const ampm = h >= 12 ? 'pm' : 'am';
-                h = h % 12 || 12;
-                const min = String(d.getMinutes()).padStart(2, '0');
-                return `${h}:${min}${ampm}`;
-            }
-
-            function fmtDuration(sec) {
-                if (sec == null || !isFinite(sec) || sec < 0) return '—';
-                if (sec < 60) return `${sec.toFixed(0)}s`;
-                const m = Math.floor(sec / 60);
-                const s = Math.round(sec - m * 60);
-                return s === 0 ? `${m}m` : `${m}m${String(s).padStart(2, '0')}s`;
-            }
-
-            function escHtml(s) {
-                return s
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;');
-            }
-
-            function percentile(sorted, p) {
-                if (!sorted.length) return null;
-                const idx = Math.min(sorted.length - 1, Math.floor(p * (sorted.length - 1)));
-                return sorted[idx];
-            }
-
-            function median(sorted) {
-                if (!sorted.length) return null;
-                const m = Math.floor(sorted.length / 2);
-                return sorted.length % 2 ? sorted[m] : (sorted[m - 1] + sorted[m]) / 2;
-            }
-
-            let nextPage = 1;
-            let loading = false;
-            let exhausted = false;
-            const allDeploys = [];
-            const seen = new Set();
-
-            async function fetchRuns(page) {
-                const headers = { Accept: 'application/vnd.github+json' };
-                const token = getToken();
-                if (token) headers.Authorization = `Bearer ${token}`;
-                const url =
-                    `https://api.github.com/repos/${REPO}/actions/runs` +
-                    `?per_page=${PER_PAGE}&page=${page}`;
-                const r = await fetch(url, { headers });
-                if (r.status === 401) {
-                    localStorage.removeItem(TOKEN_KEY);
-                    refreshAuthBtn();
-                    throw new Error('GitHub token rejected; logged out');
-                }
-                if (!r.ok) throw new Error(`GitHub API ${r.status}`);
-                return r.json();
-            }
-
-            function isDeployRun(run) {
-                const name = (run.name || '').toLowerCase();
-                const wname = (run.workflow_name || '').toLowerCase();
-                return name.includes('pages') || wname.includes('pages') || run.event === 'dynamic';
-            }
-
-            function runDurationSec(run) {
-                const start = run.run_started_at || run.created_at;
-                const end = run.updated_at;
-                if (!start || !end) return null;
-                const ms = new Date(end).getTime() - new Date(start).getTime();
-                if (!isFinite(ms) || ms < 0) return null;
-                return ms / 1000;
-            }
-
-            function shortSha(sha) {
-                return (sha || '').slice(0, 7);
-            }
-
-            function statusClass(d) {
-                const c = (d.conclusion || d.status || '').toLowerCase();
-                if (c === 'success') return 'success';
-                if (c === 'failure' || c === 'timed_out' || c === 'startup_failure')
-                    return 'failure';
-                if (c === 'cancelled') return 'cancelled';
-                return 'in_progress';
-            }
-
-            function renderLog() {
-                log.innerHTML = '';
-                let currentDay = null;
-                let dayEl = null;
-                let deploysEl = null;
-                let dayCount = 0;
-                let dayCountEl = null;
-
-                for (const d of allDeploys) {
-                    const day = new Date(d.start).toDateString();
-                    if (currentDay !== day) {
-                        if (dayCountEl)
-                            dayCountEl.textContent = `${dayCount} deploy${dayCount === 1 ? '' : 's'}`;
-                        currentDay = day;
-                        dayCount = 0;
-                        dayEl = document.createElement('div');
-                        dayEl.className = 'day';
-                        dayEl.innerHTML = `
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ruvan / deploys</title>
+    <link rel="icon" id="favicon" />
+    <link rel="stylesheet" href="/common.css" />
+    <style>
+      :root {
+        --success: #16a34a;
+        --success-soft: #dcfce7;
+        --failure: #dc2626;
+        --failure-soft: #fee2e2;
+        --pending: #d97706;
+        --pending-soft: #fef3c7;
+        --median: #00a2ff;
+        --size: #7c3aed;
+        --grid: #e5e7eb;
+        --muted: #6b7280;
+        --fg: #111827;
+        --bg: #ffffff;
+        --card: #f9fafb;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+          sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+        padding: 40px 24px 80px;
+        max-width: 880px;
+        margin: 0 auto;
+        color: var(--fg);
+      }
+
+      body.dark {
+        --success: #4ade80;
+        --success-soft: #14532d;
+        --failure: #f87171;
+        --failure-soft: #7f1d1d;
+        --pending: #fbbf24;
+        --pending-soft: #78350f;
+        --median: #00a2ff;
+        --size: #a78bfa;
+        --grid: #2a2a2a;
+        --muted: #9ca3af;
+        --fg: #f5f5f5;
+        --bg: #111111;
+        --card: #1a1a1a;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) {
+          --success: #4ade80;
+          --success-soft: #14532d;
+          --failure: #f87171;
+          --failure-soft: #7f1d1d;
+          --pending: #fbbf24;
+          --pending-soft: #78350f;
+          --median: #00a2ff;
+          --size: #a78bfa;
+          --grid: #2a2a2a;
+          --muted: #9ca3af;
+          --fg: #f5f5f5;
+          --bg: #111111;
+          --card: #1a1a1a;
+        }
+      }
+
+      header {
+        margin-bottom: 28px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+      }
+
+      header a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      header a:hover {
+        text-decoration: underline;
+      }
+
+      h1 {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 28px;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+      }
+
+      h1 .crumb {
+        color: var(--muted);
+        font-weight: 400;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 4px;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-bottom: 28px;
+      }
+
+      .stat {
+        background: var(--card);
+        border-radius: 10px;
+        padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .stat-label {
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .stat-value {
+        font-size: 22px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.01em;
+      }
+
+      .stat.median .stat-value {
+        color: var(--median);
+      }
+
+      .stat.success .stat-value {
+        color: var(--success);
+      }
+
+      .stat.p90 .stat-value {
+        color: var(--pending);
+      }
+
+      .chart-card {
+        background: var(--card);
+        border-radius: 12px;
+        padding: 20px 20px 14px;
+        margin-bottom: 32px;
+      }
+
+      .chart-card[hidden] {
+        display: none;
+      }
+
+      .chart-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 14px;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .chart-title {
+        font-size: 15px;
+        font-weight: 600;
+      }
+
+      .chart-meta {
+        font-size: 12px;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .legend-swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+        background: var(--success);
+      }
+
+      .legend-swatch.failure {
+        background: var(--failure);
+      }
+
+      .legend-swatch.median {
+        background: transparent;
+        border-top: 2px dashed var(--median);
+        border-radius: 0;
+        height: 0;
+        width: 14px;
+      }
+
+      .legend-swatch.size {
+        background: var(--size);
+      }
+
+      .legend-toggle {
+        cursor: pointer;
+        user-select: none;
+        color: var(--muted);
+        transition: color 0.15s;
+      }
+
+      .legend-toggle:hover {
+        color: var(--fg);
+      }
+
+      .legend-toggle input {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 12px;
+        height: 12px;
+        margin: 0;
+        border: 1.5px solid currentColor;
+        border-radius: 3px;
+        background: transparent;
+        cursor: pointer;
+        flex-shrink: 0;
+        position: relative;
+      }
+
+      .legend-toggle input:checked {
+        background: var(--size);
+        border-color: var(--size);
+      }
+
+      .legend-toggle input:checked::after {
+        content: '';
+        position: absolute;
+        left: 2px;
+        top: -1px;
+        width: 4px;
+        height: 8px;
+        border: solid #fff;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+      }
+
+      .chart-svg {
+        width: 100%;
+        height: 240px;
+        display: block;
+        overflow: visible;
+      }
+
+      .chart-svg .bar {
+        cursor: pointer;
+        transition: opacity 0.15s;
+      }
+
+      .chart-svg .bar:hover {
+        opacity: 0.7;
+      }
+
+      .chart-svg .grid-line {
+        stroke: var(--grid);
+        stroke-width: 1;
+      }
+
+      .chart-svg .axis-label {
+        fill: var(--muted);
+        font-size: 10px;
+      }
+
+      .chart-svg .axis-label-size {
+        fill: var(--size);
+      }
+
+      .chart-svg .median-line {
+        stroke: var(--median);
+        stroke-width: 2;
+        stroke-dasharray: 4 3;
+        fill: none;
+      }
+
+      .chart-svg .size-area {
+        fill: var(--size);
+        fill-opacity: 0.14;
+        stroke: none;
+        pointer-events: none;
+      }
+
+      .chart-svg .size-line {
+        fill: none;
+        stroke: var(--size);
+        stroke-width: 1.75;
+        stroke-linejoin: round;
+        stroke-linecap: round;
+        pointer-events: none;
+      }
+
+      .chart-svg .size-dot {
+        fill: var(--card);
+        stroke: var(--size);
+        stroke-width: 1.5;
+        cursor: pointer;
+      }
+
+      .log {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .day-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 6px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--grid);
+      }
+
+      .day-date {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--fg);
+      }
+
+      .day-count {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .deploys {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .deploy {
+        display: grid;
+        grid-template-columns: 64px 1fr auto;
+        column-gap: 12px;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px solid var(--grid);
+      }
+
+      .deploy:last-child {
+        border-bottom: none;
+      }
+
+      .deploy .time {
+        color: var(--muted);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .deploy a {
+        color: var(--fg);
+        text-decoration: none;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 13px;
+      }
+
+      .deploy a:hover {
+        text-decoration: underline;
+      }
+
+      .deploy .duration {
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--success-soft);
+        color: var(--success);
+        font-weight: 600;
+      }
+
+      .deploy.failure .duration {
+        background: var(--failure-soft);
+        color: var(--failure);
+      }
+
+      .deploy.in_progress .duration,
+      .deploy.cancelled .duration {
+        background: var(--pending-soft);
+        color: var(--pending);
+      }
+
+      .deploy .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .deploy .dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--success);
+        flex-shrink: 0;
+      }
+
+      .deploy.failure .dot {
+        background: var(--failure);
+      }
+
+      .deploy.in_progress .dot {
+        background: var(--pending);
+      }
+
+      .deploy.cancelled .dot {
+        background: var(--muted);
+      }
+
+      #status {
+        color: var(--muted);
+        padding: 16px 0;
+        font-size: 13px;
+      }
+
+      #gh-auth {
+        flex-shrink: 0;
+        width: 22px;
+        height: 22px;
+        padding: 0;
+        border: none;
+        background: none;
+        cursor: pointer;
+        color: var(--muted);
+        transition: color 0.15s;
+      }
+
+      #gh-auth:hover {
+        color: var(--fg);
+      }
+
+      #gh-auth.authed {
+        color: var(--success);
+      }
+
+      #gh-auth svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+        fill: currentColor;
+      }
+
+      @media (max-width: 640px) {
+        body {
+          padding: 24px 12px 60px;
+        }
+
+        h1 {
+          font-size: 22px;
+        }
+
+        .stats {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .stat-value {
+          font-size: 18px;
+        }
+
+        .chart-card {
+          padding: 16px 12px 12px;
+        }
+
+        .chart-head {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 8px;
+          margin-bottom: 10px;
+        }
+
+        .chart-meta {
+          font-size: 11px;
+          gap: 10px;
+          row-gap: 6px;
+        }
+
+        .chart-svg {
+          height: 260px;
+        }
+
+        .deploy {
+          grid-template-columns: 52px 1fr auto;
+        }
+      }
+    </style>
+    <script src="/common.js"></script>
+  </head>
+
+  <body>
+    <header>
+      <div>
+        <h1><a href="/">Ruvan</a> <span class="crumb">/ deploys</span></h1>
+        <p class="subtitle" id="range">GitHub Actions deploy durations</p>
+      </div>
+      <button id="gh-auth" type="button" aria-label="Log in with GitHub" title="Log in with GitHub">
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <path
+            fill-rule="evenodd"
+            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
+          />
+        </svg>
+      </button>
+    </header>
+
+    <section class="stats" id="stats" hidden>
+      <div class="stat">
+        <span class="stat-label">runs</span>
+        <span class="stat-value" id="stat-count">—</span>
+      </div>
+      <div class="stat median">
+        <span class="stat-label">median</span>
+        <span class="stat-value" id="stat-median">—</span>
+      </div>
+      <div class="stat p90">
+        <span class="stat-label">p90</span>
+        <span class="stat-value" id="stat-p90">—</span>
+      </div>
+      <div class="stat success">
+        <span class="stat-label">success</span>
+        <span class="stat-value" id="stat-success">—</span>
+      </div>
+    </section>
+
+    <section class="chart-card" id="chart-wrap" hidden>
+      <div class="chart-head">
+        <span class="chart-title">Deploy duration</span>
+        <span class="chart-meta">
+          <span class="legend-item"><span class="legend-swatch"></span>success</span>
+          <span class="legend-item"><span class="legend-swatch failure"></span>failure</span>
+          <span class="legend-item"
+            ><span class="legend-swatch median"></span><span id="legend-median">median</span></span
+          >
+          <label
+            class="legend-item legend-toggle"
+            title="Also chart repository size at each deploy"
+          >
+            <input type="checkbox" id="toggle-size" />
+            <span class="legend-swatch size"></span>
+            <span id="legend-size">repo size</span>
+          </label>
+        </span>
+      </div>
+      <svg class="chart-svg" id="chart"></svg>
+    </section>
+
+    <div class="log" id="log"></div>
+    <p id="status">loading…</p>
+    <div id="sentinel"></div>
+
+    <script>
+      (function () {
+        const path =
+          'M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z';
+        const svg =
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><style>path{fill:#7c3aed}</style><path fill-rule="evenodd" d="' +
+          path +
+          '"/></svg>';
+        Common.setFaviconHref('data:image/svg+xml,' + encodeURIComponent(svg));
+      })();
+
+      Common.initDarkMode();
+      Common.initSitemapShortcut();
+
+      const REPO = 'rjayasin/rjayasin.github.io';
+      const TOKEN_KEY = 'gh_token';
+      const PER_PAGE = 50;
+      const MAX_PAGES = 10;
+      const SVG_NS = 'http://www.w3.org/2000/svg';
+
+      const log = document.getElementById('log');
+      const status = document.getElementById('status');
+      const range = document.getElementById('range');
+      const sentinel = document.getElementById('sentinel');
+      const authBtn = document.getElementById('gh-auth');
+      const statsEl = document.getElementById('stats');
+      const statCount = document.getElementById('stat-count');
+      const statMedian = document.getElementById('stat-median');
+      const statP90 = document.getElementById('stat-p90');
+      const statSuccess = document.getElementById('stat-success');
+      const chartWrap = document.getElementById('chart-wrap');
+      const chart = document.getElementById('chart');
+      const legendMedian = document.getElementById('legend-median');
+      const legendSize = document.getElementById('legend-size');
+      const toggleSize = document.getElementById('toggle-size');
+
+      function getToken() {
+        return localStorage.getItem(TOKEN_KEY) || '';
+      }
+
+      function refreshAuthBtn() {
+        if (getToken()) {
+          authBtn.classList.add('authed');
+          authBtn.title = 'Logged in to GitHub (click to log out)';
+        } else {
+          authBtn.classList.remove('authed');
+          authBtn.title = 'Log in with GitHub for higher rate limits';
+        }
+      }
+
+      authBtn.addEventListener('click', () => {
+        if (getToken()) {
+          if (confirm('Log out of GitHub?')) {
+            localStorage.removeItem(TOKEN_KEY);
+            location.reload();
+          }
+          return;
+        }
+        const msg =
+          'Paste a GitHub personal access token for higher rate limits.\n\n' +
+          'Create one at https://github.com/settings/tokens\n' +
+          '  • Classic token: scope "public_repo" is enough\n' +
+          '  • Fine-grained: read access to "Actions" + "Metadata"\n\n' +
+          'The token is stored only in this browser (localStorage).';
+        const token = prompt(msg, '');
+        if (token && token.trim()) {
+          localStorage.setItem(TOKEN_KEY, token.trim());
+          location.reload();
+        }
+      });
+
+      refreshAuthBtn();
+
+      const CURRENT_YEAR = new Date().getFullYear();
+
+      function fmtDay(iso) {
+        const d = new Date(iso);
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        return yyyy === CURRENT_YEAR ? `${mm}-${dd}` : `${yyyy}-${mm}-${dd}`;
+      }
+
+      function fmtDayLong(iso) {
+        const d = new Date(iso);
+        return d.toLocaleDateString(undefined, {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+        });
+      }
+
+      function fmtTime(iso) {
+        const d = new Date(iso);
+        let h = d.getHours();
+        const ampm = h >= 12 ? 'pm' : 'am';
+        h = h % 12 || 12;
+        const min = String(d.getMinutes()).padStart(2, '0');
+        return `${h}:${min}${ampm}`;
+      }
+
+      function fmtDuration(sec) {
+        if (sec == null || !isFinite(sec) || sec < 0) return '—';
+        if (sec < 60) return `${sec.toFixed(0)}s`;
+        const m = Math.floor(sec / 60);
+        const s = Math.round(sec - m * 60);
+        return s === 0 ? `${m}m` : `${m}m${String(s).padStart(2, '0')}s`;
+      }
+
+      function escHtml(s) {
+        return s
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function percentile(sorted, p) {
+        if (!sorted.length) return null;
+        const idx = Math.min(sorted.length - 1, Math.floor(p * (sorted.length - 1)));
+        return sorted[idx];
+      }
+
+      function median(sorted) {
+        if (!sorted.length) return null;
+        const m = Math.floor(sorted.length / 2);
+        return sorted.length % 2 ? sorted[m] : (sorted[m - 1] + sorted[m]) / 2;
+      }
+
+      let nextPage = 1;
+      let loading = false;
+      let exhausted = false;
+      const allDeploys = [];
+      const seen = new Set();
+
+      async function fetchRuns(page) {
+        const headers = { Accept: 'application/vnd.github+json' };
+        const token = getToken();
+        if (token) headers.Authorization = `Bearer ${token}`;
+        const url =
+          `https://api.github.com/repos/${REPO}/actions/runs` +
+          `?per_page=${PER_PAGE}&page=${page}`;
+        const r = await fetch(url, { headers });
+        if (r.status === 401) {
+          localStorage.removeItem(TOKEN_KEY);
+          refreshAuthBtn();
+          throw new Error('GitHub token rejected; logged out');
+        }
+        if (!r.ok) throw new Error(`GitHub API ${r.status}`);
+        return r.json();
+      }
+
+      function isDeployRun(run) {
+        const name = (run.name || '').toLowerCase();
+        const wname = (run.workflow_name || '').toLowerCase();
+        return name.includes('pages') || wname.includes('pages') || run.event === 'dynamic';
+      }
+
+      function runDurationSec(run) {
+        const start = run.run_started_at || run.created_at;
+        const end = run.updated_at;
+        if (!start || !end) return null;
+        const ms = new Date(end).getTime() - new Date(start).getTime();
+        if (!isFinite(ms) || ms < 0) return null;
+        return ms / 1000;
+      }
+
+      function shortSha(sha) {
+        return (sha || '').slice(0, 7);
+      }
+
+      function statusClass(d) {
+        const c = (d.conclusion || d.status || '').toLowerCase();
+        if (c === 'success') return 'success';
+        if (c === 'failure' || c === 'timed_out' || c === 'startup_failure') return 'failure';
+        if (c === 'cancelled') return 'cancelled';
+        return 'in_progress';
+      }
+
+      function renderLog() {
+        log.innerHTML = '';
+        let currentDay = null;
+        let dayEl = null;
+        let deploysEl = null;
+        let dayCount = 0;
+        let dayCountEl = null;
+
+        for (const d of allDeploys) {
+          const day = new Date(d.start).toDateString();
+          if (currentDay !== day) {
+            if (dayCountEl)
+              dayCountEl.textContent = `${dayCount} deploy${dayCount === 1 ? '' : 's'}`;
+            currentDay = day;
+            dayCount = 0;
+            dayEl = document.createElement('div');
+            dayEl.className = 'day';
+            dayEl.innerHTML = `
             <div class="day-header">
               <span class="day-date">${fmtDayLong(d.start)}</span>
               <span class="day-count"></span>
             </div>
             <div class="deploys"></div>`;
-                        log.appendChild(dayEl);
-                        dayCountEl = dayEl.querySelector('.day-count');
-                        deploysEl = dayEl.querySelector('.deploys');
-                    }
-                    dayCount++;
+            log.appendChild(dayEl);
+            dayCountEl = dayEl.querySelector('.day-count');
+            deploysEl = dayEl.querySelector('.deploys');
+          }
+          dayCount++;
 
-                    const cls = statusClass(d);
-                    const row = document.createElement('div');
-                    row.className = `deploy ${cls}`;
-                    row.innerHTML = `
+          const cls = statusClass(d);
+          const row = document.createElement('div');
+          row.className = `deploy ${cls}`;
+          row.innerHTML = `
           <span class="time">${fmtTime(d.start)}</span>
           <a href="${d.url}" target="_blank" rel="noopener" title="${escHtml(d.title)}" class="badge">
             <span class="dot"></span><span>${escHtml(d.label)}</span>
           </a>
           <span class="duration">${fmtDuration(d.durationSec)}</span>`;
-                    deploysEl.appendChild(row);
-                }
-                if (dayCountEl)
-                    dayCountEl.textContent = `${dayCount} deploy${dayCount === 1 ? '' : 's'}`;
+          deploysEl.appendChild(row);
+        }
+        if (dayCountEl) dayCountEl.textContent = `${dayCount} deploy${dayCount === 1 ? '' : 's'}`;
+      }
+
+      function renderStats() {
+        if (!allDeploys.length) return;
+        statsEl.hidden = false;
+        const durations = allDeploys
+          .map((d) => d.durationSec)
+          .filter((s) => s != null && s >= 0)
+          .sort((a, b) => a - b);
+        const successes = allDeploys.filter((d) => d.conclusion === 'success').length;
+        statCount.textContent = String(allDeploys.length);
+        statMedian.textContent = fmtDuration(median(durations));
+        statP90.textContent = fmtDuration(percentile(durations, 0.9));
+        const pct = allDeploys.length ? Math.round((100 * successes) / allDeploys.length) : 0;
+        statSuccess.textContent = `${pct}%`;
+      }
+
+      function fmtSize(bytes) {
+        if (bytes == null || !isFinite(bytes) || bytes < 0) return '—';
+        if (bytes < 1024) return `${Math.round(bytes)}B`;
+        if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)}KB`;
+        const mb = bytes / (1024 * 1024);
+        if (mb < 1024) return mb < 10 ? `${mb.toFixed(1)}MB` : `${Math.round(mb)}MB`;
+        return `${(mb / 1024).toFixed(1)}GB`;
+      }
+
+      let showSize = false;
+      const sizesByCommit = new Map();
+      let sizeLoadToken = 0;
+
+      async function fetchTreeSize(sha) {
+        const headers = { Accept: 'application/vnd.github+json' };
+        const token = getToken();
+        if (token) headers.Authorization = `Bearer ${token}`;
+        const url = `https://api.github.com/repos/${REPO}/git/trees/${sha}?recursive=1`;
+        const r = await fetch(url, { headers });
+        if (r.status === 401) {
+          localStorage.removeItem(TOKEN_KEY);
+          refreshAuthBtn();
+          throw new Error('GitHub token rejected; logged out');
+        }
+        if (!r.ok) throw new Error(`GitHub API ${r.status}`);
+        const data = await r.json();
+        let total = 0;
+        for (const item of data.tree || []) {
+          if (item.type === 'blob' && typeof item.size === 'number') total += item.size;
+        }
+        return total;
+      }
+
+      async function loadSizes() {
+        const myToken = ++sizeLoadToken;
+        const shas = [];
+        const seenSha = new Set();
+        for (const d of allDeploys) {
+          if (!d.sha || seenSha.has(d.sha)) continue;
+          seenSha.add(d.sha);
+          if (!sizesByCommit.has(d.sha)) shas.push(d.sha);
+        }
+        if (!shas.length) return;
+
+        const CONCURRENCY = 4;
+        let idx = 0;
+        let pendingRender = false;
+        const scheduleRender = () => {
+          if (pendingRender || sizeLoadToken !== myToken) return;
+          pendingRender = true;
+          requestAnimationFrame(() => {
+            pendingRender = false;
+            if (sizeLoadToken === myToken && showSize) renderChart();
+          });
+        };
+
+        async function worker() {
+          while (idx < shas.length && sizeLoadToken === myToken) {
+            const sha = shas[idx++];
+            try {
+              const total = await fetchTreeSize(sha);
+              sizesByCommit.set(sha, total);
+            } catch (e) {
+              sizesByCommit.set(sha, null);
             }
+            scheduleRender();
+          }
+        }
+        const workers = [];
+        for (let i = 0; i < Math.min(CONCURRENCY, shas.length); i++) workers.push(worker());
+        await Promise.all(workers);
+      }
 
-            function renderStats() {
-                if (!allDeploys.length) return;
-                statsEl.hidden = false;
-                const durations = allDeploys
-                    .map((d) => d.durationSec)
-                    .filter((s) => s != null && s >= 0)
-                    .sort((a, b) => a - b);
-                const successes = allDeploys.filter((d) => d.conclusion === 'success').length;
-                statCount.textContent = String(allDeploys.length);
-                statMedian.textContent = fmtDuration(median(durations));
-                statP90.textContent = fmtDuration(percentile(durations, 0.9));
-                const pct = allDeploys.length
-                    ? Math.round((100 * successes) / allDeploys.length)
-                    : 0;
-                statSuccess.textContent = `${pct}%`;
+      toggleSize.addEventListener('change', () => {
+        showSize = toggleSize.checked;
+        if (showSize) loadSizes();
+        renderChart();
+      });
+
+      function renderChart() {
+        if (!allDeploys.length) return;
+        chartWrap.hidden = false;
+
+        // oldest → newest
+        const ordered = [...allDeploys].reverse();
+        const durations = ordered.map((d) => d.durationSec || 0);
+        const max = Math.max(1, ...durations);
+
+        const sorted = durations
+          .slice()
+          .filter((s) => s > 0)
+          .sort((a, b) => a - b);
+        const med = median(sorted) || 0;
+
+        // Repo size data (only used when showSize is on).
+        const sizes = ordered.map((d) => sizesByCommit.get(d.sha));
+        const sizeVals = sizes.filter((v) => v != null && v > 0);
+        const maxSize = sizeVals.length ? Math.max(...sizeVals) : 0;
+        const latestSize = (() => {
+          for (let i = sizes.length - 1; i >= 0; i--) {
+            if (sizes[i] != null && sizes[i] > 0) return sizes[i];
+          }
+          return null;
+        })();
+
+        // Force layout, then measure the chart's actual rendered size so
+        // viewBox coordinates map 1:1 with pixels (no text stretching or
+        // letterboxing when CSS height varies between breakpoints).
+        void chartWrap.offsetWidth;
+        const box = chart.getBoundingClientRect();
+        const W = Math.max(320, Math.round(box.width || chart.clientWidth || 1000));
+        const H = Math.max(160, Math.round(box.height || chart.clientHeight || 240));
+        const PAD_L = 44;
+        // Reserve room for the right-side size axis when shown.
+        const PAD_R = showSize ? 44 : 4;
+        const PAD_T = 14;
+        const PAD_B = 22;
+        const innerW = W - PAD_L - PAD_R;
+        const innerH = H - PAD_T - PAD_B;
+
+        chart.setAttribute('viewBox', `0 0 ${W} ${H}`);
+        while (chart.firstChild) chart.removeChild(chart.firstChild);
+
+        // Y-axis grid lines + duration labels (left) and size labels (right).
+        const ticks = 4;
+        for (let i = 0; i <= ticks; i++) {
+          const t = i / ticks;
+          const y = PAD_T + innerH * (1 - t);
+          const line = document.createElementNS(SVG_NS, 'line');
+          line.setAttribute('class', 'grid-line');
+          line.setAttribute('x1', PAD_L);
+          line.setAttribute('x2', W - PAD_R);
+          line.setAttribute('y1', y);
+          line.setAttribute('y2', y);
+          chart.appendChild(line);
+
+          const label = document.createElementNS(SVG_NS, 'text');
+          label.setAttribute('class', 'axis-label');
+          label.setAttribute('x', PAD_L - 6);
+          label.setAttribute('y', y + 3);
+          label.setAttribute('text-anchor', 'end');
+          label.textContent = fmtDuration(max * t);
+          chart.appendChild(label);
+
+          if (showSize && maxSize > 0) {
+            const sizeLabel = document.createElementNS(SVG_NS, 'text');
+            sizeLabel.setAttribute('class', 'axis-label axis-label-size');
+            sizeLabel.setAttribute('x', W - PAD_R + 6);
+            sizeLabel.setAttribute('y', y + 3);
+            sizeLabel.setAttribute('text-anchor', 'start');
+            sizeLabel.textContent = fmtSize(maxSize * t);
+            chart.appendChild(sizeLabel);
+          }
+        }
+
+        // Duration bars use the full slot width. Repo size, when enabled,
+        // overlays as an area + line so neither metric gets squashed.
+        const n = ordered.length;
+        const gap = n > 60 ? 1 : n > 30 ? 1.5 : 2;
+        const slotW = Math.max(2, (innerW - gap * (n - 1)) / n);
+        const barW = slotW;
+        const slotCenters = new Array(n);
+        ordered.forEach((d, i) => {
+          const slotX = PAD_L + i * (slotW + gap);
+          slotCenters[i] = slotX + barW / 2;
+          const sec = d.durationSec || 0;
+          const h = Math.max(1.5, (sec / max) * innerH);
+          const y = PAD_T + innerH - h;
+          const rect = document.createElementNS(SVG_NS, 'rect');
+          rect.setAttribute('class', 'bar');
+          rect.setAttribute('x', slotX);
+          rect.setAttribute('y', y);
+          rect.setAttribute('width', barW);
+          rect.setAttribute('height', h);
+          rect.setAttribute('rx', Math.min(2, barW / 3));
+          const cls = statusClass(d);
+          const color =
+            cls === 'success'
+              ? 'var(--success)'
+              : cls === 'failure'
+                ? 'var(--failure)'
+                : 'var(--pending)';
+          rect.setAttribute('fill', color);
+          const sizeBytes = sizes[i];
+          const titleParts = [
+            `${fmtDay(d.start)} ${fmtTime(d.start)}`,
+            fmtDuration(sec),
+            d.conclusion || d.status,
+          ];
+          if (showSize && sizeBytes != null) titleParts.push(`size ${fmtSize(sizeBytes)}`);
+          const title = document.createElementNS(SVG_NS, 'title');
+          title.textContent = titleParts.join(' · ');
+          rect.appendChild(title);
+          rect.addEventListener('click', () => window.open(d.url, '_blank', 'noopener'));
+          chart.appendChild(rect);
+        });
+
+        // Repo size: smooth area + line overlay across deploys that have a
+        // known size, with markers on each data point.
+        if (showSize && maxSize > 0) {
+          const sizeY = (v) => PAD_T + innerH * (1 - v / maxSize);
+          const segments = [];
+          let current = null;
+          for (let i = 0; i < n; i++) {
+            const v = sizes[i];
+            if (v != null && v > 0) {
+              if (!current) {
+                current = [];
+                segments.push(current);
+              }
+              current.push({ i, x: slotCenters[i], y: sizeY(v), v });
+            } else if (current) {
+              current = null;
             }
+          }
+          const showDots = slotW >= 8;
+          const dotR = Math.min(3, Math.max(1.8, slotW * 0.35));
+          for (const seg of segments) {
+            if (seg.length >= 2) {
+              const baseY = PAD_T + innerH;
+              const areaPts = seg.map((p) => `${p.x},${p.y}`).join(' ');
+              const area = document.createElementNS(SVG_NS, 'polygon');
+              area.setAttribute('class', 'size-area');
+              area.setAttribute(
+                'points',
+                `${seg[0].x},${baseY} ${areaPts} ${seg[seg.length - 1].x},${baseY}`
+              );
+              chart.appendChild(area);
 
-            function fmtSize(bytes) {
-                if (bytes == null || !isFinite(bytes) || bytes < 0) return '—';
-                if (bytes < 1024) return `${Math.round(bytes)}B`;
-                if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)}KB`;
-                const mb = bytes / (1024 * 1024);
-                if (mb < 1024) return mb < 10 ? `${mb.toFixed(1)}MB` : `${Math.round(mb)}MB`;
-                return `${(mb / 1024).toFixed(1)}GB`;
+              const line = document.createElementNS(SVG_NS, 'polyline');
+              line.setAttribute('class', 'size-line');
+              line.setAttribute('points', areaPts);
+              chart.appendChild(line);
             }
-
-            let showSize = false;
-            const sizesByCommit = new Map();
-            let sizeLoadToken = 0;
-
-            async function fetchTreeSize(sha) {
-                const headers = { Accept: 'application/vnd.github+json' };
-                const token = getToken();
-                if (token) headers.Authorization = `Bearer ${token}`;
-                const url = `https://api.github.com/repos/${REPO}/git/trees/${sha}?recursive=1`;
-                const r = await fetch(url, { headers });
-                if (r.status === 401) {
-                    localStorage.removeItem(TOKEN_KEY);
-                    refreshAuthBtn();
-                    throw new Error('GitHub token rejected; logged out');
-                }
-                if (!r.ok) throw new Error(`GitHub API ${r.status}`);
-                const data = await r.json();
-                let total = 0;
-                for (const item of data.tree || []) {
-                    if (item.type === 'blob' && typeof item.size === 'number') total += item.size;
-                }
-                return total;
+            if (!showDots) continue;
+            for (const p of seg) {
+              const dot = document.createElementNS(SVG_NS, 'circle');
+              dot.setAttribute('class', 'size-dot');
+              dot.setAttribute('cx', p.x);
+              dot.setAttribute('cy', p.y);
+              dot.setAttribute('r', dotR);
+              const d = ordered[p.i];
+              const dtitle = document.createElementNS(SVG_NS, 'title');
+              dtitle.textContent = `${fmtDay(d.start)} ${fmtTime(d.start)} · size ${fmtSize(p.v)}`;
+              dot.appendChild(dtitle);
+              dot.addEventListener('click', () => window.open(d.url, '_blank', 'noopener'));
+              chart.appendChild(dot);
             }
+          }
+        }
 
-            async function loadSizes() {
-                const myToken = ++sizeLoadToken;
-                const shas = [];
-                const seenSha = new Set();
-                for (const d of allDeploys) {
-                    if (!d.sha || seenSha.has(d.sha)) continue;
-                    seenSha.add(d.sha);
-                    if (!sizesByCommit.has(d.sha)) shas.push(d.sha);
-                }
-                if (!shas.length) return;
+        // Median line. The value is rendered in the legend (see below) so
+        // there is no in-chart label overlapping the bars.
+        if (med > 0) {
+          const medY = PAD_T + innerH * (1 - med / max);
+          const line = document.createElementNS(SVG_NS, 'line');
+          line.setAttribute('class', 'median-line');
+          line.setAttribute('x1', PAD_L);
+          line.setAttribute('x2', W - PAD_R);
+          line.setAttribute('y1', medY);
+          line.setAttribute('y2', medY);
+          chart.appendChild(line);
+        }
+        if (legendMedian) {
+          legendMedian.textContent = med > 0 ? `median ${fmtDuration(med)}` : 'median';
+        }
+        if (legendSize) {
+          legendSize.textContent =
+            showSize && latestSize != null ? `repo size ${fmtSize(latestSize)}` : 'repo size';
+        }
 
-                const CONCURRENCY = 4;
-                let idx = 0;
-                let pendingRender = false;
-                const scheduleRender = () => {
-                    if (pendingRender || sizeLoadToken !== myToken) return;
-                    pendingRender = true;
-                    requestAnimationFrame(() => {
-                        pendingRender = false;
-                        if (sizeLoadToken === myToken && showSize) renderChart();
-                    });
-                };
+        // X-axis date labels along the bottom. Pick ~one label per 80px and
+        // dedupe by day so same-day deploys don't repeat the same label.
+        const xLabelY = PAD_T + innerH + 14;
+        const targetLabels = Math.min(n, Math.max(2, Math.floor(innerW / 80)));
+        const seenLabels = new Set();
+        for (let i = 0; i < targetLabels; i++) {
+          const denom = Math.max(1, targetLabels - 1);
+          const idx = Math.round((i / denom) * (n - 1));
+          const text = fmtDay(ordered[idx].start);
+          if (seenLabels.has(text)) continue;
+          seenLabels.add(text);
+          const txt = document.createElementNS(SVG_NS, 'text');
+          txt.setAttribute('class', 'axis-label');
+          txt.setAttribute('y', xLabelY);
+          const anchor = idx === 0 ? 'start' : idx === n - 1 ? 'end' : 'middle';
+          txt.setAttribute('text-anchor', anchor);
+          let x = slotCenters[idx];
+          if (idx === 0) x = PAD_L;
+          else if (idx === n - 1) x = W - PAD_R;
+          txt.setAttribute('x', x);
+          txt.textContent = text;
+          chart.appendChild(txt);
+        }
+      }
 
-                async function worker() {
-                    while (idx < shas.length && sizeLoadToken === myToken) {
-                        const sha = shas[idx++];
-                        try {
-                            const total = await fetchTreeSize(sha);
-                            sizesByCommit.set(sha, total);
-                        } catch (e) {
-                            sizesByCommit.set(sha, null);
-                        }
-                        scheduleRender();
-                    }
-                }
-                const workers = [];
-                for (let i = 0; i < Math.min(CONCURRENCY, shas.length); i++) workers.push(worker());
-                await Promise.all(workers);
-            }
+      function ingest(runs) {
+        let added = 0;
+        for (const run of runs) {
+          if (!isDeployRun(run)) continue;
+          if (seen.has(run.id)) continue;
+          seen.add(run.id);
+          const start = run.run_started_at || run.created_at;
+          const sha = run.head_sha;
+          const msg = (
+            run.head_commit && run.head_commit.message ? run.head_commit.message : ''
+          ).split('\n')[0];
+          allDeploys.push({
+            id: run.id,
+            sha,
+            start,
+            end: run.updated_at,
+            durationSec: runDurationSec(run),
+            conclusion: run.conclusion,
+            status: run.status,
+            url: run.html_url,
+            label: msg
+              ? `${shortSha(sha)} ${msg}`
+              : `${shortSha(sha)} · ${run.workflow_name || run.name || 'deploy'}`,
+            title: `run #${run.run_number} · ${run.workflow_name || run.name}`,
+          });
+          added++;
+        }
+        allDeploys.sort((a, b) => new Date(b.start) - new Date(a.start));
+        return added;
+      }
 
-            toggleSize.addEventListener('change', () => {
-                showSize = toggleSize.checked;
-                if (showSize) loadSizes();
-                renderChart();
-            });
+      async function loadMore() {
+        if (loading || exhausted) return;
+        loading = true;
+        status.textContent = 'loading…';
 
-            function renderChart() {
-                if (!allDeploys.length) return;
-                chartWrap.hidden = false;
+        let data;
+        try {
+          data = await fetchRuns(nextPage);
+        } catch (e) {
+          status.textContent = e.message;
+          loading = false;
+          exhausted = true;
+          return;
+        }
 
-                // oldest → newest
-                const ordered = [...allDeploys].reverse();
-                const durations = ordered.map((d) => d.durationSec || 0);
-                const max = Math.max(1, ...durations);
+        const runs = data.workflow_runs || [];
+        if (!runs.length && !allDeploys.length) {
+          status.textContent = 'no deployments';
+          exhausted = true;
+          loading = false;
+          return;
+        }
 
-                const sorted = durations
-                    .slice()
-                    .filter((s) => s > 0)
-                    .sort((a, b) => a - b);
-                const med = median(sorted) || 0;
+        ingest(runs);
+        renderStats();
+        renderChart();
+        renderLog();
+        if (showSize) loadSizes();
 
-                // Repo size data (only used when showSize is on).
-                const sizes = ordered.map((d) => sizesByCommit.get(d.sha));
-                const sizeVals = sizes.filter((v) => v != null && v > 0);
-                const maxSize = sizeVals.length ? Math.max(...sizeVals) : 0;
-                const latestSize = (() => {
-                    for (let i = sizes.length - 1; i >= 0; i--) {
-                        if (sizes[i] != null && sizes[i] > 0) return sizes[i];
-                    }
-                    return null;
-                })();
+        range.innerHTML = `<a href="https://github.com/rjayasin/rjayasin.github.io">rjayasin.github.io</a> · ${allDeploys.length} deploy${allDeploys.length === 1 ? '' : 's'} · <a href="https://github.com/rjayasin/rjayasin.github.io/actions">GitHub Actions</a>`;
+        nextPage++;
+        if (runs.length < PER_PAGE || nextPage > MAX_PAGES) {
+          exhausted = true;
+          status.textContent = '';
+        } else {
+          status.textContent = '';
+        }
+        loading = false;
+      }
 
-                // Force layout, then measure the chart's actual rendered size so
-                // viewBox coordinates map 1:1 with pixels (no text stretching or
-                // letterboxing when CSS height varies between breakpoints).
-                void chartWrap.offsetWidth;
-                const box = chart.getBoundingClientRect();
-                const W = Math.max(320, Math.round(box.width || chart.clientWidth || 1000));
-                const H = Math.max(160, Math.round(box.height || chart.clientHeight || 240));
-                const PAD_L = 44;
-                // Reserve room for the right-side size axis when shown.
-                const PAD_R = showSize ? 44 : 4;
-                const PAD_T = 14;
-                const PAD_B = 22;
-                const innerW = W - PAD_L - PAD_R;
-                const innerH = H - PAD_T - PAD_B;
+      const io = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((e) => e.isIntersecting)) loadMore();
+        },
+        { rootMargin: '400px' }
+      );
+      io.observe(sentinel);
 
-                chart.setAttribute('viewBox', `0 0 ${W} ${H}`);
-                while (chart.firstChild) chart.removeChild(chart.firstChild);
-
-                // Y-axis grid lines + duration labels (left) and size labels (right).
-                const ticks = 4;
-                for (let i = 0; i <= ticks; i++) {
-                    const t = i / ticks;
-                    const y = PAD_T + innerH * (1 - t);
-                    const line = document.createElementNS(SVG_NS, 'line');
-                    line.setAttribute('class', 'grid-line');
-                    line.setAttribute('x1', PAD_L);
-                    line.setAttribute('x2', W - PAD_R);
-                    line.setAttribute('y1', y);
-                    line.setAttribute('y2', y);
-                    chart.appendChild(line);
-
-                    const label = document.createElementNS(SVG_NS, 'text');
-                    label.setAttribute('class', 'axis-label');
-                    label.setAttribute('x', PAD_L - 6);
-                    label.setAttribute('y', y + 3);
-                    label.setAttribute('text-anchor', 'end');
-                    label.textContent = fmtDuration(max * t);
-                    chart.appendChild(label);
-
-                    if (showSize && maxSize > 0) {
-                        const sizeLabel = document.createElementNS(SVG_NS, 'text');
-                        sizeLabel.setAttribute('class', 'axis-label axis-label-size');
-                        sizeLabel.setAttribute('x', W - PAD_R + 6);
-                        sizeLabel.setAttribute('y', y + 3);
-                        sizeLabel.setAttribute('text-anchor', 'start');
-                        sizeLabel.textContent = fmtSize(maxSize * t);
-                        chart.appendChild(sizeLabel);
-                    }
-                }
-
-                // Duration bars use the full slot width. Repo size, when enabled,
-                // overlays as an area + line so neither metric gets squashed.
-                const n = ordered.length;
-                const gap = n > 60 ? 1 : n > 30 ? 1.5 : 2;
-                const slotW = Math.max(2, (innerW - gap * (n - 1)) / n);
-                const barW = slotW;
-                const slotCenters = new Array(n);
-                ordered.forEach((d, i) => {
-                    const slotX = PAD_L + i * (slotW + gap);
-                    slotCenters[i] = slotX + barW / 2;
-                    const sec = d.durationSec || 0;
-                    const h = Math.max(1.5, (sec / max) * innerH);
-                    const y = PAD_T + innerH - h;
-                    const rect = document.createElementNS(SVG_NS, 'rect');
-                    rect.setAttribute('class', 'bar');
-                    rect.setAttribute('x', slotX);
-                    rect.setAttribute('y', y);
-                    rect.setAttribute('width', barW);
-                    rect.setAttribute('height', h);
-                    rect.setAttribute('rx', Math.min(2, barW / 3));
-                    const cls = statusClass(d);
-                    const color =
-                        cls === 'success'
-                            ? 'var(--success)'
-                            : cls === 'failure'
-                              ? 'var(--failure)'
-                              : 'var(--pending)';
-                    rect.setAttribute('fill', color);
-                    const sizeBytes = sizes[i];
-                    const titleParts = [
-                        `${fmtDay(d.start)} ${fmtTime(d.start)}`,
-                        fmtDuration(sec),
-                        d.conclusion || d.status,
-                    ];
-                    if (showSize && sizeBytes != null)
-                        titleParts.push(`size ${fmtSize(sizeBytes)}`);
-                    const title = document.createElementNS(SVG_NS, 'title');
-                    title.textContent = titleParts.join(' · ');
-                    rect.appendChild(title);
-                    rect.addEventListener('click', () => window.open(d.url, '_blank', 'noopener'));
-                    chart.appendChild(rect);
-                });
-
-                // Repo size: smooth area + line overlay across deploys that have a
-                // known size, with markers on each data point.
-                if (showSize && maxSize > 0) {
-                    const sizeY = (v) => PAD_T + innerH * (1 - v / maxSize);
-                    const segments = [];
-                    let current = null;
-                    for (let i = 0; i < n; i++) {
-                        const v = sizes[i];
-                        if (v != null && v > 0) {
-                            if (!current) {
-                                current = [];
-                                segments.push(current);
-                            }
-                            current.push({ i, x: slotCenters[i], y: sizeY(v), v });
-                        } else if (current) {
-                            current = null;
-                        }
-                    }
-                    const showDots = slotW >= 8;
-                    const dotR = Math.min(3, Math.max(1.8, slotW * 0.35));
-                    for (const seg of segments) {
-                        if (seg.length >= 2) {
-                            const baseY = PAD_T + innerH;
-                            const areaPts = seg.map((p) => `${p.x},${p.y}`).join(' ');
-                            const area = document.createElementNS(SVG_NS, 'polygon');
-                            area.setAttribute('class', 'size-area');
-                            area.setAttribute(
-                                'points',
-                                `${seg[0].x},${baseY} ${areaPts} ${seg[seg.length - 1].x},${baseY}`
-                            );
-                            chart.appendChild(area);
-
-                            const line = document.createElementNS(SVG_NS, 'polyline');
-                            line.setAttribute('class', 'size-line');
-                            line.setAttribute('points', areaPts);
-                            chart.appendChild(line);
-                        }
-                        if (!showDots) continue;
-                        for (const p of seg) {
-                            const dot = document.createElementNS(SVG_NS, 'circle');
-                            dot.setAttribute('class', 'size-dot');
-                            dot.setAttribute('cx', p.x);
-                            dot.setAttribute('cy', p.y);
-                            dot.setAttribute('r', dotR);
-                            const d = ordered[p.i];
-                            const dtitle = document.createElementNS(SVG_NS, 'title');
-                            dtitle.textContent = `${fmtDay(d.start)} ${fmtTime(d.start)} · size ${fmtSize(p.v)}`;
-                            dot.appendChild(dtitle);
-                            dot.addEventListener('click', () =>
-                                window.open(d.url, '_blank', 'noopener')
-                            );
-                            chart.appendChild(dot);
-                        }
-                    }
-                }
-
-                // Median line. The value is rendered in the legend (see below) so
-                // there is no in-chart label overlapping the bars.
-                if (med > 0) {
-                    const medY = PAD_T + innerH * (1 - med / max);
-                    const line = document.createElementNS(SVG_NS, 'line');
-                    line.setAttribute('class', 'median-line');
-                    line.setAttribute('x1', PAD_L);
-                    line.setAttribute('x2', W - PAD_R);
-                    line.setAttribute('y1', medY);
-                    line.setAttribute('y2', medY);
-                    chart.appendChild(line);
-                }
-                if (legendMedian) {
-                    legendMedian.textContent = med > 0 ? `median ${fmtDuration(med)}` : 'median';
-                }
-                if (legendSize) {
-                    legendSize.textContent =
-                        showSize && latestSize != null
-                            ? `repo size ${fmtSize(latestSize)}`
-                            : 'repo size';
-                }
-
-                // X-axis date labels along the bottom. Pick ~one label per 80px and
-                // dedupe by day so same-day deploys don't repeat the same label.
-                const xLabelY = PAD_T + innerH + 14;
-                const targetLabels = Math.min(n, Math.max(2, Math.floor(innerW / 80)));
-                const seenLabels = new Set();
-                for (let i = 0; i < targetLabels; i++) {
-                    const denom = Math.max(1, targetLabels - 1);
-                    const idx = Math.round((i / denom) * (n - 1));
-                    const text = fmtDay(ordered[idx].start);
-                    if (seenLabels.has(text)) continue;
-                    seenLabels.add(text);
-                    const txt = document.createElementNS(SVG_NS, 'text');
-                    txt.setAttribute('class', 'axis-label');
-                    txt.setAttribute('y', xLabelY);
-                    const anchor = idx === 0 ? 'start' : idx === n - 1 ? 'end' : 'middle';
-                    txt.setAttribute('text-anchor', anchor);
-                    let x = slotCenters[idx];
-                    if (idx === 0) x = PAD_L;
-                    else if (idx === n - 1) x = W - PAD_R;
-                    txt.setAttribute('x', x);
-                    txt.textContent = text;
-                    chart.appendChild(txt);
-                }
-            }
-
-            function ingest(runs) {
-                let added = 0;
-                for (const run of runs) {
-                    if (!isDeployRun(run)) continue;
-                    if (seen.has(run.id)) continue;
-                    seen.add(run.id);
-                    const start = run.run_started_at || run.created_at;
-                    const sha = run.head_sha;
-                    const msg = (
-                        run.head_commit && run.head_commit.message ? run.head_commit.message : ''
-                    ).split('\n')[0];
-                    allDeploys.push({
-                        id: run.id,
-                        sha,
-                        start,
-                        end: run.updated_at,
-                        durationSec: runDurationSec(run),
-                        conclusion: run.conclusion,
-                        status: run.status,
-                        url: run.html_url,
-                        label: msg
-                            ? `${shortSha(sha)} ${msg}`
-                            : `${shortSha(sha)} · ${run.workflow_name || run.name || 'deploy'}`,
-                        title: `run #${run.run_number} · ${run.workflow_name || run.name}`,
-                    });
-                    added++;
-                }
-                allDeploys.sort((a, b) => new Date(b.start) - new Date(a.start));
-                return added;
-            }
-
-            async function loadMore() {
-                if (loading || exhausted) return;
-                loading = true;
-                status.textContent = 'loading…';
-
-                let data;
-                try {
-                    data = await fetchRuns(nextPage);
-                } catch (e) {
-                    status.textContent = e.message;
-                    loading = false;
-                    exhausted = true;
-                    return;
-                }
-
-                const runs = data.workflow_runs || [];
-                if (!runs.length && !allDeploys.length) {
-                    status.textContent = 'no deployments';
-                    exhausted = true;
-                    loading = false;
-                    return;
-                }
-
-                ingest(runs);
-                renderStats();
-                renderChart();
-                renderLog();
-                if (showSize) loadSizes();
-
-                range.innerHTML = `<a href="https://github.com/rjayasin/rjayasin.github.io">rjayasin.github.io</a> · ${allDeploys.length} deploy${allDeploys.length === 1 ? '' : 's'} · <a href="https://github.com/rjayasin/rjayasin.github.io/actions">GitHub Actions</a>`;
-                nextPage++;
-                if (runs.length < PER_PAGE || nextPage > MAX_PAGES) {
-                    exhausted = true;
-                    status.textContent = '';
-                } else {
-                    status.textContent = '';
-                }
-                loading = false;
-            }
-
-            const io = new IntersectionObserver(
-                (entries) => {
-                    if (entries.some((e) => e.isIntersecting)) loadMore();
-                },
-                { rootMargin: '400px' }
-            );
-            io.observe(sentinel);
-
-            if (typeof ResizeObserver !== 'undefined') {
-                let lastW = 0;
-                let lastH = 0;
-                const ro = new ResizeObserver((entries) => {
-                    if (!allDeploys.length) return;
-                    const r = entries[0].contentRect;
-                    const w = Math.round(r.width);
-                    const h = Math.round(r.height);
-                    if ((w && w !== lastW) || (h && h !== lastH)) {
-                        lastW = w;
-                        lastH = h;
-                        renderChart();
-                    }
-                });
-                ro.observe(chart);
-            }
-        </script>
-    </body>
+      if (typeof ResizeObserver !== 'undefined') {
+        let lastW = 0;
+        let lastH = 0;
+        const ro = new ResizeObserver((entries) => {
+          if (!allDeploys.length) return;
+          const r = entries[0].contentRect;
+          const w = Math.round(r.width);
+          const h = Math.round(r.height);
+          if ((w && w !== lastW) || (h && h !== lastH)) {
+            lastW = w;
+            lastH = h;
+            renderChart();
+          }
+        });
+        ro.observe(chart);
+      }
+    </script>
+  </body>
 </html>

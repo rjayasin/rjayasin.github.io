@@ -1,1003 +1,984 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
-        />
-        <title>Ruvan / text-gravity</title>
-        <link rel="icon" id="favicon" />
-        <link rel="stylesheet" href="/common.css" />
-        <style>
-            html,
-            body {
-                width: 100%;
-                height: 100%;
-                overflow: hidden;
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Ruvan / text-gravity</title>
+    <link rel="icon" id="favicon" />
+    <link rel="stylesheet" href="/common.css" />
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      #game {
+        position: fixed;
+        inset: 0;
+        display: block;
+        touch-action: none;
+        cursor: crosshair;
+      }
+      #hint {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 12px;
+        text-align: center;
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        font-size: 12px;
+        color: #888;
+        opacity: 1;
+        transition: opacity 0.4s ease;
+        user-select: none;
+        z-index: 3;
+        pointer-events: none;
+      }
+      #hint-inner {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 6px;
+        background: #ffffff;
+      }
+      body.dark #hint-inner {
+        background: #111111;
+      }
+      #hint.hidden {
+        opacity: 0;
+      }
+      #hint.hidden .hint-btn {
+        pointer-events: none;
+      }
+      #hint .hint-btn {
+        cursor: pointer;
+        pointer-events: auto;
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        text-underline-offset: 2px;
+      }
+      #hint .hint-btn:hover {
+        color: #333;
+      }
+      body.dark #hint .hint-btn:hover {
+        color: #ccc;
+      }
+      #hint-zone {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 60px;
+        z-index: 2;
+        pointer-events: none;
+      }
+      #hint.hidden ~ #hint-zone {
+        pointer-events: auto;
+      }
+    </style>
+    <script src="/common.js"></script>
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div id="hint">
+      <span id="hint-inner"
+        ><span style="white-space: nowrap">drag &amp; release to fire</span> &nbsp;·&nbsp;
+        <span style="white-space: nowrap"><span class="hint-btn" id="hb-reset">r reset</span></span>
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-dark"
+            >1 <span class="hb-dark-label">dark</span></span
+          ></span
+        ><span id="hb-tilt-wrap" style="display: none"
+          >&nbsp;·&nbsp;
+          <span style="white-space: nowrap"
+            ><span class="hint-btn" id="hb-tilt">tilt</span></span
+          ></span
+        >
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-smaller">−</span>/<span class="hint-btn" id="hb-bigger"
+            >+</span
+          >
+          size</span
+        >
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-shot-smaller">[</span>/<span
+            class="hint-btn"
+            id="hb-shot-bigger"
+            >]</span
+          >
+          shot</span
+        >
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"><span class="hint-btn" id="hb-emoji">emoji</span></span>
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"><span class="hint-btn" id="hb-bounce">bounce</span></span>
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-sitemap">s sitemap</span></span
+        ></span
+      >
+    </div>
+    <div id="hint-zone"></div>
+    <script>
+      Common.paintFaviconR();
+      Common.initDarkMode();
+      Common.loadScript('/emojis.js');
+
+      const MONO =
+        'ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace';
+      // Fired glyphs are drawn from a spread of scripts (plus emoji), so each
+      // shot can be a letter from almost any of the world's writing systems.
+      const CHAR_RANGES = [
+        [0x0041, 0x005a],
+        [0x0061, 0x007a],
+        [0x0030, 0x0039], // Latin + digits
+        [0x00c0, 0x00ff],
+        [0x0100, 0x017f], // accented Latin
+        [0x0391, 0x03a9],
+        [0x03b1, 0x03c9], // Greek
+        [0x0410, 0x044f], // Cyrillic
+        [0x0531, 0x0556],
+        [0x0561, 0x0586], // Armenian
+        [0x05d0, 0x05ea], // Hebrew
+        [0x0621, 0x064a], // Arabic
+        [0x0905, 0x0939], // Devanagari
+        [0x0e01, 0x0e2e], // Thai
+        [0x10d0, 0x10fa], // Georgian
+        [0x3041, 0x3096],
+        [0x30a1, 0x30fa], // Hiragana + Katakana
+        [0x4e00, 0x9fa0], // CJK
+        [0xac00, 0xd7a3], // Hangul
+        [0x2190, 0x21ff],
+        [0x2200, 0x22ff], // arrows + math symbols
+      ];
+      function pickFromRanges(ranges) {
+        const [lo, hi] = ranges[Math.floor(Math.random() * ranges.length)];
+        return String.fromCodePoint(lo + Math.floor(Math.random() * (hi - lo + 1)));
+      }
+      const FALLBACK_TEXTS = [
+        'Gravity is the quietest force in the room, always there, never raising ' +
+          'its voice, content to wait until something stops holding itself up. ' +
+          'A square of letters can ignore it for a while, pinned in place by ' +
+          'whatever convention keeps text from falling off the page, but the ' +
+          'instant a stray glyph clatters in, the rule lifts and the alphabet ' +
+          'begins to pour toward the floor.',
+        'Letters hover in their grid like patient guests waiting for a host ' +
+          'to seat them. Lob a single character into the crowd and the spell ' +
+          'breaks: one by one they accept that nothing was holding them up but ' +
+          'agreement, and the room fills with the soft thud of glyphs settling ' +
+          'into a pile at the bottom.',
+        'A paragraph at rest is a small lie about weight. Tell the truth by ' +
+          'tossing one letter at another and watch the page give in to physics, ' +
+          'characters tumbling and stacking the way pebbles do when the bucket ' +
+          'tips.',
+        'There is a hush before the first collision and a heap afterwards. ' +
+          'In between, the square of text remembers that it was always just a ' +
+          'crowd of shapes, and crowds, when nudged, fall down.',
+      ];
+
+      const WIKI_URL =
+        'https://en.wikipedia.org/w/api.php?format=json&origin=*' +
+        '&action=query&generator=random&grnnamespace=0&grnlimit=1' +
+        '&prop=extracts&explaintext=1&exchars=5000';
+
+      let wordSource = [];
+      function toWords(text) {
+        return text.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+      }
+      function applyFallback() {
+        wordSource = toWords(FALLBACK_TEXTS[Math.floor(Math.random() * FALLBACK_TEXTS.length)]);
+      }
+      applyFallback();
+
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d');
+
+      let W = 0,
+        H = 0,
+        dpr = 1;
+      let fontSize, charW, charH, radius;
+      let userFontSize = null;
+      const FONT_MIN = 8;
+      const FONT_MAX = 60;
+      const FONT_STEP = 2;
+      const SHOT_MULT_STEP = 1.2;
+      const SHOT_MULT_MIN = 0.25;
+      const SHOT_MULT_MAX = 6;
+      let shotSizeMult = 1;
+      let bodies = [];
+      let hasFired = false;
+
+      function isDark() {
+        if (document.body.classList.contains('dark')) return true;
+        if (document.body.classList.contains('light')) return false;
+        return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      }
+      function inkColor() {
+        return isDark() ? '#f0f0f0' : '#111111';
+      }
+
+      function buildLines(cols, rows) {
+        // Pack words separated by single spaces and slice into fixed-width
+        // lines. If a word doesn't fit the remainder of a line, break it
+        // mid-character so every line is exactly cols wide.
+        const lines = [];
+        let line = '';
+        let pending = '';
+        let wi = 0;
+        while (lines.length < rows) {
+          if (line === '' && pending) pending = pending.replace(/^ +/, '');
+          while (line.length < cols) {
+            let next;
+            if (pending) {
+              next = pending;
+              pending = '';
+            } else {
+              const w = wordSource[wi % wordSource.length];
+              wi++;
+              next = (line.length > 0 ? ' ' : '') + w;
             }
-            #game {
-                position: fixed;
-                inset: 0;
-                display: block;
-                touch-action: none;
-                cursor: crosshair;
+            const remaining = cols - line.length;
+            if (next.length <= remaining) {
+              line += next;
+            } else {
+              line += next.slice(0, remaining);
+              pending = next.slice(remaining);
             }
-            #hint {
-                position: fixed;
-                left: 0;
-                right: 0;
-                bottom: 12px;
-                text-align: center;
-                font-family:
-                    ui-monospace,
-                    SFMono-Regular,
-                    SF Mono,
-                    Menlo,
-                    Consolas,
-                    Liberation Mono,
-                    monospace;
-                font-size: 12px;
-                color: #888;
-                opacity: 1;
-                transition: opacity 0.4s ease;
-                user-select: none;
-                z-index: 3;
-                pointer-events: none;
+          }
+          lines.push(line);
+          line = '';
+        }
+        return lines;
+      }
+
+      function makeBody(x, y, ch, vx, vy, fixed, shot, size) {
+        size = size != null ? size : fontSize;
+        return {
+          x,
+          y,
+          vx: vx || 0,
+          vy: vy || 0,
+          angle: 0,
+          av: 0,
+          r: radius * (size / fontSize),
+          ch,
+          fixed: !!fixed,
+          shot: !!shot,
+          size,
+        };
+      }
+
+      function buildBlock() {
+        const minDim = Math.min(W, H);
+        const autoSize = Math.max(13, Math.min(30, Math.round(minDim / 22)));
+        fontSize =
+          userFontSize != null ? Math.max(FONT_MIN, Math.min(FONT_MAX, userFontSize)) : autoSize;
+        ctx.font = fontSize + 'px ' + MONO;
+        charW = ctx.measureText('M').width;
+        charH = fontSize * 1.15;
+        radius = charW * 0.46;
+
+        const target = minDim * 0.46;
+        const cols = Math.max(6, Math.round(target / charW));
+        const rows = Math.max(4, Math.round(target / charH));
+
+        const blockW = cols * charW;
+        const blockH = rows * charH;
+        const x0 = (W - blockW) / 2 + charW / 2;
+        const y0 = (H - blockH) / 2 + charH / 2;
+
+        const lines = buildLines(cols, rows);
+        bodies = [];
+        for (let r = 0; r < lines.length; r++) {
+          const line = lines[r];
+          for (let c = 0; c < line.length; c++) {
+            const ch = line[c];
+            if (ch === ' ') continue;
+            bodies.push(makeBody(x0 + c * charW, y0 + r * charH, ch, 0, 0, true, false));
+          }
+        }
+      }
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        W = window.innerWidth;
+        H = window.innerHeight;
+        canvas.width = Math.round(W * dpr);
+        canvas.height = Math.round(H * dpr);
+        canvas.style.width = W + 'px';
+        canvas.style.height = H + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        buildBlock();
+      }
+
+      // --- physics ---
+      const GRAVITY = 2000; // px/s^2 downward
+      const RESTITUTION = 0.18; // body-body bounciness
+      const BOUNCE_UNSTICK_RESTITUTION = 1.35; // energetic ricochet in bounce mode (>1 kicks)
+      const WALL_RESTITUTION = 0.28;
+      const DAMPING = 0.9985; // per substep air drag
+      const FLOOR_FRICTION = 0.86; // per substep, applied to vx when on floor
+      const TILT_WALL_FRICTION = 0.992; // gentler friction when phone tilt slides chars
+      const REST_VY = 40; // bounce slower than this just stops
+      const MARGIN = 60; // off-screen distance before culling (sides/top only)
+      const ANG_DAMPING = 0.985; // per substep air drag on spin
+      const FLOOR_ANG_FRICTION = 0.78; // per substep when resting on floor
+      const TILT_ANG_FRICTION = 0.96; // gentler angular friction when tilt is sliding chars
+      const CONTACT_ANG_DAMP = 0.9; // per body-body contact; mimics mutual surface friction
+      const WALL_TANGENT_FRICTION = 0.45; // kinetic friction at pinned-body contact
+      // px/s; tangential slip below this is treated as static contact. Needs
+      // to clear gravity's per-substep tangential nudge (sin(θ)·GRAVITY·dt),
+      // inflated by kinetic-friction steady state to ≈ sin(θ)·37. 30 covers
+      // contact angles up to ~55° off vertical.
+      const WALL_STATIC_SLIP = 30;
+      const ANG_SLEEP = 0.04;
+      const SPIN_FACTOR = 0.45;
+      const MAX_AV = 18;
+
+      // --- accelerometer state ---
+      // gravityX/Y is a normalized direction vector; magnitude is GRAVITY.
+      // Default is straight down; deviceorientation tilts it.
+      let motionEnabled = false;
+      let gravityX = 0,
+        gravityY = 1;
+      let lastShakeT = 0;
+      const accelBase = { x: 0, y: 0, z: 0 };
+      let accelBaseInit = false;
+
+      function getScreenAngle() {
+        if (screen.orientation && typeof screen.orientation.angle === 'number') {
+          return screen.orientation.angle;
+        }
+        if (typeof window.orientation === 'number') return window.orientation;
+        return 0;
+      }
+
+      function step(dt) {
+        // integrate (fixed bodies stay put). Gravity is a 2D vector so phone
+        // tilt re-aims it; the default (0, 1) keeps the desktop feel.
+        const gax = gravityX * GRAVITY;
+        const gay = gravityY * GRAVITY;
+        for (const b of bodies) {
+          if (b.fixed) continue;
+          b.vx += gax * dt;
+          b.vy += gay * dt;
+          b.x += b.vx * dt;
+          b.y += b.vy * dt;
+          b.vx *= DAMPING;
+          b.vy *= DAMPING;
+          b.angle += b.av * dt;
+          b.av *= ANG_DAMPING;
+          if (Math.abs(b.av) < ANG_SLEEP) b.av = 0;
+        }
+
+        // broadphase: spatial hash grid
+        const cell = radius * 2.2;
+        const grid = new Map();
+        const key = (cx, cy) => cx + ',' + cy;
+        for (let i = 0; i < bodies.length; i++) {
+          const b = bodies[i];
+          const cx = Math.floor(b.x / cell);
+          const cy = Math.floor(b.y / cell);
+          const k = key(cx, cy);
+          let arr = grid.get(k);
+          if (!arr) grid.set(k, (arr = []));
+          arr.push(i);
+        }
+
+        const checked = new Set();
+        for (let i = 0; i < bodies.length; i++) {
+          const b = bodies[i];
+          const cx = Math.floor(b.x / cell);
+          const cy = Math.floor(b.y / cell);
+          for (let ox = -1; ox <= 1; ox++) {
+            for (let oy = -1; oy <= 1; oy++) {
+              const arr = grid.get(key(cx + ox, cy + oy));
+              if (!arr) continue;
+              for (const j of arr) {
+                if (j <= i) continue;
+                const pairKey = i * 100000 + j;
+                if (checked.has(pairKey)) continue;
+                checked.add(pairKey);
+                resolve(b, bodies[j]);
+              }
             }
-            #hint-inner {
-                display: inline-block;
-                padding: 6px 10px;
-                border-radius: 6px;
-                background: #ffffff;
+          }
+        }
+
+        // floor collision: impermeable bottom, characters pile up here.
+        // When motion is on, walls/ceiling are also impermeable so tilt can
+        // slide the pile across the screen without losing chars off the edge.
+        // Friction at tilt-time is lighter so chars actually slide instead
+        // of locking in place under the strong per-substep damping.
+        const tangentFriction = motionEnabled ? TILT_WALL_FRICTION : FLOOR_FRICTION;
+        const tangentAngFriction = motionEnabled ? TILT_ANG_FRICTION : FLOOR_ANG_FRICTION;
+        for (const b of bodies) {
+          if (b.fixed) continue;
+          if (b.y > H - b.r) {
+            b.y = H - b.r;
+            if (b.vy > 0) {
+              b.vy = -b.vy * WALL_RESTITUTION;
+              if (Math.abs(b.vy) < REST_VY) b.vy = 0;
             }
-            body.dark #hint-inner {
-                background: #111111;
+            b.vx *= tangentFriction;
+            if (Math.abs(b.vx) < 1) b.vx = 0;
+            b.av *= tangentAngFriction;
+            if (Math.abs(b.av) < ANG_SLEEP) b.av = 0;
+          }
+          if (!motionEnabled) continue;
+          if (b.y < b.r) {
+            b.y = b.r;
+            if (b.vy < 0) {
+              b.vy = -b.vy * WALL_RESTITUTION;
+              if (Math.abs(b.vy) < REST_VY) b.vy = 0;
             }
-            #hint.hidden {
-                opacity: 0;
+            b.vx *= tangentFriction;
+            if (Math.abs(b.vx) < 1) b.vx = 0;
+            b.av *= tangentAngFriction;
+            if (Math.abs(b.av) < ANG_SLEEP) b.av = 0;
+          }
+          if (b.x < b.r) {
+            b.x = b.r;
+            if (b.vx < 0) {
+              b.vx = -b.vx * WALL_RESTITUTION;
+              if (Math.abs(b.vx) < REST_VY) b.vx = 0;
             }
-            #hint.hidden .hint-btn {
-                pointer-events: none;
+            b.vy *= tangentFriction;
+            if (Math.abs(b.vy) < 1) b.vy = 0;
+            b.av *= tangentAngFriction;
+            if (Math.abs(b.av) < ANG_SLEEP) b.av = 0;
+          }
+          if (b.x > W - b.r) {
+            b.x = W - b.r;
+            if (b.vx > 0) {
+              b.vx = -b.vx * WALL_RESTITUTION;
+              if (Math.abs(b.vx) < REST_VY) b.vx = 0;
             }
-            #hint .hint-btn {
-                cursor: pointer;
-                pointer-events: auto;
-                text-decoration: underline;
-                text-decoration-style: dotted;
-                text-underline-offset: 2px;
+            b.vy *= tangentFriction;
+            if (Math.abs(b.vy) < 1) b.vy = 0;
+            b.av *= tangentAngFriction;
+            if (Math.abs(b.av) < ANG_SLEEP) b.av = 0;
+          }
+        }
+
+        // cull bodies pushed off the page sideways. Top and bottom are
+        // both kept: the floor is impermeable, and shots fired upward
+        // off the top should arc back down rather than vanish.
+        // Side walls handle containment when motion is enabled.
+        if (!motionEnabled) {
+          bodies = bodies.filter((b) => b.x > -MARGIN && b.x < W + MARGIN);
+        }
+      }
+
+      function resolve(a, b) {
+        // two stationary fixed bodies never overlap by construction.
+        if (a.fixed && b.fixed) return;
+
+        let dx = b.x - a.x,
+          dy = b.y - a.y;
+        const minDist = a.r + b.r;
+        let d2 = dx * dx + dy * dy;
+        if (d2 >= minDist * minDist) return;
+        let dist = Math.sqrt(d2) || 0.0001;
+        if (d2 === 0) {
+          dx = 0.01;
+          dy = 0;
+          dist = 0.01;
+        }
+        const nx = dx / dist,
+          ny = dy / dist;
+        const overlap = minDist - dist;
+
+        // Only shots knock the grid loose. A loose-but-not-shot body
+        // (a square char that's already falling) bounces off pinned
+        // neighbors instead of unfixing them.
+        // Default: unfix immediately, then fall through to the equal-mass
+        // collision below — the shot punches through with energy loss.
+        // Bounce mode: keep the target fixed so the wall branch runs
+        // first (shot bounces off as if hitting a wall), then unfix.
+        const shotUnstick = (a.fixed && b.shot) || (b.fixed && a.shot);
+        if (!bounceMode) {
+          if (a.fixed && b.shot) a.fixed = false;
+          if (b.fixed && a.shot) b.fixed = false;
+        }
+
+        if (a.fixed || b.fixed) {
+          // Pinned body acts as an immovable wall for the moving one.
+          const m = a.fixed ? b : a;
+          const wnx = a.fixed ? nx : -nx;
+          const wny = a.fixed ? ny : -ny;
+          m.x += wnx * overlap;
+          m.y += wny * overlap;
+          const vn = m.vx * wnx + m.vy * wny;
+          // Bounce-mode unsticks get a high-restitution kick so the
+          // ricochet feels snappy. Tangent friction is also skipped so
+          // the reflected velocity isn't bled off along the contact.
+          const energetic = bounceMode && shotUnstick;
+          const rest = energetic ? BOUNCE_UNSTICK_RESTITUTION : RESTITUTION;
+          if (vn < 0) {
+            const jImp = -(1 + rest) * vn;
+            m.vx += jImp * wnx;
+            m.vy += jImp * wny;
+            const tx = -wny,
+              ty = wnx;
+            const vt = m.vx * tx + m.vy * ty;
+            // Split static vs kinetic contact by slip speed. With only
+            // kinetic friction, gravity drives a tiny re-bounce every
+            // substep; the angled normal projects a sliver of vx and
+            // the spin formula injects same-direction spin each time,
+            // reaching a small but visible steady-state rotation. Below
+            // the slip threshold, treat the contact as static: kill all
+            // tangential motion and skip spin injection so a body resting
+            // on a pinned neighbor actually comes to rest.
+            if (!energetic && Math.abs(vt) < WALL_STATIC_SLIP) {
+              m.vx -= vt * tx;
+              m.vy -= vt * ty;
+            } else if (!energetic) {
+              m.vx -= vt * WALL_TANGENT_FRICTION * tx;
+              m.vy -= vt * WALL_TANGENT_FRICTION * ty;
+              const spin = (vt / m.r) * SPIN_FACTOR;
+              m.av = Math.max(-MAX_AV, Math.min(MAX_AV, m.av + spin));
+            } else {
+              // Energetic bounce: keep tangential velocity intact
+              // but still inject contact spin for visual flair.
+              const spin = (vt / m.r) * SPIN_FACTOR;
+              m.av = Math.max(-MAX_AV, Math.min(MAX_AV, m.av + spin));
             }
-            #hint .hint-btn:hover {
-                color: #333;
-            }
-            body.dark #hint .hint-btn:hover {
-                color: #ccc;
-            }
-            #hint-zone {
-                position: fixed;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                height: 60px;
-                z-index: 2;
-                pointer-events: none;
-            }
-            #hint.hidden ~ #hint-zone {
-                pointer-events: auto;
-            }
-        </style>
-        <script src="/common.js"></script>
-    </head>
-    <body>
-        <canvas id="game"></canvas>
-        <div id="hint">
-            <span id="hint-inner"
-                ><span style="white-space: nowrap">drag &amp; release to fire</span> &nbsp;·&nbsp;
-                <span style="white-space: nowrap"
-                    ><span class="hint-btn" id="hb-reset">r reset</span></span
-                >
-                &nbsp;·&nbsp;
-                <span style="white-space: nowrap"
-                    ><span class="hint-btn" id="hb-dark"
-                        >1 <span class="hb-dark-label">dark</span></span
-                    ></span
-                ><span id="hb-tilt-wrap" style="display: none"
-                    >&nbsp;·&nbsp;
-                    <span style="white-space: nowrap"
-                        ><span class="hint-btn" id="hb-tilt">tilt</span></span
-                    ></span
-                >
-                &nbsp;·&nbsp;
-                <span style="white-space: nowrap"
-                    ><span class="hint-btn" id="hb-smaller">−</span>/<span
-                        class="hint-btn"
-                        id="hb-bigger"
-                        >+</span
-                    >
-                    size</span
-                >
-                &nbsp;·&nbsp;
-                <span style="white-space: nowrap"
-                    ><span class="hint-btn" id="hb-shot-smaller">[</span>/<span
-                        class="hint-btn"
-                        id="hb-shot-bigger"
-                        >]</span
-                    >
-                    shot</span
-                >
-                &nbsp;·&nbsp;
-                <span style="white-space: nowrap"
-                    ><span class="hint-btn" id="hb-emoji">emoji</span></span
-                >
-                &nbsp;·&nbsp;
-                <span style="white-space: nowrap"
-                    ><span class="hint-btn" id="hb-bounce">bounce</span></span
-                >
-                &nbsp;·&nbsp;
-                <span style="white-space: nowrap"
-                    ><span class="hint-btn" id="hb-sitemap">s sitemap</span></span
-                ></span
-            >
-        </div>
-        <div id="hint-zone"></div>
-        <script>
-            Common.paintFaviconR();
-            Common.initDarkMode();
-            Common.loadScript('/emojis.js');
+          }
+          m.av *= CONTACT_ANG_DAMP;
+          if (bounceMode && shotUnstick) {
+            if (a.fixed && b.shot) a.fixed = false;
+            if (b.fixed && a.shot) b.fixed = false;
+          }
+          return;
+        }
 
-            const MONO =
-                'ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace';
-            // Fired glyphs are drawn from a spread of scripts (plus emoji), so each
-            // shot can be a letter from almost any of the world's writing systems.
-            const CHAR_RANGES = [
-                [0x0041, 0x005a],
-                [0x0061, 0x007a],
-                [0x0030, 0x0039], // Latin + digits
-                [0x00c0, 0x00ff],
-                [0x0100, 0x017f], // accented Latin
-                [0x0391, 0x03a9],
-                [0x03b1, 0x03c9], // Greek
-                [0x0410, 0x044f], // Cyrillic
-                [0x0531, 0x0556],
-                [0x0561, 0x0586], // Armenian
-                [0x05d0, 0x05ea], // Hebrew
-                [0x0621, 0x064a], // Arabic
-                [0x0905, 0x0939], // Devanagari
-                [0x0e01, 0x0e2e], // Thai
-                [0x10d0, 0x10fa], // Georgian
-                [0x3041, 0x3096],
-                [0x30a1, 0x30fa], // Hiragana + Katakana
-                [0x4e00, 0x9fa0], // CJK
-                [0xac00, 0xd7a3], // Hangul
-                [0x2190, 0x21ff],
-                [0x2200, 0x22ff], // arrows + math symbols
-            ];
-            function pickFromRanges(ranges) {
-                const [lo, hi] = ranges[Math.floor(Math.random() * ranges.length)];
-                return String.fromCodePoint(lo + Math.floor(Math.random() * (hi - lo + 1)));
-            }
-            const FALLBACK_TEXTS = [
-                'Gravity is the quietest force in the room, always there, never raising ' +
-                    'its voice, content to wait until something stops holding itself up. ' +
-                    'A square of letters can ignore it for a while, pinned in place by ' +
-                    'whatever convention keeps text from falling off the page, but the ' +
-                    'instant a stray glyph clatters in, the rule lifts and the alphabet ' +
-                    'begins to pour toward the floor.',
-                'Letters hover in their grid like patient guests waiting for a host ' +
-                    'to seat them. Lob a single character into the crowd and the spell ' +
-                    'breaks: one by one they accept that nothing was holding them up but ' +
-                    'agreement, and the room fills with the soft thud of glyphs settling ' +
-                    'into a pile at the bottom.',
-                'A paragraph at rest is a small lie about weight. Tell the truth by ' +
-                    'tossing one letter at another and watch the page give in to physics, ' +
-                    'characters tumbling and stacking the way pebbles do when the bucket ' +
-                    'tips.',
-                'There is a hush before the first collision and a heap afterwards. ' +
-                    'In between, the square of text remembers that it was always just a ' +
-                    'crowd of shapes, and crowds, when nudged, fall down.',
-            ];
+        // both non-fixed: equal-mass collision
+        const corr = overlap / 2;
+        a.x -= nx * corr;
+        a.y -= ny * corr;
+        b.x += nx * corr;
+        b.y += ny * corr;
 
-            const WIKI_URL =
-                'https://en.wikipedia.org/w/api.php?format=json&origin=*' +
-                '&action=query&generator=random&grnnamespace=0&grnlimit=1' +
-                '&prop=extracts&explaintext=1&exchars=5000';
+        const rvx = b.vx - a.vx,
+          rvy = b.vy - a.vy;
+        const vn = rvx * nx + rvy * ny;
+        if (vn > 0) return;
+        const jImp = (-(1 + RESTITUTION) * vn) / 2;
+        const ix = jImp * nx,
+          iy = jImp * ny;
+        a.vx -= ix;
+        a.vy -= iy;
+        b.vx += ix;
+        b.vy += iy;
 
-            let wordSource = [];
-            function toWords(text) {
-                return text.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
-            }
-            function applyFallback() {
-                wordSource = toWords(
-                    FALLBACK_TEXTS[Math.floor(Math.random() * FALLBACK_TEXTS.length)]
-                );
-            }
-            applyFallback();
+        const tx = -ny,
+          ty = nx;
+        const vt = rvx * tx + rvy * ty;
+        // Same static-vs-kinetic split as the pinned branch. Without this,
+        // stacked unfixed bodies whose bottom is clipped by the floor keep
+        // receiving a per-substep gravity-induced rvt, so the kinetic spin
+        // formula injects same-sign spin forever into both bodies.
+        if (Math.abs(vt) < WALL_STATIC_SLIP) {
+          const halfVt = vt / 2;
+          a.vx += halfVt * tx;
+          a.vy += halfVt * ty;
+          b.vx -= halfVt * tx;
+          b.vy -= halfVt * ty;
+        } else {
+          const spin = (vt / a.r) * SPIN_FACTOR;
+          a.av = Math.max(-MAX_AV, Math.min(MAX_AV, a.av - spin));
+          b.av = Math.max(-MAX_AV, Math.min(MAX_AV, b.av + spin));
+        }
+        a.av *= CONTACT_ANG_DAMP;
+        b.av *= CONTACT_ANG_DAMP;
+      }
 
-            const canvas = document.getElementById('game');
-            const ctx = canvas.getContext('2d');
+      function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = inkColor();
+        for (const b of bodies) {
+          ctx.font = b.size + 'px ' + MONO;
+          if (b.angle) {
+            ctx.translate(b.x, b.y);
+            ctx.rotate(b.angle);
+            ctx.fillText(b.ch, 0, 0);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          } else {
+            ctx.fillText(b.ch, b.x, b.y);
+          }
+        }
 
-            let W = 0,
-                H = 0,
-                dpr = 1;
-            let fontSize, charW, charH, radius;
-            let userFontSize = null;
-            const FONT_MIN = 8;
-            const FONT_MAX = 60;
-            const FONT_STEP = 2;
-            const SHOT_MULT_STEP = 1.2;
-            const SHOT_MULT_MIN = 0.25;
-            const SHOT_MULT_MAX = 6;
-            let shotSizeMult = 1;
-            let bodies = [];
-            let hasFired = false;
+        if (drag.active) {
+          ctx.save();
+          ctx.strokeStyle = isDark() ? 'rgba(240,240,240,0.5)' : 'rgba(17,17,17,0.4)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(drag.sx, drag.sy);
+          ctx.lineTo(drag.cx, drag.cy);
+          ctx.stroke();
+          ctx.fillStyle = inkColor();
+          ctx.font = fontSize * shotSizeMult + 'px ' + MONO;
+          ctx.globalAlpha = 0.7;
+          ctx.fillText(drag.ch, drag.sx, drag.sy);
+          ctx.restore();
+        }
+      }
 
-            function isDark() {
-                if (document.body.classList.contains('dark')) return true;
-                if (document.body.classList.contains('light')) return false;
-                return (
-                    window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-                );
-            }
-            function inkColor() {
-                return isDark() ? '#f0f0f0' : '#111111';
-            }
+      let lastT = performance.now();
+      let acc = 0;
+      const FIXED = 1 / 120; // seconds
+      function frame(now) {
+        let elapsed = (now - lastT) / 1000;
+        lastT = now;
+        if (elapsed > 0.05) elapsed = 0.05;
+        acc += elapsed;
+        let iters = 0;
+        while (acc >= FIXED && iters++ < 8) {
+          step(FIXED);
+          acc -= FIXED;
+        }
+        draw();
+        requestAnimationFrame(frame);
+      }
 
-            function buildLines(cols, rows) {
-                // Pack words separated by single spaces and slice into fixed-width
-                // lines. If a word doesn't fit the remainder of a line, break it
-                // mid-character so every line is exactly cols wide.
-                const lines = [];
-                let line = '';
-                let pending = '';
-                let wi = 0;
-                while (lines.length < rows) {
-                    if (line === '' && pending) pending = pending.replace(/^ +/, '');
-                    while (line.length < cols) {
-                        let next;
-                        if (pending) {
-                            next = pending;
-                            pending = '';
-                        } else {
-                            const w = wordSource[wi % wordSource.length];
-                            wi++;
-                            next = (line.length > 0 ? ' ' : '') + w;
-                        }
-                        const remaining = cols - line.length;
-                        if (next.length <= remaining) {
-                            line += next;
-                        } else {
-                            line += next.slice(0, remaining);
-                            pending = next.slice(remaining);
-                        }
-                    }
-                    lines.push(line);
-                    line = '';
-                }
-                return lines;
-            }
+      // --- input ---
+      const drag = { active: false, id: null, sx: 0, sy: 0, cx: 0, cy: 0, ch: '' };
+      let emojiMode = false;
+      let bounceMode = false;
+      function pickEmoji() {
+        if (!window.EMOJIS) return pickFromRanges(CHAR_RANGES);
+        return window.EMOJIS[Math.floor(Math.random() * window.EMOJIS.length)];
+      }
+      function randChar() {
+        if (emojiMode) return pickEmoji();
+        return Math.random() < 0.2 ? pickEmoji() : pickFromRanges(CHAR_RANGES);
+      }
 
-            function makeBody(x, y, ch, vx, vy, fixed, shot, size) {
-                size = size != null ? size : fontSize;
-                return {
-                    x,
-                    y,
-                    vx: vx || 0,
-                    vy: vy || 0,
-                    angle: 0,
-                    av: 0,
-                    r: radius * (size / fontSize),
-                    ch,
-                    fixed: !!fixed,
-                    shot: !!shot,
-                    size,
-                };
-            }
+      function localPoint(e) {
+        const rect = canvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      }
 
-            function buildBlock() {
-                const minDim = Math.min(W, H);
-                const autoSize = Math.max(13, Math.min(30, Math.round(minDim / 22)));
-                fontSize =
-                    userFontSize != null
-                        ? Math.max(FONT_MIN, Math.min(FONT_MAX, userFontSize))
-                        : autoSize;
-                ctx.font = fontSize + 'px ' + MONO;
-                charW = ctx.measureText('M').width;
-                charH = fontSize * 1.15;
-                radius = charW * 0.46;
+      canvas.addEventListener('pointerdown', (e) => {
+        if (drag.active) return;
+        hideHintSoon();
+        const p = localPoint(e);
+        drag.active = true;
+        drag.id = e.pointerId;
+        drag.sx = drag.cx = p.x;
+        drag.sy = drag.cy = p.y;
+        drag.ch = randChar();
+        if (canvas.setPointerCapture) {
+          try {
+            canvas.setPointerCapture(e.pointerId);
+          } catch (_) {}
+        }
+      });
 
-                const target = minDim * 0.46;
-                const cols = Math.max(6, Math.round(target / charW));
-                const rows = Math.max(4, Math.round(target / charH));
+      canvas.addEventListener('pointermove', (e) => {
+        if (!drag.active || e.pointerId !== drag.id) return;
+        const p = localPoint(e);
+        drag.cx = p.x;
+        drag.cy = p.y;
+      });
 
-                const blockW = cols * charW;
-                const blockH = rows * charH;
-                const x0 = (W - blockW) / 2 + charW / 2;
-                const y0 = (H - blockH) / 2 + charH / 2;
+      function endDrag(e) {
+        if (!drag.active || e.pointerId !== drag.id) return;
+        const p = localPoint(e);
+        drag.cx = p.x;
+        drag.cy = p.y;
+        let dx = drag.cx - drag.sx,
+          dy = drag.cy - drag.sy;
+        const dist = Math.hypot(dx, dy);
+        const minDim = Math.min(W, H);
+        const speed = Math.min(dist / minDim, 1) * 3000 + 400;
+        if (dist < 4) {
+          dx = 0;
+          dy = -1;
+        }
+        const inv = dist > 0 ? 1 / dist : 1;
+        const nx = dx * inv,
+          ny = dy * inv;
+        bodies.push(
+          makeBody(
+            drag.sx,
+            drag.sy,
+            drag.ch,
+            nx * speed,
+            ny * speed,
+            false,
+            true,
+            fontSize * shotSizeMult
+          )
+        );
+        hasFired = true;
+        drag.active = false;
+        drag.id = null;
+      }
 
-                const lines = buildLines(cols, rows);
-                bodies = [];
-                for (let r = 0; r < lines.length; r++) {
-                    const line = lines[r];
-                    for (let c = 0; c < line.length; c++) {
-                        const ch = line[c];
-                        if (ch === ' ') continue;
-                        bodies.push(
-                            makeBody(x0 + c * charW, y0 + r * charH, ch, 0, 0, true, false)
-                        );
-                    }
-                }
-            }
+      canvas.addEventListener('pointerup', endDrag);
+      canvas.addEventListener('pointercancel', (e) => {
+        if (e.pointerId === drag.id) {
+          drag.active = false;
+          drag.id = null;
+        }
+      });
+      canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
 
-            function resize() {
-                dpr = Math.min(window.devicePixelRatio || 1, 2);
-                W = window.innerWidth;
-                H = window.innerHeight;
-                canvas.width = Math.round(W * dpr);
-                canvas.height = Math.round(H * dpr);
-                canvas.style.width = W + 'px';
-                canvas.style.height = H + 'px';
-                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-                buildBlock();
-            }
+      // --- accelerometer ---
+      // Heuristic mapping: gamma (left/right roll) drives horizontal gravity,
+      // beta (front/back pitch) drives vertical. This isn't the textbook
+      // device-frame projection of world gravity (which zeroes the sideways
+      // component when the phone is held upright), but it matches how people
+      // expect a tilt toy to feel: lean right and the pile slides right.
+      function applyOrientation(e) {
+        if (e.beta == null && e.gamma == null) return;
+        const beta = e.beta || 0;
+        const gamma = e.gamma || 0;
+        const rad = Math.PI / 180;
+        let gx = Math.sin(gamma * rad);
+        let gy = Math.sin(beta * rad);
+        const ang = getScreenAngle();
+        if (ang === 90) {
+          const t = gx;
+          gx = -gy;
+          gy = t;
+        } else if (ang === -90 || ang === 270) {
+          const t = gx;
+          gx = gy;
+          gy = -t;
+        } else if (ang === 180) {
+          gx = -gx;
+          gy = -gy;
+        }
+        gravityX = gx;
+        gravityY = gy;
+      }
 
-            // --- physics ---
-            const GRAVITY = 2000; // px/s^2 downward
-            const RESTITUTION = 0.18; // body-body bounciness
-            const BOUNCE_UNSTICK_RESTITUTION = 1.35; // energetic ricochet in bounce mode (>1 kicks)
-            const WALL_RESTITUTION = 0.28;
-            const DAMPING = 0.9985; // per substep air drag
-            const FLOOR_FRICTION = 0.86; // per substep, applied to vx when on floor
-            const TILT_WALL_FRICTION = 0.992; // gentler friction when phone tilt slides chars
-            const REST_VY = 40; // bounce slower than this just stops
-            const MARGIN = 60; // off-screen distance before culling (sides/top only)
-            const ANG_DAMPING = 0.985; // per substep air drag on spin
-            const FLOOR_ANG_FRICTION = 0.78; // per substep when resting on floor
-            const TILT_ANG_FRICTION = 0.96; // gentler angular friction when tilt is sliding chars
-            const CONTACT_ANG_DAMP = 0.9; // per body-body contact; mimics mutual surface friction
-            const WALL_TANGENT_FRICTION = 0.45; // kinetic friction at pinned-body contact
-            // px/s; tangential slip below this is treated as static contact. Needs
-            // to clear gravity's per-substep tangential nudge (sin(θ)·GRAVITY·dt),
-            // inflated by kinetic-friction steady state to ≈ sin(θ)·37. 30 covers
-            // contact angles up to ~55° off vertical.
-            const WALL_STATIC_SLIP = 30;
-            const ANG_SLEEP = 0.04;
-            const SPIN_FACTOR = 0.45;
-            const MAX_AV = 18;
+      function applyMotion(e) {
+        let ax, ay, az;
+        const a = e.acceleration;
+        if (a && (a.x != null || a.y != null || a.z != null)) {
+          ax = a.x || 0;
+          ay = a.y || 0;
+          az = a.z || 0;
+        } else {
+          const ag = e.accelerationIncludingGravity;
+          if (!ag) return;
+          const gx = ag.x || 0,
+            gy = ag.y || 0,
+            gz = ag.z || 0;
+          if (!accelBaseInit) {
+            accelBase.x = gx;
+            accelBase.y = gy;
+            accelBase.z = gz;
+            accelBaseInit = true;
+          }
+          ax = gx - accelBase.x;
+          ay = gy - accelBase.y;
+          az = gz - accelBase.z;
+          // slow-track the baseline so steady-state gravity doesn't read as shake
+          accelBase.x = accelBase.x * 0.95 + gx * 0.05;
+          accelBase.y = accelBase.y * 0.95 + gy * 0.05;
+          accelBase.z = accelBase.z * 0.95 + gz * 0.05;
+        }
+        const mag = Math.hypot(ax, ay, az);
+        const now = performance.now();
+        if (mag > 8 && now - lastShakeT > 60) {
+          lastShakeT = now;
+          const intensity = Math.min((mag - 8) / 12, 1.5);
+          for (const b of bodies) {
+            if (b.fixed) continue;
+            const dir = Math.random() * Math.PI * 2;
+            const s = 120 + intensity * 380;
+            b.vx += Math.cos(dir) * s;
+            b.vy += Math.sin(dir) * s;
+            b.av += (Math.random() - 0.5) * (3 + intensity * 6);
+          }
+        }
+      }
 
-            // --- accelerometer state ---
-            // gravityX/Y is a normalized direction vector; magnitude is GRAVITY.
-            // Default is straight down; deviceorientation tilts it.
-            let motionEnabled = false;
-            let gravityX = 0,
-                gravityY = 1;
-            let lastShakeT = 0;
-            const accelBase = { x: 0, y: 0, z: 0 };
-            let accelBaseInit = false;
+      const tiltWrap = document.getElementById('hb-tilt-wrap');
+      const tiltBtn = document.getElementById('hb-tilt');
+      const touchLike =
+        (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
+        'ontouchstart' in window;
+      if ('DeviceOrientationEvent' in window && touchLike) tiltWrap.style.display = '';
 
-            function getScreenAngle() {
-                if (screen.orientation && typeof screen.orientation.angle === 'number') {
-                    return screen.orientation.angle;
-                }
-                if (typeof window.orientation === 'number') return window.orientation;
-                return 0;
-            }
+      function disableMotion() {
+        window.removeEventListener('deviceorientation', applyOrientation);
+        window.removeEventListener('devicemotion', applyMotion);
+        motionEnabled = false;
+        gravityX = 0;
+        gravityY = 1;
+        accelBaseInit = false;
+        tiltBtn.textContent = 'tilt';
+      }
 
-            function step(dt) {
-                // integrate (fixed bodies stay put). Gravity is a 2D vector so phone
-                // tilt re-aims it; the default (0, 1) keeps the desktop feel.
-                const gax = gravityX * GRAVITY;
-                const gay = gravityY * GRAVITY;
-                for (const b of bodies) {
-                    if (b.fixed) continue;
-                    b.vx += gax * dt;
-                    b.vy += gay * dt;
-                    b.x += b.vx * dt;
-                    b.y += b.vy * dt;
-                    b.vx *= DAMPING;
-                    b.vy *= DAMPING;
-                    b.angle += b.av * dt;
-                    b.av *= ANG_DAMPING;
-                    if (Math.abs(b.av) < ANG_SLEEP) b.av = 0;
-                }
+      async function enableMotion() {
+        // iOS 13+ gates orientation/motion behind a permission request that
+        // must originate from a user gesture; Android browsers just attach.
+        try {
+          if (
+            typeof DeviceOrientationEvent !== 'undefined' &&
+            typeof DeviceOrientationEvent.requestPermission === 'function'
+          ) {
+            const r = await DeviceOrientationEvent.requestPermission();
+            if (r !== 'granted') return;
+          }
+          if (
+            typeof DeviceMotionEvent !== 'undefined' &&
+            typeof DeviceMotionEvent.requestPermission === 'function'
+          ) {
+            try {
+              await DeviceMotionEvent.requestPermission();
+            } catch (_) {}
+          }
+        } catch (_) {
+          return;
+        }
+        window.addEventListener('deviceorientation', applyOrientation);
+        window.addEventListener('devicemotion', applyMotion);
+        motionEnabled = true;
+        tiltBtn.textContent = 'tilt on';
+      }
 
-                // broadphase: spatial hash grid
-                const cell = radius * 2.2;
-                const grid = new Map();
-                const key = (cx, cy) => cx + ',' + cy;
-                for (let i = 0; i < bodies.length; i++) {
-                    const b = bodies[i];
-                    const cx = Math.floor(b.x / cell);
-                    const cy = Math.floor(b.y / cell);
-                    const k = key(cx, cy);
-                    let arr = grid.get(k);
-                    if (!arr) grid.set(k, (arr = []));
-                    arr.push(i);
-                }
+      tiltBtn.addEventListener('click', () => {
+        if (motionEnabled) disableMotion();
+        else enableMotion();
+        showHint();
+      });
 
-                const checked = new Set();
-                for (let i = 0; i < bodies.length; i++) {
-                    const b = bodies[i];
-                    const cx = Math.floor(b.x / cell);
-                    const cy = Math.floor(b.y / cell);
-                    for (let ox = -1; ox <= 1; ox++) {
-                        for (let oy = -1; oy <= 1; oy++) {
-                            const arr = grid.get(key(cx + ox, cy + oy));
-                            if (!arr) continue;
-                            for (const j of arr) {
-                                if (j <= i) continue;
-                                const pairKey = i * 100000 + j;
-                                if (checked.has(pairKey)) continue;
-                                checked.add(pairKey);
-                                resolve(b, bodies[j]);
-                            }
-                        }
-                    }
-                }
+      // --- hint + controls ---
+      const hintEl = document.getElementById('hint');
+      let hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 4000);
+      function hideHintSoon() {
+        clearTimeout(hintTimer);
+        hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 1200);
+      }
+      function showHint() {
+        hintEl.classList.remove('hidden');
+        clearTimeout(hintTimer);
+        hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 2500);
+      }
+      window.addEventListener('pointermove', (e) => {
+        if (e.clientY >= window.innerHeight - 60) showHint();
+      });
+      // While the hint is hidden, the zone overlay catches pointerdowns in the
+      // bottom band before they reach the canvas, so a tap there reveals the
+      // hint instead of firing a stray shot. Once the hint is up, the CSS flips
+      // the zone back to pointer-events:none and drag-to-fire works again.
+      document.getElementById('hint-zone').addEventListener('pointerdown', showHint);
 
-                // floor collision: impermeable bottom, characters pile up here.
-                // When motion is on, walls/ceiling are also impermeable so tilt can
-                // slide the pile across the screen without losing chars off the edge.
-                // Friction at tilt-time is lighter so chars actually slide instead
-                // of locking in place under the strong per-substep damping.
-                const tangentFriction = motionEnabled ? TILT_WALL_FRICTION : FLOOR_FRICTION;
-                const tangentAngFriction = motionEnabled ? TILT_ANG_FRICTION : FLOOR_ANG_FRICTION;
-                for (const b of bodies) {
-                    if (b.fixed) continue;
-                    if (b.y > H - b.r) {
-                        b.y = H - b.r;
-                        if (b.vy > 0) {
-                            b.vy = -b.vy * WALL_RESTITUTION;
-                            if (Math.abs(b.vy) < REST_VY) b.vy = 0;
-                        }
-                        b.vx *= tangentFriction;
-                        if (Math.abs(b.vx) < 1) b.vx = 0;
-                        b.av *= tangentAngFriction;
-                        if (Math.abs(b.av) < ANG_SLEEP) b.av = 0;
-                    }
-                    if (!motionEnabled) continue;
-                    if (b.y < b.r) {
-                        b.y = b.r;
-                        if (b.vy < 0) {
-                            b.vy = -b.vy * WALL_RESTITUTION;
-                            if (Math.abs(b.vy) < REST_VY) b.vy = 0;
-                        }
-                        b.vx *= tangentFriction;
-                        if (Math.abs(b.vx) < 1) b.vx = 0;
-                        b.av *= tangentAngFriction;
-                        if (Math.abs(b.av) < ANG_SLEEP) b.av = 0;
-                    }
-                    if (b.x < b.r) {
-                        b.x = b.r;
-                        if (b.vx < 0) {
-                            b.vx = -b.vx * WALL_RESTITUTION;
-                            if (Math.abs(b.vx) < REST_VY) b.vx = 0;
-                        }
-                        b.vy *= tangentFriction;
-                        if (Math.abs(b.vy) < 1) b.vy = 0;
-                        b.av *= tangentAngFriction;
-                        if (Math.abs(b.av) < ANG_SLEEP) b.av = 0;
-                    }
-                    if (b.x > W - b.r) {
-                        b.x = W - b.r;
-                        if (b.vx > 0) {
-                            b.vx = -b.vx * WALL_RESTITUTION;
-                            if (Math.abs(b.vx) < REST_VY) b.vx = 0;
-                        }
-                        b.vy *= tangentFriction;
-                        if (Math.abs(b.vy) < 1) b.vy = 0;
-                        b.av *= tangentAngFriction;
-                        if (Math.abs(b.av) < ANG_SLEEP) b.av = 0;
-                    }
-                }
+      async function loadNewText() {
+        hasFired = false;
+        applyFallback();
+        buildBlock();
+        try {
+          const res = await fetch(WIKI_URL, { cache: 'no-store' });
+          const data = await res.json();
+          const page = Object.values(data.query.pages)[0];
+          const words = toWords((page && page.extract) || '');
+          if (words.length >= 12 && !hasFired) {
+            wordSource = words;
+            buildBlock();
+          }
+        } catch (_) {
+          /* keep the fallback text */
+        }
+      }
 
-                // cull bodies pushed off the page sideways. Top and bottom are
-                // both kept: the floor is impermeable, and shots fired upward
-                // off the top should arc back down rather than vanish.
-                // Side walls handle containment when motion is enabled.
-                if (!motionEnabled) {
-                    bodies = bodies.filter((b) => b.x > -MARGIN && b.x < W + MARGIN);
-                }
-            }
+      function adjustFont(delta) {
+        const next = Math.max(FONT_MIN, Math.min(FONT_MAX, fontSize + delta));
+        if (next === fontSize) return;
+        userFontSize = next;
+        buildBlock();
+      }
+      function adjustShotSize(factor) {
+        shotSizeMult = Math.max(SHOT_MULT_MIN, Math.min(SHOT_MULT_MAX, shotSizeMult * factor));
+      }
+      document.addEventListener('keydown', (e) => {
+        if ((e.key === 'r' || e.key === 'R') && !e.repeat) {
+          loadNewText();
+          showHint();
+        } else if (e.key === '+' || e.key === '=') {
+          adjustFont(FONT_STEP);
+          showHint();
+        } else if (e.key === '-' || e.key === '_') {
+          adjustFont(-FONT_STEP);
+          showHint();
+        } else if (e.key === ']' || e.key === '}') {
+          adjustShotSize(SHOT_MULT_STEP);
+          showHint();
+        } else if (e.key === '[' || e.key === '{') {
+          adjustShotSize(1 / SHOT_MULT_STEP);
+          showHint();
+        }
+      });
+      document.getElementById('hb-reset').addEventListener('click', () => {
+        loadNewText();
+        showHint();
+      });
+      document.getElementById('hb-dark').addEventListener('click', () => {
+        Common.toggleDark();
+        showHint();
+      });
+      document.getElementById('hb-bigger').addEventListener('click', () => {
+        adjustFont(FONT_STEP);
+        showHint();
+      });
+      document.getElementById('hb-smaller').addEventListener('click', () => {
+        adjustFont(-FONT_STEP);
+        showHint();
+      });
+      document.getElementById('hb-shot-bigger').addEventListener('click', () => {
+        adjustShotSize(SHOT_MULT_STEP);
+        showHint();
+      });
+      document.getElementById('hb-shot-smaller').addEventListener('click', () => {
+        adjustShotSize(1 / SHOT_MULT_STEP);
+        showHint();
+      });
+      const emojiBtn = document.getElementById('hb-emoji');
+      emojiBtn.addEventListener('click', () => {
+        emojiMode = !emojiMode;
+        emojiBtn.textContent = emojiMode ? 'emoji on' : 'emoji';
+        showHint();
+      });
+      const bounceBtn = document.getElementById('hb-bounce');
+      bounceBtn.addEventListener('click', () => {
+        bounceMode = !bounceMode;
+        bounceBtn.textContent = bounceMode ? 'bounce on' : 'bounce';
+        showHint();
+      });
+      document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
+      Common.initSitemapShortcut();
 
-            function resolve(a, b) {
-                // two stationary fixed bodies never overlap by construction.
-                if (a.fixed && b.fixed) return;
+      let resizeTimer = null;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(resize, 150);
+      });
 
-                let dx = b.x - a.x,
-                    dy = b.y - a.y;
-                const minDist = a.r + b.r;
-                let d2 = dx * dx + dy * dy;
-                if (d2 >= minDist * minDist) return;
-                let dist = Math.sqrt(d2) || 0.0001;
-                if (d2 === 0) {
-                    dx = 0.01;
-                    dy = 0;
-                    dist = 0.01;
-                }
-                const nx = dx / dist,
-                    ny = dy / dist;
-                const overlap = minDist - dist;
-
-                // Only shots knock the grid loose. A loose-but-not-shot body
-                // (a square char that's already falling) bounces off pinned
-                // neighbors instead of unfixing them.
-                // Default: unfix immediately, then fall through to the equal-mass
-                // collision below — the shot punches through with energy loss.
-                // Bounce mode: keep the target fixed so the wall branch runs
-                // first (shot bounces off as if hitting a wall), then unfix.
-                const shotUnstick = (a.fixed && b.shot) || (b.fixed && a.shot);
-                if (!bounceMode) {
-                    if (a.fixed && b.shot) a.fixed = false;
-                    if (b.fixed && a.shot) b.fixed = false;
-                }
-
-                if (a.fixed || b.fixed) {
-                    // Pinned body acts as an immovable wall for the moving one.
-                    const m = a.fixed ? b : a;
-                    const wnx = a.fixed ? nx : -nx;
-                    const wny = a.fixed ? ny : -ny;
-                    m.x += wnx * overlap;
-                    m.y += wny * overlap;
-                    const vn = m.vx * wnx + m.vy * wny;
-                    // Bounce-mode unsticks get a high-restitution kick so the
-                    // ricochet feels snappy. Tangent friction is also skipped so
-                    // the reflected velocity isn't bled off along the contact.
-                    const energetic = bounceMode && shotUnstick;
-                    const rest = energetic ? BOUNCE_UNSTICK_RESTITUTION : RESTITUTION;
-                    if (vn < 0) {
-                        const jImp = -(1 + rest) * vn;
-                        m.vx += jImp * wnx;
-                        m.vy += jImp * wny;
-                        const tx = -wny,
-                            ty = wnx;
-                        const vt = m.vx * tx + m.vy * ty;
-                        // Split static vs kinetic contact by slip speed. With only
-                        // kinetic friction, gravity drives a tiny re-bounce every
-                        // substep; the angled normal projects a sliver of vx and
-                        // the spin formula injects same-direction spin each time,
-                        // reaching a small but visible steady-state rotation. Below
-                        // the slip threshold, treat the contact as static: kill all
-                        // tangential motion and skip spin injection so a body resting
-                        // on a pinned neighbor actually comes to rest.
-                        if (!energetic && Math.abs(vt) < WALL_STATIC_SLIP) {
-                            m.vx -= vt * tx;
-                            m.vy -= vt * ty;
-                        } else if (!energetic) {
-                            m.vx -= vt * WALL_TANGENT_FRICTION * tx;
-                            m.vy -= vt * WALL_TANGENT_FRICTION * ty;
-                            const spin = (vt / m.r) * SPIN_FACTOR;
-                            m.av = Math.max(-MAX_AV, Math.min(MAX_AV, m.av + spin));
-                        } else {
-                            // Energetic bounce: keep tangential velocity intact
-                            // but still inject contact spin for visual flair.
-                            const spin = (vt / m.r) * SPIN_FACTOR;
-                            m.av = Math.max(-MAX_AV, Math.min(MAX_AV, m.av + spin));
-                        }
-                    }
-                    m.av *= CONTACT_ANG_DAMP;
-                    if (bounceMode && shotUnstick) {
-                        if (a.fixed && b.shot) a.fixed = false;
-                        if (b.fixed && a.shot) b.fixed = false;
-                    }
-                    return;
-                }
-
-                // both non-fixed: equal-mass collision
-                const corr = overlap / 2;
-                a.x -= nx * corr;
-                a.y -= ny * corr;
-                b.x += nx * corr;
-                b.y += ny * corr;
-
-                const rvx = b.vx - a.vx,
-                    rvy = b.vy - a.vy;
-                const vn = rvx * nx + rvy * ny;
-                if (vn > 0) return;
-                const jImp = (-(1 + RESTITUTION) * vn) / 2;
-                const ix = jImp * nx,
-                    iy = jImp * ny;
-                a.vx -= ix;
-                a.vy -= iy;
-                b.vx += ix;
-                b.vy += iy;
-
-                const tx = -ny,
-                    ty = nx;
-                const vt = rvx * tx + rvy * ty;
-                // Same static-vs-kinetic split as the pinned branch. Without this,
-                // stacked unfixed bodies whose bottom is clipped by the floor keep
-                // receiving a per-substep gravity-induced rvt, so the kinetic spin
-                // formula injects same-sign spin forever into both bodies.
-                if (Math.abs(vt) < WALL_STATIC_SLIP) {
-                    const halfVt = vt / 2;
-                    a.vx += halfVt * tx;
-                    a.vy += halfVt * ty;
-                    b.vx -= halfVt * tx;
-                    b.vy -= halfVt * ty;
-                } else {
-                    const spin = (vt / a.r) * SPIN_FACTOR;
-                    a.av = Math.max(-MAX_AV, Math.min(MAX_AV, a.av - spin));
-                    b.av = Math.max(-MAX_AV, Math.min(MAX_AV, b.av + spin));
-                }
-                a.av *= CONTACT_ANG_DAMP;
-                b.av *= CONTACT_ANG_DAMP;
-            }
-
-            function draw() {
-                ctx.clearRect(0, 0, W, H);
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillStyle = inkColor();
-                for (const b of bodies) {
-                    ctx.font = b.size + 'px ' + MONO;
-                    if (b.angle) {
-                        ctx.translate(b.x, b.y);
-                        ctx.rotate(b.angle);
-                        ctx.fillText(b.ch, 0, 0);
-                        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-                    } else {
-                        ctx.fillText(b.ch, b.x, b.y);
-                    }
-                }
-
-                if (drag.active) {
-                    ctx.save();
-                    ctx.strokeStyle = isDark() ? 'rgba(240,240,240,0.5)' : 'rgba(17,17,17,0.4)';
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.moveTo(drag.sx, drag.sy);
-                    ctx.lineTo(drag.cx, drag.cy);
-                    ctx.stroke();
-                    ctx.fillStyle = inkColor();
-                    ctx.font = fontSize * shotSizeMult + 'px ' + MONO;
-                    ctx.globalAlpha = 0.7;
-                    ctx.fillText(drag.ch, drag.sx, drag.sy);
-                    ctx.restore();
-                }
-            }
-
-            let lastT = performance.now();
-            let acc = 0;
-            const FIXED = 1 / 120; // seconds
-            function frame(now) {
-                let elapsed = (now - lastT) / 1000;
-                lastT = now;
-                if (elapsed > 0.05) elapsed = 0.05;
-                acc += elapsed;
-                let iters = 0;
-                while (acc >= FIXED && iters++ < 8) {
-                    step(FIXED);
-                    acc -= FIXED;
-                }
-                draw();
-                requestAnimationFrame(frame);
-            }
-
-            // --- input ---
-            const drag = { active: false, id: null, sx: 0, sy: 0, cx: 0, cy: 0, ch: '' };
-            let emojiMode = false;
-            let bounceMode = false;
-            function pickEmoji() {
-                if (!window.EMOJIS) return pickFromRanges(CHAR_RANGES);
-                return window.EMOJIS[Math.floor(Math.random() * window.EMOJIS.length)];
-            }
-            function randChar() {
-                if (emojiMode) return pickEmoji();
-                return Math.random() < 0.2 ? pickEmoji() : pickFromRanges(CHAR_RANGES);
-            }
-
-            function localPoint(e) {
-                const rect = canvas.getBoundingClientRect();
-                return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-            }
-
-            canvas.addEventListener('pointerdown', (e) => {
-                if (drag.active) return;
-                hideHintSoon();
-                const p = localPoint(e);
-                drag.active = true;
-                drag.id = e.pointerId;
-                drag.sx = drag.cx = p.x;
-                drag.sy = drag.cy = p.y;
-                drag.ch = randChar();
-                if (canvas.setPointerCapture) {
-                    try {
-                        canvas.setPointerCapture(e.pointerId);
-                    } catch (_) {}
-                }
-            });
-
-            canvas.addEventListener('pointermove', (e) => {
-                if (!drag.active || e.pointerId !== drag.id) return;
-                const p = localPoint(e);
-                drag.cx = p.x;
-                drag.cy = p.y;
-            });
-
-            function endDrag(e) {
-                if (!drag.active || e.pointerId !== drag.id) return;
-                const p = localPoint(e);
-                drag.cx = p.x;
-                drag.cy = p.y;
-                let dx = drag.cx - drag.sx,
-                    dy = drag.cy - drag.sy;
-                const dist = Math.hypot(dx, dy);
-                const minDim = Math.min(W, H);
-                const speed = Math.min(dist / minDim, 1) * 3000 + 400;
-                if (dist < 4) {
-                    dx = 0;
-                    dy = -1;
-                }
-                const inv = dist > 0 ? 1 / dist : 1;
-                const nx = dx * inv,
-                    ny = dy * inv;
-                bodies.push(
-                    makeBody(
-                        drag.sx,
-                        drag.sy,
-                        drag.ch,
-                        nx * speed,
-                        ny * speed,
-                        false,
-                        true,
-                        fontSize * shotSizeMult
-                    )
-                );
-                hasFired = true;
-                drag.active = false;
-                drag.id = null;
-            }
-
-            canvas.addEventListener('pointerup', endDrag);
-            canvas.addEventListener('pointercancel', (e) => {
-                if (e.pointerId === drag.id) {
-                    drag.active = false;
-                    drag.id = null;
-                }
-            });
-            canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
-
-            // --- accelerometer ---
-            // Heuristic mapping: gamma (left/right roll) drives horizontal gravity,
-            // beta (front/back pitch) drives vertical. This isn't the textbook
-            // device-frame projection of world gravity (which zeroes the sideways
-            // component when the phone is held upright), but it matches how people
-            // expect a tilt toy to feel: lean right and the pile slides right.
-            function applyOrientation(e) {
-                if (e.beta == null && e.gamma == null) return;
-                const beta = e.beta || 0;
-                const gamma = e.gamma || 0;
-                const rad = Math.PI / 180;
-                let gx = Math.sin(gamma * rad);
-                let gy = Math.sin(beta * rad);
-                const ang = getScreenAngle();
-                if (ang === 90) {
-                    const t = gx;
-                    gx = -gy;
-                    gy = t;
-                } else if (ang === -90 || ang === 270) {
-                    const t = gx;
-                    gx = gy;
-                    gy = -t;
-                } else if (ang === 180) {
-                    gx = -gx;
-                    gy = -gy;
-                }
-                gravityX = gx;
-                gravityY = gy;
-            }
-
-            function applyMotion(e) {
-                let ax, ay, az;
-                const a = e.acceleration;
-                if (a && (a.x != null || a.y != null || a.z != null)) {
-                    ax = a.x || 0;
-                    ay = a.y || 0;
-                    az = a.z || 0;
-                } else {
-                    const ag = e.accelerationIncludingGravity;
-                    if (!ag) return;
-                    const gx = ag.x || 0,
-                        gy = ag.y || 0,
-                        gz = ag.z || 0;
-                    if (!accelBaseInit) {
-                        accelBase.x = gx;
-                        accelBase.y = gy;
-                        accelBase.z = gz;
-                        accelBaseInit = true;
-                    }
-                    ax = gx - accelBase.x;
-                    ay = gy - accelBase.y;
-                    az = gz - accelBase.z;
-                    // slow-track the baseline so steady-state gravity doesn't read as shake
-                    accelBase.x = accelBase.x * 0.95 + gx * 0.05;
-                    accelBase.y = accelBase.y * 0.95 + gy * 0.05;
-                    accelBase.z = accelBase.z * 0.95 + gz * 0.05;
-                }
-                const mag = Math.hypot(ax, ay, az);
-                const now = performance.now();
-                if (mag > 8 && now - lastShakeT > 60) {
-                    lastShakeT = now;
-                    const intensity = Math.min((mag - 8) / 12, 1.5);
-                    for (const b of bodies) {
-                        if (b.fixed) continue;
-                        const dir = Math.random() * Math.PI * 2;
-                        const s = 120 + intensity * 380;
-                        b.vx += Math.cos(dir) * s;
-                        b.vy += Math.sin(dir) * s;
-                        b.av += (Math.random() - 0.5) * (3 + intensity * 6);
-                    }
-                }
-            }
-
-            const tiltWrap = document.getElementById('hb-tilt-wrap');
-            const tiltBtn = document.getElementById('hb-tilt');
-            const touchLike =
-                (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
-                'ontouchstart' in window;
-            if ('DeviceOrientationEvent' in window && touchLike) tiltWrap.style.display = '';
-
-            function disableMotion() {
-                window.removeEventListener('deviceorientation', applyOrientation);
-                window.removeEventListener('devicemotion', applyMotion);
-                motionEnabled = false;
-                gravityX = 0;
-                gravityY = 1;
-                accelBaseInit = false;
-                tiltBtn.textContent = 'tilt';
-            }
-
-            async function enableMotion() {
-                // iOS 13+ gates orientation/motion behind a permission request that
-                // must originate from a user gesture; Android browsers just attach.
-                try {
-                    if (
-                        typeof DeviceOrientationEvent !== 'undefined' &&
-                        typeof DeviceOrientationEvent.requestPermission === 'function'
-                    ) {
-                        const r = await DeviceOrientationEvent.requestPermission();
-                        if (r !== 'granted') return;
-                    }
-                    if (
-                        typeof DeviceMotionEvent !== 'undefined' &&
-                        typeof DeviceMotionEvent.requestPermission === 'function'
-                    ) {
-                        try {
-                            await DeviceMotionEvent.requestPermission();
-                        } catch (_) {}
-                    }
-                } catch (_) {
-                    return;
-                }
-                window.addEventListener('deviceorientation', applyOrientation);
-                window.addEventListener('devicemotion', applyMotion);
-                motionEnabled = true;
-                tiltBtn.textContent = 'tilt on';
-            }
-
-            tiltBtn.addEventListener('click', () => {
-                if (motionEnabled) disableMotion();
-                else enableMotion();
-                showHint();
-            });
-
-            // --- hint + controls ---
-            const hintEl = document.getElementById('hint');
-            let hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 4000);
-            function hideHintSoon() {
-                clearTimeout(hintTimer);
-                hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 1200);
-            }
-            function showHint() {
-                hintEl.classList.remove('hidden');
-                clearTimeout(hintTimer);
-                hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 2500);
-            }
-            window.addEventListener('pointermove', (e) => {
-                if (e.clientY >= window.innerHeight - 60) showHint();
-            });
-            // While the hint is hidden, the zone overlay catches pointerdowns in the
-            // bottom band before they reach the canvas, so a tap there reveals the
-            // hint instead of firing a stray shot. Once the hint is up, the CSS flips
-            // the zone back to pointer-events:none and drag-to-fire works again.
-            document.getElementById('hint-zone').addEventListener('pointerdown', showHint);
-
-            async function loadNewText() {
-                hasFired = false;
-                applyFallback();
-                buildBlock();
-                try {
-                    const res = await fetch(WIKI_URL, { cache: 'no-store' });
-                    const data = await res.json();
-                    const page = Object.values(data.query.pages)[0];
-                    const words = toWords((page && page.extract) || '');
-                    if (words.length >= 12 && !hasFired) {
-                        wordSource = words;
-                        buildBlock();
-                    }
-                } catch (_) {
-                    /* keep the fallback text */
-                }
-            }
-
-            function adjustFont(delta) {
-                const next = Math.max(FONT_MIN, Math.min(FONT_MAX, fontSize + delta));
-                if (next === fontSize) return;
-                userFontSize = next;
-                buildBlock();
-            }
-            function adjustShotSize(factor) {
-                shotSizeMult = Math.max(
-                    SHOT_MULT_MIN,
-                    Math.min(SHOT_MULT_MAX, shotSizeMult * factor)
-                );
-            }
-            document.addEventListener('keydown', (e) => {
-                if ((e.key === 'r' || e.key === 'R') && !e.repeat) {
-                    loadNewText();
-                    showHint();
-                } else if (e.key === '+' || e.key === '=') {
-                    adjustFont(FONT_STEP);
-                    showHint();
-                } else if (e.key === '-' || e.key === '_') {
-                    adjustFont(-FONT_STEP);
-                    showHint();
-                } else if (e.key === ']' || e.key === '}') {
-                    adjustShotSize(SHOT_MULT_STEP);
-                    showHint();
-                } else if (e.key === '[' || e.key === '{') {
-                    adjustShotSize(1 / SHOT_MULT_STEP);
-                    showHint();
-                }
-            });
-            document.getElementById('hb-reset').addEventListener('click', () => {
-                loadNewText();
-                showHint();
-            });
-            document.getElementById('hb-dark').addEventListener('click', () => {
-                Common.toggleDark();
-                showHint();
-            });
-            document.getElementById('hb-bigger').addEventListener('click', () => {
-                adjustFont(FONT_STEP);
-                showHint();
-            });
-            document.getElementById('hb-smaller').addEventListener('click', () => {
-                adjustFont(-FONT_STEP);
-                showHint();
-            });
-            document.getElementById('hb-shot-bigger').addEventListener('click', () => {
-                adjustShotSize(SHOT_MULT_STEP);
-                showHint();
-            });
-            document.getElementById('hb-shot-smaller').addEventListener('click', () => {
-                adjustShotSize(1 / SHOT_MULT_STEP);
-                showHint();
-            });
-            const emojiBtn = document.getElementById('hb-emoji');
-            emojiBtn.addEventListener('click', () => {
-                emojiMode = !emojiMode;
-                emojiBtn.textContent = emojiMode ? 'emoji on' : 'emoji';
-                showHint();
-            });
-            const bounceBtn = document.getElementById('hb-bounce');
-            bounceBtn.addEventListener('click', () => {
-                bounceMode = !bounceMode;
-                bounceBtn.textContent = bounceMode ? 'bounce on' : 'bounce';
-                showHint();
-            });
-            document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
-            Common.initSitemapShortcut();
-
-            let resizeTimer = null;
-            window.addEventListener('resize', () => {
-                clearTimeout(resizeTimer);
-                resizeTimer = setTimeout(resize, 150);
-            });
-
-            resize();
-            loadNewText();
-            requestAnimationFrame(frame);
-        </script>
-    </body>
+      resize();
+      loadNewText();
+      requestAnimationFrame(frame);
+    </script>
+  </body>
 </html>

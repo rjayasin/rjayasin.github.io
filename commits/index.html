@@ -1,557 +1,549 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Ruvan / commits</title>
-        <link rel="stylesheet" href="/common.css" />
-        <style>
-            body {
-                font-family: monospace;
-                font-size: 13px;
-                line-height: 1.6;
-                padding: 48px 32px;
-                max-width: 720px;
-            }
-            .day,
-            .top-bar,
-            .day:last-child .commits:last-child,
-            header a,
-            .commit a,
-            .repo,
-            .top-repo {
-                transition:
-                    background-color 0.2s ease,
-                    color 0.2s ease,
-                    border-color 0.2s ease;
-            }
-            header {
-                margin-bottom: 15px;
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start;
-                gap: 16px;
-            }
-            header a {
-                color: #000;
-                text-decoration: none;
-            }
-            header a:hover {
-                text-decoration: underline;
-            }
-            h1 {
-                font-size: 13px;
-                font-weight: normal;
-                letter-spacing: 0.05em;
-            }
-            .subtitle {
-                color: #888;
-                margin-top: 4px;
-            }
-            .log {
-                display: flex;
-                flex-direction: column;
-                width: 100%;
-            }
-            .day {
-                display: flex;
-                flex-direction: column;
-                border-top: 1px solid #ccc;
-            }
-            .top-bar + .day {
-                border-top: none;
-            }
-            .day:last-child .commits:last-child {
-                border-bottom: 1px solid #f0f0f0;
-            }
-            .top-bar {
-                position: sticky;
-                top: 0;
-                background: #fff;
-                display: flex;
-                justify-content: space-between;
-                align-items: baseline;
-                gap: 24px;
-                padding: 10px 0 4px;
-                z-index: 2;
-            }
-            .top-bar[hidden] {
-                display: none;
-            }
-            .top-repo {
-                color: #888;
-                font-size: 11px;
-                text-decoration: none;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                min-width: 0;
-            }
-            .top-repo:hover {
-                color: #000;
-            }
-            .top-date {
-                color: #888;
-                font-size: 11px;
-                white-space: nowrap;
-                padding-top: 1px;
-            }
-            .section-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: baseline;
-                gap: 24px;
-                padding: 8px 0 2px;
-            }
-            .repo {
-                color: #888;
-                font-size: 11px;
-                text-decoration: none;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                min-width: 0;
-            }
-            .repo:hover {
-                color: #000;
-            }
-            .section-header .date {
-                color: #888;
-                font-size: 11px;
-                white-space: nowrap;
-            }
-            .commits {
-                display: flex;
-                flex-direction: column;
-                gap: 2px;
-                padding-top: 0;
-                padding-bottom: 8px;
-            }
-            .commit {
-                display: grid;
-                grid-template-columns: 8ch 1fr;
-                column-gap: 12px;
-            }
-            @media (max-width: 640px) {
-                body {
-                    font-size: 15px;
-                    padding: 32px 20px;
-                }
-                .repo,
-                .top-repo,
-                .top-date,
-                .section-header .date {
-                    font-size: 12px;
-                }
-                h1 {
-                    font-size: 15px;
-                }
-                .commit {
-                    font-size: 13px;
-                }
-            }
-            .time {
-                color: #888;
-            }
-            .commit a {
-                color: #000;
-                text-decoration: none;
-            }
-            .commit a:hover {
-                text-decoration: underline;
-            }
-            #status {
-                color: #888;
-                padding: 8px 0;
-            }
-            #gh-auth {
-                flex-shrink: 0;
-                width: 20px;
-                height: 20px;
-                padding: 0;
-                border: none;
-                background: none;
-                cursor: pointer;
-                color: #888;
-                opacity: 0.7;
-                transition:
-                    opacity 0.15s,
-                    color 0.15s;
-            }
-            #gh-auth:hover {
-                opacity: 1;
-                color: #000;
-            }
-            #gh-auth.authed {
-                color: #000;
-                opacity: 1;
-            }
-            #gh-auth svg {
-                width: 100%;
-                height: 100%;
-                display: block;
-                fill: currentColor;
-            }
-            body.dark header a,
-            body.dark .commit a,
-            body.dark .repo:hover,
-            body.dark #gh-auth:hover,
-            body.dark #gh-auth.authed {
-                color: #fff;
-            }
-            body.dark .day {
-                border-top-color: #333;
-            }
-            body.dark .day:last-child .commits:last-child {
-                border-bottom-color: #1a1a1a;
-            }
-            body.dark .top-bar {
-                background: #111;
-            }
-            body.dark .top-repo:hover {
-                color: #fff;
-            }
-            body.dark .repo {
-                color: #888;
-            }
-        </style>
-        <script src="/common.js"></script>
-    </head>
-    <body>
-        <header>
-            <div>
-                <h1><a href="/">Ruvan</a> / commits</h1>
-                <p class="subtitle" id="range"></p>
-            </div>
-            <button
-                id="gh-auth"
-                type="button"
-                aria-label="Log in with GitHub"
-                title="Log in with GitHub"
-            >
-                <svg viewBox="0 0 16 16" aria-hidden="true">
-                    <path
-                        fill-rule="evenodd"
-                        d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
-                    />
-                </svg>
-            </button>
-        </header>
-        <div class="log" id="log">
-            <div class="top-bar" id="top-bar" hidden>
-                <a class="top-repo" id="top-repo" target="_blank" rel="noopener"></a>
-                <span class="top-date" id="top-date"></span>
-            </div>
-        </div>
-        <p id="status">loading…</p>
-        <div id="sentinel"></div>
-        <script>
-            (function () {
-                const path =
-                    'M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z';
-                const svg =
-                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><style>path{fill:#000}@media(prefers-color-scheme:dark){path{fill:#fff}}</style><path fill-rule="evenodd" d="' +
-                    path +
-                    '"/></svg>';
-                Common.setFaviconHref('data:image/svg+xml,' + encodeURIComponent(svg));
-            })();
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ruvan / commits</title>
+    <link rel="stylesheet" href="/common.css" />
+    <style>
+      body {
+        font-family: monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        padding: 48px 32px;
+        max-width: 720px;
+      }
+      .day,
+      .top-bar,
+      .day:last-child .commits:last-child,
+      header a,
+      .commit a,
+      .repo,
+      .top-repo {
+        transition:
+          background-color 0.2s ease,
+          color 0.2s ease,
+          border-color 0.2s ease;
+      }
+      header {
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+      }
+      header a {
+        color: #000;
+        text-decoration: none;
+      }
+      header a:hover {
+        text-decoration: underline;
+      }
+      h1 {
+        font-size: 13px;
+        font-weight: normal;
+        letter-spacing: 0.05em;
+      }
+      .subtitle {
+        color: #888;
+        margin-top: 4px;
+      }
+      .log {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+      }
+      .day {
+        display: flex;
+        flex-direction: column;
+        border-top: 1px solid #ccc;
+      }
+      .top-bar + .day {
+        border-top: none;
+      }
+      .day:last-child .commits:last-child {
+        border-bottom: 1px solid #f0f0f0;
+      }
+      .top-bar {
+        position: sticky;
+        top: 0;
+        background: #fff;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 24px;
+        padding: 10px 0 4px;
+        z-index: 2;
+      }
+      .top-bar[hidden] {
+        display: none;
+      }
+      .top-repo {
+        color: #888;
+        font-size: 11px;
+        text-decoration: none;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+      }
+      .top-repo:hover {
+        color: #000;
+      }
+      .top-date {
+        color: #888;
+        font-size: 11px;
+        white-space: nowrap;
+        padding-top: 1px;
+      }
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 24px;
+        padding: 8px 0 2px;
+      }
+      .repo {
+        color: #888;
+        font-size: 11px;
+        text-decoration: none;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+      }
+      .repo:hover {
+        color: #000;
+      }
+      .section-header .date {
+        color: #888;
+        font-size: 11px;
+        white-space: nowrap;
+      }
+      .commits {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding-top: 0;
+        padding-bottom: 8px;
+      }
+      .commit {
+        display: grid;
+        grid-template-columns: 8ch 1fr;
+        column-gap: 12px;
+      }
+      @media (max-width: 640px) {
+        body {
+          font-size: 15px;
+          padding: 32px 20px;
+        }
+        .repo,
+        .top-repo,
+        .top-date,
+        .section-header .date {
+          font-size: 12px;
+        }
+        h1 {
+          font-size: 15px;
+        }
+        .commit {
+          font-size: 13px;
+        }
+      }
+      .time {
+        color: #888;
+      }
+      .commit a {
+        color: #000;
+        text-decoration: none;
+      }
+      .commit a:hover {
+        text-decoration: underline;
+      }
+      #status {
+        color: #888;
+        padding: 8px 0;
+      }
+      #gh-auth {
+        flex-shrink: 0;
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        border: none;
+        background: none;
+        cursor: pointer;
+        color: #888;
+        opacity: 0.7;
+        transition:
+          opacity 0.15s,
+          color 0.15s;
+      }
+      #gh-auth:hover {
+        opacity: 1;
+        color: #000;
+      }
+      #gh-auth.authed {
+        color: #000;
+        opacity: 1;
+      }
+      #gh-auth svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+        fill: currentColor;
+      }
+      body.dark header a,
+      body.dark .commit a,
+      body.dark .repo:hover,
+      body.dark #gh-auth:hover,
+      body.dark #gh-auth.authed {
+        color: #fff;
+      }
+      body.dark .day {
+        border-top-color: #333;
+      }
+      body.dark .day:last-child .commits:last-child {
+        border-bottom-color: #1a1a1a;
+      }
+      body.dark .top-bar {
+        background: #111;
+      }
+      body.dark .top-repo:hover {
+        color: #fff;
+      }
+      body.dark .repo {
+        color: #888;
+      }
+    </style>
+    <script src="/common.js"></script>
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1><a href="/">Ruvan</a> / commits</h1>
+        <p class="subtitle" id="range"></p>
+      </div>
+      <button id="gh-auth" type="button" aria-label="Log in with GitHub" title="Log in with GitHub">
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <path
+            fill-rule="evenodd"
+            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
+          />
+        </svg>
+      </button>
+    </header>
+    <div class="log" id="log">
+      <div class="top-bar" id="top-bar" hidden>
+        <a class="top-repo" id="top-repo" target="_blank" rel="noopener"></a>
+        <span class="top-date" id="top-date"></span>
+      </div>
+    </div>
+    <p id="status">loading…</p>
+    <div id="sentinel"></div>
+    <script>
+      (function () {
+        const path =
+          'M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z';
+        const svg =
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><style>path{fill:#000}@media(prefers-color-scheme:dark){path{fill:#fff}}</style><path fill-rule="evenodd" d="' +
+          path +
+          '"/></svg>';
+        Common.setFaviconHref('data:image/svg+xml,' + encodeURIComponent(svg));
+      })();
 
-            Common.initDarkMode();
+      Common.initDarkMode();
 
-            const USER = 'rjayasin';
-            const BOT_REPO = 'rjayasin/rjayasin.github.io';
-            const BOT_AUTHOR = '41898282+github-actions[bot]@users.noreply.github.com';
-            const HIDDEN_BOT_MSG_PREFIX = 'sitemap: refresh dates';
-            const TOKEN_KEY = 'gh_token';
-            const log = document.getElementById('log');
-            const status = document.getElementById('status');
-            const range = document.getElementById('range');
-            const sentinel = document.getElementById('sentinel');
-            const authBtn = document.getElementById('gh-auth');
-            const topBar = document.getElementById('top-bar');
-            const topRepo = document.getElementById('top-repo');
-            const topDate = document.getElementById('top-date');
+      const USER = 'rjayasin';
+      const BOT_REPO = 'rjayasin/rjayasin.github.io';
+      const BOT_AUTHOR = '41898282+github-actions[bot]@users.noreply.github.com';
+      const HIDDEN_BOT_MSG_PREFIX = 'sitemap: refresh dates';
+      const TOKEN_KEY = 'gh_token';
+      const log = document.getElementById('log');
+      const status = document.getElementById('status');
+      const range = document.getElementById('range');
+      const sentinel = document.getElementById('sentinel');
+      const authBtn = document.getElementById('gh-auth');
+      const topBar = document.getElementById('top-bar');
+      const topRepo = document.getElementById('top-repo');
+      const topDate = document.getElementById('top-date');
 
-            function getToken() {
-                return localStorage.getItem(TOKEN_KEY) || '';
-            }
+      function getToken() {
+        return localStorage.getItem(TOKEN_KEY) || '';
+      }
 
-            function refreshAuthBtn() {
-                if (getToken()) {
-                    authBtn.classList.add('authed');
-                    authBtn.title = 'Logged in to GitHub (click to log out)';
-                } else {
-                    authBtn.classList.remove('authed');
-                    authBtn.title = 'Log in with GitHub to include private repos';
-                }
-            }
+      function refreshAuthBtn() {
+        if (getToken()) {
+          authBtn.classList.add('authed');
+          authBtn.title = 'Logged in to GitHub (click to log out)';
+        } else {
+          authBtn.classList.remove('authed');
+          authBtn.title = 'Log in with GitHub to include private repos';
+        }
+      }
 
-            authBtn.addEventListener('click', () => {
-                if (getToken()) {
-                    if (confirm('Log out of GitHub?')) {
-                        localStorage.removeItem(TOKEN_KEY);
-                        location.reload();
-                    }
-                    return;
-                }
-                const msg =
-                    'Paste a GitHub personal access token to include private repos.\n\n' +
-                    'Create one at https://github.com/settings/tokens\n' +
-                    '  • Classic token: scope "repo"\n' +
-                    '  • Fine-grained: read access to "Contents" + "Metadata"\n\n' +
-                    'The token is stored only in this browser (localStorage).';
-                const token = prompt(msg, '');
-                if (token && token.trim()) {
-                    localStorage.setItem(TOKEN_KEY, token.trim());
-                    location.reload();
-                }
+      authBtn.addEventListener('click', () => {
+        if (getToken()) {
+          if (confirm('Log out of GitHub?')) {
+            localStorage.removeItem(TOKEN_KEY);
+            location.reload();
+          }
+          return;
+        }
+        const msg =
+          'Paste a GitHub personal access token to include private repos.\n\n' +
+          'Create one at https://github.com/settings/tokens\n' +
+          '  • Classic token: scope "repo"\n' +
+          '  • Fine-grained: read access to "Contents" + "Metadata"\n\n' +
+          'The token is stored only in this browser (localStorage).';
+        const token = prompt(msg, '');
+        if (token && token.trim()) {
+          localStorage.setItem(TOKEN_KEY, token.trim());
+          location.reload();
+        }
+      });
+
+      refreshAuthBtn();
+
+      let nextPage = 1;
+      let loading = false;
+      let exhausted = false;
+      let currentDay = null;
+      let currentDayRepos = null;
+      let currentDayContainer = null;
+      let hasFirstSection = false;
+      let total = 0;
+      let botCommits = [];
+
+      async function fetchBotCommits() {
+        const headers = { Accept: 'application/vnd.github+json' };
+        const token = getToken();
+        if (token) headers.Authorization = `Bearer ${token}`;
+        const out = [];
+        for (let page = 1; page <= 10; page++) {
+          const r = await fetch(
+            `https://api.github.com/repos/${BOT_REPO}/commits?author=${encodeURIComponent(BOT_AUTHOR)}&per_page=100&page=${page}`,
+            { headers }
+          );
+          if (!r.ok) break;
+          const items = await r.json();
+          if (!items.length) break;
+          for (const c of items) {
+            if (c.commit.message.split('\n')[0].startsWith(HIDDEN_BOT_MSG_PREFIX)) continue;
+            out.push({
+              commit: {
+                committer: { date: c.commit.committer.date },
+                message: c.commit.message,
+              },
+              repository: { full_name: BOT_REPO },
+              html_url: c.html_url,
+              isBot: true,
             });
+          }
+          if (items.length < 100) break;
+        }
+        out.sort((a, b) => new Date(b.commit.committer.date) - new Date(a.commit.committer.date));
+        botCommits = out;
+      }
 
-            refreshAuthBtn();
+      const botPromise = fetchBotCommits().catch(() => {});
 
-            let nextPage = 1;
-            let loading = false;
-            let exhausted = false;
-            let currentDay = null;
-            let currentDayRepos = null;
-            let currentDayContainer = null;
-            let hasFirstSection = false;
-            let total = 0;
-            let botCommits = [];
+      const CURRENT_YEAR = new Date().getFullYear();
 
-            async function fetchBotCommits() {
-                const headers = { Accept: 'application/vnd.github+json' };
-                const token = getToken();
-                if (token) headers.Authorization = `Bearer ${token}`;
-                const out = [];
-                for (let page = 1; page <= 10; page++) {
-                    const r = await fetch(
-                        `https://api.github.com/repos/${BOT_REPO}/commits?author=${encodeURIComponent(BOT_AUTHOR)}&per_page=100&page=${page}`,
-                        { headers }
-                    );
-                    if (!r.ok) break;
-                    const items = await r.json();
-                    if (!items.length) break;
-                    for (const c of items) {
-                        if (c.commit.message.split('\n')[0].startsWith(HIDDEN_BOT_MSG_PREFIX))
-                            continue;
-                        out.push({
-                            commit: {
-                                committer: { date: c.commit.committer.date },
-                                message: c.commit.message,
-                            },
-                            repository: { full_name: BOT_REPO },
-                            html_url: c.html_url,
-                            isBot: true,
-                        });
-                    }
-                    if (items.length < 100) break;
-                }
-                out.sort(
-                    (a, b) => new Date(b.commit.committer.date) - new Date(a.commit.committer.date)
-                );
-                botCommits = out;
-            }
+      function fmtDay(iso) {
+        const d = new Date(iso);
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        return yyyy === CURRENT_YEAR ? `${mm}-${dd}` : `${yyyy}-${mm}-${dd}`;
+      }
 
-            const botPromise = fetchBotCommits().catch(() => {});
+      function fmtTime(iso) {
+        const d = new Date(iso);
+        let h = d.getHours();
+        const ampm = h >= 12 ? 'pm' : 'am';
+        h = h % 12 || 12;
+        const min = String(d.getMinutes()).padStart(2, '0');
+        return `${h}:${min}${ampm}`;
+      }
 
-            const CURRENT_YEAR = new Date().getFullYear();
+      function escHtml(s) {
+        return s
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
 
-            function fmtDay(iso) {
-                const d = new Date(iso);
-                const mm = String(d.getMonth() + 1).padStart(2, '0');
-                const dd = String(d.getDate()).padStart(2, '0');
-                const yyyy = d.getFullYear();
-                return yyyy === CURRENT_YEAR ? `${mm}-${dd}` : `${yyyy}-${mm}-${dd}`;
-            }
+      async function fetchPage(page) {
+        const headers = { Accept: 'application/vnd.github+json' };
+        const token = getToken();
+        if (token) headers.Authorization = `Bearer ${token}`;
+        const r = await fetch(
+          `https://api.github.com/search/commits?q=author:${USER}&sort=committer-date&order=desc&per_page=100&page=${page}`,
+          { headers }
+        );
+        if (r.status === 401) {
+          localStorage.removeItem(TOKEN_KEY);
+          refreshAuthBtn();
+          throw new Error('GitHub token rejected; logged out');
+        }
+        if (!r.ok) throw new Error(`GitHub API ${r.status}`);
+        return r.json();
+      }
 
-            function fmtTime(iso) {
-                const d = new Date(iso);
-                let h = d.getHours();
-                const ampm = h >= 12 ? 'pm' : 'am';
-                h = h % 12 || 12;
-                const min = String(d.getMinutes()).padStart(2, '0');
-                return `${h}:${min}${ampm}`;
-            }
+      function renderCommit(c) {
+        const date = c.commit.committer.date;
+        const day = new Date(date).toDateString();
+        const repo = c.repository.full_name;
+        const rawMsg = c.commit.message.split('\n')[0];
+        const msg = c.isBot ? `🤖 ${rawMsg}` : rawMsg;
 
-            function escHtml(s) {
-                return s
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;');
-            }
+        if (currentDay !== day) {
+          currentDay = day;
+          currentDayRepos = new Map();
+          currentDayContainer = document.createElement('div');
+          currentDayContainer.className = 'day';
+          log.appendChild(currentDayContainer);
+        }
 
-            async function fetchPage(page) {
-                const headers = { Accept: 'application/vnd.github+json' };
-                const token = getToken();
-                if (token) headers.Authorization = `Bearer ${token}`;
-                const r = await fetch(
-                    `https://api.github.com/search/commits?q=author:${USER}&sort=committer-date&order=desc&per_page=100&page=${page}`,
-                    { headers }
-                );
-                if (r.status === 401) {
-                    localStorage.removeItem(TOKEN_KEY);
-                    refreshAuthBtn();
-                    throw new Error('GitHub token rejected; logged out');
-                }
-                if (!r.ok) throw new Error(`GitHub API ${r.status}`);
-                return r.json();
-            }
-
-            function renderCommit(c) {
-                const date = c.commit.committer.date;
-                const day = new Date(date).toDateString();
-                const repo = c.repository.full_name;
-                const rawMsg = c.commit.message.split('\n')[0];
-                const msg = c.isBot ? `🤖 ${rawMsg}` : rawMsg;
-
-                if (currentDay !== day) {
-                    currentDay = day;
-                    currentDayRepos = new Map();
-                    currentDayContainer = document.createElement('div');
-                    currentDayContainer.className = 'day';
-                    log.appendChild(currentDayContainer);
-                }
-
-                let commitsEl = currentDayRepos.get(repo);
-                if (!commitsEl) {
-                    const isDayStart = currentDayRepos.size === 0;
-                    const isVeryFirst = !hasFirstSection;
-                    hasFirstSection = true;
-                    const sec = document.createElement('section');
-                    sec.className = 'section';
-                    sec.dataset.repo = repo;
-                    sec.dataset.date = fmtDay(date);
-                    const dateSpan = isDayStart ? `<span class="date">${fmtDay(date)}</span>` : '';
-                    const headerHtml = isVeryFirst
-                        ? ''
-                        : `
+        let commitsEl = currentDayRepos.get(repo);
+        if (!commitsEl) {
+          const isDayStart = currentDayRepos.size === 0;
+          const isVeryFirst = !hasFirstSection;
+          hasFirstSection = true;
+          const sec = document.createElement('section');
+          sec.className = 'section';
+          sec.dataset.repo = repo;
+          sec.dataset.date = fmtDay(date);
+          const dateSpan = isDayStart ? `<span class="date">${fmtDay(date)}</span>` : '';
+          const headerHtml = isVeryFirst
+            ? ''
+            : `
           <header class="section-header">
             <a class="repo" href="https://github.com/${repo}" target="_blank" rel="noopener">${escHtml(repo)}</a>
             ${dateSpan}
           </header>`;
-                    sec.innerHTML = `${headerHtml}
+          sec.innerHTML = `${headerHtml}
           <div class="commits"></div>`;
-                    currentDayContainer.appendChild(sec);
-                    commitsEl = sec.querySelector('.commits');
-                    currentDayRepos.set(repo, commitsEl);
-                }
+          currentDayContainer.appendChild(sec);
+          commitsEl = sec.querySelector('.commits');
+          currentDayRepos.set(repo, commitsEl);
+        }
 
-                commitsEl.insertAdjacentHTML(
-                    'beforeend',
-                    `
+        commitsEl.insertAdjacentHTML(
+          'beforeend',
+          `
         <div class="commit"><span class="time">${fmtTime(date)}</span><a href="${c.html_url}" target="_blank" rel="noopener">${escHtml(msg)}</a></div>`
-                );
-            }
+        );
+      }
 
-            function drainBotsBefore(cutoffIso) {
-                const cutoff = cutoffIso ? new Date(cutoffIso).getTime() : -Infinity;
-                let drained = 0;
-                while (botCommits.length) {
-                    const t = new Date(botCommits[0].commit.committer.date).getTime();
-                    if (t < cutoff) break;
-                    renderCommit(botCommits.shift());
-                    drained++;
-                }
-                return drained;
-            }
+      function drainBotsBefore(cutoffIso) {
+        const cutoff = cutoffIso ? new Date(cutoffIso).getTime() : -Infinity;
+        let drained = 0;
+        while (botCommits.length) {
+          const t = new Date(botCommits[0].commit.committer.date).getTime();
+          if (t < cutoff) break;
+          renderCommit(botCommits.shift());
+          drained++;
+        }
+        return drained;
+      }
 
-            async function loadMore() {
-                if (loading || exhausted) return;
-                loading = true;
-                status.textContent = 'loading…';
+      async function loadMore() {
+        if (loading || exhausted) return;
+        loading = true;
+        status.textContent = 'loading…';
 
-                let data;
-                try {
-                    [data] = await Promise.all([fetchPage(nextPage), botPromise]);
-                } catch (e) {
-                    status.textContent = e.message;
-                    loading = false;
-                    exhausted = true;
-                    return;
-                }
+        let data;
+        try {
+          [data] = await Promise.all([fetchPage(nextPage), botPromise]);
+        } catch (e) {
+          status.textContent = e.message;
+          loading = false;
+          exhausted = true;
+          return;
+        }
 
-                const items = data.items || [];
-                if (!items.length && total === 0 && !botCommits.length) {
-                    status.textContent = 'no commits';
-                    exhausted = true;
-                    loading = false;
-                    return;
-                }
+        const items = data.items || [];
+        if (!items.length && total === 0 && !botCommits.length) {
+          status.textContent = 'no commits';
+          exhausted = true;
+          loading = false;
+          return;
+        }
 
-                let added = 0;
-                for (const c of items) {
-                    added += drainBotsBefore(c.commit.committer.date);
-                    renderCommit(c);
-                    added++;
-                }
+        let added = 0;
+        for (const c of items) {
+          added += drainBotsBefore(c.commit.committer.date);
+          renderCommit(c);
+          added++;
+        }
 
-                const lastPage = items.length < 100 || nextPage >= 10;
-                if (lastPage) {
-                    added += drainBotsBefore(null);
-                }
+        const lastPage = items.length < 100 || nextPage >= 10;
+        if (lastPage) {
+          added += drainBotsBefore(null);
+        }
 
-                total += added;
-                range.textContent = `${total} commit${total === 1 ? '' : 's'}`;
-                nextPage++;
+        total += added;
+        range.textContent = `${total} commit${total === 1 ? '' : 's'}`;
+        nextPage++;
 
-                if (lastPage) {
-                    exhausted = true;
-                }
-                status.textContent = '';
-                loading = false;
-                scheduleTopBar();
-            }
+        if (lastPage) {
+          exhausted = true;
+        }
+        status.textContent = '';
+        loading = false;
+        scheduleTopBar();
+      }
 
-            let topBarRaf = null;
-            function scheduleTopBar() {
-                if (topBarRaf) return;
-                topBarRaf = requestAnimationFrame(() => {
-                    topBarRaf = null;
-                    updateTopBar();
-                });
-            }
+      let topBarRaf = null;
+      function scheduleTopBar() {
+        if (topBarRaf) return;
+        topBarRaf = requestAnimationFrame(() => {
+          topBarRaf = null;
+          updateTopBar();
+        });
+      }
 
-            function updateTopBar() {
-                const sections = log.querySelectorAll('.section');
-                if (!sections.length) return;
-                topBar.hidden = false;
-                const barBottom = topBar.getBoundingClientRect().bottom;
-                let current = null;
-                for (const s of sections) {
-                    const h = s.querySelector('.section-header');
-                    if (!h) {
-                        current = s;
-                        continue;
-                    }
-                    if (h.getBoundingClientRect().bottom < barBottom) {
-                        current = s;
-                    } else {
-                        break;
-                    }
-                }
-                if (!current) current = sections[0];
-                const repo = current.dataset.repo;
-                const date = current.dataset.date;
-                if (topRepo.dataset.repo !== repo) {
-                    topRepo.textContent = repo;
-                    topRepo.href = `https://github.com/${repo}`;
-                    topRepo.dataset.repo = repo;
-                }
-                if (topDate.textContent !== date) topDate.textContent = date;
-            }
+      function updateTopBar() {
+        const sections = log.querySelectorAll('.section');
+        if (!sections.length) return;
+        topBar.hidden = false;
+        const barBottom = topBar.getBoundingClientRect().bottom;
+        let current = null;
+        for (const s of sections) {
+          const h = s.querySelector('.section-header');
+          if (!h) {
+            current = s;
+            continue;
+          }
+          if (h.getBoundingClientRect().bottom < barBottom) {
+            current = s;
+          } else {
+            break;
+          }
+        }
+        if (!current) current = sections[0];
+        const repo = current.dataset.repo;
+        const date = current.dataset.date;
+        if (topRepo.dataset.repo !== repo) {
+          topRepo.textContent = repo;
+          topRepo.href = `https://github.com/${repo}`;
+          topRepo.dataset.repo = repo;
+        }
+        if (topDate.textContent !== date) topDate.textContent = date;
+      }
 
-            window.addEventListener('scroll', scheduleTopBar, { passive: true });
-            Common.initSitemapShortcut();
+      window.addEventListener('scroll', scheduleTopBar, { passive: true });
+      Common.initSitemapShortcut();
 
-            const io = new IntersectionObserver(
-                (entries) => {
-                    if (entries.some((e) => e.isIntersecting)) loadMore();
-                },
-                { rootMargin: '400px' }
-            );
-            io.observe(sentinel);
-        </script>
-    </body>
+      const io = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((e) => e.isIntersecting)) loadMore();
+        },
+        { rootMargin: '400px' }
+      );
+      io.observe(sentinel);
+    </script>
+  </body>
 </html>

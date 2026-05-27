@@ -17,269 +17,267 @@ const OUT_FILE = path.join(FONTS_DIR, 'LICENSES.md');
 const CACHE_FILE = path.join(FONTS_DIR, '.licenses-cache.json');
 
 const UA =
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
 const CONCURRENCY = 12;
 
 // Sample font per license dir, used to fetch the canonical license text once.
 const LICENSE_DIRS = [
-    {
-        dir: 'ofl',
-        code: 'OFL',
-        name: 'SIL Open Font License 1.1',
-        sample: 'abeezee',
-        file: 'OFL.txt',
-    },
-    {
-        dir: 'apache',
-        code: 'APACHE2',
-        name: 'Apache License 2.0',
-        sample: 'aclonica',
-        file: 'LICENSE.txt',
-    },
-    { dir: 'ufl', code: 'UFL', name: 'Ubuntu Font License 1.0', sample: 'ubuntu', file: 'UFL.txt' },
-    {
-        dir: 'cc-by-sa',
-        code: 'CC-BY-SA',
-        name: 'Creative Commons Attribution-ShareAlike 4.0',
-        sample: 'knowledge',
-        file: 'LICENSE.txt',
-    },
+  {
+    dir: 'ofl',
+    code: 'OFL',
+    name: 'SIL Open Font License 1.1',
+    sample: 'abeezee',
+    file: 'OFL.txt',
+  },
+  {
+    dir: 'apache',
+    code: 'APACHE2',
+    name: 'Apache License 2.0',
+    sample: 'aclonica',
+    file: 'LICENSE.txt',
+  },
+  { dir: 'ufl', code: 'UFL', name: 'Ubuntu Font License 1.0', sample: 'ubuntu', file: 'UFL.txt' },
+  {
+    dir: 'cc-by-sa',
+    code: 'CC-BY-SA',
+    name: 'Creative Commons Attribution-ShareAlike 4.0',
+    sample: 'knowledge',
+    file: 'LICENSE.txt',
+  },
 ];
 
 function loadFontList() {
-    const src = fs.readFileSync(FONTS_JS, 'utf8');
-    const sandbox = { window: {} };
-    // eslint-disable-next-line no-new-func
-    new Function('window', src)(sandbox.window);
-    const list = sandbox.window.googleFonts;
-    if (!Array.isArray(list) || !list.length) {
-        throw new Error('Could not read window.googleFonts from fonts.js');
-    }
-    return list;
+  const src = fs.readFileSync(FONTS_JS, 'utf8');
+  const sandbox = { window: {} };
+  // eslint-disable-next-line no-new-func
+  new Function('window', src)(sandbox.window);
+  const list = sandbox.window.googleFonts;
+  if (!Array.isArray(list) || !list.length) {
+    throw new Error('Could not read window.googleFonts from fonts.js');
+  }
+  return list;
 }
 
 function upstreamSlug(name) {
-    return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
 async function fetchText(url) {
-    const res = await fetch(url, { headers: { 'User-Agent': UA } });
-    if (!res.ok) throw new Error(`${url} ${res.status}`);
-    return res.text();
+  const res = await fetch(url, { headers: { 'User-Agent': UA } });
+  if (!res.ok) throw new Error(`${url} ${res.status}`);
+  return res.text();
 }
 
 async function fetchJson(url) {
-    const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'application/json' } });
-    if (!res.ok) throw new Error(`${url} ${res.status}`);
-    return res.json();
+  const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'application/json' } });
+  if (!res.ok) throw new Error(`${url} ${res.status}`);
+  return res.json();
 }
 
 async function getDirSlugs(dir) {
-    const data = await fetchJson(`https://api.github.com/repos/google/fonts/git/trees/main:${dir}`);
-    const slugs = new Set();
-    for (const t of data.tree || []) {
-        if (t.type === 'tree') slugs.add(t.path);
-    }
-    return slugs;
+  const data = await fetchJson(`https://api.github.com/repos/google/fonts/git/trees/main:${dir}`);
+  const slugs = new Set();
+  for (const t of data.tree || []) {
+    if (t.type === 'tree') slugs.add(t.path);
+  }
+  return slugs;
 }
 
 function parseMetadata(text) {
-    const out = {};
-    const m = (re) => {
-        const r = text.match(re);
-        return r ? r[1] : null;
-    };
-    out.name = m(/^name:\s*"([^"]*)"/m);
-    out.designer = m(/^designer:\s*"([^"]*)"/m);
-    out.license = m(/^license:\s*"([^"]*)"/m);
-    // First copyright found inside any fonts {} block.
-    out.copyright = m(/copyright:\s*"((?:[^"\\]|\\.)*)"/);
-    if (out.copyright) out.copyright = out.copyright.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
-    return out;
+  const out = {};
+  const m = (re) => {
+    const r = text.match(re);
+    return r ? r[1] : null;
+  };
+  out.name = m(/^name:\s*"([^"]*)"/m);
+  out.designer = m(/^designer:\s*"([^"]*)"/m);
+  out.license = m(/^license:\s*"([^"]*)"/m);
+  // First copyright found inside any fonts {} block.
+  out.copyright = m(/copyright:\s*"((?:[^"\\]|\\.)*)"/);
+  if (out.copyright) out.copyright = out.copyright.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+  return out;
 }
 
 async function fetchMetadata(dir, slug) {
-    const url = `https://raw.githubusercontent.com/google/fonts/main/${dir}/${slug}/METADATA.pb`;
-    const res = await fetch(url, { headers: { 'User-Agent': UA } });
-    if (!res.ok) return null;
-    return parseMetadata(await res.text());
+  const url = `https://raw.githubusercontent.com/google/fonts/main/${dir}/${slug}/METADATA.pb`;
+  const res = await fetch(url, { headers: { 'User-Agent': UA } });
+  if (!res.ok) return null;
+  return parseMetadata(await res.text());
 }
 
 async function runPool(items, worker, concurrency) {
-    const results = new Array(items.length);
-    let next = 0,
-        done = 0;
-    const total = items.length;
-    async function take() {
-        while (next < items.length) {
-            const i = next++;
-            try {
-                results[i] = await worker(items[i]);
-            } catch (err) {
-                results[i] = { error: err.message };
-            }
-            done++;
-            if (done % 50 === 0 || done === total) process.stdout.write(`  ${done}/${total}\n`);
-        }
+  const results = new Array(items.length);
+  let next = 0,
+    done = 0;
+  const total = items.length;
+  async function take() {
+    while (next < items.length) {
+      const i = next++;
+      try {
+        results[i] = await worker(items[i]);
+      } catch (err) {
+        results[i] = { error: err.message };
+      }
+      done++;
+      if (done % 50 === 0 || done === total) process.stdout.write(`  ${done}/${total}\n`);
     }
-    await Promise.all(Array.from({ length: concurrency }, take));
-    return results;
+  }
+  await Promise.all(Array.from({ length: concurrency }, take));
+  return results;
 }
 
 function renderMarkdown(entries, licenseTexts) {
-    const usedCodes = new Set(entries.map((e) => e.licenseCode).filter(Boolean));
-    const lines = [];
-    lines.push('# Self-hosted Google Fonts — Licenses & Attributions');
-    lines.push('');
-    lines.push('The `.woff2` files in this directory are redistributed from the upstream');
+  const usedCodes = new Set(entries.map((e) => e.licenseCode).filter(Boolean));
+  const lines = [];
+  lines.push('# Self-hosted Google Fonts — Licenses & Attributions');
+  lines.push('');
+  lines.push('The `.woff2` files in this directory are redistributed from the upstream');
+  lines.push('[google/fonts](https://github.com/google/fonts) repository. Each family is licensed');
+  lines.push('under one of the open-source licenses listed below; the full license texts are');
+  lines.push('reproduced at the end of this file as required by their terms.');
+  lines.push('');
+  lines.push('This file is generated by `scripts/fetch-licenses.js` and refreshed by the weekly');
+  lines.push('Google Fonts auto-update workflow. Do not edit by hand.');
+  lines.push('');
+  lines.push('## Per-family attribution');
+  lines.push('');
+  lines.push('| Family | License | Designer | Copyright |');
+  lines.push('| --- | --- | --- | --- |');
+  const safe = (s) =>
+    (s == null ? '' : String(s)).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ').trim();
+  for (const e of entries) {
     lines.push(
-        '[google/fonts](https://github.com/google/fonts) repository. Each family is licensed'
+      `| ${safe(e.family)} | ${safe(e.licenseCode || 'unknown')} | ${safe(e.designer)} | ${safe(e.copyright)} |`
     );
-    lines.push('under one of the open-source licenses listed below; the full license texts are');
-    lines.push('reproduced at the end of this file as required by their terms.');
+  }
+  lines.push('');
+  for (const lic of LICENSE_DIRS) {
+    if (!usedCodes.has(lic.code)) continue;
+    const text = licenseTexts[lic.code];
+    if (!text) continue;
+    lines.push(`## ${lic.name}`);
     lines.push('');
-    lines.push('This file is generated by `scripts/fetch-licenses.js` and refreshed by the weekly');
-    lines.push('Google Fonts auto-update workflow. Do not edit by hand.');
+    lines.push('```');
+    lines.push(text.trimEnd());
+    lines.push('```');
     lines.push('');
-    lines.push('## Per-family attribution');
-    lines.push('');
-    lines.push('| Family | License | Designer | Copyright |');
-    lines.push('| --- | --- | --- | --- |');
-    const safe = (s) =>
-        (s == null ? '' : String(s)).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ').trim();
-    for (const e of entries) {
-        lines.push(
-            `| ${safe(e.family)} | ${safe(e.licenseCode || 'unknown')} | ${safe(e.designer)} | ${safe(e.copyright)} |`
-        );
-    }
-    lines.push('');
-    for (const lic of LICENSE_DIRS) {
-        if (!usedCodes.has(lic.code)) continue;
-        const text = licenseTexts[lic.code];
-        if (!text) continue;
-        lines.push(`## ${lic.name}`);
-        lines.push('');
-        lines.push('```');
-        lines.push(text.trimEnd());
-        lines.push('```');
-        lines.push('');
-    }
-    return lines.join('\n');
+  }
+  return lines.join('\n');
 }
 
 (async () => {
-    const fonts = loadFontList();
-    const fontSet = new Set(fonts);
+  const fonts = loadFontList();
+  const fontSet = new Set(fonts);
 
-    let cache = { entries: {}, licenseTexts: {} };
-    if (fs.existsSync(CACHE_FILE)) {
-        try {
-            const parsed = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
-            if (parsed && typeof parsed === 'object') {
-                cache.entries = parsed.entries || {};
-                cache.licenseTexts = parsed.licenseTexts || {};
-            }
-        } catch (err) {
-            process.stderr.write(`cache parse failed, ignoring: ${err.message}\n`);
-        }
+  let cache = { entries: {}, licenseTexts: {} };
+  if (fs.existsSync(CACHE_FILE)) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
+      if (parsed && typeof parsed === 'object') {
+        cache.entries = parsed.entries || {};
+        cache.licenseTexts = parsed.licenseTexts || {};
+      }
+    } catch (err) {
+      process.stderr.write(`cache parse failed, ignoring: ${err.message}\n`);
     }
+  }
 
-    const missing = fonts.filter((f) => !cache.entries[f]);
-    let dirSlugs = null;
+  const missing = fonts.filter((f) => !cache.entries[f]);
+  let dirSlugs = null;
 
-    if (missing.length) {
-        console.log(`Resolving license info for ${missing.length} of ${fonts.length} families...`);
-        dirSlugs = {};
-        for (const lic of LICENSE_DIRS) {
-            try {
-                dirSlugs[lic.dir] = await getDirSlugs(lic.dir);
-            } catch (err) {
-                process.stderr.write(`tree fetch ${lic.dir} failed: ${err.message}\n`);
-                dirSlugs[lic.dir] = new Set();
-            }
-        }
-
-        await runPool(
-            missing,
-            async (family) => {
-                const slug = upstreamSlug(family);
-                let matched = null;
-                for (const lic of LICENSE_DIRS) {
-                    if (dirSlugs[lic.dir].has(slug)) {
-                        matched = lic;
-                        break;
-                    }
-                }
-                if (!matched) {
-                    cache.entries[family] = {
-                        family,
-                        slug,
-                        licenseCode: null,
-                        designer: '',
-                        copyright: '',
-                        resolved: false,
-                    };
-                    return;
-                }
-                const meta = await fetchMetadata(matched.dir, slug);
-                cache.entries[family] = {
-                    family,
-                    slug,
-                    licenseCode: (meta && meta.license) || matched.code,
-                    designer: (meta && meta.designer) || '',
-                    copyright: (meta && meta.copyright) || '',
-                    resolved: !!meta,
-                };
-            },
-            CONCURRENCY
-        );
-    }
-
-    // Ensure we have license texts for every license code currently in use.
-    const usedCodes = new Set(
-        Object.values(cache.entries)
-            .filter((e) => fontSet.has(e.family) && e.licenseCode)
-            .map((e) => e.licenseCode)
-    );
+  if (missing.length) {
+    console.log(`Resolving license info for ${missing.length} of ${fonts.length} families...`);
+    dirSlugs = {};
     for (const lic of LICENSE_DIRS) {
-        if (!usedCodes.has(lic.code)) continue;
-        if (cache.licenseTexts[lic.code]) continue;
-        const url = `https://raw.githubusercontent.com/google/fonts/main/${lic.dir}/${lic.sample}/${lic.file}`;
-        try {
-            cache.licenseTexts[lic.code] = await fetchText(url);
-            console.log(`Fetched canonical ${lic.code} text from ${lic.sample}.`);
-        } catch (err) {
-            process.stderr.write(`license text fetch failed for ${lic.code}: ${err.message}\n`);
+      try {
+        dirSlugs[lic.dir] = await getDirSlugs(lic.dir);
+      } catch (err) {
+        process.stderr.write(`tree fetch ${lic.dir} failed: ${err.message}\n`);
+        dirSlugs[lic.dir] = new Set();
+      }
+    }
+
+    await runPool(
+      missing,
+      async (family) => {
+        const slug = upstreamSlug(family);
+        let matched = null;
+        for (const lic of LICENSE_DIRS) {
+          if (dirSlugs[lic.dir].has(slug)) {
+            matched = lic;
+            break;
+          }
         }
-    }
-
-    // Persist cache (sorted for stable diffs).
-    const sortedEntries = {};
-    for (const family of Object.keys(cache.entries).sort())
-        sortedEntries[family] = cache.entries[family];
-    const sortedTexts = {};
-    for (const code of Object.keys(cache.licenseTexts).sort())
-        sortedTexts[code] = cache.licenseTexts[code];
-    fs.writeFileSync(
-        CACHE_FILE,
-        JSON.stringify({ entries: sortedEntries, licenseTexts: sortedTexts }, null, 2) + '\n'
+        if (!matched) {
+          cache.entries[family] = {
+            family,
+            slug,
+            licenseCode: null,
+            designer: '',
+            copyright: '',
+            resolved: false,
+          };
+          return;
+        }
+        const meta = await fetchMetadata(matched.dir, slug);
+        cache.entries[family] = {
+          family,
+          slug,
+          licenseCode: (meta && meta.license) || matched.code,
+          designer: (meta && meta.designer) || '',
+          copyright: (meta && meta.copyright) || '',
+          resolved: !!meta,
+        };
+      },
+      CONCURRENCY
     );
+  }
 
-    // Render markdown for currently-listed families only, alphabetical by family.
-    const rendered = Object.values(cache.entries)
-        .filter((e) => fontSet.has(e.family))
-        .sort((a, b) => a.family.localeCompare(b.family));
-    const md = renderMarkdown(rendered, cache.licenseTexts);
-    fs.writeFileSync(OUT_FILE, md);
-
-    const unresolved = rendered.filter((e) => !e.licenseCode);
-    console.log(
-        `Wrote ${path.relative(ROOT, OUT_FILE)} (${rendered.length} fonts, ${unresolved.length} unresolved).`
-    );
-    if (unresolved.length) {
-        for (const e of unresolved) console.log(`  ? ${e.family}`);
+  // Ensure we have license texts for every license code currently in use.
+  const usedCodes = new Set(
+    Object.values(cache.entries)
+      .filter((e) => fontSet.has(e.family) && e.licenseCode)
+      .map((e) => e.licenseCode)
+  );
+  for (const lic of LICENSE_DIRS) {
+    if (!usedCodes.has(lic.code)) continue;
+    if (cache.licenseTexts[lic.code]) continue;
+    const url = `https://raw.githubusercontent.com/google/fonts/main/${lic.dir}/${lic.sample}/${lic.file}`;
+    try {
+      cache.licenseTexts[lic.code] = await fetchText(url);
+      console.log(`Fetched canonical ${lic.code} text from ${lic.sample}.`);
+    } catch (err) {
+      process.stderr.write(`license text fetch failed for ${lic.code}: ${err.message}\n`);
     }
+  }
+
+  // Persist cache (sorted for stable diffs).
+  const sortedEntries = {};
+  for (const family of Object.keys(cache.entries).sort())
+    sortedEntries[family] = cache.entries[family];
+  const sortedTexts = {};
+  for (const code of Object.keys(cache.licenseTexts).sort())
+    sortedTexts[code] = cache.licenseTexts[code];
+  fs.writeFileSync(
+    CACHE_FILE,
+    JSON.stringify({ entries: sortedEntries, licenseTexts: sortedTexts }, null, 2) + '\n'
+  );
+
+  // Render markdown for currently-listed families only, alphabetical by family.
+  const rendered = Object.values(cache.entries)
+    .filter((e) => fontSet.has(e.family))
+    .sort((a, b) => a.family.localeCompare(b.family));
+  const md = renderMarkdown(rendered, cache.licenseTexts);
+  fs.writeFileSync(OUT_FILE, md);
+
+  const unresolved = rendered.filter((e) => !e.licenseCode);
+  console.log(
+    `Wrote ${path.relative(ROOT, OUT_FILE)} (${rendered.length} fonts, ${unresolved.length} unresolved).`
+  );
+  if (unresolved.length) {
+    for (const e of unresolved) console.log(`  ? ${e.family}`);
+  }
 })().catch((err) => {
-    process.stderr.write(`fetch-licenses: ${err.message}\n`);
-    process.exit(1);
+  process.stderr.write(`fetch-licenses: ${err.message}\n`);
+  process.exit(1);
 });
