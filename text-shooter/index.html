@@ -256,7 +256,7 @@
         return lines;
       }
 
-      function makeBody(x, y, ch, vx, vy, size) {
+      function makeBody(x, y, ch, vx, vy, size, shot) {
         size = size != null ? size : fontSize;
         return {
           x,
@@ -268,10 +268,11 @@
           r: radius * (size / fontSize),
           ch,
           size,
+          shot: !!shot,
         };
       }
 
-      function buildBlock() {
+      function buildBlock({ preserveShots = false } = {}) {
         const minDim = Math.min(W, H);
         const autoSize = Math.max(13, Math.min(30, Math.round(minDim / 22)));
         fontSize =
@@ -291,6 +292,7 @@
         const y0 = (H - blockH) / 2 + charH / 2;
 
         const lines = buildLines(cols, rows);
+        const shots = preserveShots ? bodies.filter((b) => b.shot) : [];
         bodies = [];
         for (let r = 0; r < lines.length; r++) {
           const line = lines[r];
@@ -300,6 +302,7 @@
             bodies.push(makeBody(x0 + c * charW, y0 + r * charH, ch));
           }
         }
+        for (const b of shots) bodies.push(b);
       }
 
       function resize() {
@@ -535,7 +538,7 @@
         const nx = dx * inv,
           ny = dy * inv;
         bodies.push(
-          makeBody(drag.sx, drag.sy, drag.ch, nx * speed, ny * speed, fontSize * shotSizeMult)
+          makeBody(drag.sx, drag.sy, drag.ch, nx * speed, ny * speed, fontSize * shotSizeMult, true)
         );
         hasFired = true;
         drag.active = false;
@@ -598,7 +601,7 @@
         const next = Math.max(FONT_MIN, Math.min(FONT_MAX, fontSize + delta));
         if (next === fontSize) return;
         userFontSize = next;
-        buildBlock();
+        buildBlock({ preserveShots: true });
       }
       function adjustShotSize(factor) {
         shotSizeMult = Math.max(SHOT_MULT_MIN, Math.min(SHOT_MULT_MAX, shotSizeMult * factor));
