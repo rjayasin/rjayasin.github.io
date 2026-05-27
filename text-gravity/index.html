@@ -122,6 +122,24 @@
           shot</span
         >
         &nbsp;·&nbsp;
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-cols-smaller">←</span>/<span
+            class="hint-btn"
+            id="hb-cols-bigger"
+            >→</span
+          >
+          cols</span
+        >
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-rows-smaller">↓</span>/<span
+            class="hint-btn"
+            id="hb-rows-bigger"
+            >↑</span
+          >
+          rows</span
+        >
+        &nbsp;·&nbsp;
         <span style="white-space: nowrap"><span class="hint-btn" id="hb-emoji">emoji</span></span>
         &nbsp;·&nbsp;
         <span style="white-space: nowrap"><span class="hint-btn" id="hb-bounce">bounce</span></span>
@@ -216,7 +234,13 @@
       const SHOT_MULT_STEP = 1.2;
       const SHOT_MULT_MIN = 0.25;
       const SHOT_MULT_MAX = 6;
+      const DIM_MIN = 2;
+      const DIM_MAX = 200;
       let shotSizeMult = 1;
+      let userCols = null;
+      let userRows = null;
+      let currentCols = 0;
+      let currentRows = 0;
       let bodies = [];
       const broadphaseGrid = new Map();
       let hasFired = false;
@@ -292,8 +316,12 @@
         radius = charW * 0.46;
 
         const target = minDim * 0.46;
-        const cols = Math.max(6, Math.round(target / charW));
-        const rows = Math.max(4, Math.round(target / charH));
+        const autoCols = Math.max(6, Math.round(target / charW));
+        const autoRows = Math.max(4, Math.round(target / charH));
+        const cols = Math.max(DIM_MIN, Math.min(DIM_MAX, userCols != null ? userCols : autoCols));
+        const rows = Math.max(DIM_MIN, Math.min(DIM_MAX, userRows != null ? userRows : autoRows));
+        currentCols = cols;
+        currentRows = rows;
 
         const blockW = cols * charW;
         const blockH = rows * charH;
@@ -915,6 +943,18 @@
       function adjustShotSize(factor) {
         shotSizeMult = Math.max(SHOT_MULT_MIN, Math.min(SHOT_MULT_MAX, shotSizeMult * factor));
       }
+      function adjustCols(delta) {
+        const next = Math.max(DIM_MIN, Math.min(DIM_MAX, currentCols + delta));
+        if (next === currentCols) return;
+        userCols = next;
+        buildBlock({ preserveLoose: true });
+      }
+      function adjustRows(delta) {
+        const next = Math.max(DIM_MIN, Math.min(DIM_MAX, currentRows + delta));
+        if (next === currentRows) return;
+        userRows = next;
+        buildBlock({ preserveLoose: true });
+      }
       document.addEventListener('keydown', (e) => {
         if ((e.key === 'r' || e.key === 'R') && !e.repeat) {
           loadNewText();
@@ -930,6 +970,18 @@
           showHint();
         } else if (e.key === '[' || e.key === '{') {
           adjustShotSize(1 / SHOT_MULT_STEP);
+          showHint();
+        } else if (e.key === 'ArrowRight') {
+          adjustCols(1);
+          showHint();
+        } else if (e.key === 'ArrowLeft') {
+          adjustCols(-1);
+          showHint();
+        } else if (e.key === 'ArrowUp') {
+          adjustRows(1);
+          showHint();
+        } else if (e.key === 'ArrowDown') {
+          adjustRows(-1);
           showHint();
         }
       });
@@ -955,6 +1007,22 @@
       });
       document.getElementById('hb-shot-smaller').addEventListener('click', () => {
         adjustShotSize(1 / SHOT_MULT_STEP);
+        showHint();
+      });
+      document.getElementById('hb-cols-bigger').addEventListener('click', () => {
+        adjustCols(1);
+        showHint();
+      });
+      document.getElementById('hb-cols-smaller').addEventListener('click', () => {
+        adjustCols(-1);
+        showHint();
+      });
+      document.getElementById('hb-rows-bigger').addEventListener('click', () => {
+        adjustRows(1);
+        showHint();
+      });
+      document.getElementById('hb-rows-smaller').addEventListener('click', () => {
+        adjustRows(-1);
         showHint();
       });
       const emojiBtn = document.getElementById('hb-emoji');
