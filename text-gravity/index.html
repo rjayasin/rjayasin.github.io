@@ -343,6 +343,7 @@
             // --- physics ---
             const GRAVITY = 2000; // px/s^2 downward
             const RESTITUTION = 0.18; // body-body bounciness
+            const BOUNCE_UNSTICK_RESTITUTION = 1.35; // energetic ricochet in bounce mode (>1 kicks)
             const WALL_RESTITUTION = 0.28;
             const DAMPING = 0.9985; // per substep air drag
             const FLOOR_FRICTION = 0.86; // per substep, applied to vx when on floor
@@ -538,8 +539,13 @@
                     m.x += wnx * overlap;
                     m.y += wny * overlap;
                     const vn = m.vx * wnx + m.vy * wny;
+                    // Bounce-mode unsticks get a high-restitution kick so the
+                    // ricochet feels snappy. Tangent friction is also skipped so
+                    // the reflected velocity isn't bled off along the contact.
+                    const energetic = bounceMode && shotUnstick;
+                    const rest = energetic ? BOUNCE_UNSTICK_RESTITUTION : RESTITUTION;
                     if (vn < 0) {
-                        const jImp = -(1 + RESTITUTION) * vn;
+                        const jImp = -(1 + rest) * vn;
                         m.vx += jImp * wnx;
                         m.vy += jImp * wny;
                         const tx = -wny,
@@ -553,12 +559,17 @@
                         // the slip threshold, treat the contact as static: kill all
                         // tangential motion and skip spin injection so a body resting
                         // on a pinned neighbor actually comes to rest.
-                        if (Math.abs(vt) < WALL_STATIC_SLIP) {
+                        if (!energetic && Math.abs(vt) < WALL_STATIC_SLIP) {
                             m.vx -= vt * tx;
                             m.vy -= vt * ty;
-                        } else {
+                        } else if (!energetic) {
                             m.vx -= vt * WALL_TANGENT_FRICTION * tx;
                             m.vy -= vt * WALL_TANGENT_FRICTION * ty;
+                            const spin = (vt / m.r) * SPIN_FACTOR;
+                            m.av = Math.max(-MAX_AV, Math.min(MAX_AV, m.av + spin));
+                        } else {
+                            // Energetic bounce: keep tangential velocity intact
+                            // but still inject contact spin for visual flair.
                             const spin = (vt / m.r) * SPIN_FACTOR;
                             m.av = Math.max(-MAX_AV, Math.min(MAX_AV, m.av + spin));
                         }
