@@ -64,6 +64,7 @@
   <script>
     Common.paintFaviconR();
     Common.initDarkMode();
+    Common.loadScript('/emojis.js');
 
     const MONO = 'ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace';
     // Fired glyphs are drawn from a spread of scripts (plus emoji), so each
@@ -83,15 +84,6 @@
       [0x4E00, 0x9FA0],                                     // CJK
       [0xAC00, 0xD7A3],                                     // Hangul
       [0x2190, 0x21FF], [0x2200, 0x22FF],                   // arrows + math symbols
-    ];
-    const EMOJI_RANGES = [
-      [0x1F300, 0x1F5FF],
-      [0x1F600, 0x1F64F],
-      [0x1F680, 0x1F6FF],
-      [0x1F900, 0x1F9FF],
-      [0x1FA70, 0x1FAFF],
-      [0x2600, 0x26FF],
-      [0x2700, 0x27BF],
     ];
     function pickFromRanges(ranges) {
       const [lo, hi] = ranges[Math.floor(Math.random() * ranges.length)];
@@ -531,9 +523,13 @@
     // --- input ---
     const drag = { active: false, id: null, sx: 0, sy: 0, cx: 0, cy: 0, ch: '' };
     let emojiMode = false;
+    function pickEmoji() {
+      if (!window.EMOJIS) return pickFromRanges(CHAR_RANGES);
+      return window.EMOJIS[Math.floor(Math.random() * window.EMOJIS.length)];
+    }
     function randChar() {
-      if (emojiMode) return pickFromRanges(EMOJI_RANGES);
-      return pickFromRanges(Math.random() < 0.2 ? EMOJI_RANGES : CHAR_RANGES);
+      if (emojiMode) return pickEmoji();
+      return Math.random() < 0.2 ? pickEmoji() : pickFromRanges(CHAR_RANGES);
     }
 
     function localPoint(e) {
