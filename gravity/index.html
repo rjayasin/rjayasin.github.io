@@ -140,9 +140,11 @@
           rows</span
         >
         &nbsp;·&nbsp;
-        <span style="white-space: nowrap"><span class="hint-btn" id="hb-emoji">emoji</span></span>
+        <span style="white-space: nowrap"><span class="hint-btn" id="hb-emoji">e emoji</span></span>
         &nbsp;·&nbsp;
-        <span style="white-space: nowrap"><span class="hint-btn" id="hb-bounce">bounce</span></span>
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-bounce">b bounce</span></span
+        >
         &nbsp;·&nbsp;
         <span style="white-space: nowrap"
           ><span class="hint-btn" id="hb-sitemap">s sitemap</span></span
@@ -606,7 +608,13 @@
           rvy = b.vy - a.vy;
         const vn = rvx * nx + rvy * ny;
         if (vn > 0) return;
-        const jImp = (-(1 + RESTITUTION) * vn) / 2;
+        // In bounce mode, any contact involving a shot ricochets with the
+        // same energetic restitution used on unstick. The shot keeps its
+        // bite when it hits loose chars or other shots, instead of just
+        // exchanging momentum and losing speed to RESTITUTION = 0.18.
+        const energetic = bounceMode && (a.shot || b.shot);
+        const rest = energetic ? BOUNCE_UNSTICK_RESTITUTION : RESTITUTION;
+        const jImp = (-(1 + rest) * vn) / 2;
         const ix = jImp * nx,
           iy = jImp * ny;
         a.vx -= ix;
@@ -621,7 +629,9 @@
         // stacked unfixed bodies whose bottom is clipped by the floor keep
         // receiving a per-substep gravity-induced rvt, so the kinetic spin
         // formula injects same-sign spin forever into both bodies.
-        if (Math.abs(vt) < WALL_STATIC_SLIP) {
+        // Energetic shot bounces skip the clamp so the ricochet keeps its
+        // tangential velocity instead of getting halved into the target.
+        if (!energetic && Math.abs(vt) < WALL_STATIC_SLIP) {
           const halfVt = vt / 2;
           a.vx += halfVt * tx;
           a.vy += halfVt * ty;
@@ -983,6 +993,10 @@
         } else if (e.key === 'ArrowDown') {
           adjustRows(-1);
           showHint();
+        } else if ((e.key === 'e' || e.key === 'E') && !e.repeat) {
+          toggleEmoji();
+        } else if ((e.key === 'b' || e.key === 'B') && !e.repeat) {
+          toggleBounce();
         }
       });
       document.getElementById('hb-reset').addEventListener('click', () => {
@@ -1026,18 +1040,20 @@
         showHint();
       });
       const emojiBtn = document.getElementById('hb-emoji');
-      emojiBtn.addEventListener('click', () => {
+      function toggleEmoji() {
         emojiMode = !emojiMode;
         if (emojiMode) Common.ensureEmojis();
-        emojiBtn.textContent = emojiMode ? 'emoji on' : 'emoji';
+        emojiBtn.textContent = emojiMode ? 'e emoji on' : 'e emoji';
         showHint();
-      });
+      }
+      emojiBtn.addEventListener('click', toggleEmoji);
       const bounceBtn = document.getElementById('hb-bounce');
-      bounceBtn.addEventListener('click', () => {
+      function toggleBounce() {
         bounceMode = !bounceMode;
-        bounceBtn.textContent = bounceMode ? 'bounce on' : 'bounce';
+        bounceBtn.textContent = bounceMode ? 'b bounce on' : 'b bounce';
         showHint();
-      });
+      }
+      bounceBtn.addEventListener('click', toggleBounce);
       document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
       Common.initSitemapShortcut();
 
