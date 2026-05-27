@@ -11,6 +11,8 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      RUN_LABEL: ${{ github.event_name == 'workflow_dispatch' && 'manual run' || 'scheduled run' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,7 +41,7 @@ jobs:
             echo "No font changes."
           else
             git add fonts.js fonts/
-            git commit -m "🤖 add new google fonts (weekly auto-update)"
+            git commit -m "🤖 add new google fonts ($RUN_LABEL)"
           fi
 
       - name: Refresh sitemap dates
@@ -53,7 +55,7 @@ jobs:
             echo "No sitemap date changes."
           else
             git add sitemap/dates.json
-            git commit -m "🤖 sitemap: refresh dates (weekly auto-update)"
+            git commit -m "🤖 sitemap: refresh dates ($RUN_LABEL)"
           fi
 
       - name: Push
