@@ -59,7 +59,7 @@
 </head>
 <body>
   <canvas id="game"></canvas>
-  <div id="hint"><span id="hint-inner"><span style="white-space:nowrap">drag &amp; release to fire</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-reset">r reset</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 <span class="hb-dark-label">dark</span></span></span><span id="hb-tilt-wrap" style="display:none">&nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-tilt">tilt</span></span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-smaller">−</span>/<span class="hint-btn" id="hb-bigger">+</span> size</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-emoji">emoji</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-sitemap">s sitemap</span></span></span></div>
+  <div id="hint"><span id="hint-inner"><span style="white-space:nowrap">drag &amp; release to fire</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-reset">r reset</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 <span class="hb-dark-label">dark</span></span></span><span id="hb-tilt-wrap" style="display:none">&nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-tilt">tilt</span></span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-smaller">−</span>/<span class="hint-btn" id="hb-bigger">+</span> size</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-shot-smaller">[</span>/<span class="hint-btn" id="hb-shot-bigger">]</span> shot</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-emoji">emoji</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-sitemap">s sitemap</span></span></span></div>
   <div id="hint-zone"></div>
   <script>
     Common.paintFaviconR();
@@ -132,6 +132,10 @@
     const FONT_MIN = 8;
     const FONT_MAX = 60;
     const FONT_STEP = 2;
+    const SHOT_MULT_STEP = 1.2;
+    const SHOT_MULT_MIN = 0.25;
+    const SHOT_MULT_MAX = 6;
+    let shotSizeMult = 1;
     let bodies = [];
     let hasFired = false;
 
@@ -176,8 +180,9 @@
       return lines;
     }
 
-    function makeBody(x, y, ch, vx, vy, fixed, shot) {
-      return { x, y, vx: vx || 0, vy: vy || 0, angle: 0, av: 0, r: radius, ch, fixed: !!fixed, shot: !!shot };
+    function makeBody(x, y, ch, vx, vy, fixed, shot, size) {
+      size = size != null ? size : fontSize;
+      return { x, y, vx: vx || 0, vy: vy || 0, angle: 0, av: 0, r: radius * (size / fontSize), ch, fixed: !!fixed, shot: !!shot, size };
     }
 
     function buildBlock() {
@@ -472,11 +477,11 @@
 
     function draw() {
       ctx.clearRect(0, 0, W, H);
-      ctx.font = fontSize + 'px ' + MONO;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = inkColor();
       for (const b of bodies) {
+        ctx.font = b.size + 'px ' + MONO;
         if (b.angle) {
           ctx.translate(b.x, b.y);
           ctx.rotate(b.angle);
@@ -496,7 +501,7 @@
         ctx.lineTo(drag.cx, drag.cy);
         ctx.stroke();
         ctx.fillStyle = inkColor();
-        ctx.font = fontSize + 'px ' + MONO;
+        ctx.font = (fontSize * shotSizeMult) + 'px ' + MONO;
         ctx.globalAlpha = 0.7;
         ctx.fillText(drag.ch, drag.sx, drag.sy);
         ctx.restore();
@@ -570,7 +575,7 @@
       if (dist < 4) { dx = 0; dy = -1; }
       const inv = dist > 0 ? 1 / dist : 1;
       const nx = dx * inv, ny = dy * inv;
-      bodies.push(makeBody(drag.sx, drag.sy, drag.ch, nx * speed, ny * speed, false, true));
+      bodies.push(makeBody(drag.sx, drag.sy, drag.ch, nx * speed, ny * speed, false, true, fontSize * shotSizeMult));
       hasFired = true;
       drag.active = false;
       drag.id = null;
@@ -723,15 +728,22 @@
       userFontSize = next;
       buildBlock();
     }
+    function adjustShotSize(factor) {
+      shotSizeMult = Math.max(SHOT_MULT_MIN, Math.min(SHOT_MULT_MAX, shotSizeMult * factor));
+    }
     document.addEventListener('keydown', e => {
       if ((e.key === 'r' || e.key === 'R') && !e.repeat) { loadNewText(); showHint(); }
       else if (e.key === '+' || e.key === '=') { adjustFont(FONT_STEP); showHint(); }
       else if (e.key === '-' || e.key === '_') { adjustFont(-FONT_STEP); showHint(); }
+      else if (e.key === ']' || e.key === '}') { adjustShotSize(SHOT_MULT_STEP); showHint(); }
+      else if (e.key === '[' || e.key === '{') { adjustShotSize(1 / SHOT_MULT_STEP); showHint(); }
     });
     document.getElementById('hb-reset').addEventListener('click', () => { loadNewText(); showHint(); });
     document.getElementById('hb-dark').addEventListener('click', () => { Common.toggleDark(); showHint(); });
     document.getElementById('hb-bigger').addEventListener('click', () => { adjustFont(FONT_STEP); showHint(); });
     document.getElementById('hb-smaller').addEventListener('click', () => { adjustFont(-FONT_STEP); showHint(); });
+    document.getElementById('hb-shot-bigger').addEventListener('click', () => { adjustShotSize(SHOT_MULT_STEP); showHint(); });
+    document.getElementById('hb-shot-smaller').addEventListener('click', () => { adjustShotSize(1 / SHOT_MULT_STEP); showHint(); });
     const emojiBtn = document.getElementById('hb-emoji');
     emojiBtn.addEventListener('click', () => {
       emojiMode = !emojiMode;
