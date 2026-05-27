@@ -259,6 +259,12 @@ window.Common = window.Common || {};
     });
   }
 
+  let emojisPromise = null;
+  function ensureEmojis() {
+    if (!emojisPromise) emojisPromise = loadScript('/emojis.js');
+    return emojisPromise;
+  }
+
   Object.assign(window.Common, {
     setFaviconHref,
     paintFaviconR,
@@ -276,6 +282,7 @@ window.Common = window.Common || {};
     makeCooldown,
     onTap,
     loadScript,
+    ensureEmojis,
     initTextEditor,
     openSitemap,
     initSitemapShortcut,
