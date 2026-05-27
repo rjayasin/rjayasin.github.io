@@ -252,6 +252,7 @@
           const font = Common.pickRandomGoogleFont();
           await Common.loadGoogleFont(font);
           currentFont = font;
+          console.log('font:', font);
           rebuild();
         });
       }

@@ -9,6 +9,7 @@ function repaintFavicon() {
 
 async function applySingle(font) {
   await Common.loadGoogleFont(font);
+  console.log('font:', font);
   rebuild();
   repaintFavicon();
 }

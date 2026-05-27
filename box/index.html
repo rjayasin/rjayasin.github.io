@@ -241,6 +241,7 @@
           const font = Common.pickRandomGoogleFont();
           await Common.loadGoogleFont(font);
           currentFont = font;
+          console.log('font:', font);
           boxEl.style.fontFamily = `'${font}', serif`;
           render();
         });
