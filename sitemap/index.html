@@ -1,499 +1,490 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Ruvan / sitemap</title>
-        <link rel="icon" id="favicon" />
-        <link rel="stylesheet" href="/common.css" />
-        <style>
-            body {
-                font-family: monospace;
-                font-size: 13px;
-                line-height: 1.6;
-                padding: 48px 32px;
-                max-width: 720px;
-            }
-            a,
-            h1 {
-                transition:
-                    background-color 0.2s ease,
-                    color 0.2s ease,
-                    border-color 0.2s ease;
-            }
-            header {
-                margin-bottom: 15px;
-            }
-            header a {
-                color: #000;
-                text-decoration: none;
-            }
-            header a:hover {
-                text-decoration: underline;
-            }
-            h1,
-            h2 {
-                font-size: 13px;
-                font-weight: normal;
-                letter-spacing: 0.05em;
-            }
-            h2 {
-                color: #888;
-                margin-top: 18px;
-                margin-bottom: 4px;
-            }
-            ul {
-                list-style: none;
-            }
-            li {
-                padding: 2px 0;
-                white-space: pre;
-            }
-            li .branch {
-                color: #888;
-                user-select: none;
-            }
-            li .when {
-                color: #888;
-                margin-left: 8px;
-            }
-            li a {
-                color: #000;
-                text-decoration: none;
-            }
-            li a:hover {
-                text-decoration: underline;
-            }
-            li a.when {
-                color: #888;
-            }
-            .view-toggle {
-                display: flex;
-                gap: 4px;
-                margin-bottom: 14px;
-                color: #888;
-            }
-            .view-toggle button {
-                font: inherit;
-                color: #888;
-                background: transparent;
-                border: none;
-                padding: 0;
-                cursor: pointer;
-                letter-spacing: 0.05em;
-                transition: color 0.2s ease;
-            }
-            .view-toggle button:hover {
-                color: #000;
-            }
-            .view-toggle button.active {
-                color: #000;
-            }
-            .view-toggle .sep {
-                user-select: none;
-            }
-            [hidden] {
-                display: none !important;
-            }
-            @media (max-width: 640px) {
-                body {
-                    font-size: 15px;
-                    padding: 32px 20px;
-                }
-                h1,
-                h2 {
-                    font-size: 15px;
-                }
-            }
-            body.dark header a,
-            body.dark li a:not(.when),
-            body.dark .view-toggle button:hover,
-            body.dark .view-toggle button.active {
-                color: #fff;
-            }
-            @media (prefers-color-scheme: dark) {
-                body:not(.light) header a,
-                body:not(.light) li a:not(.when),
-                body:not(.light) .view-toggle button:hover,
-                body:not(.light) .view-toggle button.active {
-                    color: #fff;
-                }
-            }
-        </style>
-        <script src="/common.js"></script>
-    </head>
-    <body>
-        <header>
-            <h1><a href="/">Ruvan</a> / sitemap</h1>
-        </header>
-        <nav class="view-toggle" aria-label="view">
-            <button type="button" data-view="tree" class="active">tree</button>
-            <span class="sep">·</span>
-            <button type="button" data-view="recent">recent</button>
-            <span class="sep">·</span>
-            <button type="button" data-view="alpha">alpha</button>
-        </nav>
-        <div id="tree-view">
-            <!-- Keep every section and sublist ordered by date added, oldest at the top and newest at the bottom. -->
-            <h2>fun</h2>
-            <ul>
-                <li>
-                    <span class="branch">├── </span
-                    ><a
-                        href="https://rjayasin.github.io/maze-canvas/"
-                        target="_blank"
-                        rel="noopener"
-                        >maze-canvas</a
-                    >
-                </li>
-                <li><span class="branch">├── </span><a href="/text-shooter/">text-shooter</a></li>
-                <li><span class="branch">└── </span><a href="/text-gravity/">text-gravity</a></li>
-            </ul>
-            <h2>text</h2>
-            <ul>
-                <li><span class="branch">├── </span><a id="grid-link" href="/">grid</a></li>
-                <li><span class="branch">├── </span><a id="stack-link" href="/stack/">stack</a></li>
-                <li><span class="branch">├── </span><a id="box-link" href="/box/">box</a></li>
-                <li><span class="branch">├── </span><a href="/clock/">clock</a></li>
-                <li><span class="branch">├── </span><a href="/border/">border</a></li>
-                <li><span class="branch">└── </span><a href="/isometric/">isometric</a></li>
-            </ul>
-            <h2>tools</h2>
-            <ul>
-                <li><span class="branch">├── </span>visualizer</li>
-                <li>
-                    <span class="branch">│ ├── </span
-                    ><a
-                        href="https://rjayasin.github.io/visualizer/video-player.html"
-                        target="_blank"
-                        rel="noopener"
-                        >video-player</a
-                    >
-                </li>
-                <li>
-                    <span class="branch">│ └── </span
-                    ><a
-                        href="https://rjayasin.github.io/visualizer/spotify-auth.html"
-                        target="_blank"
-                        rel="noopener"
-                        >spotify-auth</a
-                    >
-                </li>
-                <li><span class="branch">├── </span><a href="/commits/">commits</a></li>
-                <li>
-                    <span class="branch">├── </span
-                    ><a
-                        href="https://rjayasin.github.io/dodgers-notifier/"
-                        target="_blank"
-                        rel="noopener"
-                        >dodgers-notifier</a
-                    >
-                </li>
-                <li><span class="branch">└── </span><a href="/deploys/">deploys</a></li>
-            </ul>
-        </div>
-        <ul id="recent-view" hidden></ul>
-        <ul id="alpha-view" hidden></ul>
-        <script>
-            Common.paintFaviconR();
-            Common.initDarkMode();
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ruvan / sitemap</title>
+    <link rel="icon" id="favicon" />
+    <link rel="stylesheet" href="/common.css" />
+    <style>
+      body {
+        font-family: monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        padding: 48px 32px;
+        max-width: 720px;
+      }
+      a,
+      h1 {
+        transition:
+          background-color 0.2s ease,
+          color 0.2s ease,
+          border-color 0.2s ease;
+      }
+      header {
+        margin-bottom: 15px;
+      }
+      header a {
+        color: #000;
+        text-decoration: none;
+      }
+      header a:hover {
+        text-decoration: underline;
+      }
+      h1,
+      h2 {
+        font-size: 13px;
+        font-weight: normal;
+        letter-spacing: 0.05em;
+      }
+      h2 {
+        color: #888;
+        margin-top: 18px;
+        margin-bottom: 4px;
+      }
+      ul {
+        list-style: none;
+      }
+      li {
+        padding: 2px 0;
+        white-space: pre;
+      }
+      li .branch {
+        color: #888;
+        user-select: none;
+      }
+      li .when {
+        color: #888;
+        margin-left: 8px;
+      }
+      li a {
+        color: #000;
+        text-decoration: none;
+      }
+      li a:hover {
+        text-decoration: underline;
+      }
+      li a.when {
+        color: #888;
+      }
+      .view-toggle {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 14px;
+        color: #888;
+      }
+      .view-toggle button {
+        font: inherit;
+        color: #888;
+        background: transparent;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        letter-spacing: 0.05em;
+        transition: color 0.2s ease;
+      }
+      .view-toggle button:hover {
+        color: #000;
+      }
+      .view-toggle button.active {
+        color: #000;
+      }
+      .view-toggle .sep {
+        user-select: none;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      @media (max-width: 640px) {
+        body {
+          font-size: 15px;
+          padding: 32px 20px;
+        }
+        h1,
+        h2 {
+          font-size: 15px;
+        }
+      }
+      body.dark header a,
+      body.dark li a:not(.when),
+      body.dark .view-toggle button:hover,
+      body.dark .view-toggle button.active {
+        color: #fff;
+      }
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) header a,
+        body:not(.light) li a:not(.when),
+        body:not(.light) .view-toggle button:hover,
+        body:not(.light) .view-toggle button.active {
+          color: #fff;
+        }
+      }
+    </style>
+    <script src="/common.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">Ruvan</a> / sitemap</h1>
+    </header>
+    <nav class="view-toggle" aria-label="view">
+      <button type="button" data-view="tree" class="active">tree</button>
+      <span class="sep">·</span>
+      <button type="button" data-view="recent">recent</button>
+      <span class="sep">·</span>
+      <button type="button" data-view="alpha">alpha</button>
+    </nav>
+    <div id="tree-view">
+      <!-- Keep every section and sublist ordered by date added, oldest at the top and newest at the bottom. -->
+      <h2>fun</h2>
+      <ul>
+        <li>
+          <span class="branch">├── </span
+          ><a href="https://rjayasin.github.io/maze-canvas/" target="_blank" rel="noopener"
+            >maze-canvas</a
+          >
+        </li>
+        <li><span class="branch">├── </span><a href="/text-shooter/">text-shooter</a></li>
+        <li><span class="branch">└── </span><a href="/text-gravity/">text-gravity</a></li>
+      </ul>
+      <h2>text</h2>
+      <ul>
+        <li><span class="branch">├── </span><a id="grid-link" href="/">grid</a></li>
+        <li><span class="branch">├── </span><a id="stack-link" href="/stack/">stack</a></li>
+        <li><span class="branch">├── </span><a id="box-link" href="/box/">box</a></li>
+        <li><span class="branch">├── </span><a href="/clock/">clock</a></li>
+        <li><span class="branch">├── </span><a href="/border/">border</a></li>
+        <li><span class="branch">└── </span><a href="/isometric/">isometric</a></li>
+      </ul>
+      <h2>tools</h2>
+      <ul>
+        <li><span class="branch">├── </span>visualizer</li>
+        <li>
+          <span class="branch">│ ├── </span
+          ><a
+            href="https://rjayasin.github.io/visualizer/video-player.html"
+            target="_blank"
+            rel="noopener"
+            >video-player</a
+          >
+        </li>
+        <li>
+          <span class="branch">│ └── </span
+          ><a
+            href="https://rjayasin.github.io/visualizer/spotify-auth.html"
+            target="_blank"
+            rel="noopener"
+            >spotify-auth</a
+          >
+        </li>
+        <li><span class="branch">├── </span><a href="/commits/">commits</a></li>
+        <li>
+          <span class="branch">├── </span
+          ><a href="https://rjayasin.github.io/dodgers-notifier/" target="_blank" rel="noopener"
+            >dodgers-notifier</a
+          >
+        </li>
+        <li><span class="branch">└── </span><a href="/deploys/">deploys</a></li>
+      </ul>
+    </div>
+    <ul id="recent-view" hidden></ul>
+    <ul id="alpha-view" hidden></ul>
+    <script>
+      Common.paintFaviconR();
+      Common.initDarkMode();
 
-            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?@#&*';
-            const pickChar = () => chars[Math.floor(Math.random() * chars.length)];
-            function randomizeGrid() {
-                document.querySelectorAll('a[data-grid-link]').forEach((el) => {
-                    el.href = '/#/' + encodeURIComponent(pickChar());
-                });
-            }
-            document.getElementById('grid-link').setAttribute('data-grid-link', '');
-            randomizeGrid();
-            document.addEventListener('mousedown', (e) => {
-                if (e.target.closest('a[data-grid-link]')) randomizeGrid();
-            });
+      const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?@#&*';
+      const pickChar = () => chars[Math.floor(Math.random() * chars.length)];
+      function randomizeGrid() {
+        document.querySelectorAll('a[data-grid-link]').forEach((el) => {
+          el.href = '/#/' + encodeURIComponent(pickChar());
+        });
+      }
+      document.getElementById('grid-link').setAttribute('data-grid-link', '');
+      randomizeGrid();
+      document.addEventListener('mousedown', (e) => {
+        if (e.target.closest('a[data-grid-link]')) randomizeGrid();
+      });
 
-            const VIEW_KEY = 'sitemap-view';
-            const treeView = document.getElementById('tree-view');
-            const recentView = document.getElementById('recent-view');
-            const alphaView = document.getElementById('alpha-view');
-            const buttons = document.querySelectorAll('.view-toggle button');
+      const VIEW_KEY = 'sitemap-view';
+      const treeView = document.getElementById('tree-view');
+      const recentView = document.getElementById('recent-view');
+      const alphaView = document.getElementById('alpha-view');
+      const buttons = document.querySelectorAll('.view-toggle button');
 
-            function relativeWhen(iso, now = Date.now()) {
-                const t = new Date(iso).getTime();
-                if (!Number.isFinite(t)) return '';
-                const diff = Math.max(0, now - t);
-                const minute = 60 * 1000;
-                const hour = 60 * minute;
-                const day = 24 * hour;
-                if (diff < minute) return 'just now';
-                if (diff < hour) return `${Math.floor(diff / minute)}m ago`;
-                if (diff < day) return `${Math.floor(diff / hour)}h ago`;
-                if (diff < 2 * day) return 'yesterday';
-                if (diff < 30 * day) return `${Math.floor(diff / day)}d ago`;
-                if (diff < 365 * day) return `${Math.floor(diff / (30 * day))}mo ago`;
-                return `${Math.floor(diff / (365 * day))}y ago`;
-            }
+      function relativeWhen(iso, now = Date.now()) {
+        const t = new Date(iso).getTime();
+        if (!Number.isFinite(t)) return '';
+        const diff = Math.max(0, now - t);
+        const minute = 60 * 1000;
+        const hour = 60 * minute;
+        const day = 24 * hour;
+        if (diff < minute) return 'just now';
+        if (diff < hour) return `${Math.floor(diff / minute)}m ago`;
+        if (diff < day) return `${Math.floor(diff / hour)}h ago`;
+        if (diff < 2 * day) return 'yesterday';
+        if (diff < 30 * day) return `${Math.floor(diff / day)}d ago`;
+        if (diff < 365 * day) return `${Math.floor(diff / (30 * day))}mo ago`;
+        return `${Math.floor(diff / (365 * day))}y ago`;
+      }
 
-            function collectLinks() {
-                return [...treeView.querySelectorAll('li a[href]')].map((a) => ({
-                    href: a.getAttribute('href'),
-                    label: a.textContent,
-                    external: a.hasAttribute('target'),
-                    gridLink: a.hasAttribute('data-grid-link'),
-                }));
-            }
+      function collectLinks() {
+        return [...treeView.querySelectorAll('li a[href]')].map((a) => ({
+          href: a.getAttribute('href'),
+          label: a.textContent,
+          external: a.hasAttribute('target'),
+          gridLink: a.hasAttribute('data-grid-link'),
+        }));
+      }
 
-            function dateKey(href) {
-                const noHash = href.split('#')[0];
-                return noHash || '/';
-            }
+      function dateKey(href) {
+        const noHash = href.split('#')[0];
+        return noHash || '/';
+      }
 
-            const recentEntries = new Map();
+      const recentEntries = new Map();
 
-            function setWhen(li, entry) {
-                const old = li.querySelector('.when');
-                if (old) old.remove();
-                if (!entry?.date) {
-                    delete li.dataset.date;
-                    return;
-                }
-                li.dataset.date = entry.date;
-                const when = document.createElement(entry.url ? 'a' : 'span');
-                when.className = 'when';
-                when.textContent = relativeWhen(entry.date);
-                when.title = new Date(entry.date).toLocaleString();
-                if (entry.url) {
-                    when.href = entry.url;
-                    when.target = '_blank';
-                    when.rel = 'noopener';
-                }
-                li.appendChild(when);
-            }
+      function setWhen(li, entry) {
+        const old = li.querySelector('.when');
+        if (old) old.remove();
+        if (!entry?.date) {
+          delete li.dataset.date;
+          return;
+        }
+        li.dataset.date = entry.date;
+        const when = document.createElement(entry.url ? 'a' : 'span');
+        when.className = 'when';
+        when.textContent = relativeWhen(entry.date);
+        when.title = new Date(entry.date).toLocaleString();
+        if (entry.url) {
+          when.href = entry.url;
+          when.target = '_blank';
+          when.rel = 'noopener';
+        }
+        li.appendChild(when);
+      }
 
-            function sortRecent() {
-                const items = [...recentView.children];
-                items.sort((a, b) => {
-                    const da = dateMs(a.dataset.date);
-                    const db = dateMs(b.dataset.date);
-                    const ga = Number.isFinite(da);
-                    const gb = Number.isFinite(db);
-                    if (ga && gb) return db - da;
-                    if (ga) return -1;
-                    if (gb) return 1;
-                    return 0;
-                });
-                recentView.replaceChildren(...items);
-            }
+      function sortRecent() {
+        const items = [...recentView.children];
+        items.sort((a, b) => {
+          const da = dateMs(a.dataset.date);
+          const db = dateMs(b.dataset.date);
+          const ga = Number.isFinite(da);
+          const gb = Number.isFinite(db);
+          if (ga && gb) return db - da;
+          if (ga) return -1;
+          if (gb) return 1;
+          return 0;
+        });
+        recentView.replaceChildren(...items);
+      }
 
-            function dateMs(iso) {
-                if (!iso) return NaN;
-                const t = Date.parse(iso);
-                return Number.isFinite(t) ? t : NaN;
-            }
+      function dateMs(iso) {
+        if (!iso) return NaN;
+        const t = Date.parse(iso);
+        return Number.isFinite(t) ? t : NaN;
+      }
 
-            function makeFlatLi(link) {
-                const li = document.createElement('li');
-                const bullet = document.createElement('span');
-                bullet.className = 'branch';
-                bullet.textContent = '• ';
-                li.appendChild(bullet);
-                const a = document.createElement('a');
-                a.href = link.href;
-                a.textContent = link.label;
-                if (link.external) {
-                    a.target = '_blank';
-                    a.rel = 'noopener';
-                }
-                if (link.gridLink) a.setAttribute('data-grid-link', '');
-                li.appendChild(a);
-                return li;
-            }
+      function makeFlatLi(link) {
+        const li = document.createElement('li');
+        const bullet = document.createElement('span');
+        bullet.className = 'branch';
+        bullet.textContent = '• ';
+        li.appendChild(bullet);
+        const a = document.createElement('a');
+        a.href = link.href;
+        a.textContent = link.label;
+        if (link.external) {
+          a.target = '_blank';
+          a.rel = 'noopener';
+        }
+        if (link.gridLink) a.setAttribute('data-grid-link', '');
+        li.appendChild(a);
+        return li;
+      }
 
-            function buildRecent(dates) {
-                const links = collectLinks();
-                links.sort((a, b) => {
-                    const da = dateMs(dates[dateKey(a.href)]?.date);
-                    const db = dateMs(dates[dateKey(b.href)]?.date);
-                    const ga = Number.isFinite(da);
-                    const gb = Number.isFinite(db);
-                    if (ga && gb) return db - da;
-                    if (ga) return -1;
-                    if (gb) return 1;
-                    return 0;
-                });
-                recentEntries.clear();
-                recentView.replaceChildren(
-                    ...links.map((l) => {
-                        const li = makeFlatLi(l);
-                        setWhen(li, dates[dateKey(l.href)]);
-                        recentEntries.set(dateKey(l.href), li);
-                        return li;
-                    })
-                );
-                randomizeGrid();
-            }
+      function buildRecent(dates) {
+        const links = collectLinks();
+        links.sort((a, b) => {
+          const da = dateMs(dates[dateKey(a.href)]?.date);
+          const db = dateMs(dates[dateKey(b.href)]?.date);
+          const ga = Number.isFinite(da);
+          const gb = Number.isFinite(db);
+          if (ga && gb) return db - da;
+          if (ga) return -1;
+          if (gb) return 1;
+          return 0;
+        });
+        recentEntries.clear();
+        recentView.replaceChildren(
+          ...links.map((l) => {
+            const li = makeFlatLi(l);
+            setWhen(li, dates[dateKey(l.href)]);
+            recentEntries.set(dateKey(l.href), li);
+            return li;
+          })
+        );
+        randomizeGrid();
+      }
 
-            function buildAlpha() {
-                const links = collectLinks();
-                links.sort((a, b) =>
-                    a.label.localeCompare(b.label, undefined, { sensitivity: 'base' })
-                );
-                alphaView.replaceChildren(...links.map(makeFlatLi));
-                randomizeGrid();
-            }
+      function buildAlpha() {
+        const links = collectLinks();
+        links.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+        alphaView.replaceChildren(...links.map(makeFlatLi));
+        randomizeGrid();
+      }
 
-            const USER_HOST = 'rjayasin.github.io';
-            const SELF_REPO = 'rjayasin.github.io';
-            const PATH_OVERRIDES = { '/': 'grid.js' };
+      const USER_HOST = 'rjayasin.github.io';
+      const SELF_REPO = 'rjayasin.github.io';
+      const PATH_OVERRIDES = { '/': 'grid.js' };
 
-            function internalPath(href) {
-                if (PATH_OVERRIDES[href]) return PATH_OVERRIDES[href];
-                if (href === '/') return 'index.html';
-                if (!href.startsWith('/')) return null;
-                const clean = href.replace(/^\/+/, '').replace(/\/+$/, '');
-                return clean || 'index.html';
-            }
+      function internalPath(href) {
+        if (PATH_OVERRIDES[href]) return PATH_OVERRIDES[href];
+        if (href === '/') return 'index.html';
+        if (!href.startsWith('/')) return null;
+        const clean = href.replace(/^\/+/, '').replace(/\/+$/, '');
+        return clean || 'index.html';
+      }
 
-            function parseUserHost(href) {
-                let url;
-                try {
-                    url = new URL(href, location.origin);
-                } catch {
-                    return null;
-                }
-                if (url.host !== USER_HOST) return null;
-                const segs = url.pathname.split('/').filter(Boolean);
-                if (!segs.length) return null;
-                return { repo: segs[0], path: segs.slice(1).join('/') };
-            }
+      function parseUserHost(href) {
+        let url;
+        try {
+          url = new URL(href, location.origin);
+        } catch {
+          return null;
+        }
+        if (url.host !== USER_HOST) return null;
+        const segs = url.pathname.split('/').filter(Boolean);
+        if (!segs.length) return null;
+        return { repo: segs[0], path: segs.slice(1).join('/') };
+      }
 
-            let rateLimited = false;
-            async function fetchFreshEntry(href) {
-                if (rateLimited) return null;
-                let repo, subPath;
-                const rel = internalPath(href);
-                if (rel) {
-                    repo = SELF_REPO;
-                    subPath = rel;
-                } else {
-                    const ext = parseUserHost(href);
-                    if (!ext) return null;
-                    repo = ext.repo;
-                    subPath = ext.path;
-                }
-                const params = new URLSearchParams({ per_page: '1' });
-                if (subPath) params.set('path', subPath);
-                const apiUrl = `https://api.github.com/repos/rjayasin/${repo}/commits?${params}`;
-                let res;
-                try {
-                    res = await fetch(apiUrl, {
-                        headers: { Accept: 'application/vnd.github+json' },
-                    });
-                } catch {
-                    return null;
-                }
-                if (res.status === 403 || res.status === 429) {
-                    rateLimited = true;
-                    return null;
-                }
-                if (!res.ok) return null;
-                const data = await res.json();
-                const c = Array.isArray(data) ? data[0] : null;
-                const date = c?.commit?.committer?.date || c?.commit?.author?.date;
-                if (!date) return null;
-                return { date, url: c.html_url || null };
-            }
+      let rateLimited = false;
+      async function fetchFreshEntry(href) {
+        if (rateLimited) return null;
+        let repo, subPath;
+        const rel = internalPath(href);
+        if (rel) {
+          repo = SELF_REPO;
+          subPath = rel;
+        } else {
+          const ext = parseUserHost(href);
+          if (!ext) return null;
+          repo = ext.repo;
+          subPath = ext.path;
+        }
+        const params = new URLSearchParams({ per_page: '1' });
+        if (subPath) params.set('path', subPath);
+        const apiUrl = `https://api.github.com/repos/rjayasin/${repo}/commits?${params}`;
+        let res;
+        try {
+          res = await fetch(apiUrl, {
+            headers: { Accept: 'application/vnd.github+json' },
+          });
+        } catch {
+          return null;
+        }
+        if (res.status === 403 || res.status === 429) {
+          rateLimited = true;
+          return null;
+        }
+        if (!res.ok) return null;
+        const data = await res.json();
+        const c = Array.isArray(data) ? data[0] : null;
+        const date = c?.commit?.committer?.date || c?.commit?.author?.date;
+        if (!date) return null;
+        return { date, url: c.html_url || null };
+      }
 
-            let refreshing = false;
-            async function refreshDatesInline() {
-                if (refreshing) return;
-                refreshing = true;
-                for (const [href, li] of recentEntries) {
-                    if (rateLimited) break;
-                    const fresh = await fetchFreshEntry(href);
-                    if (fresh) {
-                        setWhen(li, fresh);
-                        sortRecent();
-                    }
-                }
-            }
+      let refreshing = false;
+      async function refreshDatesInline() {
+        if (refreshing) return;
+        refreshing = true;
+        for (const [href, li] of recentEntries) {
+          if (rateLimited) break;
+          const fresh = await fetchFreshEntry(href);
+          if (fresh) {
+            setWhen(li, fresh);
+            sortRecent();
+          }
+        }
+      }
 
-            function setView(view) {
-                treeView.hidden = view !== 'tree';
-                recentView.hidden = view !== 'recent';
-                alphaView.hidden = view !== 'alpha';
-                buttons.forEach((b) => b.classList.toggle('active', b.dataset.view === view));
-                try {
-                    localStorage.setItem(VIEW_KEY, view);
-                } catch {}
-            }
+      function setView(view) {
+        treeView.hidden = view !== 'tree';
+        recentView.hidden = view !== 'recent';
+        alphaView.hidden = view !== 'alpha';
+        buttons.forEach((b) => b.classList.toggle('active', b.dataset.view === view));
+        try {
+          localStorage.setItem(VIEW_KEY, view);
+        } catch {}
+      }
 
-            let recentReady = null;
-            function ensureRecent() {
-                if (!recentReady) {
-                    recentReady = loadDates().then((dates) => {
-                        buildRecent(dates);
-                        refreshDatesInline();
-                    });
-                }
-                return recentReady;
-            }
+      let recentReady = null;
+      function ensureRecent() {
+        if (!recentReady) {
+          recentReady = loadDates().then((dates) => {
+            buildRecent(dates);
+            refreshDatesInline();
+          });
+        }
+        return recentReady;
+      }
 
-            let alphaReady = false;
-            function ensureAlpha() {
-                if (!alphaReady) {
-                    buildAlpha();
-                    alphaReady = true;
-                }
-            }
+      let alphaReady = false;
+      function ensureAlpha() {
+        if (!alphaReady) {
+          buildAlpha();
+          alphaReady = true;
+        }
+      }
 
-            function switchTo(view) {
-                if (view === 'recent') ensureRecent().then(() => setView('recent'));
-                else if (view === 'alpha') {
-                    ensureAlpha();
-                    setView('alpha');
-                } else setView('tree');
-            }
+      function switchTo(view) {
+        if (view === 'recent') ensureRecent().then(() => setView('recent'));
+        else if (view === 'alpha') {
+          ensureAlpha();
+          setView('alpha');
+        } else setView('tree');
+      }
 
-            buttons.forEach((b) => b.addEventListener('click', () => switchTo(b.dataset.view)));
+      buttons.forEach((b) => b.addEventListener('click', () => switchTo(b.dataset.view)));
 
-            function shortcutTarget(e) {
-                if (e.ctrlKey || e.metaKey || e.altKey) return null;
-                const t = e.target;
-                if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))
-                    return null;
-                return e.key.toLowerCase();
-            }
+      function shortcutTarget(e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return null;
+        const t = e.target;
+        if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return null;
+        return e.key.toLowerCase();
+      }
 
-            document.addEventListener('keydown', (e) => {
-                const k = shortcutTarget(e);
-                if (k === 't') switchTo('tree');
-                else if (k === 'r') switchTo('recent');
-                else if (k === 'a') switchTo('alpha');
-            });
+      document.addEventListener('keydown', (e) => {
+        const k = shortcutTarget(e);
+        if (k === 't') switchTo('tree');
+        else if (k === 'r') switchTo('recent');
+        else if (k === 'a') switchTo('alpha');
+      });
 
-            let datesPromise = null;
-            function loadDates() {
-                if (!datesPromise) {
-                    datesPromise = fetch('/sitemap/dates.json', { cache: 'no-cache' })
-                        .then((r) => (r.ok ? r.json() : {}))
-                        .catch(() => ({}));
-                }
-                return datesPromise;
-            }
+      let datesPromise = null;
+      function loadDates() {
+        if (!datesPromise) {
+          datesPromise = fetch('/sitemap/dates.json', { cache: 'no-cache' })
+            .then((r) => (r.ok ? r.json() : {}))
+            .catch(() => ({}));
+        }
+        return datesPromise;
+      }
 
-            let initialView = 'tree';
-            try {
-                initialView = localStorage.getItem(VIEW_KEY) || 'tree';
-            } catch {}
-            if (initialView === 'recent') {
-                ensureRecent().then(() => setView('recent'));
-            } else if (initialView === 'alpha') {
-                ensureAlpha();
-                setView('alpha');
-                ensureRecent();
-            } else {
-                ensureRecent();
-            }
-        </script>
-    </body>
+      let initialView = 'tree';
+      try {
+        initialView = localStorage.getItem(VIEW_KEY) || 'tree';
+      } catch {}
+      if (initialView === 'recent') {
+        ensureRecent().then(() => setView('recent'));
+      } else if (initialView === 'alpha') {
+        ensureAlpha();
+        setView('alpha');
+        ensureRecent();
+      } else {
+        ensureRecent();
+      }
+    </script>
+  </body>
 </html>
