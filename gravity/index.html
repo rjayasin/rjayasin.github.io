@@ -220,7 +220,6 @@
       function applyFallback() {
         wordSource = toWords(FALLBACK_TEXTS[Math.floor(Math.random() * FALLBACK_TEXTS.length)]);
       }
-      applyFallback();
 
       const canvas = document.getElementById('game');
       const ctx = canvas.getContext('2d');
@@ -330,9 +329,11 @@
         const x0 = (W - blockW) / 2 + charW / 2;
         const y0 = (H - blockH) / 2 + charH / 2;
 
-        const lines = buildLines(cols, rows);
         const loose = preserveLoose ? bodies.filter((b) => !b.fixed) : [];
         bodies = [];
+        // No source text yet (initial load before wiki responds): leave the
+        // grid empty rather than flashing the fallback text for a frame.
+        const lines = wordSource.length ? buildLines(cols, rows) : [];
         for (let r = 0; r < lines.length; r++) {
           const line = lines[r];
           for (let c = 0; c < line.length; c++) {
@@ -928,7 +929,9 @@
 
       async function loadNewText() {
         hasFired = false;
-        applyFallback();
+        // Clear the grid while the wiki request is in flight so the fallback
+        // text doesn't flash for a frame before the real text arrives.
+        wordSource = [];
         buildBlock();
         try {
           const res = await fetch(WIKI_URL, { cache: 'no-store' });
@@ -938,9 +941,14 @@
           if (words.length >= 12 && !hasFired) {
             wordSource = words;
             buildBlock();
+            return;
           }
         } catch (_) {
-          /* keep the fallback text */
+          /* fall through to fallback */
+        }
+        if (!hasFired && !wordSource.length) {
+          applyFallback();
+          buildBlock();
         }
       }
 
