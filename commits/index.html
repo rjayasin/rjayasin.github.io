@@ -256,7 +256,6 @@
       const USER = 'rjayasin';
       const BOT_REPO = 'rjayasin/rjayasin.github.io';
       const BOT_AUTHOR = '41898282+github-actions[bot]@users.noreply.github.com';
-      const HIDDEN_BOT_MSG_PREFIX = 'sitemap: refresh dates';
       const TOKEN_KEY = 'gh_token';
       const log = document.getElementById('log');
       const status = document.getElementById('status');
@@ -328,7 +327,6 @@
           const items = await r.json();
           if (!items.length) break;
           for (const c of items) {
-            if (c.commit.message.split('\n')[0].startsWith(HIDDEN_BOT_MSG_PREFIX)) continue;
             out.push({
               commit: {
                 committer: { date: c.commit.committer.date },
@@ -336,7 +334,6 @@
               },
               repository: { full_name: BOT_REPO },
               html_url: c.html_url,
-              isBot: true,
             });
           }
           if (items.length < 100) break;
@@ -395,8 +392,7 @@
         const date = c.commit.committer.date;
         const day = new Date(date).toDateString();
         const repo = c.repository.full_name;
-        const rawMsg = c.commit.message.split('\n')[0];
-        const msg = c.isBot ? `🤖 ${rawMsg}` : rawMsg;
+        const msg = c.commit.message.split('\n')[0];
 
         if (currentDay !== day) {
           currentDay = day;
