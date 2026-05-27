@@ -1,308 +1,422 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ruvan / clock</title>
-  <link rel="icon" id="favicon">
-  <link rel="stylesheet" href="/common.css">
-  <style>
-    html, body { width: 100%; height: 100%; overflow: hidden; }
-    #pre {
-      position: absolute;
-      top: 0; left: 0;
-      font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
-      line-height: 1;
-      overflow: hidden;
-      white-space: pre;
-      cursor: text;
-    }
-    #hint {
-      position: fixed;
-      left: 0; right: 0; bottom: 12px;
-      text-align: center;
-      font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
-      font-size: 12px;
-      color: #888;
-      opacity: 1;
-      transition: opacity 0.4s ease;
-      user-select: none;
-      z-index: 3;
-    }
-    #hint.hidden { opacity: 0; pointer-events: none; }
-    #hint .hint-btn {
-      cursor: pointer;
-      text-decoration: underline;
-      text-decoration-style: dotted;
-      text-underline-offset: 2px;
-    }
-    #hint .hint-btn:hover { color: #333; }
-    body.dark #hint .hint-btn:hover { color: #ccc; }
-    #hint-zone {
-      position: fixed;
-      left: 0; right: 0; bottom: 0;
-      height: 60px;
-      z-index: 2;
-    }
-  </style>
-  <script src="/common.js"></script>
-</head>
-<body>
-  <pre id="pre"></pre>
-  <div id="hint"><span style="white-space:nowrap"><span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd">−</span> font size</span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-num">n numbers</span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-dark">1 <span class="hb-dark-label">dark</span></span></span> &nbsp;·&nbsp; <span style="white-space:nowrap"><span class="hint-btn" id="hb-sitemap">s sitemap</span></span></div>
-  <div id="hint-zone"></div>
-  <script>
-    Common.paintFaviconR();
-    Common.initDarkMode();
-    Common.initCursorHide();
-
-    const pre = document.getElementById('pre');
-    const WORD = 'clock';
-    const MONO = 'ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace';
-    let charW, charH, cols, rows, fontSize = 0, showNumbers = false;
-
-    // Off-screen canvas for rendering digit glyphs.
-    const offCanvas = document.createElement('canvas');
-    const offCtx = offCanvas.getContext('2d');
-    let digitCache = new Map();
-
-    // Render digit character ch into a nCols×nRows character-cell grid by drawing
-    // it on an off-screen canvas at the correct pixel aspect ratio, then sampling
-    // each charW×charH pixel block. Results are cached per (ch, nCols, nRows).
-    function getDigitBitmap(ch, nCols, nRows) {
-      const key = `${ch}_${nCols}_${nRows}`;
-      if (digitCache.has(key)) return digitCache.get(key);
-
-      // Render at a quality scale so each cell is at least 16px wide/tall.
-      const Q = Math.max(1, Math.ceil(16 / Math.min(charW, charH)));
-      const pw = Math.ceil(nCols * charW * Q);
-      const ph = Math.ceil(nRows * charH * Q);
-
-      // Measure actual glyph bounding box at a large reference size.
-      const refSize = 500;
-      offCtx.font = `${refSize}px ${MONO}`;
-      const m0 = offCtx.measureText(ch);
-      const gW = m0.actualBoundingBoxRight - m0.actualBoundingBoxLeft;
-      const gH = m0.actualBoundingBoxAscent + m0.actualBoundingBoxDescent;
-
-      // Scale to fit the glyph inside the target canvas with a little padding.
-      const fitScale = Math.min(pw / gW, ph / gH) * 0.88;
-      const fontSize_ = refSize * fitScale;
-
-      offCanvas.width = pw + 2;
-      offCanvas.height = ph + 2;
-      offCtx.clearRect(0, 0, offCanvas.width, offCanvas.height);
-      offCtx.fillStyle = '#000';
-      offCtx.font = `${fontSize_}px ${MONO}`;
-
-      const m1 = offCtx.measureText(ch);
-      const drawX = (pw - (m1.actualBoundingBoxRight - m1.actualBoundingBoxLeft)) / 2
-                    - m1.actualBoundingBoxLeft;
-      const drawY = (ph - (m1.actualBoundingBoxAscent + m1.actualBoundingBoxDescent)) / 2
-                    + m1.actualBoundingBoxAscent;
-      offCtx.fillText(ch, drawX, drawY);
-
-      const imgData = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
-      const cw = charW * Q, ch_ = charH * Q;
-
-      const bitmap = Array.from({ length: nRows }, (_, row) =>
-        Array.from({ length: nCols }, (__, col) => {
-          const x0 = Math.round(col * cw), y0 = Math.round(row * ch_);
-          const x1 = Math.min(offCanvas.width,  Math.round((col + 1) * cw));
-          const y1 = Math.min(offCanvas.height, Math.round((row + 1) * ch_));
-          let sum = 0, n = 0;
-          for (let sy = y0; sy < y1; sy++)
-            for (let sx = x0; sx < x1; sx++)
-              sum += imgData.data[(sy * offCanvas.width + sx) * 4 + 3], n++;
-          return n > 0 && sum / n > 50 ? 1 : 0;
-        })
-      );
-
-      digitCache.set(key, bitmap);
-      return bitmap;
-    }
-
-    function setup() {
-      const vw = window.innerWidth, vh = window.innerHeight;
-      if (!fontSize) {
-        fontSize = Math.max(9, Math.min(16, Math.round(Math.min(vw, vh) / 50)));
-      }
-      pre.style.fontSize = fontSize + 'px';
-
-      const probe = document.createElement('span');
-      probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;line-height:1;font-family:inherit;font-size:inherit';
-      probe.textContent = 'o'.repeat(100);
-      pre.appendChild(probe);
-      charW = probe.getBoundingClientRect().width / 100;
-      pre.removeChild(probe);
-      charH = fontSize;
-
-      cols = Math.floor(vw / charW);
-      rows = Math.floor(vh / charH);
-      lastText = '';
-      digitCache = new Map(); // invalidate on font-size change
-    }
-
-    function drawCircle(grid, cx, cy, rx, ry) {
-      const n = Math.ceil(4 * Math.max(rx, ry) * Math.PI);
-      const seen = new Set();
-      let idx = 0;
-      for (let i = 0; i < n; i++) {
-        const t = (i / n) * 2 * Math.PI - Math.PI / 2;
-        const c = Math.round(cx + rx * Math.cos(t));
-        const r = Math.round(cy + ry * Math.sin(t));
-        const k = r * 1e5 + c;
-        if (!seen.has(k) && c >= 0 && c < cols && r >= 0 && r < rows) {
-          seen.add(k);
-          grid[r][c] = WORD[idx++ % WORD.length];
-        }
-      }
-    }
-
-    function drawLine(grid, x0, y0, x1, y1) {
-      x0 = Math.round(x0); y0 = Math.round(y0);
-      x1 = Math.round(x1); y1 = Math.round(y1);
-      let dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
-      let dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
-      let err = dx + dy, idx = 0;
-      while (true) {
-        if (x0 >= 0 && x0 < cols && y0 >= 0 && y0 < rows)
-          grid[y0][x0] = WORD[idx++ % WORD.length];
-        if (x0 === x1 && y0 === y1) break;
-        const e2 = 2 * err;
-        if (e2 >= dy) { err += dy; x0 += sx; }
-        if (e2 <= dx) { err += dx; y0 += sy; }
-      }
-    }
-
-    function pt(cx, cy, angle, rx, ry, frac) {
-      return [cx + rx * frac * Math.cos(angle), cy + ry * frac * Math.sin(angle)];
-    }
-
-    // Place a number (1–12) centered at (centerCol, centerRow).
-    // Each digit is sampled from the actual monospace font glyph at nRows×nCols
-    // character cells, so the shapes match the font rather than a fixed bitmap.
-    function drawNumber(grid, num, centerCol, centerRow, nRows) {
-      const nCols = nRows;
-      const gap = Math.max(1, Math.round(nCols * 0.3));
-      const chars = String(num).split('');
-      const bitmaps = chars.map(ch => getDigitBitmap(ch, nCols, nRows));
-      const totalW = chars.length * nCols + (chars.length - 1) * gap;
-      const startC = Math.round(centerCol - totalW / 2);
-      const startR = Math.round(centerRow - nRows / 2);
-      let idx = 0;
-      for (let row = 0; row < nRows; row++) {
-        let c = startC;
-        for (const bmp of bitmaps) {
-          for (let dc = 0; dc < nCols; dc++) {
-            if (bmp[row][dc]) {
-              const gc = c + dc, gr = startR + row;
-              if (gc >= 0 && gc < cols && gr >= 0 && gr < rows)
-                grid[gr][gc] = WORD[idx++ % WORD.length];
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Ruvan / clock</title>
+        <link rel="icon" id="favicon" />
+        <link rel="stylesheet" href="/common.css" />
+        <style>
+            html,
+            body {
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
             }
-          }
-          c += nCols + gap;
-        }
-      }
-    }
+            #pre {
+                position: absolute;
+                top: 0;
+                left: 0;
+                font-family:
+                    ui-monospace,
+                    SFMono-Regular,
+                    SF Mono,
+                    Menlo,
+                    Consolas,
+                    Liberation Mono,
+                    monospace;
+                line-height: 1;
+                overflow: hidden;
+                white-space: pre;
+                cursor: text;
+            }
+            #hint {
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 12px;
+                text-align: center;
+                font-family:
+                    ui-monospace,
+                    SFMono-Regular,
+                    SF Mono,
+                    Menlo,
+                    Consolas,
+                    Liberation Mono,
+                    monospace;
+                font-size: 12px;
+                color: #888;
+                opacity: 1;
+                transition: opacity 0.4s ease;
+                user-select: none;
+                z-index: 3;
+            }
+            #hint.hidden {
+                opacity: 0;
+                pointer-events: none;
+            }
+            #hint .hint-btn {
+                cursor: pointer;
+                text-decoration: underline;
+                text-decoration-style: dotted;
+                text-underline-offset: 2px;
+            }
+            #hint .hint-btn:hover {
+                color: #333;
+            }
+            body.dark #hint .hint-btn:hover {
+                color: #ccc;
+            }
+            #hint-zone {
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                height: 60px;
+                z-index: 2;
+            }
+        </style>
+        <script src="/common.js"></script>
+    </head>
+    <body>
+        <pre id="pre"></pre>
+        <div id="hint">
+            <span style="white-space: nowrap"
+                ><span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd"
+                    >−</span
+                >
+                font size</span
+            >
+            &nbsp;·&nbsp;
+            <span style="white-space: nowrap"
+                ><span class="hint-btn" id="hb-num">n numbers</span></span
+            >
+            &nbsp;·&nbsp;
+            <span style="white-space: nowrap"
+                ><span class="hint-btn" id="hb-dark"
+                    >1 <span class="hb-dark-label">dark</span></span
+                ></span
+            >
+            &nbsp;·&nbsp;
+            <span style="white-space: nowrap"
+                ><span class="hint-btn" id="hb-sitemap">s sitemap</span></span
+            >
+        </div>
+        <div id="hint-zone"></div>
+        <script>
+            Common.paintFaviconR();
+            Common.initDarkMode();
+            Common.initCursorHide();
 
-    // Draw a hand so text reads left→right (horizontal) or top→bottom (vertical).
-    function drawHand(grid, x0, y0, x1, y1, angle) {
-      const horiz = Math.abs(Math.cos(angle)) >= Math.abs(Math.sin(angle));
-      const flip  = horiz ? Math.round(x0) > Math.round(x1)
-                          : Math.round(y0) > Math.round(y1);
-      flip ? drawLine(grid, x1, y1, x0, y0) : drawLine(grid, x0, y0, x1, y1);
-    }
+            const pre = document.getElementById('pre');
+            const WORD = 'clock';
+            const MONO =
+                'ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace';
+            let charW,
+                charH,
+                cols,
+                rows,
+                fontSize = 0,
+                showNumbers = false;
 
-    let lastText = '';
+            // Off-screen canvas for rendering digit glyphs.
+            const offCanvas = document.createElement('canvas');
+            const offCtx = offCanvas.getContext('2d');
+            let digitCache = new Map();
 
-    function draw() {
-      const cx = cols / 2, cy = rows / 2;
-      const R_px = Math.min(cols * charW, rows * charH) * 0.42;
-      const rx = R_px / charW, ry = R_px / charH;
+            // Render digit character ch into a nCols×nRows character-cell grid by drawing
+            // it on an off-screen canvas at the correct pixel aspect ratio, then sampling
+            // each charW×charH pixel block. Results are cached per (ch, nCols, nRows).
+            function getDigitBitmap(ch, nCols, nRows) {
+                const key = `${ch}_${nCols}_${nRows}`;
+                if (digitCache.has(key)) return digitCache.get(key);
 
-      const grid = Array.from({ length: rows }, () => new Array(cols).fill(' '));
+                // Render at a quality scale so each cell is at least 16px wide/tall.
+                const Q = Math.max(1, Math.ceil(16 / Math.min(charW, charH)));
+                const pw = Math.ceil(nCols * charW * Q);
+                const ph = Math.ceil(nRows * charH * Q);
 
-      drawCircle(grid, cx, cy, rx, ry);
+                // Measure actual glyph bounding box at a large reference size.
+                const refSize = 500;
+                offCtx.font = `${refSize}px ${MONO}`;
+                const m0 = offCtx.measureText(ch);
+                const gW = m0.actualBoundingBoxRight - m0.actualBoundingBoxLeft;
+                const gH = m0.actualBoundingBoxAscent + m0.actualBoundingBoxDescent;
 
-      const numRows = Math.max(4, Math.round(ry * 0.17));
-      for (let h = 0; h < 12; h++) {
-        const num = h === 0 ? 12 : h;
-        const t = (h / 12) * 2 * Math.PI - Math.PI / 2;
-        if (showNumbers) {
-          drawNumber(grid, num, cx + rx * 0.76 * Math.cos(t), cy + ry * 0.76 * Math.sin(t), numRows);
-        } else {
-          drawHand(grid,
-            cx + rx * 0.83 * Math.cos(t), cy + ry * 0.83 * Math.sin(t),
-            cx + rx * 0.93 * Math.cos(t), cy + ry * 0.93 * Math.sin(t),
-            t);
-        }
-      }
+                // Scale to fit the glyph inside the target canvas with a little padding.
+                const fitScale = Math.min(pw / gW, ph / gH) * 0.88;
+                const fontSize_ = refSize * fitScale;
 
-      const now = new Date();
-      const s = now.getSeconds() + now.getMilliseconds() / 1000;
-      const m = now.getMinutes() + s / 60;
-      const h = (now.getHours() % 12) + m / 60;
-      const sa = (s / 60) * 2 * Math.PI - Math.PI / 2;
-      const ma = (m / 60) * 2 * Math.PI - Math.PI / 2;
-      const ha = (h / 12) * 2 * Math.PI - Math.PI / 2;
+                offCanvas.width = pw + 2;
+                offCanvas.height = ph + 2;
+                offCtx.clearRect(0, 0, offCanvas.width, offCanvas.height);
+                offCtx.fillStyle = '#000';
+                offCtx.font = `${fontSize_}px ${MONO}`;
 
-      const [tx, ty] = pt(cx, cy, sa, rx, ry, -0.18);
-      const [sx, sy] = pt(cx, cy, sa, rx, ry,  0.82);
-      drawHand(grid, tx, ty, sx, sy, sa);
+                const m1 = offCtx.measureText(ch);
+                const drawX =
+                    (pw - (m1.actualBoundingBoxRight - m1.actualBoundingBoxLeft)) / 2 -
+                    m1.actualBoundingBoxLeft;
+                const drawY =
+                    (ph - (m1.actualBoundingBoxAscent + m1.actualBoundingBoxDescent)) / 2 +
+                    m1.actualBoundingBoxAscent;
+                offCtx.fillText(ch, drawX, drawY);
 
-      const [mx, my] = pt(cx, cy, ma, rx, ry, 0.70);
-      drawHand(grid, cx, cy, mx, my, ma);
+                const imgData = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
+                const cw = charW * Q,
+                    ch_ = charH * Q;
 
-      const [hx, hy] = pt(cx, cy, ha, rx, ry, 0.50);
-      drawHand(grid, cx, cy, hx, hy, ha);
+                const bitmap = Array.from({ length: nRows }, (_, row) =>
+                    Array.from({ length: nCols }, (__, col) => {
+                        const x0 = Math.round(col * cw),
+                            y0 = Math.round(row * ch_);
+                        const x1 = Math.min(offCanvas.width, Math.round((col + 1) * cw));
+                        const y1 = Math.min(offCanvas.height, Math.round((row + 1) * ch_));
+                        let sum = 0,
+                            n = 0;
+                        for (let sy = y0; sy < y1; sy++)
+                            for (let sx = x0; sx < x1; sx++)
+                                (sum += imgData.data[(sy * offCanvas.width + sx) * 4 + 3]), n++;
+                        return n > 0 && sum / n > 50 ? 1 : 0;
+                    })
+                );
 
-      const cc = Math.round(cx), cr = Math.round(cy);
-      if (cc >= 0 && cc < cols && cr >= 0 && cr < rows) grid[cr][cc] = 'c';
+                digitCache.set(key, bitmap);
+                return bitmap;
+            }
 
-      const text = grid.map(r => r.join('')).join('\n');
-      if (text !== lastText) pre.textContent = lastText = text;
-    }
+            function setup() {
+                const vw = window.innerWidth,
+                    vh = window.innerHeight;
+                if (!fontSize) {
+                    fontSize = Math.max(9, Math.min(16, Math.round(Math.min(vw, vh) / 50)));
+                }
+                pre.style.fontSize = fontSize + 'px';
 
-    function tick() { draw(); requestAnimationFrame(tick); }
+                const probe = document.createElement('span');
+                probe.style.cssText =
+                    'position:absolute;visibility:hidden;white-space:pre;line-height:1;font-family:inherit;font-size:inherit';
+                probe.textContent = 'o'.repeat(100);
+                pre.appendChild(probe);
+                charW = probe.getBoundingClientRect().width / 100;
+                pre.removeChild(probe);
+                charH = fontSize;
 
-    setup();
-    tick();
-    window.addEventListener('resize', setup);
+                cols = Math.floor(vw / charW);
+                rows = Math.floor(vh / charH);
+                lastText = '';
+                digitCache = new Map(); // invalidate on font-size change
+            }
 
-    document.addEventListener('keydown', e => {
-      if (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') {
-        e.preventDefault();
-        fontSize = Math.max(4, Math.min(48, fontSize + (e.key === '+' || e.key === '=' ? 1 : -1)));
-        setup();
-        showHint();
-      } else if ((e.key === 'n' || e.key === 'N') && !e.repeat) {
-        showNumbers = !showNumbers;
-        showHint();
-      }
-    });
+            function drawCircle(grid, cx, cy, rx, ry) {
+                const n = Math.ceil(4 * Math.max(rx, ry) * Math.PI);
+                const seen = new Set();
+                let idx = 0;
+                for (let i = 0; i < n; i++) {
+                    const t = (i / n) * 2 * Math.PI - Math.PI / 2;
+                    const c = Math.round(cx + rx * Math.cos(t));
+                    const r = Math.round(cy + ry * Math.sin(t));
+                    const k = r * 1e5 + c;
+                    if (!seen.has(k) && c >= 0 && c < cols && r >= 0 && r < rows) {
+                        seen.add(k);
+                        grid[r][c] = WORD[idx++ % WORD.length];
+                    }
+                }
+            }
 
-    const hintEl = document.getElementById('hint');
-    const hintZone = document.getElementById('hint-zone');
-    let hintTimer = null;
-    function showHint() {
-      hintEl.classList.remove('hidden');
-      clearTimeout(hintTimer);
-      hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 2500);
-    }
-    showHint();
-    hintZone.addEventListener('mouseenter', showHint);
-    hintZone.addEventListener('mousemove', showHint);
-    hintEl.addEventListener('click', e => e.stopPropagation());
-    hintEl.addEventListener('mouseenter', () => { clearTimeout(hintTimer); hintEl.classList.remove('hidden'); });
-    hintEl.addEventListener('mouseleave', showHint);
+            function drawLine(grid, x0, y0, x1, y1) {
+                x0 = Math.round(x0);
+                y0 = Math.round(y0);
+                x1 = Math.round(x1);
+                y1 = Math.round(y1);
+                let dx = Math.abs(x1 - x0),
+                    sx = x0 < x1 ? 1 : -1;
+                let dy = -Math.abs(y1 - y0),
+                    sy = y0 < y1 ? 1 : -1;
+                let err = dx + dy,
+                    idx = 0;
+                while (true) {
+                    if (x0 >= 0 && x0 < cols && y0 >= 0 && y0 < rows)
+                        grid[y0][x0] = WORD[idx++ % WORD.length];
+                    if (x0 === x1 && y0 === y1) break;
+                    const e2 = 2 * err;
+                    if (e2 >= dy) {
+                        err += dy;
+                        x0 += sx;
+                    }
+                    if (e2 <= dx) {
+                        err += dx;
+                        y0 += sy;
+                    }
+                }
+            }
 
-    document.getElementById('hb-fi').addEventListener('click', () => { fontSize = Math.max(4, Math.min(48, fontSize + 1)); setup(); showHint(); });
-    document.getElementById('hb-fd').addEventListener('click', () => { fontSize = Math.max(4, Math.min(48, fontSize - 1)); setup(); showHint(); });
-    document.getElementById('hb-num').addEventListener('click', () => { showNumbers = !showNumbers; showHint(); });
-    document.getElementById('hb-dark').addEventListener('click', () => { Common.toggleDark(); showHint(); });
-    document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
-    Common.initSitemapShortcut();
-  </script>
-</body>
+            function pt(cx, cy, angle, rx, ry, frac) {
+                return [cx + rx * frac * Math.cos(angle), cy + ry * frac * Math.sin(angle)];
+            }
+
+            // Place a number (1–12) centered at (centerCol, centerRow).
+            // Each digit is sampled from the actual monospace font glyph at nRows×nCols
+            // character cells, so the shapes match the font rather than a fixed bitmap.
+            function drawNumber(grid, num, centerCol, centerRow, nRows) {
+                const nCols = nRows;
+                const gap = Math.max(1, Math.round(nCols * 0.3));
+                const chars = String(num).split('');
+                const bitmaps = chars.map((ch) => getDigitBitmap(ch, nCols, nRows));
+                const totalW = chars.length * nCols + (chars.length - 1) * gap;
+                const startC = Math.round(centerCol - totalW / 2);
+                const startR = Math.round(centerRow - nRows / 2);
+                let idx = 0;
+                for (let row = 0; row < nRows; row++) {
+                    let c = startC;
+                    for (const bmp of bitmaps) {
+                        for (let dc = 0; dc < nCols; dc++) {
+                            if (bmp[row][dc]) {
+                                const gc = c + dc,
+                                    gr = startR + row;
+                                if (gc >= 0 && gc < cols && gr >= 0 && gr < rows)
+                                    grid[gr][gc] = WORD[idx++ % WORD.length];
+                            }
+                        }
+                        c += nCols + gap;
+                    }
+                }
+            }
+
+            // Draw a hand so text reads left→right (horizontal) or top→bottom (vertical).
+            function drawHand(grid, x0, y0, x1, y1, angle) {
+                const horiz = Math.abs(Math.cos(angle)) >= Math.abs(Math.sin(angle));
+                const flip = horiz
+                    ? Math.round(x0) > Math.round(x1)
+                    : Math.round(y0) > Math.round(y1);
+                flip ? drawLine(grid, x1, y1, x0, y0) : drawLine(grid, x0, y0, x1, y1);
+            }
+
+            let lastText = '';
+
+            function draw() {
+                const cx = cols / 2,
+                    cy = rows / 2;
+                const R_px = Math.min(cols * charW, rows * charH) * 0.42;
+                const rx = R_px / charW,
+                    ry = R_px / charH;
+
+                const grid = Array.from({ length: rows }, () => new Array(cols).fill(' '));
+
+                drawCircle(grid, cx, cy, rx, ry);
+
+                const numRows = Math.max(4, Math.round(ry * 0.17));
+                for (let h = 0; h < 12; h++) {
+                    const num = h === 0 ? 12 : h;
+                    const t = (h / 12) * 2 * Math.PI - Math.PI / 2;
+                    if (showNumbers) {
+                        drawNumber(
+                            grid,
+                            num,
+                            cx + rx * 0.76 * Math.cos(t),
+                            cy + ry * 0.76 * Math.sin(t),
+                            numRows
+                        );
+                    } else {
+                        drawHand(
+                            grid,
+                            cx + rx * 0.83 * Math.cos(t),
+                            cy + ry * 0.83 * Math.sin(t),
+                            cx + rx * 0.93 * Math.cos(t),
+                            cy + ry * 0.93 * Math.sin(t),
+                            t
+                        );
+                    }
+                }
+
+                const now = new Date();
+                const s = now.getSeconds() + now.getMilliseconds() / 1000;
+                const m = now.getMinutes() + s / 60;
+                const h = (now.getHours() % 12) + m / 60;
+                const sa = (s / 60) * 2 * Math.PI - Math.PI / 2;
+                const ma = (m / 60) * 2 * Math.PI - Math.PI / 2;
+                const ha = (h / 12) * 2 * Math.PI - Math.PI / 2;
+
+                const [tx, ty] = pt(cx, cy, sa, rx, ry, -0.18);
+                const [sx, sy] = pt(cx, cy, sa, rx, ry, 0.82);
+                drawHand(grid, tx, ty, sx, sy, sa);
+
+                const [mx, my] = pt(cx, cy, ma, rx, ry, 0.7);
+                drawHand(grid, cx, cy, mx, my, ma);
+
+                const [hx, hy] = pt(cx, cy, ha, rx, ry, 0.5);
+                drawHand(grid, cx, cy, hx, hy, ha);
+
+                const cc = Math.round(cx),
+                    cr = Math.round(cy);
+                if (cc >= 0 && cc < cols && cr >= 0 && cr < rows) grid[cr][cc] = 'c';
+
+                const text = grid.map((r) => r.join('')).join('\n');
+                if (text !== lastText) pre.textContent = lastText = text;
+            }
+
+            function tick() {
+                draw();
+                requestAnimationFrame(tick);
+            }
+
+            setup();
+            tick();
+            window.addEventListener('resize', setup);
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') {
+                    e.preventDefault();
+                    fontSize = Math.max(
+                        4,
+                        Math.min(48, fontSize + (e.key === '+' || e.key === '=' ? 1 : -1))
+                    );
+                    setup();
+                    showHint();
+                } else if ((e.key === 'n' || e.key === 'N') && !e.repeat) {
+                    showNumbers = !showNumbers;
+                    showHint();
+                }
+            });
+
+            const hintEl = document.getElementById('hint');
+            const hintZone = document.getElementById('hint-zone');
+            let hintTimer = null;
+            function showHint() {
+                hintEl.classList.remove('hidden');
+                clearTimeout(hintTimer);
+                hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 2500);
+            }
+            showHint();
+            hintZone.addEventListener('mouseenter', showHint);
+            hintZone.addEventListener('mousemove', showHint);
+            hintEl.addEventListener('click', (e) => e.stopPropagation());
+            hintEl.addEventListener('mouseenter', () => {
+                clearTimeout(hintTimer);
+                hintEl.classList.remove('hidden');
+            });
+            hintEl.addEventListener('mouseleave', showHint);
+
+            document.getElementById('hb-fi').addEventListener('click', () => {
+                fontSize = Math.max(4, Math.min(48, fontSize + 1));
+                setup();
+                showHint();
+            });
+            document.getElementById('hb-fd').addEventListener('click', () => {
+                fontSize = Math.max(4, Math.min(48, fontSize - 1));
+                setup();
+                showHint();
+            });
+            document.getElementById('hb-num').addEventListener('click', () => {
+                showNumbers = !showNumbers;
+                showHint();
+            });
+            document.getElementById('hb-dark').addEventListener('click', () => {
+                Common.toggleDark();
+                showHint();
+            });
+            document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
+            Common.initSitemapShortcut();
+        </script>
+    </body>
 </html>

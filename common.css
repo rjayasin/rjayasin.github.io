@@ -1,23 +1,43 @@
-* { margin: 0; padding: 0; box-sizing: border-box; }
-:root { color-scheme: light dark; }
-html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+:root {
+    color-scheme: light dark;
+}
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
 body {
-  background: #ffffff;
-  color: #000000;
-  transition: background-color 0.2s ease, color 0.2s ease;
+    background: #ffffff;
+    color: #000000;
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease;
 }
-body.dark { background: #111111; color: #ffffff; }
+body.dark {
+    background: #111111;
+    color: #ffffff;
+}
 @media (prefers-color-scheme: dark) {
-  body:not(.light) { background: #111111; color: #ffffff; }
+    body:not(.light) {
+        background: #111111;
+        color: #ffffff;
+    }
 }
-body.hide-cursor, body.hide-cursor * { cursor: none !important; }
+body.hide-cursor,
+body.hide-cursor * {
+    cursor: none !important;
+}
 .hint-input {
-  font: inherit;
-  color: inherit;
-  background: transparent;
-  border: none;
-  outline: none;
-  border-bottom: 1px dotted currentColor;
-  padding: 0;
-  margin: 0;
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: none;
+    outline: none;
+    border-bottom: 1px dotted currentColor;
+    padding: 0;
+    margin: 0;
 }
