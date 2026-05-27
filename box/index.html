@@ -234,25 +234,16 @@
           .catch(() => {});
       }
 
-      const cooldown = Common.makeCooldown(500);
-      async function pickFont() {
-        if (!window.googleFonts) return;
-        cooldown(async () => {
-          const font = Common.pickRandomGoogleFont();
-          await Common.loadGoogleFont(font);
+      const fontCycle = Common.initFontCycle({
+        onChange: (font) => {
           currentFont = font;
-          console.log('font:', font);
           boxEl.style.fontFamily = `'${font}', serif`;
           render();
-        });
-      }
+        },
+      });
 
       document.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT') return;
-        if ((e.key === 'g' || e.key === 'G') && !e.repeat && currentFont) {
-          Common.openFontSpecimen(currentFont);
-          return;
-        }
         if (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') {
           e.preventDefault();
           const delta = e.key === '+' || e.key === '=' ? 4 : -4;
@@ -341,7 +332,7 @@
         render();
         showHint();
       });
-      document.getElementById('hb-font').addEventListener('click', pickFont);
+      document.getElementById('hb-font').addEventListener('click', fontCycle.cycle);
       document.getElementById('hb-goog').addEventListener('click', () => {
         if (currentFont) Common.openFontSpecimen(currentFont);
       });
@@ -362,10 +353,6 @@
         onEditEnd: () => setHintLocked(false),
       });
       const refreshTextLabel = textEditor.refresh;
-
-      Common.onTap(pickFont);
-
-      Common.loadScript('/fonts.js').then(pickFont);
     </script>
   </body>
 </html>

@@ -311,6 +311,37 @@ window.Common = window.Common || {};
     };
   }
 
+  // Wires up the font-cycle pattern shared by border/box/stack/isometric:
+  // loads /fonts.js, cycles on tap with a 500ms cooldown, registers a 'g'
+  // shortcut for the Google Fonts specimen of the current font, and logs
+  // each new font for debugging. The page supplies an onChange callback to
+  // run its render/rebuild step.
+  function initFontCycle({ onChange }) {
+    const cool = makeCooldown(500);
+    let current = null;
+    async function cycle() {
+      if (!window.googleFonts) return;
+      cool(async () => {
+        const font = pickRandomGoogleFont();
+        if (!font) return;
+        await loadGoogleFont(font);
+        current = font;
+        console.log('font:', font);
+        onChange && onChange(font);
+      });
+    }
+    document.addEventListener('keydown', (e) => {
+      const t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if ((e.key === 'g' || e.key === 'G') && !e.repeat && current) {
+        openFontSpecimen(current);
+      }
+    });
+    onTap(cycle);
+    loadScript('/fonts.js').then(cycle);
+    return { cycle, getCurrent: () => current };
+  }
+
   Object.assign(window.Common, {
     setFaviconHref,
     paintFaviconR,
@@ -330,6 +361,7 @@ window.Common = window.Common || {};
     loadScript,
     ensureEmojis,
     initHintBar,
+    initFontCycle,
     initTextEditor,
     openSitemap,
     initSitemapShortcut,
