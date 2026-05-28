@@ -37,6 +37,19 @@
         white-space: pre;
         user-select: none;
       }
+      /* Snake/pellet glyphs are drawn from many scripts (incl. double-width CJK
+         and emoji); pinning each to a one-character box keeps the grid columns
+         aligned and lets wide glyphs overflow their cell instead of shifting the
+         row. */
+      #board .cell {
+        display: inline-block;
+        width: 1ch;
+        height: 1em;
+        line-height: 1em;
+        text-align: center;
+        vertical-align: top;
+        overflow: visible;
+      }
       #board .head {
         color: #2e9e5b;
       }
@@ -210,8 +223,49 @@
       // the string and grows the snake by one, so the body literally spells out
       // everything it has swallowed.
       const INITIAL = 'snake';
-      const PELLETS =
-        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%&*+=?!{}[]()<>/';
+      // Pellet glyphs come from the same spread of writing systems (plus emoji)
+      // as the shooter and gravity pages, so each pellet — and the body segment
+      // grown from it — can be a letter from almost any script. Ranges are
+      // inclusive code-point spans densely filled with standalone, renderable
+      // base characters (combining-mark blocks avoided).
+      const CHAR_RANGES = [
+        [0x0041, 0x005a],
+        [0x0061, 0x007a],
+        [0x0030, 0x0039], // Latin + digits
+        [0x00c0, 0x00ff],
+        [0x0100, 0x017f], // accented Latin
+        [0x0391, 0x03a9],
+        [0x03b1, 0x03c9], // Greek
+        [0x0410, 0x044f], // Cyrillic
+        [0x0531, 0x0556],
+        [0x0561, 0x0586], // Armenian
+        [0x05d0, 0x05ea], // Hebrew
+        [0x0621, 0x064a], // Arabic
+        [0x0905, 0x0939], // Devanagari
+        [0x0e01, 0x0e2e], // Thai
+        [0x10d0, 0x10fa], // Georgian
+        [0x3041, 0x3096],
+        [0x30a1, 0x30fa], // Hiragana + Katakana
+        [0x4e00, 0x9fa0], // CJK
+        [0xac00, 0xd7a3], // Hangul
+        [0x2190, 0x21ff],
+        [0x2200, 0x22ff], // arrows + math symbols
+      ];
+      function pickFromRanges(ranges) {
+        const [lo, hi] = ranges[Math.floor(Math.random() * ranges.length)];
+        return String.fromCodePoint(lo + Math.floor(Math.random() * (hi - lo + 1)));
+      }
+      function pickEmoji() {
+        // window.EMOJIS loads async from /emojis.js; before it lands we fall back
+        // to a script letter so early pellets aren't blank.
+        if (!window.EMOJIS) return pickFromRanges(CHAR_RANGES);
+        return window.EMOJIS[Math.floor(Math.random() * window.EMOJIS.length)];
+      }
+      // Roughly one pellet in five is an emoji, the rest script letters, matching
+      // randChar() on the shooter and gravity pages.
+      function randPellet() {
+        return Math.random() < 0.2 ? pickEmoji() : pickFromRanges(CHAR_RANGES);
+      }
       const DIRS = {
         up: { x: 0, y: -1 },
         down: { x: 0, y: 1 },
@@ -265,7 +319,7 @@
           x = Math.floor(Math.random() * cols);
           y = Math.floor(Math.random() * rows);
         } while (occupied.has(y * cols + x));
-        pellet = { x, y, ch: PELLETS[Math.floor(Math.random() * PELLETS.length)] };
+        pellet = { x, y, ch: randPellet() };
       }
 
       function reset() {
@@ -332,9 +386,9 @@
           if (!(nd.x === -dir.x && nd.y === -dir.y)) dir = nd;
         }
         const head = body[0];
-        const nx = head.x + dir.x,
-          ny = head.y + dir.y;
-        if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) return gameOver();
+        // Walls wrap: stepping off one edge re-enters from the opposite one.
+        const nx = (head.x + dir.x + cols) % cols;
+        const ny = (head.y + dir.y + rows) % rows;
         const willGrow = pellet && nx === pellet.x && ny === pellet.y;
         // The tail vacates this step unless we're growing, so moving into the
         // current tail cell is allowed.
@@ -368,22 +422,24 @@
 
       function render() {
         const cells = new Array(cols * rows).fill(' ');
+        const cls = new Map();
         for (let i = 0; i < body.length; i++) {
-          const c = body[i];
-          if (c.x < 0 || c.y < 0 || c.x >= cols || c.y >= rows) continue;
-          cells[c.y * cols + c.x] = text[i] || '·';
+          const k = key(body[i]);
+          cells[k] = text[i] || '·';
+          cls.set(k, i === 0 ? 'cell head' : 'cell');
         }
-        if (pellet) cells[pellet.y * cols + pellet.x] = pellet.ch;
-        const headKey = key(body[0]);
-        const pelletKey = pellet ? key(pellet) : -1;
+        if (pellet) {
+          const pk = key(pellet);
+          cells[pk] = pellet.ch;
+          cls.set(pk, 'cell pellet');
+        }
         let html = '';
         for (let y = 0; y < rows; y++) {
           for (let x = 0; x < cols; x++) {
             const k = y * cols + x;
             const ch = esc(cells[k]);
-            if (k === pelletKey) html += '<span class="pellet">' + ch + '</span>';
-            else if (k === headKey) html += '<span class="head">' + ch + '</span>';
-            else html += ch;
+            const c = cls.get(k);
+            html += c ? '<span class="' + c + '">' + ch + '</span>' : ch;
           }
           if (y < rows - 1) html += '\n';
         }
@@ -516,6 +572,7 @@
       document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
       Common.initSitemapShortcut();
 
+      Common.ensureEmojis();
       setup();
       reset();
     </script>
