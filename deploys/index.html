@@ -714,9 +714,13 @@
       }
 
       function isDeployRun(run) {
-        const name = (run.name || '').toLowerCase();
-        const wname = (run.workflow_name || '').toLowerCase();
-        return name.includes('pages') || wname.includes('pages') || run.event === 'dynamic';
+        const text = `${run.name || ''} ${run.workflow_name || ''}`.toLowerCase();
+        // Match both the current "Deploy site" workflow (deploy.yml) and the
+        // older GitHub-managed "pages build and deployment" runs (event
+        // "dynamic") used before the switch to Actions-based Pages, so the log
+        // spans both seamlessly. Other workflows (e.g. weekly auto-updates)
+        // are excluded.
+        return text.includes('deploy') || text.includes('pages') || run.event === 'dynamic';
       }
 
       function runDurationSec(run) {
