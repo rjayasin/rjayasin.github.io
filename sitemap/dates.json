@@ -48,11 +48,15 @@
     "url": "https://github.com/rjayasin/visualizer/commit/9c602a4e70b710997f2ae321518f46d8eddacc0b"
   },
   "/shooter/": {
-    "date": "2026-05-27T13:46:57-07:00",
-    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/804760388bdc8ad088b1c71c44cbf01265ebb9f3"
+    "date": "2026-05-27T15:14:19-07:00",
+    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/e69b98f457ed5e85fe2a31434b715e6e4fc88ec6"
   },
   "/gravity/": {
     "date": "2026-05-27T15:13:31-07:00",
     "url": "https://github.com/rjayasin/rjayasin.github.io/commit/a3b460491ec336bfe08867d71780096627ac0d8e"
+  },
+  "/snake/": {
+    "date": "2026-05-28T06:23:48+00:00",
+    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/641579cd53a23962c378ac418b253d65430b630f"
   }
 }
