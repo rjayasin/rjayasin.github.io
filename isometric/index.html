@@ -725,6 +725,12 @@
       window.addEventListener('mouseup', () => {
         mouseStart = null;
       });
+      // Dragging on the word would otherwise start the browser's native SVG
+      // drag, which stops mousemove after the first move. Block it so the
+      // angle keeps updating like it does when dragging off the word.
+      window.addEventListener('dragstart', (e) => {
+        if (mouseStart) e.preventDefault();
+      });
       // Swallow the click that ends a drag so it doesn't also cycle the font.
       document.addEventListener(
         'click',
