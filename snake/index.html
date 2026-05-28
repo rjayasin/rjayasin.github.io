@@ -217,11 +217,12 @@
       const overlay = document.getElementById('overlay');
       const scoreEl = document.getElementById('score');
 
-      // The snake's body is a monospaced string: glyph i (counting from the
-      // head) is painted at body cell i, so the word always reads head→tail.
-      // Each pellet is a single character; eating it appends that character to
-      // the string and grows the snake by one, so the body literally spells out
-      // everything it has swallowed.
+      // The snake's body is a list of glyphs: glyph i (counting from the head)
+      // is painted at body cell i, so the body reads head→tail. Eating a pellet
+      // appends its glyph and grows the snake by one, so the body spells out
+      // everything it has swallowed. Glyphs are kept as separate array entries
+      // (rather than one joined string) so a multi-code-unit emoji stays intact
+      // as a single body cell instead of being split across surrogate halves.
       const INITIAL = 'snake';
       // Pellet glyphs come from the same spread of writing systems (plus emoji)
       // as the shooter and gravity pages, so each pellet — and the body segment
@@ -279,7 +280,7 @@
         cols = 0,
         rows = 0;
       let body = [],
-        text = '',
+        glyphs = [],
         dir = DIRS.right,
         queue = [],
         eaten = 0;
@@ -328,7 +329,7 @@
           cy = Math.floor(rows / 2);
         body = [];
         for (let i = 0; i < INITIAL.length; i++) body.push({ x: cx - i, y: cy });
-        text = INITIAL;
+        glyphs = [...INITIAL];
         dir = DIRS.right;
         queue = [];
         eaten = 0;
@@ -398,7 +399,7 @@
         }
         body.unshift({ x: nx, y: ny });
         if (willGrow) {
-          text += pellet.ch;
+          glyphs.push(pellet.ch);
           eaten++;
           updateScore();
           spawnPellet();
@@ -425,7 +426,7 @@
         const cls = new Map();
         for (let i = 0; i < body.length; i++) {
           const k = key(body[i]);
-          cells[k] = text[i] || '·';
+          cells[k] = glyphs[i] || '·';
           cls.set(k, i === 0 ? 'cell head' : 'cell');
         }
         if (pellet) {
