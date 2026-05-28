@@ -297,6 +297,7 @@ window.Common = window.Common || {};
       hintEl.classList.remove('hidden');
     });
     hintEl.addEventListener('mouseleave', show);
+    initHintUpdated({ hintEl });
     return {
       show,
       setLocked: (v) => {
@@ -309,6 +310,62 @@ window.Common = window.Common || {};
         }
       },
     };
+  }
+
+  // Relative "5h ago" timestamp, matching the sitemap "recent" view.
+  function relativeWhen(iso, now = Date.now()) {
+    const t = new Date(iso).getTime();
+    if (!Number.isFinite(t)) return '';
+    const diff = Math.max(0, now - t);
+    const minute = 60 * 1000;
+    const hour = 60 * minute;
+    const day = 24 * hour;
+    if (diff < minute) return 'just now';
+    if (diff < hour) return `${Math.floor(diff / minute)}m ago`;
+    if (diff < day) return `${Math.floor(diff / hour)}h ago`;
+    if (diff < 2 * day) return 'yesterday';
+    if (diff < 30 * day) return `${Math.floor(diff / day)}d ago`;
+    if (diff < 365 * day) return `${Math.floor(diff / (30 * day))}mo ago`;
+    return `${Math.floor(diff / (365 * day))}y ago`;
+  }
+
+  // Appends an "updated <when>" entry (the time linking to the page's last
+  // commit) as the final item in the hint bar, sourced from
+  // /sitemap/dates.json — the same data the sitemap "recent" view uses.
+  // No-op if the page has no dates entry. Called automatically by
+  // initHintBar; pages with custom hint wiring (gravity/shooter) call it
+  // directly.
+  async function initHintUpdated({ hintEl, href = location.pathname } = {}) {
+    if (!hintEl || hintEl.querySelector('#hb-updated')) return;
+    let dates;
+    try {
+      const r = await fetch('/sitemap/dates.json', { cache: 'no-cache' });
+      if (!r.ok) return;
+      dates = await r.json();
+    } catch {
+      return;
+    }
+    const trimmed = href.replace(/\/$/, '');
+    const entry = dates[href] || dates[trimmed] || dates[trimmed + '/'];
+    if (!entry || !entry.date) return;
+    const target = hintEl.querySelector('#hint-inner') || hintEl;
+    const column = getComputedStyle(hintEl).flexDirection === 'column';
+    const item = document.createElement(column ? 'div' : 'span');
+    item.id = 'hb-updated';
+    item.style.whiteSpace = 'nowrap';
+    item.append('updated ');
+    const when = document.createElement(entry.url ? 'a' : 'span');
+    when.textContent = relativeWhen(entry.date);
+    when.title = new Date(entry.date).toLocaleString();
+    if (entry.url) {
+      when.className = 'hint-btn';
+      when.href = entry.url;
+      when.target = '_blank';
+      when.rel = 'noopener';
+    }
+    item.append(when);
+    if (!column) target.append(document.createTextNode(' · '));
+    target.append(item);
   }
 
   // Wires up the font-cycle pattern shared by border/box/stack/isometric:
@@ -361,6 +418,7 @@ window.Common = window.Common || {};
     loadScript,
     ensureEmojis,
     initHintBar,
+    initHintUpdated,
     initFontCycle,
     initTextEditor,
     openSitemap,

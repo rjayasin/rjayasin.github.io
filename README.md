@@ -1,12 +1,17 @@
 <!-- Keep every section and sublist ordered by date added, oldest at the top and newest at the bottom. -->
 
+`site`
+
+- [`/`](https://rjayasin.github.io/)
+- [`sitemap`](https://rjayasin.github.io/sitemap/)
+
 `fun`
 
 - [`maze-canvas`](https://rjayasin.github.io/maze-canvas/)
 
 `text`
 
-- [`grid`](https://rjayasin.github.io/#/*)
+- [`grid`](https://rjayasin.github.io/grid/)
 - [`stack`](https://rjayasin.github.io/stack/?hello/world)
 - [`box`](https://rjayasin.github.io/box/?hello/world)
 - [`clock`](https://rjayasin.github.io/clock/)

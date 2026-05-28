@@ -48,142 +48,100 @@
       #sitemap a:hover {
         text-decoration: underline;
       }
-      body.grid-mode {
-        height: 100%;
-        display: flex;
-        flex-wrap: wrap;
-        align-content: center;
-        align-items: stretch;
-        justify-content: center;
-      }
-      html:has(body.grid-mode),
-      body.grid-mode {
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-      }
-      .grid {
-        line-height: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
     </style>
     <script src="/common.js"></script>
   </head>
   <body>
+    <span id="name">Ruvan</span>
+    <footer id="sitemap">
+      <a href="/sitemap/" target="_blank" rel="noopener">sitemap</a>
+    </footer>
     <script>
       Common.initDarkMode();
       Common.initCursorHide();
       Common.paintFaviconR();
 
-      function gridFromHash() {
-        const raw = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
-        return [...raw][0] || '';
-      }
+      const nameEl = document.getElementById('name');
+      let currentHomeFont = null;
+      let currentEmoji = null;
 
-      const hashGrid = gridFromHash();
-      if (hashGrid) {
-        document.body.classList.add('grid-mode');
-        document.title = hashGrid;
-        window.GRID = hashGrid;
-        Common.paintFavicon({ glyph: hashGrid });
-        window.addEventListener('hashchange', () => {
-          if (gridFromHash() !== window.GRID) location.reload();
-        });
-        Common.loadScript('/fonts.js').then(() => Common.loadScript('/grid.js'));
-      } else {
-        document.body.insertAdjacentHTML(
-          'beforeend',
-          `
-        <span id="name">Ruvan</span>
-        <footer id="sitemap">
-          <a href="/sitemap/" target="_blank" rel="noopener">sitemap</a>
-        </footer>
-      `
-        );
-        const nameEl = document.getElementById('name');
-        let currentHomeFont = null;
-        let currentEmoji = null;
-
-        function updateHomeFavicon() {
-          if (currentEmoji) {
-            Common.paintFavicon({
-              glyph: currentEmoji,
-              fontSize: 48,
-              transparent: true,
-            });
-          } else if (currentHomeFont) {
-            Common.paintFavicon({ glyph: 'R', font: currentHomeFont });
-          }
+      function updateHomeFavicon() {
+        if (currentEmoji) {
+          Common.paintFavicon({
+            glyph: currentEmoji,
+            fontSize: 48,
+            transparent: true,
+          });
+        } else if (currentHomeFont) {
+          Common.paintFavicon({ glyph: 'R', font: currentHomeFont });
         }
-        window.addEventListener('darkmodechange', updateHomeFavicon);
+      }
+      window.addEventListener('darkmodechange', updateHomeFavicon);
 
-        async function display(rainbow) {
-          const fadeOut = new Promise((r) => setTimeout(r, 100));
-          if (Math.random() < 1 / 7 && window.EMOJIS) {
-            const emojis = Array.from(
-              { length: 5 },
-              () => window.EMOJIS[Math.floor(Math.random() * window.EMOJIS.length)]
-            );
-            console.log('emojis:', emojis.join(''));
-            await fadeOut;
+      async function display(rainbow) {
+        const fadeOut = new Promise((r) => setTimeout(r, 100));
+        if (Math.random() < 1 / 7 && window.EMOJIS) {
+          const emojis = Array.from(
+            { length: 5 },
+            () => window.EMOJIS[Math.floor(Math.random() * window.EMOJIS.length)]
+          );
+          console.log('emojis:', emojis.join(''));
+          await fadeOut;
+          nameEl.style.backgroundImage = '';
+          nameEl.style.color = '';
+          nameEl.style.fontFamily = '';
+          nameEl.textContent = emojis.join('');
+          nameEl.style.opacity = '1';
+          currentEmoji = emojis[0];
+          currentHomeFont = null;
+          updateHomeFavicon();
+        } else {
+          const font = Common.pickRandomGoogleFont();
+          const fontLoad = Common.loadGoogleFont(font);
+          await Promise.all([fadeOut, fontLoad]);
+          console.log('font:', font);
+          currentHomeFont = font;
+          currentEmoji = null;
+          nameEl.style.fontFamily = `'${font}', serif`;
+          nameEl.textContent = 'Ruvan';
+          if (rainbow) {
+            nameEl.style.backgroundImage =
+              'linear-gradient(90deg, #ff0000, #ff8800, #ffee00, #22cc22, #0088ff, #4422cc, #8800cc)';
+            nameEl.style.webkitBackgroundClip = 'text';
+            nameEl.style.backgroundClip = 'text';
+            nameEl.style.color = 'transparent';
+          } else {
             nameEl.style.backgroundImage = '';
             nameEl.style.color = '';
-            nameEl.style.fontFamily = '';
-            nameEl.textContent = emojis.join('');
-            nameEl.style.opacity = '1';
-            currentEmoji = emojis[0];
-            currentHomeFont = null;
-            updateHomeFavicon();
-          } else {
-            const font = Common.pickRandomGoogleFont();
-            const fontLoad = Common.loadGoogleFont(font);
-            await Promise.all([fadeOut, fontLoad]);
-            console.log('font:', font);
-            currentHomeFont = font;
-            currentEmoji = null;
-            nameEl.style.fontFamily = `'${font}', serif`;
-            nameEl.textContent = 'Ruvan';
-            if (rainbow) {
-              nameEl.style.backgroundImage =
-                'linear-gradient(90deg, #ff0000, #ff8800, #ffee00, #22cc22, #0088ff, #4422cc, #8800cc)';
-              nameEl.style.webkitBackgroundClip = 'text';
-              nameEl.style.backgroundClip = 'text';
-              nameEl.style.color = 'transparent';
-            } else {
-              nameEl.style.backgroundImage = '';
-              nameEl.style.color = '';
-            }
-            nameEl.style.opacity = '1';
-            updateHomeFavicon();
           }
+          nameEl.style.opacity = '1';
+          updateHomeFavicon();
         }
-
-        const cooldown = Common.makeCooldown(500);
-        let clickCount = 0;
-        function handleClick(e) {
-          if (!window.googleFonts) return;
-          if (e && e.target && e.target.closest && e.target.closest('#sitemap')) return;
-          Common.ensureEmojis();
-          cooldown(() => {
-            clickCount++;
-            nameEl.style.opacity = '0';
-            display(clickCount % 10 === 0);
-          });
-        }
-
-        document.addEventListener('keydown', (e) => {
-          if ((e.key === 'g' || e.key === 'G') && !e.repeat && currentHomeFont) {
-            Common.openFontSpecimen(currentHomeFont);
-          }
-        });
-        Common.initSitemapShortcut();
-
-        Common.onTap(handleClick);
-
-        Common.loadScript('/fonts.js').then(() => display());
       }
+
+      const cooldown = Common.makeCooldown(500);
+      let clickCount = 0;
+      function handleClick(e) {
+        if (!window.googleFonts) return;
+        if (e && e.target && e.target.closest && e.target.closest('#sitemap')) return;
+        Common.ensureEmojis();
+        cooldown(() => {
+          clickCount++;
+          nameEl.style.opacity = '0';
+          display(clickCount % 10 === 0);
+        });
+      }
+
+      document.addEventListener('keydown', (e) => {
+        if ((e.key === 'g' || e.key === 'G') && !e.repeat && currentHomeFont) {
+          Common.openFontSpecimen(currentHomeFont);
+        }
+      });
+      Common.initSitemapShortcut();
+
+      Common.onTap(handleClick);
+
+      Common.loadScript('/fonts.js').then(() => display());
     </script>
   </body>
 </html>

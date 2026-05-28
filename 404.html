@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>not found</title>
+    <link rel="icon" id="favicon" />
+    <link rel="stylesheet" href="/common.css" />
+    <link rel="stylesheet" href="/grid/grid.css" />
+    <style>
+      body.notfound {
+        height: 100vh;
+        height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+      }
+      body.notfound a {
+        color: inherit;
+      }
+    </style>
+    <script src="/common.js"></script>
+  </head>
+  <body>
+    <script>
+      Common.initDarkMode();
+      // GitHub Pages serves this file for any unknown path. /grid/<char> has no
+      // file of its own, so this is where the clean-path grid actually renders.
+      if (location.pathname.startsWith('/grid/')) {
+        Common.initCursorHide();
+        Common.loadScript('/fonts.js').then(() => Common.loadScript('/grid/grid.js'));
+      } else {
+        Common.paintFaviconR();
+        document.body.classList.add('notfound');
+        document.body.insertAdjacentHTML(
+          'beforeend',
+          '<div style="font-size: 48px">404</div><a href="/">home</a>'
+        );
+      }
+    </script>
+  </body>
+</html>

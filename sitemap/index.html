@@ -136,13 +136,18 @@
     <!-- prettier-ignore -->
     <div id="tree-view">
       <!-- Keep every section and sublist ordered by date added, oldest at the top and newest at the bottom. -->
+      <h2>site</h2>
+      <ul>
+        <li><span class="branch">├── </span><a href="/">/</a></li>
+        <li><span class="branch">└── </span><a href="/sitemap/">sitemap</a></li>
+      </ul>
       <h2>fun</h2>
       <ul>
         <li><span class="branch">└── </span><a href="https://rjayasin.github.io/maze-canvas/" target="_blank" rel="noopener">maze-canvas</a></li>
       </ul>
       <h2>text</h2>
       <ul>
-        <li><span class="branch">├── </span><a id="grid-link" href="/">grid</a></li>
+        <li><span class="branch">├── </span><a href="/grid/">grid</a></li>
         <li><span class="branch">├── </span><a id="stack-link" href="/stack/">stack</a></li>
         <li><span class="branch">├── </span><a id="box-link" href="/box/">box</a></li>
         <li><span class="branch">├── </span><a href="/clock/">clock</a></li>
@@ -167,19 +172,6 @@
     <script>
       Common.paintFaviconR();
       Common.initDarkMode();
-
-      const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?@#&*';
-      const pickChar = () => chars[Math.floor(Math.random() * chars.length)];
-      function randomizeGrid() {
-        document.querySelectorAll('a[data-grid-link]').forEach((el) => {
-          el.href = '/#/' + encodeURIComponent(pickChar());
-        });
-      }
-      document.getElementById('grid-link').setAttribute('data-grid-link', '');
-      randomizeGrid();
-      document.addEventListener('mousedown', (e) => {
-        if (e.target.closest('a[data-grid-link]')) randomizeGrid();
-      });
 
       const VIEW_KEY = 'sitemap-view';
       const treeView = document.getElementById('tree-view');
@@ -208,7 +200,6 @@
           href: a.getAttribute('href'),
           label: a.textContent,
           external: a.hasAttribute('target'),
-          gridLink: a.hasAttribute('data-grid-link'),
         }));
       }
 
@@ -256,7 +247,6 @@
           a.target = '_blank';
           a.rel = 'noopener';
         }
-        if (link.gridLink) a.setAttribute('data-grid-link', '');
         li.appendChild(a);
         return li;
       }
@@ -280,14 +270,12 @@
             return li;
           })
         );
-        randomizeGrid();
       }
 
       function buildAlpha() {
         const links = collectLinks();
         links.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
         alphaView.replaceChildren(...links.map(makeFlatLi));
-        randomizeGrid();
       }
 
       function setView(view) {

@@ -908,6 +908,7 @@
 
       // --- hint + controls ---
       const hintEl = document.getElementById('hint');
+      Common.initHintUpdated({ hintEl });
       let hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 4000);
       function hideHintSoon() {
         clearTimeout(hintTimer);

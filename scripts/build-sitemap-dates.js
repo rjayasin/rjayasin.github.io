@@ -21,13 +21,6 @@ const OUT = path.join(ROOT, 'sitemap', 'dates.json');
 const USER_HOST = 'rjayasin.github.io';
 const SELF_REPO = 'rjayasin/rjayasin.github.io';
 
-// For pages whose behavior lives in a file other than their default directory
-// — e.g. the grid page is served by the repo root's index.html but its logic
-// lives in grid.js, so date it from grid.js.
-const PATH_OVERRIDES = {
-  '/': 'grid.js',
-};
-
 function extractHrefs(html) {
   const ulStart = html.indexOf('<ul>');
   if (ulStart === -1) return [];
@@ -57,7 +50,6 @@ function gitEntry(relPath) {
 }
 
 function internalPath(href) {
-  if (PATH_OVERRIDES[href]) return PATH_OVERRIDES[href];
   if (href === '/') return 'index.html';
   if (!href.startsWith('/')) return null;
   const clean = href.replace(/^\/+/, '').replace(/\/+$/, '');

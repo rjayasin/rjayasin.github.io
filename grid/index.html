@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grid</title>
+    <link rel="icon" id="favicon" />
+    <link rel="stylesheet" href="/common.css" />
+    <link rel="stylesheet" href="/grid/grid.css" />
+    <script src="/common.js"></script>
+  </head>
+  <body>
+    <script>
+      Common.initDarkMode();
+      Common.initCursorHide();
+      Common.loadScript('/fonts.js').then(() => Common.loadScript('/grid/grid.js'));
+    </script>
+  </body>
+</html>
