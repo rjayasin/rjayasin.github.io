@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Ruvan / snake</title>
+    <link rel="icon" id="favicon" />
+    <link rel="stylesheet" href="/common.css" />
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      #wrap {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        touch-action: none;
+      }
+      #board {
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        line-height: 1;
+        white-space: pre;
+        user-select: none;
+      }
+      #board .head {
+        color: #2e9e5b;
+      }
+      #board .pellet {
+        color: #d6409f;
+      }
+      body.dark #board .head {
+        color: #54c98a;
+      }
+      body.dark #board .pellet {
+        color: #ff8dd1;
+      }
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) #board .head {
+          color: #54c98a;
+        }
+        body:not(.light) #board .pellet {
+          color: #ff8dd1;
+        }
+      }
+      #score {
+        position: fixed;
+        top: 12px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        font-size: 12px;
+        color: #888;
+        user-select: none;
+        pointer-events: none;
+        z-index: 3;
+      }
+      #overlay {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        font-size: 16px;
+        color: #555;
+        pointer-events: none;
+        z-index: 4;
+        transition: opacity 0.2s ease;
+      }
+      body.dark #overlay {
+        color: #bbb;
+      }
+      #overlay.hidden {
+        opacity: 0;
+      }
+      #overlay .ov-inner {
+        display: inline-block;
+        padding: 10px 16px;
+        border-radius: 8px;
+        background: #ffffff;
+        line-height: 1.5;
+      }
+      body.dark #overlay .ov-inner {
+        background: #111111;
+      }
+      #overlay small {
+        color: #888;
+        font-size: 12px;
+      }
+      #hint {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 12px;
+        text-align: center;
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        font-size: 12px;
+        color: #888;
+        opacity: 1;
+        transition: opacity 0.4s ease;
+        user-select: none;
+        z-index: 5;
+      }
+      #hint.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #hint .hint-btn {
+        cursor: pointer;
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        text-underline-offset: 2px;
+      }
+      #hint .hint-btn:hover {
+        color: #333;
+      }
+      body.dark #hint .hint-btn:hover {
+        color: #ccc;
+      }
+      #hint-zone {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 60px;
+        z-index: 4;
+      }
+    </style>
+    <script src="/common.js"></script>
+  </head>
+  <body>
+    <div id="wrap"><pre id="board"></pre></div>
+    <div id="score"></div>
+    <div id="overlay" class="hidden"></div>
+    <div id="hint">
+      <span style="white-space: nowrap"
+        ><span class="hint-btn" id="hb-arrows">↑↓←→</span> / swipe move</span
+      >
+      &nbsp;·&nbsp;
+      <span style="white-space: nowrap"
+        ><span class="hint-btn" id="hb-restart">r restart</span></span
+      >
+      &nbsp;·&nbsp;
+      <span style="white-space: nowrap"
+        ><span class="hint-btn" id="hb-smaller">−</span>/<span class="hint-btn" id="hb-bigger"
+          >+</span
+        >
+        size</span
+      >
+      &nbsp;·&nbsp;
+      <span style="white-space: nowrap"
+        ><span class="hint-btn" id="hb-dark">1 <span class="hb-dark-label">dark</span></span></span
+      >
+      &nbsp;·&nbsp;
+      <span style="white-space: nowrap"
+        ><span class="hint-btn" id="hb-sitemap">s sitemap</span></span
+      >
+    </div>
+    <div id="hint-zone"></div>
+    <script>
+      Common.paintFaviconR();
+      Common.initDarkMode();
+
+      const wrap = document.getElementById('wrap');
+      const board = document.getElementById('board');
+      const overlay = document.getElementById('overlay');
+      const scoreEl = document.getElementById('score');
+
+      // The snake's body is a monospaced string: glyph i (counting from the
+      // head) is painted at body cell i, so the word always reads head→tail.
+      // Each pellet is a single character; eating it appends that character to
+      // the string and grows the snake by one, so the body literally spells out
+      // everything it has swallowed.
+      const INITIAL = 'snake';
+      const PELLETS =
+        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%&*+=?!{}[]()<>/';
+      const DIRS = {
+        up: { x: 0, y: -1 },
+        down: { x: 0, y: 1 },
+        left: { x: -1, y: 0 },
+        right: { x: 1, y: 0 },
+      };
+
+      let fontSize = 0;
+      let charW = 0,
+        charH = 0,
+        cols = 0,
+        rows = 0;
+      let body = [],
+        text = '',
+        dir = DIRS.right,
+        queue = [],
+        eaten = 0;
+      let pellet = null;
+      let state = 'ready'; // ready | playing | over
+      let timer = null;
+
+      function setup() {
+        const vw = window.innerWidth,
+          vh = window.innerHeight;
+        if (!fontSize) fontSize = Math.max(14, Math.min(28, Math.round(Math.min(vw, vh) / 22)));
+        board.style.fontSize = fontSize + 'px';
+        const probe = document.createElement('span');
+        probe.style.cssText =
+          'position:absolute;visibility:hidden;white-space:pre;line-height:1;font-family:inherit;font-size:inherit';
+        probe.textContent = 'M'.repeat(100);
+        board.appendChild(probe);
+        charW = probe.getBoundingClientRect().width / 100;
+        board.removeChild(probe);
+        charH = fontSize;
+        cols = Math.max(12, Math.floor(vw / charW));
+        rows = Math.max(12, Math.floor(vh / charH));
+      }
+
+      function key(c) {
+        return c.y * cols + c.x;
+      }
+
+      function spawnPellet() {
+        const occupied = new Set(body.map(key));
+        if (occupied.size >= cols * rows) {
+          pellet = null;
+          return;
+        }
+        let x, y;
+        do {
+          x = Math.floor(Math.random() * cols);
+          y = Math.floor(Math.random() * rows);
+        } while (occupied.has(y * cols + x));
+        pellet = { x, y, ch: PELLETS[Math.floor(Math.random() * PELLETS.length)] };
+      }
+
+      function reset() {
+        clearTimeout(timer);
+        const cx = Math.floor(cols / 2),
+          cy = Math.floor(rows / 2);
+        body = [];
+        for (let i = 0; i < INITIAL.length; i++) body.push({ x: cx - i, y: cy });
+        text = INITIAL;
+        dir = DIRS.right;
+        queue = [];
+        eaten = 0;
+        spawnPellet();
+        state = 'ready';
+        updateScore();
+        render();
+        showOverlay('ready');
+      }
+
+      function schedule() {
+        clearTimeout(timer);
+        timer = setTimeout(step, Math.max(70, 130 - eaten * 2));
+      }
+
+      function startPlaying(d) {
+        dir = d;
+        queue = [];
+        state = 'playing';
+        hideOverlay();
+        schedule();
+      }
+
+      // Reject reversals and duplicates against the latest pending direction so a
+      // quick two-tap (e.g. up then left) both register without folding back on
+      // the neck within one step.
+      function turn(name) {
+        const nd = DIRS[name];
+        const last = queue.length ? queue[queue.length - 1] : dir;
+        if (nd.x === -last.x && nd.y === -last.y) return;
+        if (nd.x === last.x && nd.y === last.y) return;
+        queue.push(nd);
+      }
+
+      function handleDir(name) {
+        if (state === 'playing') {
+          turn(name);
+          return;
+        }
+        if (state === 'over') reset();
+        const nd = DIRS[name];
+        if (nd.x === -dir.x && nd.y === -dir.y) return; // can't start into the body
+        startPlaying(nd);
+      }
+
+      function handleTap() {
+        if (state === 'playing') return;
+        if (state === 'over') reset();
+        startPlaying(DIRS.right);
+      }
+
+      function step() {
+        if (queue.length) {
+          const nd = queue.shift();
+          if (!(nd.x === -dir.x && nd.y === -dir.y)) dir = nd;
+        }
+        const head = body[0];
+        const nx = head.x + dir.x,
+          ny = head.y + dir.y;
+        if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) return gameOver();
+        const willGrow = pellet && nx === pellet.x && ny === pellet.y;
+        // The tail vacates this step unless we're growing, so moving into the
+        // current tail cell is allowed.
+        const checkLen = willGrow ? body.length : body.length - 1;
+        for (let i = 0; i < checkLen; i++) {
+          if (body[i].x === nx && body[i].y === ny) return gameOver();
+        }
+        body.unshift({ x: nx, y: ny });
+        if (willGrow) {
+          text += pellet.ch;
+          eaten++;
+          updateScore();
+          spawnPellet();
+        } else {
+          body.pop();
+        }
+        render();
+        schedule();
+      }
+
+      function gameOver() {
+        state = 'over';
+        clearTimeout(timer);
+        render();
+        showOverlay('over');
+      }
+
+      function esc(ch) {
+        return ch === '&' ? '&amp;' : ch === '<' ? '&lt;' : ch === '>' ? '&gt;' : ch;
+      }
+
+      function render() {
+        const cells = new Array(cols * rows).fill(' ');
+        for (let i = 0; i < body.length; i++) {
+          const c = body[i];
+          if (c.x < 0 || c.y < 0 || c.x >= cols || c.y >= rows) continue;
+          cells[c.y * cols + c.x] = text[i] || '·';
+        }
+        if (pellet) cells[pellet.y * cols + pellet.x] = pellet.ch;
+        const headKey = key(body[0]);
+        const pelletKey = pellet ? key(pellet) : -1;
+        let html = '';
+        for (let y = 0; y < rows; y++) {
+          for (let x = 0; x < cols; x++) {
+            const k = y * cols + x;
+            const ch = esc(cells[k]);
+            if (k === pelletKey) html += '<span class="pellet">' + ch + '</span>';
+            else if (k === headKey) html += '<span class="head">' + ch + '</span>';
+            else html += ch;
+          }
+          if (y < rows - 1) html += '\n';
+        }
+        board.innerHTML = html;
+      }
+
+      function updateScore() {
+        scoreEl.textContent = 'score ' + eaten;
+      }
+
+      function showOverlay(kind) {
+        overlay.innerHTML =
+          kind === 'over'
+            ? '<span class="ov-inner">game over · ate ' +
+              eaten +
+              '<br><small>tap / space / r to play again</small></span>'
+            : '<span class="ov-inner">↑ ↓ ← →&nbsp;&nbsp;or swipe to start</span>';
+        overlay.classList.remove('hidden');
+      }
+      function hideOverlay() {
+        overlay.classList.add('hidden');
+      }
+
+      function setFont(delta) {
+        const next = Math.max(8, Math.min(48, fontSize + delta));
+        if (next === fontSize) return;
+        fontSize = next;
+        setup();
+        reset();
+      }
+
+      // --- input ---
+      const KEYMAP = {
+        ArrowUp: 'up',
+        ArrowDown: 'down',
+        ArrowLeft: 'left',
+        ArrowRight: 'right',
+      };
+      document.addEventListener('keydown', (e) => {
+        if (KEYMAP[e.key]) {
+          e.preventDefault();
+          handleDir(KEYMAP[e.key]);
+        } else if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          handleTap();
+        } else if ((e.key === 'r' || e.key === 'R') && !e.repeat) {
+          reset();
+          showHint();
+        } else if (e.key === '+' || e.key === '=') {
+          setFont(2);
+          showHint();
+        } else if (e.key === '-' || e.key === '_') {
+          setFont(-2);
+          showHint();
+        }
+      });
+
+      let tsx = 0,
+        tsy = 0,
+        tmoved = false;
+      const SWIPE = 22;
+      wrap.addEventListener(
+        'touchstart',
+        (e) => {
+          const t = e.touches[0];
+          tsx = t.clientX;
+          tsy = t.clientY;
+          tmoved = false;
+        },
+        { passive: true }
+      );
+      wrap.addEventListener(
+        'touchmove',
+        (e) => {
+          e.preventDefault();
+          const t = e.touches[0];
+          const dx = t.clientX - tsx,
+            dy = t.clientY - tsy;
+          if (Math.abs(dx) < SWIPE && Math.abs(dy) < SWIPE) return;
+          tmoved = true;
+          if (Math.abs(dx) > Math.abs(dy)) handleDir(dx > 0 ? 'right' : 'left');
+          else handleDir(dy > 0 ? 'down' : 'up');
+          tsx = t.clientX;
+          tsy = t.clientY;
+        },
+        { passive: false }
+      );
+      wrap.addEventListener('touchend', () => {
+        if (!tmoved) handleTap();
+      });
+      wrap.addEventListener('click', (e) => {
+        if (e.target.closest('#hint')) return;
+        handleTap();
+      });
+
+      let resizeTimer = null;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          setup();
+          reset();
+        }, 150);
+      });
+
+      const { show: showHint } = Common.initHintBar({
+        hintEl: document.getElementById('hint'),
+        hintZoneEl: document.getElementById('hint-zone'),
+      });
+
+      document.getElementById('hb-arrows').addEventListener('click', () => {
+        handleTap();
+        showHint();
+      });
+      document.getElementById('hb-restart').addEventListener('click', () => {
+        reset();
+        showHint();
+      });
+      document.getElementById('hb-bigger').addEventListener('click', () => {
+        setFont(2);
+        showHint();
+      });
+      document.getElementById('hb-smaller').addEventListener('click', () => {
+        setFont(-2);
+        showHint();
+      });
+      document.getElementById('hb-dark').addEventListener('click', () => {
+        Common.toggleDark();
+        showHint();
+      });
+      document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
+      Common.initSitemapShortcut();
+
+      setup();
+      reset();
+    </script>
+  </body>
+</html>
