@@ -214,6 +214,59 @@
       body.dark .repo {
         color: #888;
       }
+      .activity {
+        margin: 0 0 20px;
+      }
+      .activity-toggle {
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        font: inherit;
+        color: #888;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .activity-toggle:hover {
+        color: #000;
+      }
+      .activity-toggle .caret {
+        display: inline-block;
+        font-size: 9px;
+        transition: transform 0.15s ease;
+      }
+      .activity-toggle[aria-expanded='true'] .caret {
+        transform: rotate(90deg);
+      }
+      .activity-body {
+        padding-top: 12px;
+        overflow-x: auto;
+      }
+      .activity-body[hidden] {
+        display: none;
+      }
+      .activity svg text {
+        fill: #888;
+        font-size: 9px;
+        font-family: monospace;
+      }
+      .activity .cell {
+        stroke: rgba(27, 31, 35, 0.06);
+        stroke-width: 1px;
+      }
+      .hm-legend {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        justify-content: flex-end;
+        color: #888;
+        font-size: 11px;
+        margin-top: 8px;
+      }
+      body.dark .activity-toggle:hover {
+        color: #fff;
+      }
     </style>
     <script src="/common.js"></script>
   </head>
@@ -232,6 +285,15 @@
         </svg>
       </button>
     </header>
+    <div class="activity" id="activity">
+      <button class="activity-toggle" id="activity-toggle" type="button" aria-expanded="false">
+        <span class="caret">▸</span><span id="activity-label">activity</span>
+      </button>
+      <div class="activity-body" id="activity-body" hidden>
+        <div id="heatmap"></div>
+        <div class="hm-legend" id="hm-legend"></div>
+      </div>
+    </div>
     <div class="log" id="log">
       <div class="top-bar" id="top-bar" hidden>
         <a class="top-repo" id="top-repo" target="_blank" rel="noopener"></a>
@@ -312,6 +374,7 @@
       let hasFirstSection = false;
       let total = 0;
       let botCommits = [];
+      let botCommitsAll = [];
 
       async function fetchBotCommits() {
         const headers = { Accept: 'application/vnd.github+json' };
@@ -340,6 +403,7 @@
         }
         out.sort((a, b) => new Date(b.commit.committer.date) - new Date(a.commit.committer.date));
         botCommits = out;
+        botCommitsAll = out.slice();
       }
 
       const botPromise = fetchBotCommits().catch(() => {});
@@ -540,6 +604,232 @@
         { rootMargin: '400px' }
       );
       io.observe(sentinel);
+
+      // ---- activity heatmap (trailing year, collapsed by default) ----
+      (function initHeatmap() {
+        const toggle = document.getElementById('activity-toggle');
+        const labelEl = document.getElementById('activity-label');
+        const bodyEl = document.getElementById('activity-body');
+        const hmEl = document.getElementById('heatmap');
+        const legendEl = document.getElementById('hm-legend');
+        const SVGNS = 'http://www.w3.org/2000/svg';
+        const CELL = 10,
+          GAP = 2,
+          STEP = CELL + GAP,
+          TOP = 16,
+          LEFT = 26,
+          MINLBL = 18,
+          GAMMA = 0.7;
+        const MON = [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
+        ];
+        // single-hue green ramp; lighter low end, deeper/brighter high end per theme
+        const LIGHT = [
+          [0.0, [230, 250, 236]],
+          [0.25, [150, 225, 165]],
+          [0.5, [64, 196, 99]],
+          [0.75, [28, 120, 52]],
+          [1.0, [3, 46, 18]],
+        ];
+        const DARK = [
+          [0.0, [12, 55, 33]],
+          [0.25, [0, 109, 50]],
+          [0.5, [38, 166, 65]],
+          [0.75, [57, 211, 83]],
+          [1.0, [150, 255, 170]],
+        ];
+        let counts = null;
+
+        const isDark = () => document.body.classList.contains('dark');
+        const pad = (n) => String(n).padStart(2, '0');
+        const isoLocal = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        function el(tag, attrs, parent) {
+          const e = document.createElementNS(SVGNS, tag);
+          for (const k in attrs) e.setAttribute(k, attrs[k]);
+          if (parent) parent.appendChild(e);
+          return e;
+        }
+        function ramp(t, S) {
+          t = Math.max(0, Math.min(1, t));
+          for (let i = 1; i < S.length; i++) {
+            if (t <= S[i][0]) {
+              const [t0, c0] = S[i - 1];
+              const [t1, c1] = S[i];
+              const f = (t - t0) / (t1 - t0);
+              const ch = (a, b) => Math.round(a + (b - a) * f);
+              return `rgb(${ch(c0[0], c1[0])},${ch(c0[1], c1[1])},${ch(c0[2], c1[2])})`;
+            }
+          }
+          const last = S[S.length - 1][1];
+          return `rgb(${last.join(',')})`;
+        }
+
+        async function fetchData() {
+          const headers = { Accept: 'application/vnd.github+json' };
+          const token = getToken();
+          if (token) headers.Authorization = `Bearer ${token}`;
+          const c = {};
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const since = new Date(today);
+          since.setDate(since.getDate() - 371); // trailing year + buffer
+          const sinceIso = isoLocal(since);
+          const q = encodeURIComponent(`author:${USER} committer-date:>=${sinceIso}`);
+          for (let page = 1; page <= 6; page++) {
+            let r;
+            try {
+              r = await fetch(
+                `https://api.github.com/search/commits?q=${q}&sort=committer-date&order=desc&per_page=100&page=${page}`,
+                { headers }
+              );
+            } catch (e) {
+              break;
+            }
+            if (!r.ok) break;
+            const data = await r.json();
+            const items = data.items || [];
+            for (const it of items) {
+              const k = isoLocal(new Date(it.commit.committer.date));
+              c[k] = (c[k] || 0) + 1;
+            }
+            if (items.length < 100) break;
+          }
+          try {
+            await botPromise;
+          } catch (e) {}
+          const cutoff = since.getTime();
+          for (const b of botCommitsAll) {
+            const d = new Date(b.commit.committer.date);
+            if (d.getTime() >= cutoff) {
+              const k = isoLocal(d);
+              c[k] = (c[k] || 0) + 1;
+            }
+          }
+          return c;
+        }
+
+        function render() {
+          if (!counts) return;
+          const S = isDark() ? DARK : LIGHT;
+          const EMPTY = isDark() ? '#161b22' : '#ebedf0';
+          hmEl.innerHTML = '';
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const start = new Date(today);
+          start.setDate(start.getDate() - 364);
+          start.setDate(start.getDate() - start.getDay()); // back to Sunday
+          let gmax = 1,
+            total = 0;
+          for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) {
+            const v = counts[isoLocal(d)] || 0;
+            if (v > gmax) gmax = v;
+            total += v;
+          }
+          const color = (v) => (v <= 0 ? EMPTY : ramp(Math.pow(v / gmax, GAMMA), S));
+          const weeks = [];
+          for (let cur = new Date(start); cur <= today; ) {
+            const wk = [];
+            for (let i = 0; i < 7; i++) {
+              const d = new Date(cur);
+              wk.push(d <= today ? d : null);
+              cur.setDate(cur.getDate() + 1);
+            }
+            weeks.push(wk);
+          }
+          const W = LEFT + weeks.length * STEP + 8;
+          const H = TOP + 7 * STEP;
+          const svg = el('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}` }, hmEl);
+          ['Mon', 'Wed', 'Fri'].forEach((lbl, k) => {
+            const r = [1, 3, 5][k];
+            el('text', { x: 0, y: TOP + r * STEP + CELL - 2 }, svg).textContent = lbl;
+          });
+          let lastMonth = -1,
+            lastLabelX = -1e9;
+          weeks.forEach((wk, i) => {
+            const d = wk.find((x) => x);
+            if (!d) return;
+            const m = d.getMonth();
+            const hasStart = wk.some((x) => x && x.getDate() <= 7);
+            const x = LEFT + i * STEP;
+            if (hasStart && m !== lastMonth && x - lastLabelX >= MINLBL) {
+              el('text', { x, y: 9 }, svg).textContent = MON[m];
+              lastMonth = m;
+              lastLabelX = x;
+            }
+          });
+          weeks.forEach((wk, i) =>
+            wk.forEach((d, r) => {
+              if (!d) return;
+              const v = counts[isoLocal(d)] || 0;
+              const rect = el(
+                'rect',
+                {
+                  x: LEFT + i * STEP,
+                  y: TOP + r * STEP,
+                  width: CELL,
+                  height: CELL,
+                  rx: 2,
+                  fill: color(v),
+                  class: 'cell',
+                },
+                svg
+              );
+              el('title', {}, rect).textContent =
+                `${v} commit${v === 1 ? '' : 's'} · ${isoLocal(d)}`;
+            })
+          );
+          labelEl.textContent = `${total} commit${total === 1 ? '' : 's'} in the past year`;
+          // legend: Less [gradient] More
+          legendEl.innerHTML = '';
+          legendEl.appendChild(document.createTextNode('Less'));
+          const ls = el('svg', { width: 90, height: 12 }, legendEl);
+          const defs = el('defs', {}, ls);
+          const grad = el(
+            'linearGradient',
+            { id: 'hm-grad', x1: '0', x2: '1', y1: '0', y2: '0' },
+            defs
+          );
+          S.forEach((s) =>
+            el('stop', { offset: s[0] * 100 + '%', 'stop-color': `rgb(${s[1].join(',')})` }, grad)
+          );
+          el(
+            'rect',
+            { x: 0, y: 1, width: 80, height: 10, rx: 2, fill: 'url(#hm-grad)', class: 'cell' },
+            ls
+          );
+          legendEl.appendChild(document.createTextNode('More'));
+        }
+
+        toggle.addEventListener('click', () => {
+          const open = bodyEl.hasAttribute('hidden');
+          if (open) {
+            bodyEl.removeAttribute('hidden');
+            toggle.setAttribute('aria-expanded', 'true');
+          } else {
+            bodyEl.setAttribute('hidden', '');
+            toggle.setAttribute('aria-expanded', 'false');
+          }
+        });
+        window.addEventListener('darkmodechange', render);
+
+        fetchData()
+          .then((c) => {
+            counts = c;
+            render();
+          })
+          .catch(() => {});
+      })();
     </script>
   </body>
 </html>
