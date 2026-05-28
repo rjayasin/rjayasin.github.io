@@ -41,3 +41,9 @@ body.hide-cursor * {
   padding: 0;
   margin: 0;
 }
+/* The "updated" commit link in the hint bar is the only <a> hint button;
+   inherit the grey hint colour instead of the default link blue/purple
+   (the per-page .hint-btn:hover rule still darkens it on hover). */
+#hint a.hint-btn {
+  color: inherit;
+}
