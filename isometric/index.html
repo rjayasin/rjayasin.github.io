@@ -710,6 +710,14 @@
           return;
         }
         mouseStart = { x: e.clientX, y: e.clientY };
+        // Commit any open text-edit input (the preventDefault below would
+        // otherwise keep it focused), then stop the browser from starting a
+        // native drag/selection. Without this, a drag that begins on the SVG
+        // word gets hijacked by native drag-and-drop and mousemove stops
+        // firing after the first move.
+        const active = document.activeElement;
+        if (active && active !== document.body && typeof active.blur === 'function') active.blur();
+        e.preventDefault();
       });
       window.addEventListener('mousemove', (e) => {
         if (!mouseStart) return;
