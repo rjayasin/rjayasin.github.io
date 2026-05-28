@@ -44,20 +44,6 @@ jobs:
             git commit -m "🤖 add new google fonts ($RUN_LABEL)"
           fi
 
-      - name: Refresh sitemap dates
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node scripts/build-sitemap-dates.js
-
-      - name: Commit sitemap date updates
-        run: |
-          if git diff --quiet -- sitemap/dates.json; then
-            echo "No sitemap date changes."
-          else
-            git add sitemap/dates.json
-            git commit -m "🤖 sitemap: refresh dates ($RUN_LABEL)"
-          fi
-
       - name: Push
         run: |
           if [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]]; then

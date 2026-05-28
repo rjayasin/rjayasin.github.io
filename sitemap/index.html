@@ -217,8 +217,6 @@
         return noHash || '/';
       }
 
-      const recentEntries = new Map();
-
       function setWhen(li, entry) {
         const old = li.querySelector('.when');
         if (old) old.remove();
@@ -237,21 +235,6 @@
           when.rel = 'noopener';
         }
         li.appendChild(when);
-      }
-
-      function sortRecent() {
-        const items = [...recentView.children];
-        items.sort((a, b) => {
-          const da = dateMs(a.dataset.date);
-          const db = dateMs(b.dataset.date);
-          const ga = Number.isFinite(da);
-          const gb = Number.isFinite(db);
-          if (ga && gb) return db - da;
-          if (ga) return -1;
-          if (gb) return 1;
-          return 0;
-        });
-        recentView.replaceChildren(...items);
       }
 
       function dateMs(iso) {
@@ -290,12 +273,10 @@
           if (gb) return 1;
           return 0;
         });
-        recentEntries.clear();
         recentView.replaceChildren(
           ...links.map((l) => {
             const li = makeFlatLi(l);
             setWhen(li, dates[dateKey(l.href)]);
-            recentEntries.set(dateKey(l.href), li);
             return li;
           })
         );
@@ -307,82 +288,6 @@
         links.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
         alphaView.replaceChildren(...links.map(makeFlatLi));
         randomizeGrid();
-      }
-
-      const USER_HOST = 'rjayasin.github.io';
-      const SELF_REPO = 'rjayasin.github.io';
-      const PATH_OVERRIDES = { '/': 'grid.js' };
-
-      function internalPath(href) {
-        if (PATH_OVERRIDES[href]) return PATH_OVERRIDES[href];
-        if (href === '/') return 'index.html';
-        if (!href.startsWith('/')) return null;
-        const clean = href.replace(/^\/+/, '').replace(/\/+$/, '');
-        return clean || 'index.html';
-      }
-
-      function parseUserHost(href) {
-        let url;
-        try {
-          url = new URL(href, location.origin);
-        } catch {
-          return null;
-        }
-        if (url.host !== USER_HOST) return null;
-        const segs = url.pathname.split('/').filter(Boolean);
-        if (!segs.length) return null;
-        return { repo: segs[0], path: segs.slice(1).join('/') };
-      }
-
-      let rateLimited = false;
-      async function fetchFreshEntry(href) {
-        if (rateLimited) return null;
-        let repo, subPath;
-        const rel = internalPath(href);
-        if (rel) {
-          repo = SELF_REPO;
-          subPath = rel;
-        } else {
-          const ext = parseUserHost(href);
-          if (!ext) return null;
-          repo = ext.repo;
-          subPath = ext.path;
-        }
-        const params = new URLSearchParams({ per_page: '1' });
-        if (subPath) params.set('path', subPath);
-        const apiUrl = `https://api.github.com/repos/rjayasin/${repo}/commits?${params}`;
-        let res;
-        try {
-          res = await fetch(apiUrl, {
-            headers: { Accept: 'application/vnd.github+json' },
-          });
-        } catch {
-          return null;
-        }
-        if (res.status === 403 || res.status === 429) {
-          rateLimited = true;
-          return null;
-        }
-        if (!res.ok) return null;
-        const data = await res.json();
-        const c = Array.isArray(data) ? data[0] : null;
-        const date = c?.commit?.committer?.date || c?.commit?.author?.date;
-        if (!date) return null;
-        return { date, url: c.html_url || null };
-      }
-
-      let refreshing = false;
-      async function refreshDatesInline() {
-        if (refreshing) return;
-        refreshing = true;
-        for (const [href, li] of recentEntries) {
-          if (rateLimited) break;
-          const fresh = await fetchFreshEntry(href);
-          if (fresh) {
-            setWhen(li, fresh);
-            sortRecent();
-          }
-        }
       }
 
       function setView(view) {
@@ -400,7 +305,6 @@
         if (!recentReady) {
           recentReady = loadDates().then((dates) => {
             buildRecent(dates);
-            refreshDatesInline();
           });
         }
         return recentReady;
