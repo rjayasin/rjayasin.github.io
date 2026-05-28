@@ -342,6 +342,58 @@ window.Common = window.Common || {};
     return { cycle, getCurrent: () => current };
   }
 
+  // Mirrors the sitemap's relative-time formatting so hint bars and the
+  // sitemap agree on phrasing.
+  function relativeWhen(iso, now = Date.now()) {
+    const t = new Date(iso).getTime();
+    if (!Number.isFinite(t)) return '';
+    const diff = Math.max(0, now - t);
+    const minute = 60 * 1000;
+    const hour = 60 * minute;
+    const day = 24 * hour;
+    if (diff < minute) return 'just now';
+    if (diff < hour) return `${Math.floor(diff / minute)}m ago`;
+    if (diff < day) return `${Math.floor(diff / hour)}h ago`;
+    if (diff < 2 * day) return 'yesterday';
+    if (diff < 30 * day) return `${Math.floor(diff / day)}d ago`;
+    if (diff < 365 * day) return `${Math.floor(diff / (30 * day))}mo ago`;
+    return `${Math.floor(diff / (365 * day))}y ago`;
+  }
+
+  function hintPathKey() {
+    let p = location.pathname.replace(/index\.html$/, '');
+    if (!p.endsWith('/')) p += '/';
+    return p;
+  }
+
+  // Appends a compact "· updated Nd ago" note to the page's hint bar, using
+  // the last-commit date the sitemap build records in /sitemap/dates.json.
+  // Looks up the entry for the current path (overridable via `key`).
+  async function initHintUpdated({ key } = {}) {
+    const hint = document.getElementById('hint');
+    if (!hint) return;
+    const container = document.getElementById('hint-inner') || hint;
+    const pathKey = key || hintPathKey();
+    let dates;
+    try {
+      const res = await fetch('/sitemap/dates.json', { cache: 'no-cache' });
+      if (!res.ok) return;
+      dates = await res.json();
+    } catch {
+      return;
+    }
+    const entry = dates && dates[pathKey];
+    const rel = entry && entry.date ? relativeWhen(entry.date) : '';
+    if (!rel) return;
+    container.appendChild(document.createTextNode(' · '));
+    const span = document.createElement('span');
+    span.className = 'hint-updated';
+    span.style.whiteSpace = 'nowrap';
+    span.textContent = 'updated ' + rel;
+    span.title = new Date(entry.date).toLocaleString();
+    container.appendChild(span);
+  }
+
   Object.assign(window.Common, {
     setFaviconHref,
     paintFaviconR,
@@ -361,6 +413,8 @@ window.Common = window.Common || {};
     loadScript,
     ensureEmojis,
     initHintBar,
+    initHintUpdated,
+    relativeWhen,
     initFontCycle,
     initTextEditor,
     openSitemap,
