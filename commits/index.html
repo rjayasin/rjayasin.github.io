@@ -267,6 +267,40 @@
       body.dark .activity-toggle:hover {
         color: #fff;
       }
+      .activity .cell {
+        cursor: pointer;
+      }
+      .hm-popover {
+        position: fixed;
+        background: #fff;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 6px 8px;
+        font-size: 11px;
+        line-height: 1.4;
+        white-space: nowrap;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        pointer-events: none;
+        z-index: 10;
+      }
+      .hm-popover[hidden] {
+        display: none;
+      }
+      .hm-popover .pop-dow {
+        font-weight: bold;
+        color: #000;
+      }
+      .hm-popover .pop-meta {
+        color: #888;
+      }
+      body.dark .hm-popover {
+        background: #222;
+        border-color: #444;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+      }
+      body.dark .hm-popover .pop-dow {
+        color: #fff;
+      }
     </style>
     <script src="/common.js"></script>
   </head>
@@ -287,7 +321,7 @@
     </header>
     <div class="activity" id="activity">
       <button class="activity-toggle" id="activity-toggle" type="button" aria-expanded="false">
-        <span class="caret">▸</span><span id="activity-label">activity</span>
+        <span class="caret">▸</span><span id="activity-label">toggle graph 📊</span>
       </button>
       <div class="activity-body" id="activity-body" hidden>
         <div id="heatmap"></div>
@@ -608,7 +642,6 @@
       // ---- activity heatmap (trailing year, collapsed by default) ----
       (function initHeatmap() {
         const toggle = document.getElementById('activity-toggle');
-        const labelEl = document.getElementById('activity-label');
         const bodyEl = document.getElementById('activity-body');
         const hmEl = document.getElementById('heatmap');
         const legendEl = document.getElementById('hm-legend');
@@ -634,6 +667,7 @@
           'Nov',
           'Dec',
         ];
+        const DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         // single-hue green ramp; lighter low end, deeper/brighter high end per theme
         const LIGHT = [
           [0.0, [230, 250, 236]],
@@ -650,6 +684,38 @@
           [1.0, [150, 255, 170]],
         ];
         let counts = null;
+
+        // popover shown on hover / click of a heatmap cell
+        const pop = document.createElement('div');
+        pop.className = 'hm-popover';
+        pop.hidden = true;
+        const popDow = document.createElement('div');
+        popDow.className = 'pop-dow';
+        const popDate = document.createElement('div');
+        popDate.className = 'pop-meta';
+        const popCount = document.createElement('div');
+        popCount.className = 'pop-meta';
+        pop.append(popDow, popDate, popCount);
+        document.body.appendChild(pop);
+        let pinned = false;
+
+        function showPop(rect, d, v) {
+          popDow.textContent = DOW[d.getDay()];
+          popDate.textContent = isoLocal(d);
+          popCount.textContent = `${v} commit${v === 1 ? '' : 's'}`;
+          pop.hidden = false;
+          const r = rect.getBoundingClientRect();
+          pop.style.left = r.left + r.width / 2 + 'px';
+          pop.style.top = r.top - 6 + 'px';
+          pop.style.transform = 'translate(-50%, -100%)';
+        }
+        function hidePop() {
+          pop.hidden = true;
+        }
+        document.addEventListener('click', () => {
+          pinned = false;
+          hidePop();
+        });
 
         const isDark = () => document.body.classList.contains('dark');
         const pad = (n) => String(n).padStart(2, '0');
@@ -785,11 +851,20 @@
                 },
                 svg
               );
-              el('title', {}, rect).textContent =
-                `${v} commit${v === 1 ? '' : 's'} · ${isoLocal(d)}`;
+              const cellDate = new Date(d);
+              rect.addEventListener('mouseenter', () => {
+                if (!pinned) showPop(rect, cellDate, v);
+              });
+              rect.addEventListener('mouseleave', () => {
+                if (!pinned) hidePop();
+              });
+              rect.addEventListener('click', (e) => {
+                e.stopPropagation();
+                pinned = true;
+                showPop(rect, cellDate, v);
+              });
             })
           );
-          labelEl.textContent = `${total} commit${total === 1 ? '' : 's'} in the past year`;
           // legend: Less [gradient] More
           legendEl.innerHTML = '';
           legendEl.appendChild(document.createTextNode('Less'));
@@ -809,6 +884,8 @@
             ls
           );
           legendEl.appendChild(document.createTextNode('More'));
+          // start scrolled all the way right so the most recent weeks show first
+          if (!bodyEl.hasAttribute('hidden')) bodyEl.scrollLeft = bodyEl.scrollWidth;
         }
 
         toggle.addEventListener('click', () => {
@@ -816,6 +893,7 @@
           if (open) {
             bodyEl.removeAttribute('hidden');
             toggle.setAttribute('aria-expanded', 'true');
+            bodyEl.scrollLeft = bodyEl.scrollWidth;
           } else {
             bodyEl.setAttribute('hidden', '');
             toggle.setAttribute('aria-expanded', 'false');
