@@ -282,9 +282,15 @@
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         pointer-events: none;
         z-index: 10;
+        opacity: 0;
+        visibility: hidden;
+        transition:
+          opacity 0.08s ease,
+          visibility 0.08s ease;
       }
-      .hm-popover[hidden] {
-        display: none;
+      .hm-popover.visible {
+        opacity: 1;
+        visibility: visible;
       }
       /* downward triangle on the bottom edge, pointing at the cell */
       .hm-popover::before,
@@ -714,7 +720,6 @@
         // popover shown on hover / click of a heatmap cell
         const pop = document.createElement('div');
         pop.className = 'hm-popover';
-        pop.hidden = true;
         const popDow = document.createElement('div');
         popDow.className = 'pop-dow';
         const popDate = document.createElement('div');
@@ -729,14 +734,14 @@
           popDow.textContent = DOW[d.getDay()];
           popDate.textContent = isoLocal(d);
           popCount.textContent = `${v} commit${v === 1 ? '' : 's'}`;
-          pop.hidden = false;
           const r = rect.getBoundingClientRect();
           pop.style.left = r.left + r.width / 2 + 'px';
           pop.style.top = r.top - 6 + 'px';
           pop.style.transform = 'translate(-50%, -100%)';
+          pop.classList.add('visible');
         }
         function hidePop() {
-          pop.hidden = true;
+          pop.classList.remove('visible');
         }
         document.addEventListener('click', () => {
           pinned = false;
