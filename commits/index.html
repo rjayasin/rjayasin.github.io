@@ -286,6 +286,26 @@
       .hm-popover[hidden] {
         display: none;
       }
+      /* downward triangle on the bottom edge, pointing at the cell */
+      .hm-popover::before,
+      .hm-popover::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border: 6px solid transparent;
+      }
+      .hm-popover::before {
+        margin-left: -6px;
+        border-top-color: #ccc;
+      }
+      .hm-popover::after {
+        margin-left: -5px;
+        border-width: 5px;
+        border-top-color: #fff;
+      }
       .hm-popover .pop-dow {
         font-weight: bold;
         color: #000;
@@ -297,6 +317,12 @@
         background: #222;
         border-color: #444;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+      }
+      body.dark .hm-popover::before {
+        border-top-color: #444;
+      }
+      body.dark .hm-popover::after {
+        border-top-color: #222;
       }
       body.dark .hm-popover .pop-dow {
         color: #fff;
