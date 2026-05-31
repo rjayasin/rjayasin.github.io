@@ -19,6 +19,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.dates.outputs.changed }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -27,9 +29,18 @@ jobs:
         with:
           node-version: '20'
       - name: Generate sitemap dates
+        id: dates
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node scripts/build-sitemap-dates.js
+        run: |
+          node scripts/build-sitemap-dates.js
+          if git diff --quiet -- sitemap/dates.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "sitemap/dates.json unchanged"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "sitemap/dates.json updated"
+          fi
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
@@ -37,6 +48,9 @@ jobs:
 
   deploy:
     needs: build
+    # Deploy on pushes and manual runs; on the daily schedule only deploy when
+    # the external-repo dates actually changed.
+    if: github.event_name != 'schedule' || needs.build.outputs.changed == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
