@@ -15,6 +15,9 @@
         width: 100%;
         height: 100%;
         overflow: hidden;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
       }
       #wrap {
         position: fixed;
@@ -35,7 +38,9 @@
           monospace;
         line-height: 1;
         white-space: pre;
+        -webkit-user-select: none;
         user-select: none;
+        -webkit-touch-callout: none;
       }
       /* Snake/pellet glyphs are drawn from many scripts (incl. double-width CJK
          and emoji); pinning each to a one-character box keeps the grid columns
