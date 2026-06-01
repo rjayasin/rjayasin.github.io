@@ -352,8 +352,14 @@
       </button>
     </header>
     <div class="activity" id="activity">
-      <button class="activity-toggle" id="activity-toggle" type="button" aria-expanded="false">
-        <span class="caret">▸</span><span id="activity-label">toggle graph 📊</span>
+      <button
+        class="activity-toggle"
+        id="activity-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-label="Toggle commit graph"
+      >
+        <span class="caret">▸</span><span id="activity-label">📊</span>
       </button>
       <div class="activity-body" id="activity-body" hidden>
         <div id="heatmap"></div>
@@ -518,6 +524,19 @@
         return r.json();
       }
 
+      // Shared cache of search pages so the log and the activity heatmap
+      // (identical author/sort query) never fetch the same page twice.
+      const searchPageCache = new Map();
+      function getSearchPage(page) {
+        let p = searchPageCache.get(page);
+        if (!p) {
+          p = fetchPage(page);
+          searchPageCache.set(page, p);
+          p.catch(() => searchPageCache.delete(page)); // allow retry on failure
+        }
+        return p;
+      }
+
       function renderCommit(c) {
         const date = c.commit.committer.date;
         const day = new Date(date).toDateString();
@@ -582,7 +601,7 @@
 
         let data;
         try {
-          [data] = await Promise.all([fetchPage(nextPage), botPromise]);
+          [data] = await Promise.all([getSearchPage(nextPage), botPromise]);
         } catch (e) {
           status.textContent = e.message;
           loading = false;
@@ -748,6 +767,38 @@
           hidePop();
         });
 
+        // Single delegated listener set on the container instead of three
+        // listeners per cell (~1100 for a full year), so render() stays cheap.
+        const parseLocal = (iso) => {
+          const [y, m, d] = iso.split('-').map(Number);
+          return new Date(y, m - 1, d);
+        };
+        const cellFromEvent = (e) => {
+          const t = e.target;
+          return t && t.getAttribute && t.hasAttribute('data-date') ? t : null;
+        };
+        function showPopFromCell(cell) {
+          showPop(
+            cell,
+            parseLocal(cell.getAttribute('data-date')),
+            +cell.getAttribute('data-count')
+          );
+        }
+        hmEl.addEventListener('mouseover', (e) => {
+          const cell = cellFromEvent(e);
+          if (cell && !pinned) showPopFromCell(cell);
+        });
+        hmEl.addEventListener('mouseout', (e) => {
+          if (cellFromEvent(e) && !pinned) hidePop();
+        });
+        hmEl.addEventListener('click', (e) => {
+          const cell = cellFromEvent(e);
+          if (!cell) return;
+          e.stopPropagation();
+          pinned = true;
+          showPopFromCell(cell);
+        });
+
         const isDark = () => document.body.classList.contains('dark');
         const pad = (n) => String(n).padStart(2, '0');
         const isoLocal = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -773,44 +824,42 @@
         }
 
         async function fetchData() {
-          const headers = { Accept: 'application/vnd.github+json' };
-          const token = getToken();
-          if (token) headers.Authorization = `Bearer ${token}`;
           const c = {};
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           const since = new Date(today);
           since.setDate(since.getDate() - 371); // trailing year + buffer
-          const sinceIso = isoLocal(since);
-          const q = encodeURIComponent(`author:${USER} committer-date:>=${sinceIso}`);
-          for (let page = 1; page <= 6; page++) {
-            let r;
+          const cutoff = since.getTime();
+          // Walk the shared search pages (same query the log uses, desc by
+          // committer-date) until we pass the trailing-year cutoff. Pages are
+          // cached, so the log reuses whatever we fetch here and vice versa.
+          for (let page = 1; page <= 10; page++) {
+            let data;
             try {
-              r = await fetch(
-                `https://api.github.com/search/commits?q=${q}&sort=committer-date&order=desc&per_page=100&page=${page}`,
-                { headers }
-              );
+              data = await getSearchPage(page);
             } catch (e) {
               break;
             }
-            if (!r.ok) break;
-            const data = await r.json();
             const items = data.items || [];
+            if (!items.length) break;
+            let passedCutoff = false;
             for (const it of items) {
-              const k = isoLocal(new Date(it.commit.committer.date));
-              c[k] = (c[k] || 0) + 1;
+              const d = new Date(it.commit.committer.date);
+              if (d.getTime() < cutoff) {
+                passedCutoff = true;
+                continue;
+              }
+              c[isoLocal(d)] = (c[isoLocal(d)] || 0) + 1;
             }
-            if (items.length < 100) break;
+            if (passedCutoff || items.length < 100) break;
           }
           try {
             await botPromise;
           } catch (e) {}
-          const cutoff = since.getTime();
           for (const b of botCommitsAll) {
             const d = new Date(b.commit.committer.date);
             if (d.getTime() >= cutoff) {
-              const k = isoLocal(d);
-              c[k] = (c[k] || 0) + 1;
+              c[isoLocal(d)] = (c[isoLocal(d)] || 0) + 1;
             }
           }
           return c;
@@ -869,7 +918,7 @@
             wk.forEach((d, r) => {
               if (!d) return;
               const v = counts[isoLocal(d)] || 0;
-              const rect = el(
+              el(
                 'rect',
                 {
                   x: LEFT + i * STEP,
@@ -879,21 +928,11 @@
                   rx: 2,
                   fill: color(v),
                   class: 'cell',
+                  'data-date': isoLocal(d),
+                  'data-count': v,
                 },
                 svg
               );
-              const cellDate = new Date(d);
-              rect.addEventListener('mouseenter', () => {
-                if (!pinned) showPop(rect, cellDate, v);
-              });
-              rect.addEventListener('mouseleave', () => {
-                if (!pinned) hidePop();
-              });
-              rect.addEventListener('click', (e) => {
-                e.stopPropagation();
-                pinned = true;
-                showPop(rect, cellDate, v);
-              });
             })
           );
           // legend: Less [gradient] More
@@ -932,9 +971,33 @@
         });
         window.addEventListener('darkmodechange', render);
 
+        // Persist counts so revisits (and the first toggle) render instantly
+        // from cache while fresh data loads in the background.
+        const CACHE_KEY = 'hm_counts_v1' + (getToken() ? '_auth' : '');
+        function loadCachedCounts() {
+          try {
+            const obj = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+            return obj && obj.counts ? obj.counts : null;
+          } catch (e) {
+            return null;
+          }
+        }
+        function saveCachedCounts(c) {
+          try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), counts: c }));
+          } catch (e) {}
+        }
+
+        const cached = loadCachedCounts();
+        if (cached) {
+          counts = cached;
+          render();
+        }
+
         fetchData()
           .then((c) => {
             counts = c;
+            saveCachedCounts(c);
             render();
           })
           .catch(() => {});
