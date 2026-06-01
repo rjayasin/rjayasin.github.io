@@ -51,6 +51,10 @@ function gitEntry(relPath) {
 
 function internalPath(href) {
   if (href === '/') return 'index.html';
+  // The sitemap's own entry must track real page changes, not metadata churn:
+  // scope it to index.html so commits that only touch sibling sitemap/dates.json
+  // (regenerated on every deploy) don't bump its "updated" timestamp.
+  if (href === '/sitemap/') return 'sitemap/index.html';
   if (!href.startsWith('/')) return null;
   const clean = href.replace(/^\/+/, '').replace(/\/+$/, '');
   return clean || 'index.html';
