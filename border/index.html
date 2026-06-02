@@ -217,12 +217,44 @@
         // wraps. Measuring a single copy and assuming the period equals its
         // length misses the boundary kerning and causes a visible jump every
         // cycle — very noticeable when the text is short.
+        textEl.style.letterSpacing = '0px';
         textPathEl.textContent = text;
         const single = textPathEl.getComputedTextLength();
         textPathEl.textContent = text.repeat(2);
         const double = textPathEl.getComputedTextLength();
-        unitLen = double - single;
-        if (unitLen <= 0) unitLen = single;
+        let natUnit = double - single;
+        if (natUnit <= 0) natUnit = single;
+        if (natUnit <= 0) return;
+
+        // The path is a closed loop whose start (M) and end (Z) both land on
+        // the top-left corner — that corner is the only seam. The other three
+        // corners are interior points of one continuous path, so the string
+        // flows around them naturally. At the seam the glyphs at path offset 0
+        // and at offset pathLen only line up when the perimeter is a whole
+        // number of repeat periods; otherwise a different part of the string
+        // appears as the text crosses the top-left corner.
+        //
+        // Pick the whole number of copies that fits the perimeter most snugly,
+        // then add a touch of letter-spacing so exactly that many copies span
+        // pathLen. This makes the top-left seam continuous like every other
+        // edge. letter-spacing adds a fixed amount after each character, so a
+        // copy's length grows linearly by (charCount * spacing); solve for the
+        // spacing that lands natUnit on pathLen / copies.
+        const copies = Math.max(1, Math.round(pathLen / natUnit));
+        const charCount = text.length;
+        if (charCount > 0) {
+          const spacing = (pathLen / copies - natUnit) / charCount;
+          textEl.style.letterSpacing = spacing + 'px';
+        }
+
+        // Re-measure with the spacing applied so the scroll period matches the
+        // glyphs' actual layout exactly.
+        textPathEl.textContent = text;
+        const single2 = textPathEl.getComputedTextLength();
+        textPathEl.textContent = text.repeat(2);
+        const double2 = textPathEl.getComputedTextLength();
+        unitLen = double2 - single2;
+        if (unitLen <= 0) unitLen = single2;
         if (unitLen <= 0) return;
 
         const repeats = Math.max(2, Math.ceil((pathLen + 2 * unitLen) / unitLen));
