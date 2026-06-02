@@ -196,13 +196,32 @@
         // with ascenders pointing outward) fits between the path and the edge.
         const inset = Math.ceil(textHeight * 0.95);
 
-        // CW rectangle starting at the top-left corner. Text renders at the
-        // font's natural width; the path simply clips whatever glyphs fall
-        // past pathLen, so the marquee shows only as much text as fits at
-        // the current font size.
-        const d = `M ${inset} ${inset} L ${W - inset} ${inset} L ${W - inset} ${H - inset} L ${inset} ${H - inset} Z`;
-        pathEl.setAttribute('d', d);
-        pathLen = pathEl.getTotalLength();
+        // CW rectangle whose start/end seam sits at the MIDDLE of the bottom
+        // edge rather than on a corner. A textPath does not wrap around: glyphs
+        // before offset 0 or past pathLen are clipped, so the start point is
+        // always a seam where the text can't continue across. Keeping that seam
+        // mid-edge (not on a corner) lets the text round all four corners
+        // smoothly; making the perimeter an exact whole number of text copies
+        // (below) then closes the loop onto itself so the seam vanishes too.
+        //
+        // Winding stays clockwise so the text keeps sitting on the outer side:
+        // bottom-middle -> bottom-left -> top-left -> top-right -> bottom-right
+        // -> (close) back to bottom-middle. `scale` resizes the rectangle about
+        // its centre so the perimeter can be fine-tuned by a sub-pixel amount.
+        const buildPath = (scale) => {
+          const rw = (W - 2 * inset) * scale;
+          const rh = (H - 2 * inset) * scale;
+          const x0 = (W - rw) / 2;
+          const x1 = (W + rw) / 2;
+          const y0 = (H - rh) / 2;
+          const y1 = (H + rh) / 2;
+          const d = `M ${W / 2} ${y1} L ${x0} ${y1} L ${x0} ${y0} L ${x1} ${y0} L ${x1} ${y1} Z`;
+          pathEl.setAttribute('d', d);
+          return pathEl.getTotalLength();
+        };
+
+        const basePerimeter = buildPath(1);
+        pathLen = basePerimeter;
 
         if (!text) {
           textPathEl.textContent = '';
@@ -210,54 +229,74 @@
           return;
         }
 
-        // Use the marginal length added by repeating the text once more as
-        // the true period of the repetition. This includes the kerning
-        // adjustment at the boundary between adjacent copies, so cycling
-        // the scroll by this value keeps the visible content stable across
-        // wraps. Measuring a single copy and assuming the period equals its
-        // length misses the boundary kerning and causes a visible jump every
-        // cycle — very noticeable when the text is short.
+        // The text is `unitText()`: the items followed by a single trailing
+        // space, so one copy joined to the next reads as a continuous string
+        // with a single space as the only gap. The plan: figure out how many
+        // whole copies wrap around the perimeter, size them so that exact
+        // number spans the perimeter precisely, then scroll that one fixed loop
+        // around the four edges. With the loop's length an exact divisor of the
+        // perimeter there is no seam — it is one continuous, repeating string of
+        // characters circling the screen.
+
+        // Helper: marginal width one extra copy adds (the true repeat period,
+        // including the kerning where one copy meets the next). Measured from
+        // short strings that comfortably fit the path, so nothing is clipped.
+        const measurePeriod = () => {
+          textPathEl.textContent = text;
+          const one = textPathEl.getComputedTextLength();
+          textPathEl.textContent = text + text;
+          const two = textPathEl.getComputedTextLength();
+          return two - one;
+        };
+
         textEl.style.letterSpacing = '0px';
-        textPathEl.textContent = text;
-        const single = textPathEl.getComputedTextLength();
-        textPathEl.textContent = text.repeat(2);
-        const double = textPathEl.getComputedTextLength();
-        let natUnit = double - single;
-        if (natUnit <= 0) natUnit = single;
-        if (natUnit <= 0) return;
+        const natPeriod = measurePeriod();
+        if (natPeriod <= 0) return;
 
-        // The path is a closed loop whose start (M) and end (Z) both land on
-        // the top-left corner — that corner is the only seam. The other three
-        // corners are interior points of one continuous path, so the string
-        // flows around them naturally. At the seam the glyphs at path offset 0
-        // and at offset pathLen only line up when the perimeter is a whole
-        // number of repeat periods; otherwise a different part of the string
-        // appears as the text crosses the top-left corner.
-        //
-        // Pick the whole number of copies that fits the perimeter most snugly,
-        // then add a touch of letter-spacing so exactly that many copies span
-        // pathLen. This makes the top-left seam continuous like every other
-        // edge. letter-spacing adds a fixed amount after each character, so a
-        // copy's length grows linearly by (charCount * spacing); solve for the
-        // spacing that lands natUnit on pathLen / copies.
-        const copies = Math.max(1, Math.round(pathLen / natUnit));
+        // How many whole copies wrap most snugly around the whole perimeter.
+        const copies = Math.max(1, Math.round(pathLen / natPeriod));
+
+        // We need the rendered period to equal perimeter / copies *exactly*, so
+        // that `copies` whole copies span the perimeter and the loop closes onto
+        // itself with no seam. letter-spacing adds a fixed amount per character,
+        // making the period very nearly linear in the spacing — but glyph
+        // rounding leaves a small residual, so refine with a few Newton steps
+        // (slope taken from the zero-spacing point) until the period lands on
+        // target to well under a pixel. A sub-pixel period error would otherwise
+        // show up as a hairline gap or overlap where the loop meets itself.
+        const targetPeriod = pathLen / copies;
         const charCount = text.length;
+        let spacing = 0;
         if (charCount > 0) {
-          const spacing = (pathLen / copies - natUnit) / charCount;
-          textEl.style.letterSpacing = spacing + 'px';
+          spacing = (targetPeriod - natPeriod) / charCount; // first guess
+          for (let i = 0; i < 6; i++) {
+            textEl.style.letterSpacing = spacing + 'px';
+            const period = measurePeriod();
+            const err = period - targetPeriod;
+            if (Math.abs(err) < 0.01) break;
+            const slope = spacing !== 0 ? (period - natPeriod) / spacing : charCount;
+            if (!isFinite(slope) || slope === 0) break;
+            spacing -= err / slope;
+          }
         }
+        textEl.style.letterSpacing = spacing + 'px';
+        const period = measurePeriod();
 
-        // Re-measure with the spacing applied so the scroll period matches the
-        // glyphs' actual layout exactly.
-        textPathEl.textContent = text;
-        const single2 = textPathEl.getComputedTextLength();
-        textPathEl.textContent = text.repeat(2);
-        const double2 = textPathEl.getComputedTextLength();
-        unitLen = double2 - single2;
-        if (unitLen <= 0) unitLen = single2;
-        if (unitLen <= 0) return;
+        // letter-spacing got the period within a fraction of a pixel of
+        // perimeter/copies; close that last gap from the geometry side by
+        // nudging the rectangle so the perimeter is EXACTLY `copies` periods.
+        // The rescale is sub-pixel and invisible, but it guarantees the loop
+        // closes onto itself with no residual gap or overlap at the seam,
+        // independent of any glyph-rounding the font happens to do.
+        pathLen = buildPath((copies * period) / basePerimeter);
 
-        const repeats = Math.max(2, Math.ceil((pathLen + 2 * unitLen) / unitLen));
+        // Scroll the loop by exactly one period; since the period now divides
+        // the perimeter exactly, every scroll position keeps the loop seamless.
+        unitLen = period;
+
+        // Render enough whole copies that the visible window (length pathLen) is
+        // always covered as the loop scrolls by up to one period.
+        const repeats = copies + 2;
         textPathEl.textContent = text.repeat(repeats);
       }
 
