@@ -282,22 +282,43 @@
         textEl.style.letterSpacing = spacing + 'px';
         const period = measurePeriod();
 
-        // letter-spacing got the period within a fraction of a pixel of
-        // perimeter/copies; close that last gap from the geometry side by
-        // nudging the rectangle so the perimeter is EXACTLY `copies` periods.
-        // The rescale is sub-pixel and invisible, but it guarantees the loop
-        // closes onto itself with no residual gap or overlap at the seam,
-        // independent of any glyph-rounding the font happens to do.
+        // Initial geometry guess: size the rectangle so the perimeter is about
+        // `copies` periods. This gets the closing glyph near the seam.
         pathLen = buildPath((copies * period) / basePerimeter);
 
-        // Scroll the loop by exactly one period; since the period now divides
-        // the perimeter exactly, every scroll position keeps the loop seamless.
-        unitLen = period;
-
-        // Render enough whole copies that the visible window (length pathLen) is
-        // always covered as the loop scrolls by up to one period.
+        // Render the loop with a couple of spare copies so the visible window
+        // is always covered as it scrolls.
         const repeats = copies + 2;
         textPathEl.textContent = text.repeat(repeats);
+
+        // Close the seam against what the browser ACTUALLY draws rather than
+        // what the text-measurement APIs report. The two can disagree per engine
+        // (how letter-spacing/kerning is applied to text on a path), and any
+        // disagreement multiplied over `copies` copies lands the loop's end off
+        // its start — that is the seam where the characters appear to change as
+        // they cross the bottom-centre.
+        //
+        // Pin the scroll to startOffset 0 so character 0 sits on the seam, then
+        // read the real on-screen position of the start of the SECOND copy
+        // (index charCount). When a whole copy fits on the bottom-left run it
+        // lands on that horizontal edge, so its distance left of the seam is the
+        // true rendered period. Re-size the rectangle to exactly `copies` of
+        // that, which closes the loop on the real geometry and self-heals on any
+        // engine whose rendered advance differs from its measured advance. (When
+        // a copy is too long to fit that straight run — only a copy or two wrap
+        // the whole screen — we keep the measured-period estimate above.)
+        textPathEl.setAttribute('startOffset', '0');
+        const seam = pathEl.getPointAtLength(0);
+        let renderedPeriod = null;
+        try {
+          const p = textPathEl.getStartPositionOfChar(charCount);
+          if (Math.abs(p.y - seam.y) < 1 && p.x < seam.x) renderedPeriod = seam.x - p.x;
+        } catch (e) {}
+        if (renderedPeriod > 0) pathLen = buildPath((copies * renderedPeriod) / basePerimeter);
+
+        // Scroll the loop by exactly one period; the perimeter is now an exact
+        // whole number of copies, so every scroll position keeps it seamless.
+        unitLen = pathLen / copies;
       }
 
       let lastT = performance.now();
@@ -315,6 +336,11 @@
       rebuild();
       requestAnimationFrame(tick);
       window.addEventListener('resize', rebuild);
+      // Re-measure once web fonts have settled: if a font swaps in after the
+      // first layout, its metrics differ and the loop would no longer close.
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(rebuild);
+      }
 
       const fontCycle = Common.initFontCycle({
         onChange: (font) => {
