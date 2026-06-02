@@ -217,7 +217,12 @@
     </div>
     <div id="hint-zone"></div>
     <script>
-      Common.paintFaviconR();
+      Common.setFaviconHref(
+        'data:image/svg+xml,' +
+          encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><text x="8" y="13" font-size="14" text-anchor="middle">🐍</text></svg>',
+          ),
+      );
       Common.initDarkMode();
 
       const wrap = document.getElementById('wrap');
