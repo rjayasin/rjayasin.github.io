@@ -36,7 +36,10 @@
           Consolas,
           Liberation Mono,
           monospace;
-        line-height: 1;
+        /* Rows are spaced by 1ch (the monospace character advance) rather than
+           the font size so vertical cell spacing matches the horizontal column
+           width, keeping the grid square. */
+        line-height: 1ch;
         white-space: pre;
         -webkit-user-select: none;
         user-select: none;
@@ -49,8 +52,8 @@
       #board .cell {
         display: inline-block;
         width: 1ch;
-        height: 1em;
-        line-height: 1em;
+        height: 1ch;
+        line-height: 1ch;
         text-align: center;
         vertical-align: top;
         overflow: visible;
@@ -305,7 +308,9 @@
         board.appendChild(probe);
         charW = probe.getBoundingClientRect().width / 100;
         board.removeChild(probe);
-        charH = fontSize;
+        // Rows are now spaced by the character width (via line-height: 1ch), so
+        // a cell is square and the vertical step matches the horizontal one.
+        charH = charW;
         cols = Math.max(12, Math.floor(vw / charW));
         rows = Math.max(12, Math.floor(vh / charH));
       }
