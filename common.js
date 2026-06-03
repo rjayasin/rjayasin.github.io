@@ -399,6 +399,108 @@ window.Common = window.Common || {};
     return { cycle, getCurrent: () => current };
   }
 
+  // --- "Sign in with GitHub" (shared by the commits and snake pages) ---
+  // Auth via a GitHub App, but the browser never holds the app's client
+  // secret. We redirect to GitHub's authorize page, come back with a short
+  // `code`, and hand that code to a tiny Cloudflare Worker that does the
+  // code->token exchange (the one step that needs the secret) and returns a
+  // user-to-server token. The token is the visitor's own and lives only in
+  // this browser (localStorage 'gh_token') — same trust model as the old
+  // paste-a-PAT flow it replaces. CLIENT_ID and WORKER_URL are public.
+  const GH_CLIENT_ID = 'Iv23lixPSQk9WGC2qD8F';
+  const GH_WORKER_URL = 'https://oauth-exchange.rjayasin.workers.dev';
+  const GH_TOKEN_KEY = 'gh_token';
+  const GH_STATE_KEY = 'gh_oauth_state';
+
+  function ghGetToken() {
+    return localStorage.getItem(GH_TOKEN_KEY) || '';
+  }
+  function ghIsAuthed() {
+    return !!ghGetToken();
+  }
+  function ghClearToken() {
+    localStorage.removeItem(GH_TOKEN_KEY);
+  }
+
+  function ghSignIn() {
+    // Random state ties the redirect back to this tab and guards against CSRF.
+    const state = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+    sessionStorage.setItem(GH_STATE_KEY, state);
+    // redirect_uri must match a callback registered on the GitHub App; both the
+    // /snake/ and /commits/ paths are registered, so the current page works.
+    const redirectUri = location.origin + location.pathname;
+    const url =
+      'https://github.com/login/oauth/authorize?client_id=' +
+      encodeURIComponent(GH_CLIENT_ID) +
+      '&redirect_uri=' +
+      encodeURIComponent(redirectUri) +
+      '&state=' +
+      encodeURIComponent(state);
+    location.href = url;
+  }
+
+  // Call once at startup. When returning from GitHub's authorize page
+  // (?code=&state=), exchange the code for a token via the Worker, store it,
+  // and scrub the query so a refresh doesn't replay the (now-spent) code.
+  // Resolves true only when a fresh sign-in just completed.
+  async function ghHandleRedirect() {
+    const params = new URLSearchParams(location.search);
+    const code = params.get('code');
+    if (!code) return false;
+    const state = params.get('state');
+    const expected = sessionStorage.getItem(GH_STATE_KEY);
+    sessionStorage.removeItem(GH_STATE_KEY);
+    const clean = location.origin + location.pathname + location.hash;
+    if (!state || state !== expected) {
+      history.replaceState(null, '', clean);
+      return false;
+    }
+    try {
+      const r = await fetch(GH_WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (data && data.access_token) {
+        localStorage.setItem(GH_TOKEN_KEY, data.access_token);
+        history.replaceState(null, '', clean);
+        return true;
+      }
+    } catch (e) {
+      /* fall through to the scrub + false below */
+    }
+    history.replaceState(null, '', clean);
+    return false;
+  }
+
+  // Wire a GitHub-icon button: signed out -> start sign-in; signed in ->
+  // confirm and sign out. onChange(authed) fires after a sign-out so the page
+  // can refresh auth-dependent UI. Returns { refresh } to re-sync the button
+  // (e.g. after a token is rejected by the API).
+  function ghInitAuthButton({ buttonEl, onChange, signedInTitle, signedOutTitle }) {
+    signedInTitle = signedInTitle || 'Signed in to GitHub (click to sign out)';
+    signedOutTitle = signedOutTitle || 'Sign in with GitHub';
+    function refresh() {
+      const authed = ghIsAuthed();
+      buttonEl.classList.toggle('authed', authed);
+      buttonEl.title = authed ? signedInTitle : signedOutTitle;
+    }
+    buttonEl.addEventListener('click', () => {
+      if (ghIsAuthed()) {
+        if (confirm('Sign out of GitHub?')) {
+          ghClearToken();
+          refresh();
+          if (onChange) onChange(false);
+        }
+        return;
+      }
+      ghSignIn();
+    });
+    refresh();
+    return { refresh };
+  }
+
   Object.assign(window.Common, {
     setFaviconHref,
     paintFaviconR,
@@ -423,5 +525,13 @@ window.Common = window.Common || {};
     initTextEditor,
     openSitemap,
     initSitemapShortcut,
+    GH: {
+      getToken: ghGetToken,
+      isAuthed: ghIsAuthed,
+      clearToken: ghClearToken,
+      signIn: ghSignIn,
+      handleRedirect: ghHandleRedirect,
+      initAuthButton: ghInitAuthButton,
+    },
   });
 })();

@@ -386,7 +386,6 @@
       const USER = 'rjayasin';
       const BOT_REPO = 'rjayasin/rjayasin.github.io';
       const BOT_AUTHOR = '41898282+github-actions[bot]@users.noreply.github.com';
-      const TOKEN_KEY = 'gh_token';
       const log = document.getElementById('log');
       const status = document.getElementById('status');
       const range = document.getElementById('range');
@@ -397,41 +396,27 @@
       const topDate = document.getElementById('top-date');
 
       function getToken() {
-        return localStorage.getItem(TOKEN_KEY) || '';
+        return Common.GH.getToken();
       }
 
-      function refreshAuthBtn() {
-        if (getToken()) {
-          authBtn.classList.add('authed');
-          authBtn.title = 'Logged in to GitHub (click to log out)';
-        } else {
-          authBtn.classList.remove('authed');
-          authBtn.title = 'Log in with GitHub to include private repos';
-        }
-      }
-
-      authBtn.addEventListener('click', () => {
-        if (getToken()) {
-          if (confirm('Log out of GitHub?')) {
-            localStorage.removeItem(TOKEN_KEY);
-            location.reload();
-          }
-          return;
-        }
-        const msg =
-          'Paste a GitHub personal access token to include private repos.\n\n' +
-          'Create one at https://github.com/settings/tokens\n' +
-          '  • Classic token: scope "repo"\n' +
-          '  • Fine-grained: read access to "Contents" + "Metadata"\n\n' +
-          'The token is stored only in this browser (localStorage).';
-        const token = prompt(msg, '');
-        if (token && token.trim()) {
-          localStorage.setItem(TOKEN_KEY, token.trim());
-          location.reload();
-        }
+      // "Sign in with GitHub" (private repos need an authed token). Signing in
+      // navigates to GitHub and back; the redirect is finished by authReady
+      // below before the first fetch runs. Signing out reloads to drop back to
+      // the public view.
+      const auth = Common.GH.initAuthButton({
+        buttonEl: authBtn,
+        signedInTitle: 'Signed in to GitHub (click to sign out)',
+        signedOutTitle: 'Sign in with GitHub to include private repos',
+        onChange: () => location.reload(),
       });
 
-      refreshAuthBtn();
+      // Completes the OAuth redirect (if any) before commits are fetched, so
+      // the first request already carries the token. Resolves immediately on a
+      // normal load.
+      const authReady = Common.GH.handleRedirect();
+      authReady.then((signedIn) => {
+        if (signedIn) auth.refresh();
+      });
 
       let nextPage = 1;
       let loading = false;
@@ -445,6 +430,7 @@
       let botCommitsAll = [];
 
       async function fetchBotCommits() {
+        await authReady;
         const headers = { Accept: 'application/vnd.github+json' };
         const token = getToken();
         if (token) headers.Authorization = `Bearer ${token}`;
@@ -504,6 +490,7 @@
       }
 
       async function fetchPage(page) {
+        await authReady;
         const headers = { Accept: 'application/vnd.github+json' };
         const token = getToken();
         if (token) headers.Authorization = `Bearer ${token}`;
@@ -512,8 +499,8 @@
           { headers }
         );
         if (r.status === 401) {
-          localStorage.removeItem(TOKEN_KEY);
-          refreshAuthBtn();
+          Common.GH.clearToken();
+          auth.refresh();
           throw new Error('GitHub token rejected; logged out');
         }
         if (!r.ok) throw new Error(`GitHub API ${r.status}`);
