@@ -290,6 +290,8 @@
         ><span class="hint-btn" id="hb-restart">r restart</span></span
       >
       &nbsp;·&nbsp;
+      <span style="white-space: nowrap"><span class="hint-btn" id="hb-scores">h scores</span></span>
+      &nbsp;·&nbsp;
       <span style="white-space: nowrap"
         ><span class="hint-btn" id="hb-smaller">−</span>/<span class="hint-btn" id="hb-bigger"
           >+</span
@@ -431,6 +433,7 @@
 
       function reset() {
         clearTimeout(timer);
+        scoresOpen = false;
         const cx = Math.floor(cols / 2),
           cy = Math.floor(rows / 2);
         body = [];
@@ -471,6 +474,10 @@
       }
 
       function handleDir(name) {
+        if (scoresOpen) {
+          closeScores();
+          return;
+        }
         if (state === 'playing') {
           turn(name);
           return;
@@ -482,6 +489,10 @@
       }
 
       function handleTap() {
+        if (scoresOpen) {
+          closeScores();
+          return;
+        }
         if (state === 'playing') return;
         if (state === 'over') reset();
         startPlaying(DIRS.right);
@@ -574,14 +585,15 @@
       let ghLogin = null;
       let posting = false;
       let lastWasBest = false;
+      // The high-scores overlay can be toggled on top of any game state; opening
+      // it mid-play pauses the timer and closing resumes.
+      let scoresOpen = false;
 
       const ghAuth = Common.GH.initAuthButton({
         buttonEl: document.getElementById('gh-auth'),
         signedInTitle: 'Signed in to GitHub (click to sign out)',
         signedOutTitle: 'Sign in with GitHub to post high scores',
-        onChange: () => {
-          if (state !== 'playing') showOverlay(state === 'over' ? 'over' : 'ready');
-        },
+        onChange: refreshOverlay,
       });
 
       function getBest() {
@@ -623,7 +635,7 @@
         } catch (e) {
           /* keep whatever we have */
         }
-        if (state !== 'playing') showOverlay(state === 'over' ? 'over' : 'ready');
+        refreshOverlay();
       }
 
       async function whoami(token) {
@@ -664,12 +676,16 @@
               /* malformed file — start fresh from our entry */
             }
           }
-          const next = sortScores(
-            current.concat([{ name, score, date: new Date().toISOString().slice(0, 10) }])
-          );
+          const entry = { name, score, date: new Date().toISOString().slice(0, 10) };
+          const next = sortScores(current.concat([entry]));
+          // Only commit when this run actually lands in the top MAX_SCORES of the
+          // freshly read board; identity check so a tie with an existing score
+          // still resolves to our own entry. Either way, reflect the latest board.
+          if (!next.includes(entry)) {
+            leaderboard = sortScores(current);
+            return;
+          }
           leaderboard = next;
-          // Skip the commit if the merged board already beat us to it.
-          if (!next.some((s) => s.score === score && s.name === name)) return;
           const putR = await fetch(url, {
             method: 'PUT',
             headers,
@@ -684,7 +700,7 @@
           /* network/permission error: keep the local score, skip publishing */
         } finally {
           posting = false;
-          if (state !== 'playing') showOverlay(state === 'over' ? 'over' : 'ready');
+          refreshOverlay();
         }
       }
 
@@ -739,6 +755,43 @@
         overlay.classList.add('hidden');
       }
 
+      // Repaint the overlay for the current context: the scores view if open,
+      // otherwise the ready/game-over screen (nothing while actively playing).
+      function refreshOverlay() {
+        if (scoresOpen) showScores();
+        else if (state !== 'playing') showOverlay(state === 'over' ? 'over' : 'ready');
+      }
+
+      function showScores() {
+        overlay.innerHTML =
+          '<span class="ov-inner">' + leaderboardHtml() + '<small>tap / h to close</small></span>';
+        overlay.classList.remove('hidden');
+      }
+
+      function openScores() {
+        if (scoresOpen) return;
+        scoresOpen = true;
+        clearTimeout(timer); // pause a running game (harmless when idle)
+        showScores();
+        loadLeaderboard(); // pull the latest, then refreshOverlay repaints
+      }
+
+      function closeScores() {
+        if (!scoresOpen) return;
+        scoresOpen = false;
+        if (state === 'playing') {
+          hideOverlay();
+          schedule(); // resume the paused game
+        } else {
+          showOverlay(state === 'over' ? 'over' : 'ready');
+        }
+      }
+
+      function toggleScores() {
+        if (scoresOpen) closeScores();
+        else openScores();
+      }
+
       function setFont(delta) {
         const next = Math.max(8, Math.min(48, fontSize + delta));
         if (next === fontSize) return;
@@ -763,6 +816,9 @@
           handleTap();
         } else if ((e.key === 'r' || e.key === 'R') && !e.repeat) {
           reset();
+          showHint();
+        } else if ((e.key === 'h' || e.key === 'H') && !e.repeat) {
+          toggleScores();
           showHint();
         } else if (e.key === '+' || e.key === '=') {
           setFont(2);
@@ -831,6 +887,10 @@
       });
       document.getElementById('hb-restart').addEventListener('click', () => {
         reset();
+        showHint();
+      });
+      document.getElementById('hb-scores').addEventListener('click', () => {
+        toggleScores();
         showHint();
       });
       document.getElementById('hb-bigger').addEventListener('click', () => {
