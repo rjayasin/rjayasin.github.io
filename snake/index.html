@@ -98,6 +98,88 @@
         pointer-events: none;
         z-index: 3;
       }
+      #gh-auth {
+        position: fixed;
+        top: 10px;
+        right: 12px;
+        width: 22px;
+        height: 22px;
+        padding: 0;
+        border: none;
+        background: none;
+        cursor: pointer;
+        color: #999;
+        opacity: 0.65;
+        transition:
+          opacity 0.15s,
+          color 0.15s;
+        z-index: 6;
+      }
+      #gh-auth:hover,
+      #gh-auth.authed {
+        opacity: 1;
+        color: #000;
+      }
+      #gh-auth svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+        fill: currentColor;
+      }
+      body.dark #gh-auth:hover,
+      body.dark #gh-auth.authed {
+        color: #fff;
+      }
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) #gh-auth:hover,
+        body:not(.light) #gh-auth.authed {
+          color: #fff;
+        }
+      }
+      /* Leaderboard rendered inside the ready/game-over overlay. */
+      .lb {
+        margin-top: 12px;
+        font-size: 12px;
+        color: #888;
+        min-width: 168px;
+      }
+      .lb-title {
+        text-align: center;
+        color: #aaa;
+        margin-bottom: 4px;
+        letter-spacing: 0.04em;
+      }
+      .lb ol {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        text-align: left;
+      }
+      .lb li {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        line-height: 1.5;
+      }
+      .lb-rank {
+        color: #999;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .lb-score {
+        color: #555;
+      }
+      body.dark .lb-score {
+        color: #ccc;
+      }
+      .lb-empty,
+      .lb-best,
+      .lb-signin {
+        text-align: center;
+        color: #aaa;
+        margin-top: 6px;
+      }
       #overlay {
         position: fixed;
         inset: 0;
@@ -190,6 +272,14 @@
   <body>
     <div id="wrap"><pre id="board"></pre></div>
     <div id="score"></div>
+    <button id="gh-auth" type="button" aria-label="Sign in with GitHub" title="Sign in with GitHub">
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <path
+          fill-rule="evenodd"
+          d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
+        />
+      </svg>
+    </button>
     <div id="overlay" class="hidden"></div>
     <div id="hint">
       <span style="white-space: nowrap"
@@ -220,8 +310,8 @@
       Common.setFaviconHref(
         'data:image/svg+xml,' +
           encodeURIComponent(
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><text x="8" y="13" font-size="14" text-anchor="middle">🐍</text></svg>',
-          ),
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><text x="8" y="13" font-size="14" text-anchor="middle">🐍</text></svg>'
+          )
       );
       Common.initDarkMode();
 
@@ -429,8 +519,11 @@
       function gameOver() {
         state = 'over';
         clearTimeout(timer);
+        lastWasBest = eaten > getBest();
+        if (lastWasBest) setBest(eaten);
         render();
         showOverlay('over');
+        postScore(eaten);
       }
 
       function esc(ch) {
@@ -467,13 +560,179 @@
         scoreEl.textContent = 'score ' + eaten;
       }
 
+      // --- leaderboard ---
+      // High scores live in snake/scores.json. Everyone reads the published
+      // file (no auth); a signed-in player whose run cracks the top MAX_SCORES
+      // writes it back via the GitHub Contents API, which is published by the
+      // existing deploy workflow. Each visitor also keeps a private best in
+      // localStorage for instant feedback and so anonymous players see a board.
+      const REPO = 'rjayasin/rjayasin.github.io';
+      const SCORES_PATH = 'snake/scores.json';
+      const MAX_SCORES = 10;
+      const BEST_KEY = 'snake_best';
+      let leaderboard = [];
+      let ghLogin = null;
+      let posting = false;
+      let lastWasBest = false;
+
+      const ghAuth = Common.GH.initAuthButton({
+        buttonEl: document.getElementById('gh-auth'),
+        signedInTitle: 'Signed in to GitHub (click to sign out)',
+        signedOutTitle: 'Sign in with GitHub to post high scores',
+        onChange: () => {
+          if (state !== 'playing') showOverlay(state === 'over' ? 'over' : 'ready');
+        },
+      });
+
+      function getBest() {
+        return parseInt(localStorage.getItem(BEST_KEY) || '0', 10) || 0;
+      }
+      function setBest(n) {
+        localStorage.setItem(BEST_KEY, String(n));
+      }
+
+      // GitHub returns/expects file contents as base64; wrap btoa/atob so
+      // non-ASCII names (GitHub logins are ASCII, but be safe) survive.
+      function b64encode(str) {
+        return btoa(unescape(encodeURIComponent(str)));
+      }
+      function b64decode(b64) {
+        return decodeURIComponent(escape(atob(b64.replace(/\s/g, ''))));
+      }
+
+      function sortScores(list) {
+        return list
+          .filter((s) => s && typeof s.score === 'number')
+          .sort((a, b) => b.score - a.score)
+          .slice(0, MAX_SCORES);
+      }
+
+      function qualifies(score) {
+        if (score <= 0) return false;
+        if (leaderboard.length < MAX_SCORES) return true;
+        return score > leaderboard[leaderboard.length - 1].score;
+      }
+
+      async function loadLeaderboard() {
+        try {
+          const r = await fetch('scores.json?t=' + Date.now(), { cache: 'no-store' });
+          if (r.ok) {
+            const data = await r.json();
+            if (Array.isArray(data)) leaderboard = sortScores(data);
+          }
+        } catch (e) {
+          /* keep whatever we have */
+        }
+        if (state !== 'playing') showOverlay(state === 'over' ? 'over' : 'ready');
+      }
+
+      async function whoami(token) {
+        if (ghLogin) return ghLogin;
+        const r = await fetch('https://api.github.com/user', {
+          headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}` },
+        });
+        if (!r.ok) throw new Error('whoami failed');
+        ghLogin = (await r.json()).login;
+        return ghLogin;
+      }
+
+      async function postScore(score) {
+        if (posting || !Common.GH.isAuthed() || !qualifies(score)) return;
+        posting = true;
+        const token = Common.GH.getToken();
+        const headers = { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}` };
+        const url = `https://api.github.com/repos/${REPO}/contents/${SCORES_PATH}`;
+        try {
+          const name = await whoami(token);
+          // Re-read the file for its sha + latest contents so we merge with,
+          // rather than clobber, any score posted elsewhere since page load.
+          const getR = await fetch(url, { headers });
+          if (getR.status === 401) {
+            Common.GH.clearToken();
+            ghAuth.refresh();
+            return;
+          }
+          let sha;
+          let current = [];
+          if (getR.ok) {
+            const f = await getR.json();
+            sha = f.sha;
+            try {
+              const parsed = JSON.parse(b64decode(f.content));
+              if (Array.isArray(parsed)) current = parsed;
+            } catch (e) {
+              /* malformed file — start fresh from our entry */
+            }
+          }
+          const next = sortScores(
+            current.concat([{ name, score, date: new Date().toISOString().slice(0, 10) }])
+          );
+          leaderboard = next;
+          // Skip the commit if the merged board already beat us to it.
+          if (!next.some((s) => s.score === score && s.name === name)) return;
+          const putR = await fetch(url, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({
+              message: `snake: high score ${score} by ${name}`,
+              content: b64encode(JSON.stringify(next, null, 2) + '\n'),
+              sha,
+            }),
+          });
+          if (putR.ok) leaderboard = next;
+        } catch (e) {
+          /* network/permission error: keep the local score, skip publishing */
+        } finally {
+          posting = false;
+          if (state !== 'playing') showOverlay(state === 'over' ? 'over' : 'ready');
+        }
+      }
+
+      function lbEsc(n) {
+        return String(n == null ? '?' : n)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+      }
+
+      function leaderboardHtml() {
+        let html = '<div class="lb"><div class="lb-title">high scores</div>';
+        if (leaderboard.length) {
+          html += '<ol>';
+          leaderboard.forEach((s, i) => {
+            html +=
+              '<li><span class="lb-rank">' +
+              (i + 1) +
+              '. ' +
+              lbEsc(s.name) +
+              '</span><span class="lb-score">' +
+              s.score +
+              '</span></li>';
+          });
+          html += '</ol>';
+        } else {
+          html += '<div class="lb-empty">no scores yet</div>';
+        }
+        const best = getBest();
+        if (best > 0) html += '<div class="lb-best">your best ' + best + '</div>';
+        if (!Common.GH.isAuthed())
+          html += '<div class="lb-signin">sign in (top right) to post</div>';
+        return html + '</div>';
+      }
+
       function showOverlay(kind) {
-        overlay.innerHTML =
-          kind === 'over'
-            ? '<span class="ov-inner">game over · ate ' +
-              eaten +
-              '<br><small>tap / space / r to play again</small></span>'
-            : '<span class="ov-inner">↑ ↓ ← →&nbsp;&nbsp;or swipe to start</span>';
+        let head;
+        if (kind === 'over') {
+          head =
+            'game over · ate ' +
+            eaten +
+            '<br><small>' +
+            (lastWasBest && eaten > 0 ? 'new personal best!' : 'tap / space / r to play again') +
+            '</small>';
+        } else {
+          head = '↑ ↓ ← →&nbsp;&nbsp;or swipe to start';
+        }
+        overlay.innerHTML = '<span class="ov-inner">' + head + leaderboardHtml() + '</span>';
         overlay.classList.remove('hidden');
       }
       function hideOverlay() {
@@ -592,6 +851,13 @@
       Common.ensureEmojis();
       setup();
       reset();
+
+      // Finish any OAuth redirect (storing the token), sync the button, then
+      // load the published high scores into the overlay.
+      Common.GH.handleRedirect().then((signedIn) => {
+        if (signedIn) ghAuth.refresh();
+        loadLeaderboard();
+      });
     </script>
   </body>
 </html>
