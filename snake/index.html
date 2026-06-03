@@ -180,6 +180,27 @@
         color: #aaa;
         margin-top: 6px;
       }
+      /* A run that just landed on the shared board blinks in a bright gold so
+         the player can spot their fresh entry among the existing scores. */
+      @keyframes lb-blink {
+        0%,
+        49% {
+          opacity: 1;
+        }
+        50%,
+        100% {
+          opacity: 0.2;
+        }
+      }
+      .lb li.lb-new {
+        animation: lb-blink 0.8s steps(1, end) infinite;
+      }
+      .lb li.lb-new .lb-rank,
+      .lb li.lb-new .lb-score {
+        color: #ffcc00;
+        font-weight: 700;
+        text-shadow: 0 0 6px rgba(255, 204, 0, 0.85);
+      }
       #overlay {
         position: fixed;
         inset: 0;
@@ -433,6 +454,11 @@
 
       function reset() {
         clearTimeout(timer);
+        clearInterval(overTimer);
+        overTimer = null;
+        restartLockUntil = 0;
+        highlightIndex = -1;
+        lastWasBest = false;
         scoresOpen = false;
         const cx = Math.floor(cols / 2),
           cy = Math.floor(rows / 2);
@@ -482,7 +508,10 @@
           turn(name);
           return;
         }
-        if (state === 'over') reset();
+        if (state === 'over') {
+          if (!canRestart()) return;
+          reset();
+        }
         const nd = DIRS[name];
         if (nd.x === -dir.x && nd.y === -dir.y) return; // can't start into the body
         startPlaying(nd);
@@ -494,7 +523,10 @@
           return;
         }
         if (state === 'playing') return;
-        if (state === 'over') reset();
+        if (state === 'over') {
+          if (!canRestart()) return;
+          reset();
+        }
         startPlaying(DIRS.right);
       }
 
@@ -532,9 +564,29 @@
         clearTimeout(timer);
         lastWasBest = eaten > getBest();
         if (lastWasBest) setBest(eaten);
+        // Hold the board for a few seconds; tick the overlay so the countdown
+        // updates and the play-again prompt appears once the lock lifts.
+        restartLockUntil = Date.now() + RESTART_LOCK_MS;
+        clearInterval(overTimer);
+        overTimer = setInterval(() => {
+          if (Date.now() >= restartLockUntil) {
+            clearInterval(overTimer);
+            overTimer = null;
+          }
+          // Patch only the countdown line so a full overlay rebuild doesn't
+          // restart the highlighted row's blink animation each tick.
+          const sub = document.getElementById('ov-sub');
+          if (sub && state === 'over' && !scoresOpen) sub.innerHTML = overSubHtml();
+        }, 250);
         render();
         showOverlay('over');
         postScore(eaten);
+      }
+
+      // Restarts are blocked during the post-game-over hold; every other state
+      // can start/restart freely.
+      function canRestart() {
+        return state !== 'over' || Date.now() >= restartLockUntil;
       }
 
       function esc(ch) {
@@ -585,6 +637,14 @@
       let ghLogin = null;
       let posting = false;
       let lastWasBest = false;
+      // Index into `leaderboard` of the run that just cracked the shared board,
+      // so its row can be drawn bright + blinking; -1 means nothing to flag.
+      let highlightIndex = -1;
+      // After a game over the board is held for at least RESTART_LOCK_MS so the
+      // scores stay readable; restart inputs are ignored until it elapses.
+      const RESTART_LOCK_MS = 5000;
+      let restartLockUntil = 0;
+      let overTimer = null;
       // The high-scores overlay can be toggled on top of any game state; opening
       // it mid-play pauses the timer and closing resumes.
       let scoresOpen = false;
@@ -686,6 +746,7 @@
             return;
           }
           leaderboard = next;
+          highlightIndex = next.indexOf(entry);
           const putR = await fetch(url, {
             method: 'PUT',
             headers,
@@ -717,7 +778,8 @@
           html += '<ol>';
           leaderboard.forEach((s, i) => {
             html +=
-              '<li><span class="lb-rank">' +
+              (i === highlightIndex ? '<li class="lb-new">' : '<li>') +
+              '<span class="lb-rank">' +
               (i + 1) +
               '. ' +
               lbEsc(s.name) +
@@ -736,15 +798,20 @@
         return html + '</div>';
       }
 
+      // Sub-line under "game over": a live countdown while the board is held,
+      // then the play-again prompt once the restart lock lifts.
+      function overSubHtml() {
+        const remain = Math.ceil((restartLockUntil - Date.now()) / 1000);
+        const best = lastWasBest && eaten > 0 ? 'new personal best! · ' : '';
+        return remain > 0
+          ? best + 'play again in ' + remain + 's'
+          : best + 'tap / space / r to play again';
+      }
+
       function showOverlay(kind) {
         let head;
         if (kind === 'over') {
-          head =
-            'game over · ate ' +
-            eaten +
-            '<br><small>' +
-            (lastWasBest && eaten > 0 ? 'new personal best!' : 'tap / space / r to play again') +
-            '</small>';
+          head = 'game over · ate ' + eaten + '<br><small id="ov-sub">' + overSubHtml() + '</small>';
         } else {
           head = '↑ ↓ ← →&nbsp;&nbsp;or swipe to start';
         }
@@ -815,7 +882,7 @@
           e.preventDefault();
           handleTap();
         } else if ((e.key === 'r' || e.key === 'R') && !e.repeat) {
-          reset();
+          if (canRestart()) reset();
           showHint();
         } else if ((e.key === 'h' || e.key === 'H') && !e.repeat) {
           toggleScores();
@@ -886,7 +953,7 @@
         showHint();
       });
       document.getElementById('hb-restart').addEventListener('click', () => {
-        reset();
+        if (canRestart()) reset();
         showHint();
       });
       document.getElementById('hb-scores').addEventListener('click', () => {
