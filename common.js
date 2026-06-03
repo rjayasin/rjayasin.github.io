@@ -407,6 +407,8 @@ window.Common = window.Common || {};
   // user-to-server token. The token is the visitor's own and lives only in
   // this browser (localStorage 'gh_token') — same trust model as the old
   // paste-a-PAT flow it replaces. CLIENT_ID and WORKER_URL are public.
+  // The exchange Worker lives in its own repo (github.com/rjayasin/oauth-exchange)
+  // and is deployed separately from this site to oauth-exchange.rjayasin.workers.dev.
   const GH_CLIENT_ID = 'Iv23lixPSQk9WGC2qD8F';
   const GH_WORKER_URL = 'https://oauth-exchange.rjayasin.workers.dev';
   const GH_TOKEN_KEY = 'gh_token';
