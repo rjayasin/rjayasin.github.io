@@ -783,17 +783,20 @@
       canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
 
       // --- accelerometer ---
-      // Heuristic mapping: gamma (left/right roll) drives horizontal gravity,
-      // beta (front/back pitch) drives vertical. This isn't the textbook
-      // device-frame projection of world gravity (which zeroes the sideways
-      // component when the phone is held upright), but it matches how people
-      // expect a tilt toy to feel: lean right and the pile slides right.
+      // Project world "down" onto the device screen plane (ignoring alpha):
+      //   gx = cos(beta) * sin(gamma)   (left/right)
+      //   gy = sin(beta)                (front/back)
+      // The cos(beta) factor matters: near beta = 90 (phone held upright) the
+      // raw Euler gamma is unstable and flips sign as beta crosses vertical,
+      // which is what reversed the horizontal slide. cos(beta) tames that
+      // singularity and, when the phone leans back past vertical (beta > 90),
+      // correctly flips the sideways component to match real gravity.
       function applyOrientation(e) {
         if (e.beta == null && e.gamma == null) return;
         const beta = e.beta || 0;
         const gamma = e.gamma || 0;
         const rad = Math.PI / 180;
-        let gx = Math.sin(gamma * rad);
+        let gx = Math.cos(beta * rad) * Math.sin(gamma * rad);
         let gy = Math.sin(beta * rad);
         const ang = getScreenAngle();
         if (ang === 90) {
