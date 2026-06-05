@@ -417,6 +417,76 @@
         return result;
       }
 
+      function signedArea(c) {
+        let a = 0;
+        for (let i = 0; i < c.length; i++) {
+          const p = c[i],
+            q = c[(i + 1) % c.length];
+          a += p[0] * q[1] - q[0] * p[1];
+        }
+        return a / 2;
+      }
+
+      function polyCentroid(c) {
+        let x = 0,
+          y = 0;
+        for (const p of c) {
+          x += p[0];
+          y += p[1];
+        }
+        return [x / c.length, y / c.length];
+      }
+
+      function pointInPoly(pt, poly) {
+        let inside = false;
+        const x = pt[0],
+          y = pt[1];
+        for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+          const xi = poly[i][0],
+            yi = poly[i][1];
+          const xj = poly[j][0],
+            yj = poly[j][1];
+          if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+        }
+        return inside;
+      }
+
+      // Crease lines that run from a sharp corner of the front contour back
+      // along the extrusion to the matching corner of the back face. We only
+      // draw a corner that is on the "leading" side of the solid (the surface
+      // that faces the same way the block extrudes, hence visible) — corners
+      // on the trailing side are buried inside the body. Smooth parts of a
+      // curve (no sharp turn) get no line, so only true corners show an edge.
+      function connectingEdges(c, ox, oy, minLen) {
+        const n = c.length;
+        if (n < 3) return [];
+        const area = signedArea(c);
+        const flip = area >= 0 ? 1 : -1;
+        const CORNER_COS = 0.55; // turn must be sharper than ~57 degrees
+        const out = [];
+        for (let i = 0; i < n; i++) {
+          const prev = c[(i - 1 + n) % n],
+            cur = c[i],
+            next = c[(i + 1) % n];
+          const ix = cur[0] - prev[0],
+            iy = cur[1] - prev[1];
+          const ox2 = next[0] - cur[0],
+            oy2 = next[1] - cur[1];
+          const li = Math.hypot(ix, iy),
+            lo = Math.hypot(ox2, oy2);
+          if (li < minLen || lo < minLen) continue; // ignore tiny serif jitter
+          const cosang = (ix * ox2 + iy * oy2) / (li * lo);
+          if (cosang > CORNER_COS) continue; // not a real corner
+          // An edge is "leading" when stepping along the extrusion leaves the
+          // solid through that edge: edgeDir x extrusion, oriented by winding.
+          const sPrev = (ix * oy - iy * ox) * flip;
+          const sNext = (ox2 * oy - oy2 * ox) * flip;
+          if (sPrev <= 0 && sNext <= 0) continue; // corner is on the hidden side
+          out.push([cur, [cur[0] + ox, cur[1] + oy]]);
+        }
+        return out;
+      }
+
       async function render() {
         const items = Common.parseQueryItems().length ? Common.parseQueryItems() : fallbackItems;
         if (!items || items.length === 0) {
@@ -463,25 +533,6 @@
           }
         }
 
-        let bodyD = '';
-        if (steps > 0) {
-          for (const c of contours) {
-            let area = 0;
-            for (let i = 0; i < c.length; i++) {
-              const a = c[i],
-                b = c[(i + 1) % c.length];
-              area += a[0] * b[1] - b[0] * a[1];
-            }
-            if (area <= 0) continue;
-            const mb = minkowskiBoundary(c, ox, oy);
-            if (!mb || mb.length < 3) continue;
-            bodyD += 'M' + mb[0][0].toFixed(2) + ',' + mb[0][1].toFixed(2);
-            for (let i = 1; i < mb.length; i++)
-              bodyD += 'L' + mb[i][0].toFixed(2) + ',' + mb[i][1].toFixed(2);
-            bodyD += 'Z';
-          }
-        }
-
         const bMinX = Math.min(minX, minX + ox);
         const bMinY = Math.min(minY, minY + oy);
         const bMaxX = Math.max(maxX, maxX + ox);
@@ -493,23 +544,87 @@
         const vbH = bMaxY - bMinY + pad * 2;
         const sw = Math.max(0.6, fontSize / 200);
 
-        let stack = '';
+        // Build the extruded body of every letter, then overlay all front
+        // faces. Each letter (an outer contour plus the counters it encloses)
+        // becomes its own block so that a block nearer the camera can paint
+        // over the edges of one behind it; the front faces sit on top of all.
+        const polyD = (poly) => {
+          let d = 'M' + poly[0][0].toFixed(2) + ',' + poly[0][1].toFixed(2);
+          for (let i = 1; i < poly.length; i++)
+            d += 'L' + poly[i][0].toFixed(2) + ',' + poly[i][1].toFixed(2);
+          return d + 'Z';
+        };
+
+        let defs = `<path id="g" d="${frontD}" fill-rule="evenodd"/>`;
+        let body = '';
+
         if (steps > 0) {
-          const lay = Math.min(steps, 80);
-          for (let i = lay; i >= 1; i--) {
-            const tx = (ox / lay) * i;
-            const ty = (oy / lay) * i;
-            stack += `<use href="#g" transform="translate(${tx.toFixed(2)} ${ty.toFixed(2)})"/>`;
+          const lay = Math.min(Math.max(2, Math.round(steps)), 80);
+          // Only corners whose neighbouring strokes are reasonably long earn a
+          // crease line; this keeps serif brackets and raster jitter from
+          // scribbling short marks all over the body.
+          const minCornerLen = Math.max(2, fontSize * 0.09);
+
+          // Split contours into outer shapes and counters (holes), then attach
+          // each counter to the outer shape that contains it.
+          const groups = [];
+          const holesList = [];
+          contours.forEach((c) => {
+            const g = { c, centroid: polyCentroid(c) };
+            if (signedArea(c) > 0) {
+              g.holes = [];
+              groups.push(g);
+            } else {
+              holesList.push(g);
+            }
+          });
+          for (const h of holesList) {
+            const parent = groups.find((g) => pointInPoly(h.centroid, g.c));
+            if (parent) parent.holes.push(h.c);
           }
+          // Paint blocks back-to-front: the extrusion recedes along (ox, oy),
+          // so a letter further along that direction sits closer to the camera
+          // and is drawn later (over the ones behind it).
+          groups.sort(
+            (a, b) =>
+              a.centroid[0] * ox + a.centroid[1] * oy - (b.centroid[0] * ox + b.centroid[1] * oy)
+          );
+
+          groups.forEach((g, gi) => {
+            const pid = 'c' + gi;
+            // The block's profile keeps its counters as holes (even-odd), so a
+            // stack of translated copies sweeps a solid body while leaving the
+            // counter open where it tunnels all the way through — revealing
+            // whatever (another block, or the page) sits behind it.
+            let pd = polyD(g.c);
+            for (const h of g.holes) pd += polyD(h);
+            defs += `<path id="${pid}" d="${pd}" fill-rule="evenodd"/>`;
+            let stack = '';
+            for (let i = lay; i >= 1; i--) {
+              const tx = (ox / lay) * i;
+              const ty = (oy / lay) * i;
+              stack += `<use href="#${pid}" transform="translate(${tx.toFixed(2)} ${ty.toFixed(2)})"/>`;
+            }
+            body += `<g fill="${shadowColor}">${stack}</g>`;
+            // Outer silhouette of the block.
+            const mb = minkowskiBoundary(g.c, ox, oy);
+            if (mb && mb.length >= 3)
+              body += `<path d="${polyD(mb)}" fill="none" stroke="${edgeColor}" stroke-width="${sw}" stroke-linejoin="round"/>`;
+            // Crease edges where the outline (or a counter) has real corners.
+            let ed = '';
+            for (const cc of [g.c, ...g.holes]) {
+              for (const [p, q] of connectingEdges(cc, ox, oy, minCornerLen))
+                ed += `M${p[0].toFixed(2)},${p[1].toFixed(2)}L${q[0].toFixed(2)},${q[1].toFixed(2)}`;
+            }
+            if (ed)
+              body += `<path d="${ed}" fill="none" stroke="${edgeColor}" stroke-width="${sw}" stroke-linecap="round"/>`;
+          });
         }
 
         isoEl.innerHTML =
           `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" width="${vbW}" height="${vbH}">` +
-          `<defs><path id="g" d="${frontD}" fill-rule="evenodd"/></defs>` +
-          (stack ? `<g fill="${shadowColor}">${stack}</g>` : '') +
-          (bodyD
-            ? `<path d="${bodyD}" fill="none" stroke="${edgeColor}" stroke-width="${sw}" stroke-linejoin="round"/>`
-            : '') +
+          `<defs>${defs}</defs>` +
+          body +
           `<use href="#g" fill="${faceColor}" stroke="${edgeColor}" stroke-width="${sw}" stroke-linejoin="round"/>` +
           `</svg>`;
       }
@@ -660,12 +775,14 @@
         return t && t.closest && t.closest('#hint, #hint-zone, input, a, button');
       }
 
-      // Point the extrusion in the direction opposite the drag. Screen y grows
-      // downward, but the extrusion angle is measured with y up, so the
-      // opposite-of-drag direction is atan2(dy, -dx).
-      function angleFromDrag(dx, dy) {
-        const deg = (Math.atan2(dy, -dx) * 180) / Math.PI;
-        return ((deg % 360) + 360) % 360;
+      // A drag adjusts two things independently, relative to where it started:
+      // horizontal movement spins the extrusion angle, vertical movement grows
+      // or shrinks the projection depth (swipe up for more, down for less).
+      const DRAG_ANGLE_PER_PX = 0.5;
+      const DRAG_DEPTH_PER_PX = 0.4;
+      function applyDrag(start, dx, dy) {
+        angle = (((start.angle - dx * DRAG_ANGLE_PER_PX) % 360) + 360) % 360;
+        depth = Math.max(0, Math.min(500, start.depth - dy * DRAG_DEPTH_PER_PX));
       }
 
       document.addEventListener(
@@ -675,7 +792,12 @@
             touchStart = null;
             return;
           }
-          touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+          touchStart = {
+            x: e.touches[0].clientX,
+            y: e.touches[0].clientY,
+            angle,
+            depth,
+          };
           touchDidDrag = false;
         },
         { passive: true }
@@ -689,7 +811,7 @@
           if (!touchDidDrag && Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
           touchDidDrag = true;
           e.preventDefault();
-          angle = angleFromDrag(dx, dy);
+          applyDrag(touchStart, dx, dy);
           render();
           showHint();
         },
@@ -713,7 +835,7 @@
           mouseStart = null;
           return;
         }
-        mouseStart = { x: e.clientX, y: e.clientY };
+        mouseStart = { x: e.clientX, y: e.clientY, angle, depth };
       });
       window.addEventListener('mousemove', (e) => {
         if (!mouseStart) return;
@@ -722,7 +844,7 @@
         if (!mouseDidDrag && Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
         mouseDidDrag = true;
         e.preventDefault();
-        angle = angleFromDrag(dx, dy);
+        applyDrag(mouseStart, dx, dy);
         render();
         showHint();
       });
