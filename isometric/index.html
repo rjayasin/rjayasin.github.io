@@ -384,39 +384,6 @@
         return result;
       }
 
-      function minkowskiBoundary(contour, vx, vy) {
-        const n = contour.length;
-        if (n < 3) return null;
-        let area = 0;
-        for (let i = 0; i < n; i++) {
-          const a = contour[i],
-            b = contour[(i + 1) % n];
-          area += a[0] * b[1] - b[0] * a[1];
-        }
-        const flip = area >= 0 ? 1 : -1;
-        const eps = 0.25;
-        const signs = new Int8Array(n);
-        for (let i = 0; i < n; i++) {
-          const a = contour[i],
-            b = contour[(i + 1) % n];
-          const cross = ((b[0] - a[0]) * vy - (b[1] - a[1]) * vx) * flip;
-          signs[i] = cross > eps ? 1 : cross < -eps ? -1 : 0;
-        }
-        const result = [];
-        for (let i = 0; i < n; i++) {
-          const s = signs[i];
-          const prevS = signs[(i - 1 + n) % n];
-          const a = contour[i];
-          if (s !== 0 && prevS !== 0 && s !== prevS) {
-            if (prevS > 0) result.push(a);
-            else result.push([a[0] + vx, a[1] + vy]);
-          }
-          if (s > 0) result.push(a);
-          else if (s < 0) result.push([a[0] + vx, a[1] + vy]);
-        }
-        return result;
-      }
-
       function signedArea(c) {
         let a = 0;
         for (let i = 0; i < c.length; i++) {
@@ -451,40 +418,131 @@
         return inside;
       }
 
-      // Crease lines that run from a sharp corner of the front contour back
-      // along the extrusion to the matching corner of the back face. We only
-      // draw a corner that is on the "leading" side of the solid (the surface
-      // that faces the same way the block extrudes, hence visible) — corners
-      // on the trailing side are buried inside the body. Smooth parts of a
-      // curve (no sharp turn) get no line, so only true corners show an edge.
-      function connectingEdges(c, ox, oy, minLen) {
+      // Walk the contour from vertex i by arc-length `dist` (dir = +1/-1) and
+      // return the point reached. Used to measure a corner over a window
+      // rather than from one raster segment, which may be tiny next to a curve.
+      function walkContour(c, i, dir, dist) {
         const n = c.length;
-        if (n < 3) return [];
-        const area = signedArea(c);
-        const flip = area >= 0 ? 1 : -1;
-        const CORNER_COS = 0.55; // turn must be sharper than ~57 degrees
-        const out = [];
-        for (let i = 0; i < n; i++) {
-          const prev = c[(i - 1 + n) % n],
-            cur = c[i],
-            next = c[(i + 1) % n];
-          const ix = cur[0] - prev[0],
-            iy = cur[1] - prev[1];
-          const ox2 = next[0] - cur[0],
-            oy2 = next[1] - cur[1];
-          const li = Math.hypot(ix, iy),
-            lo = Math.hypot(ox2, oy2);
-          if (li < minLen || lo < minLen) continue; // ignore tiny serif jitter
-          const cosang = (ix * ox2 + iy * oy2) / (li * lo);
-          if (cosang > CORNER_COS) continue; // not a real corner
-          // An edge is "leading" when stepping along the extrusion leaves the
-          // solid through that edge: edgeDir x extrusion, oriented by winding.
-          const sPrev = (ix * oy - iy * ox) * flip;
-          const sNext = (ox2 * oy - oy2 * ox) * flip;
-          if (sPrev <= 0 && sNext <= 0) continue; // corner is on the hidden side
-          out.push([cur, [cur[0] + ox, cur[1] + oy]]);
+        let idx = i,
+          remain = dist;
+        for (let steps = 0; steps < n; steps++) {
+          const nxt = (idx + dir + n) % n;
+          const a = c[idx],
+            b = c[nxt];
+          const d = Math.hypot(b[0] - a[0], b[1] - a[1]);
+          if (d >= remain || d === 0) {
+            const t = d === 0 ? 0 : remain / d;
+            return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+          }
+          remain -= d;
+          idx = nxt;
         }
+        return c[idx];
+      }
+
+      // Vertices of a contour that are real corners. The turn at each vertex is
+      // measured across a window of length `look` (so a sharp corner is found
+      // even when one side is chopped into short raster segments, and gentle
+      // curves never register), then non-maximum suppression keeps one vertex
+      // per corner.
+      function cornerVertices(c, look) {
+        const n = c.length;
+        if (n < 4) return [];
+        const CORNER_COS = 0.6; // turn must be sharper than ~53 degrees
+        const cosv = new Array(n).fill(1);
+        for (let i = 0; i < n; i++) {
+          const cur = c[i],
+            back = walkContour(c, i, -1, look),
+            fwd = walkContour(c, i, 1, look);
+          const ix = cur[0] - back[0],
+            iy = cur[1] - back[1];
+          const jx = fwd[0] - cur[0],
+            jy = fwd[1] - cur[1];
+          const li = Math.hypot(ix, iy),
+            lo = Math.hypot(jx, jy);
+          if (li < 1e-3 || lo < 1e-3) continue;
+          cosv[i] = (ix * jx + iy * jy) / (li * lo);
+        }
+        const isCorner = (k) => cosv[k] < CORNER_COS;
+        let nCorner = 0;
+        for (let i = 0; i < n; i++) if (isCorner(i)) nCorner++;
+        if (!nCorner) return [];
+        // Cluster only corner vertices that sit within `look` of one another
+        // (the few raster points that make up one rounded corner) and keep the
+        // sharpest of each cluster; corners separated by a real edge stay
+        // separate. A sharp polygon (big E) has every vertex a corner but with
+        // long edges between, so each stays its own corner; a small round blob
+        // has every vertex a corner but packed together, so it collapses to one.
+        // Anchor the scan on a cluster boundary: a non-corner vertex if any,
+        // otherwise the corner reached by the longest edge.
+        let anchor = -1;
+        for (let i = 0; i < n; i++)
+          if (!isCorner(i)) {
+            anchor = i;
+            break;
+          }
+        if (anchor < 0) {
+          let maxGap = -1;
+          for (let i = 0; i < n; i++) {
+            const p = (i - 1 + n) % n;
+            const g = Math.hypot(c[i][0] - c[p][0], c[i][1] - c[p][1]);
+            if (g > maxGap) {
+              maxGap = g;
+              anchor = i;
+            }
+          }
+        }
+        const out = [];
+        let gBest = -1,
+          gCos = 2,
+          prevCorner = false;
+        const flush = () => {
+          if (gBest >= 0) out.push(gBest);
+          gBest = -1;
+          gCos = 2;
+        };
+        for (let s = 0; s < n; s++) {
+          const k = (anchor + s) % n;
+          const prev = (anchor + s - 1 + n) % n;
+          if (isCorner(k)) {
+            const gap = Math.hypot(c[k][0] - c[prev][0], c[k][1] - c[prev][1]);
+            if (!prevCorner || gap > look) flush(); // start a new cluster
+            if (cosv[k] < gCos) {
+              gCos = cosv[k];
+              gBest = k;
+            }
+            prevCorner = true;
+          } else {
+            flush();
+            prevCorner = false;
+          }
+        }
+        flush();
         return out;
+      }
+
+      // Smallest s in (eps, 1] at which the ray V + s*(ox,oy) crosses one of the
+      // given contour edges — i.e. how far the projected corner line travels
+      // before it dives back into the block's own surface.
+      function rayFirstHit(V, ox, oy, contours, eps) {
+        let best = Infinity;
+        for (const c of contours) {
+          for (let i = 0; i < c.length; i++) {
+            const a = c[i],
+              b = c[(i + 1) % c.length];
+            const ex = b[0] - a[0],
+              ey = b[1] - a[1];
+            const det = ex * oy - ey * ox;
+            if (Math.abs(det) < 1e-9) continue;
+            const rx = a[0] - V[0],
+              ry = a[1] - V[1];
+            const s = (ex * ry - ey * rx) / det;
+            const u = (ox * ry - oy * rx) / det;
+            if (u < -1e-6 || u > 1 + 1e-6) continue;
+            if (s > eps && s < best) best = s;
+          }
+        }
+        return best;
       }
 
       async function render() {
@@ -559,11 +617,9 @@
         let body = '';
 
         if (steps > 0) {
-          const lay = Math.min(Math.max(2, Math.round(steps)), 80);
-          // Only corners whose neighbouring strokes are reasonably long earn a
-          // crease line; this keeps serif brackets and raster jitter from
-          // scribbling short marks all over the body.
-          const minCornerLen = Math.max(2, fontSize * 0.09);
+          // Window (in px) over which a corner's turn is measured; scales with
+          // the type so it ignores raster jitter but still catches real corners.
+          const cornerLook = Math.max(3, fontSize * 0.05);
 
           // Split contours into outer shapes and counters (holes), then attach
           // each counter to the outer shape that contains it.
@@ -590,31 +646,64 @@
               a.centroid[0] * ox + a.centroid[1] * oy - (b.centroid[0] * ox + b.centroid[1] * oy)
           );
 
+          const lay = Math.min(Math.max(2, Math.round(steps)), 80);
+
           groups.forEach((g, gi) => {
             const pid = 'c' + gi;
-            // The block's profile keeps its counters as holes (even-odd), so a
-            // stack of translated copies sweeps a solid body while leaving the
-            // counter open where it tunnels all the way through — revealing
-            // whatever (another block, or the page) sits behind it.
+            const allC = [g.c, ...g.holes];
+            // Profile keeps counters as holes (even-odd) so the swept stack
+            // leaves them open as tunnels through the block.
             let pd = polyD(g.c);
             for (const h of g.holes) pd += polyD(h);
             defs += `<path id="${pid}" d="${pd}" fill-rule="evenodd"/>`;
-            let stack = '';
+            let stackUses = '';
             for (let i = lay; i >= 1; i--) {
               const tx = (ox / lay) * i;
               const ty = (oy / lay) * i;
-              stack += `<use href="#${pid}" transform="translate(${tx.toFixed(2)} ${ty.toFixed(2)})"/>`;
+              stackUses += `<use href="#${pid}" transform="translate(${tx.toFixed(2)} ${ty.toFixed(2)})"/>`;
             }
-            body += `<g fill="${shadowColor}">${stack}</g>`;
-            // Outer silhouette of the block.
-            const mb = minkowskiBoundary(g.c, ox, oy);
-            if (mb && mb.length >= 3)
-              body += `<path d="${polyD(mb)}" fill="none" stroke="${edgeColor}" stroke-width="${sw}" stroke-linejoin="round"/>`;
-            // Crease edges where the outline (or a counter) has real corners.
+            // Outline trick: a copy of the swept stack drawn first in the edge
+            // colour and fattened by the stroke, then the grey stack painted on
+            // top. Only the fattened margin of the black layer survives as a
+            // crisp silhouette — around the block and around every tunnel —
+            // with no stray interior lines, since opaque fill hides all the
+            // self-overlaps a concave letter produces.
+            body +=
+              `<g fill="${edgeColor}" stroke="${edgeColor}" stroke-width="${(sw * 2).toFixed(2)}" stroke-linejoin="round">${stackUses}</g>` +
+              `<g fill="${shadowColor}">${stackUses}</g>`;
+            // Crease edges: at every real corner, the line from the front
+            // corner back along the extrusion. Each one is clipped to the part
+            // that is actually on the surface — if the extrusion direction dips
+            // into the block at the corner the line is hidden entirely, and
+            // otherwise it stops where it re-enters the block (e.g. the edge
+            // above an arm runs out to where it meets the stem above).
+            const offLen = Math.hypot(ox, oy);
+            const epsS = offLen > 0 ? 1 / offLen : 0; // ~1px in s units
+            const inFilled = (px, py) =>
+              pointInPoly([px, py], g.c) && !g.holes.some((h) => pointInPoly([px, py], h));
             let ed = '';
-            for (const cc of [g.c, ...g.holes]) {
-              for (const [p, q] of connectingEdges(cc, ox, oy, minCornerLen))
-                ed += `M${p[0].toFixed(2)},${p[1].toFixed(2)}L${q[0].toFixed(2)},${q[1].toFixed(2)}`;
+            for (const cc of allC) {
+              const flip = signedArea(cc) >= 0 ? 1 : -1;
+              for (const idx of cornerVertices(cc, cornerLook)) {
+                const V = cc[idx];
+                const hit = rayFirstHit(V, ox, oy, allC, epsS);
+                let len = Math.min(isFinite(hit) ? hit : 1, 1);
+                // The crease is visible either where the extrusion leaves the
+                // block (a true silhouette/step edge) or, when it grazes just
+                // inside, where the corner sits on a leading face — the surfaces
+                // that face the way the block extrudes. A corner whose extrusion
+                // dives straight into the body with no leading face is buried.
+                if (inFilled(V[0] + ox * epsS, V[1] + oy * epsS)) {
+                  const back = walkContour(cc, idx, -1, cornerLook);
+                  const fwd = walkContour(cc, idx, 1, cornerLook);
+                  const leadIn = ((V[0] - back[0]) * oy - (V[1] - back[1]) * ox) * flip;
+                  const leadOut = ((fwd[0] - V[0]) * oy - (fwd[1] - V[1]) * ox) * flip;
+                  if (leadIn <= 0 && leadOut <= 0) continue; // buried under the body
+                  len = Math.min(len, 0.5); // grazing seam: keep it short
+                }
+                if (len < 0.05) continue;
+                ed += `M${V[0].toFixed(2)},${V[1].toFixed(2)}L${(V[0] + ox * len).toFixed(2)},${(V[1] + oy * len).toFixed(2)}`;
+              }
             }
             if (ed)
               body += `<path d="${ed}" fill="none" stroke="${edgeColor}" stroke-width="${sw}" stroke-linecap="round"/>`;
