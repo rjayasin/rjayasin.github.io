@@ -242,6 +242,24 @@
         color: #888;
         font-size: 12px;
       }
+      /* The game-over sub-line swaps between a countdown ("play again in Ns")
+         and the longer "tap / space / r to play again" prompt. A hidden sizer
+         holding the widest variant reserves the space so the overlay — and the
+         leaderboard inside it — keeps a constant width across that swap. */
+      #ov-sub {
+        display: inline-block;
+        position: relative;
+        white-space: nowrap;
+      }
+      #ov-sub .ov-sub-size {
+        visibility: hidden;
+      }
+      #ov-sub .ov-sub-text {
+        position: absolute;
+        left: 0;
+        right: 0;
+        white-space: nowrap;
+      }
       #hint {
         position: fixed;
         left: 0;
@@ -800,12 +818,22 @@
 
       // Sub-line under "game over": a live countdown while the board is held,
       // then the play-again prompt once the restart lock lifts.
+      const playAgainText = 'tap / space / r to play again';
       function overSubHtml() {
         const remain = Math.ceil((restartLockUntil - Date.now()) / 1000);
         const best = lastWasBest && eaten > 0 ? 'new personal best! · ' : '';
-        return remain > 0
-          ? best + 'play again in ' + remain + 's'
-          : best + 'tap / space / r to play again';
+        const msg = remain > 0 ? best + 'play again in ' + remain + 's' : best + playAgainText;
+        // A hidden sizer carries the widest variant (the play-again prompt) while
+        // the visible text is overlaid on top, so the box width never changes as
+        // the countdown gives way to the prompt.
+        return (
+          '<span class="ov-sub-size">' +
+          best +
+          playAgainText +
+          '</span><span class="ov-sub-text">' +
+          msg +
+          '</span>'
+        );
       }
 
       function showOverlay(kind) {
