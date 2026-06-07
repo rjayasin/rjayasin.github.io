@@ -36,6 +36,9 @@
         left: 0;
         display: flex;
       }
+      body.vert #alphabet {
+        flex-direction: column;
+      }
       .cell {
         text-align: center;
         font-weight: 600;
@@ -55,6 +58,9 @@
       }
       #word .cell {
         display: block;
+      }
+      body.vert #word {
+        display: flex;
       }
       #hint {
         position: fixed;
@@ -119,6 +125,8 @@
           letters</span
         >
         &nbsp;·&nbsp;
+        <span style="white-space: nowrap"><span class="hint-btn" id="hb-flip">a flip</span></span>
+        &nbsp;·&nbsp;
         <span style="white-space: nowrap"
           ><span class="hint-btn" id="hb-wik">w wiktionary</span></span
         >
@@ -145,31 +153,39 @@
       // glyphs are ~0.6em wide) and slightly condensed vertical line pitch.
       const COL = 0.62;
       const ROW = 0.9;
-      // Nominal vertical rows used only to keep the font a sensible size; words
-      // can be any length and simply extend past the viewport if longer.
-      const VROWS = 13;
+      // Nominal cross-axis cells used only to keep the font a sensible size; the
+      // word can be any length and simply extends past the viewport if longer.
+      const VNOM = 13;
 
       const stageEl = document.getElementById('stage');
       const alphabetEl = document.getElementById('alphabet');
       const wordEl = document.getElementById('word');
 
-      let words = null;
       let index = -1; // -1 = no word shown yet
+      let vertical = false; // false: alphabet horizontal / word descends
       let cellW = 0;
       let cellH = 0;
       let fontSize = 0;
 
       function layout() {
         const maxFont = window.innerWidth < 640 ? 30 : 56;
-        const byWidth = (window.innerWidth - 16) / (26 * COL);
-        const byHeight = (window.innerHeight - 90) / (VROWS * ROW);
-        fontSize = Math.max(10, Math.floor(Math.min(maxFont, byWidth, byHeight)));
+        // The alphabet's 26 cells run along the main axis; the word runs along
+        // the cross axis (sized by VNOM so the font stays reasonable).
+        let byMain, byCross;
+        if (vertical) {
+          byMain = (window.innerHeight - 16) / (26 * ROW); // 26 letters down
+          byCross = (window.innerWidth - 32) / (VNOM * COL); // word across
+        } else {
+          byMain = (window.innerWidth - 16) / (26 * COL); // 26 letters across
+          byCross = (window.innerHeight - 90) / (VNOM * ROW); // word down
+        }
+        fontSize = Math.max(10, Math.floor(Math.min(maxFont, byMain, byCross)));
         cellW = fontSize * COL;
         cellH = fontSize * ROW;
-        // The stage is just the alphabet row; body flex centres it. The vertical
-        // word is positioned relative to it and may extend above/below.
-        stageEl.style.width = cellW * 26 + 'px';
-        stageEl.style.height = cellH + 'px';
+        // The stage is just the alphabet (a row or a column); body flex centres
+        // it. The word is positioned relative to it and may extend beyond it.
+        stageEl.style.width = (vertical ? cellW : cellW * 26) + 'px';
+        stageEl.style.height = (vertical ? cellH * 26 : cellH) + 'px';
         for (const c of alphabetEl.children) sizeCell(c);
         renderWord();
       }
@@ -194,9 +210,18 @@
         alphabetEl.appendChild(frag);
       }
 
-      function pickWord(letter) {
-        const pool = words.filter((w) => w.includes(letter));
-        return pool[Math.floor(Math.random() * pool.length)];
+      // Datamuse returns words *containing* the given letter, ranked by
+      // frequency. One query per letter; results are cached (as promises so a
+      // letter is only fetched once). Prefetched on load to keep switching snappy.
+      const cache = {};
+      function wordsFor(letter) {
+        if (!cache[letter]) {
+          cache[letter] = fetch(`https://api.datamuse.com/words?sp=*${letter}*&max=1000`)
+            .then((r) => r.json())
+            .then((arr) => arr.map((o) => o.word).filter((w) => /^[a-z]+$/.test(w)))
+            .catch(() => []);
+        }
+        return cache[letter];
       }
 
       // Choose a random occurrence of `letter` in `word` as the intersection.
@@ -213,18 +238,18 @@
       function renderWord() {
         wordEl.textContent = '';
         for (const c of alphabetEl.children) c.classList.remove('on');
-        if (index < 0 || !words) return;
-
-        const letter = LETTERS[index];
-        if (!current) {
-          const word = pickWord(letter);
-          current = { word, pos: pickIntersection(word, letter) };
-        }
+        if (index < 0) return;
+        alphabetEl.children[index].classList.add('on');
+        if (!current) return;
         const { word, pos } = current;
 
-        alphabetEl.children[index].classList.add('on');
-        wordEl.style.left = index * cellW + 'px';
-        wordEl.style.top = -pos * cellH + 'px';
+        if (vertical) {
+          wordEl.style.left = -pos * cellW + 'px';
+          wordEl.style.top = index * cellH + 'px';
+        } else {
+          wordEl.style.left = index * cellW + 'px';
+          wordEl.style.top = -pos * cellH + 'px';
+        }
         const frag = document.createDocumentFragment();
         for (let i = 0; i < word.length; i++) {
           const span = document.createElement('span');
@@ -236,13 +261,32 @@
         wordEl.appendChild(frag);
       }
 
+      let seq = 0; // guards against a slow fetch landing after a newer move
+      async function ensureWord() {
+        if (index < 0) return;
+        const my = ++seq;
+        const letter = LETTERS[index];
+        const list = await wordsFor(letter);
+        if (my !== seq || index < 0 || !list.length) return;
+        const word = list[Math.floor(Math.random() * list.length)];
+        current = { word, pos: pickIntersection(word, letter) };
+        renderWord();
+      }
+
       function go(delta) {
-        if (!words) return;
         const next = Math.max(-1, Math.min(25, index + delta));
         if (next === index) return;
         index = next;
         current = null;
+        seq++; // invalidate any in-flight pick
         renderWord();
+        ensureWord();
+      }
+
+      function flip() {
+        vertical = !vertical;
+        document.body.classList.toggle('vert', vertical);
+        layout();
       }
 
       function openWord() {
@@ -258,36 +302,8 @@
       layout();
       window.addEventListener('resize', layout);
 
-      // Pull random words from the API. A single large batch reliably covers
-      // every letter (rare ones like q included); loop a couple more times only
-      // if some letter is still missing.
-      const API = 'https://random-word-api.herokuapp.com/word?number=2500';
-      function missingLetter(pool) {
-        return LETTERS.some((c) => !pool.some((w) => w.includes(c)));
-      }
-      async function loadWords() {
-        const pool = [];
-        for (let tries = 0; tries < 4; tries++) {
-          try {
-            const batch = await fetch(API).then((r) => r.json());
-            for (const w of batch) {
-              const lw = String(w).toLowerCase();
-              if (/^[a-z]+$/.test(lw)) pool.push(lw);
-            }
-          } catch {
-            break;
-          }
-          if (pool.length && !missingLetter(pool)) break;
-        }
-        if (pool.length) {
-          words = pool;
-          if (index >= 0) {
-            current = null;
-            renderWord();
-          }
-        }
-      }
-      loadWords();
+      // Warm the cache for every letter so switching is instant after load.
+      LETTERS.forEach(wordsFor);
 
       document.addEventListener('keydown', (e) => {
         const t = e.target;
@@ -300,6 +316,8 @@
           go(-1);
         } else if (e.key === 'w' || e.key === 'W') {
           openWord();
+        } else if (e.key === 'a' || e.key === 'A') {
+          flip();
         }
       });
 
@@ -338,6 +356,10 @@
       });
       document.getElementById('hb-right').addEventListener('click', () => {
         go(1);
+        showHint();
+      });
+      document.getElementById('hb-flip').addEventListener('click', () => {
+        flip();
         showHint();
       });
       document.getElementById('hb-wik').addEventListener('click', () => {
