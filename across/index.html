@@ -66,6 +66,14 @@
       body.vert .word {
         display: flex;
       }
+      /* The crossing letter of the currently selected word matches the
+         alphabet's idle grey rather than the word's full-strength colour. */
+      .word .cell.cross {
+        color: #bbb;
+      }
+      body.dark .word .cell.cross {
+        color: #555;
+      }
       #hint {
         position: fixed;
         left: 0;
@@ -252,13 +260,15 @@
       function renderWords() {
         wordEl.textContent = '';
         for (const c of alphabetEl.children) c.classList.remove('on');
-        if (index >= 0) alphabetEl.children[index].classList.add('on');
         const frag = document.createDocumentFragment();
         for (const key in words) {
           const i = +key;
           const entry = words[i];
           if (!entry) continue;
-          alphabetEl.children[i].classList.add('on');
+          const isCurrent = i === index;
+          // The selected letter keeps the alphabet's idle grey; other letters
+          // that still show a (persisted) word are highlighted.
+          if (!isCurrent) alphabetEl.children[i].classList.add('on');
           const { word, pos } = entry;
           const wEl = document.createElement('div');
           wEl.className = 'word';
@@ -272,6 +282,9 @@
           for (let j = 0; j < word.length; j++) {
             const span = document.createElement('span');
             span.className = 'cell';
+            // Grey the crossing letter of the current word so the alphabet
+            // letter it sits over reads as still-grey, not black.
+            if (isCurrent && j === pos) span.classList.add('cross');
             span.textContent = word[j];
             sizeCell(span);
             wEl.appendChild(span);
