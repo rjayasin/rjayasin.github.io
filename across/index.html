@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ruvan / across</title>
+    <link rel="icon" id="favicon" />
+    <link rel="stylesheet" href="/common.css" />
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        user-select: none;
+        touch-action: none;
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+      }
+      #stage {
+        position: relative;
+      }
+      #alphabet {
+        position: absolute;
+        left: 0;
+        display: flex;
+      }
+      .cell {
+        text-align: center;
+        font-weight: 600;
+      }
+      #alphabet .cell {
+        color: #bbb;
+        transition: color 0.2s ease;
+      }
+      body.dark #alphabet .cell {
+        color: #555;
+      }
+      #alphabet .cell.on {
+        color: inherit;
+      }
+      #word {
+        position: absolute;
+        display: block;
+      }
+      #word .cell {
+        display: block;
+      }
+      #word .cell.x {
+        border-radius: 4px;
+        background: #ffd64a;
+        color: #000;
+      }
+      body.dark #word .cell.x {
+        background: #b8860b;
+        color: #fff;
+      }
+      #word.drop {
+        animation: drop 0.28s ease;
+      }
+      @keyframes drop {
+        from {
+          opacity: 0;
+          transform: translateY(-12px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      #hint {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 12px;
+        text-align: center;
+        font-size: 12px;
+        color: #888;
+        opacity: 1;
+        transition: opacity 0.4s ease;
+        user-select: none;
+        z-index: 3;
+      }
+      #hint-inner {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 6px;
+        background: #ffffff;
+      }
+      body.dark #hint-inner {
+        background: #111111;
+      }
+      #hint.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #hint .hint-btn {
+        cursor: pointer;
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        text-underline-offset: 2px;
+      }
+      #hint .hint-btn:hover {
+        color: #333;
+      }
+      body.dark #hint .hint-btn:hover {
+        color: #ccc;
+      }
+      #hint-zone {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 60px;
+        z-index: 2;
+      }
+    </style>
+    <script src="/common.js"></script>
+  </head>
+  <body>
+    <div id="stage">
+      <div id="alphabet"></div>
+      <div id="word"></div>
+    </div>
+    <div id="hint">
+      <span id="hint-inner"
+        ><span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-left">←</span>/<span class="hint-btn" id="hb-right"
+            >→</span
+          >
+          letters</span
+        >
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-dark"
+            >1 <span class="hb-dark-label">dark</span></span
+          ></span
+        >
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-sitemap">s sitemap</span></span
+        ></span
+      >
+    </div>
+    <div id="hint-zone"></div>
+    <script>
+      Common.paintFaviconR();
+      Common.initDarkMode();
+      Common.initCursorHide();
+
+      const LETTERS = 'abcdefghijklmnopqrstuvwxyz'.split('');
+      // Words are 5 letters, so the vertical word spans at most 5 cells from the
+      // alphabet row in either direction. Reserve 4 rows above + the row + 4 below.
+      const HALF = 4;
+      const ROWS = HALF * 2 + 1;
+
+      const stageEl = document.getElementById('stage');
+      const alphabetEl = document.getElementById('alphabet');
+      const wordEl = document.getElementById('word');
+
+      let words = null;
+      let index = -1; // -1 = no word shown yet
+      let cell = 0;
+      let fontSize = 0;
+
+      function layout() {
+        const maxCell = window.innerWidth < 640 ? 22 : 44;
+        cell = Math.max(10, Math.min(maxCell, Math.floor((window.innerWidth - 16) / 26)));
+        fontSize = Math.round(cell * 0.78);
+        stageEl.style.width = cell * 26 + 'px';
+        stageEl.style.height = cell * ROWS + 'px';
+        alphabetEl.style.top = cell * HALF + 'px';
+        for (const c of alphabetEl.children) sizeCell(c);
+        renderWord();
+      }
+
+      function sizeCell(el) {
+        el.style.width = cell + 'px';
+        el.style.height = cell + 'px';
+        el.style.lineHeight = cell + 'px';
+        el.style.fontSize = fontSize + 'px';
+      }
+
+      function buildAlphabet() {
+        const frag = document.createDocumentFragment();
+        for (const ch of LETTERS) {
+          const span = document.createElement('span');
+          span.className = 'cell';
+          span.textContent = ch;
+          sizeCell(span);
+          frag.appendChild(span);
+        }
+        alphabetEl.textContent = '';
+        alphabetEl.appendChild(frag);
+      }
+
+      function pickWord(letter) {
+        const pool = words.filter((w) => w.includes(letter));
+        return pool[Math.floor(Math.random() * pool.length)];
+      }
+
+      // Choose a random occurrence of `letter` in `word` as the intersection,
+      // but only one that keeps the whole word within the reserved rows.
+      function pickIntersection(word, letter) {
+        const spots = [];
+        for (let i = 0; i < word.length; i++) {
+          if (word[i] !== letter) continue;
+          const below = word.length - 1 - i;
+          if (i <= HALF && below <= HALF) spots.push(i);
+        }
+        return spots[Math.floor(Math.random() * spots.length)];
+      }
+
+      let current = null; // { word, pos } so resize re-renders the same word
+
+      function renderWord() {
+        wordEl.textContent = '';
+        for (const c of alphabetEl.children) c.classList.remove('on');
+        if (index < 0 || !words) return;
+
+        const letter = LETTERS[index];
+        if (!current) {
+          const word = pickWord(letter);
+          current = { word, pos: pickIntersection(word, letter) };
+        }
+        const { word, pos } = current;
+
+        alphabetEl.children[index].classList.add('on');
+        wordEl.style.left = index * cell + 'px';
+        wordEl.style.top = (HALF - pos) * cell + 'px';
+        const frag = document.createDocumentFragment();
+        for (let i = 0; i < word.length; i++) {
+          const span = document.createElement('span');
+          span.className = 'cell' + (i === pos ? ' x' : '');
+          span.textContent = word[i];
+          sizeCell(span);
+          frag.appendChild(span);
+        }
+        wordEl.appendChild(frag);
+        // restart the drop animation
+        wordEl.classList.remove('drop');
+        void wordEl.offsetWidth;
+        wordEl.classList.add('drop');
+      }
+
+      function go(delta) {
+        if (!words) return;
+        const next = Math.max(-1, Math.min(25, index + delta));
+        if (next === index) return;
+        index = next;
+        current = null;
+        renderWord();
+      }
+
+      buildAlphabet();
+      layout();
+      window.addEventListener('resize', layout);
+
+      fetch('/words.txt')
+        .then((r) => r.text())
+        .then((t) => {
+          words = t.split(/\s+/).filter((w) => w.length > 0);
+        })
+        .catch(() => {});
+
+      document.addEventListener('keydown', (e) => {
+        const t = e.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          go(1);
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          go(-1);
+        }
+      });
+
+      let touchX = null;
+      let touchY = null;
+      document.addEventListener(
+        'touchstart',
+        (e) => {
+          if (e.touches.length !== 1) return;
+          touchX = e.touches[0].clientX;
+          touchY = e.touches[0].clientY;
+        },
+        { passive: true }
+      );
+      document.addEventListener(
+        'touchend',
+        (e) => {
+          if (touchX === null) return;
+          const dx = e.changedTouches[0].clientX - touchX;
+          const dy = e.changedTouches[0].clientY - touchY;
+          touchX = null;
+          if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+            go(dx > 0 ? 1 : -1);
+          }
+        },
+        { passive: true }
+      );
+
+      const { show: showHint } = Common.initHintBar({
+        hintEl: document.getElementById('hint'),
+        hintZoneEl: document.getElementById('hint-zone'),
+      });
+      document.getElementById('hb-left').addEventListener('click', () => {
+        go(-1);
+        showHint();
+      });
+      document.getElementById('hb-right').addEventListener('click', () => {
+        go(1);
+        showHint();
+      });
+      document.getElementById('hb-dark').addEventListener('click', () => {
+        Common.toggleDark();
+        showHint();
+      });
+      document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
+      Common.initSitemapShortcut();
+    </script>
+  </body>
+</html>

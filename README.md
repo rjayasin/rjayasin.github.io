@@ -20,6 +20,7 @@
 - [`isometric`](https://rjayasin.github.io/isometric/)
 - [`shooter`](https://rjayasin.github.io/shooter/)
 - [`gravity`](https://rjayasin.github.io/gravity/)
+- [`across`](https://rjayasin.github.io/across/)
 
 `tools`
 
