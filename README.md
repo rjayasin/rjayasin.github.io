@@ -8,6 +8,7 @@
 `fun`
 
 - [`maze-canvas`](https://rjayasin.github.io/maze-canvas/)
+- [`snake`](https://rjayasin.github.io/snake/)
 
 `text`
 
@@ -19,7 +20,6 @@
 - [`isometric`](https://rjayasin.github.io/isometric/)
 - [`shooter`](https://rjayasin.github.io/shooter/)
 - [`gravity`](https://rjayasin.github.io/gravity/)
-- [`snake`](https://rjayasin.github.io/snake/)
 
 `tools`
 
