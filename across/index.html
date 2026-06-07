@@ -54,12 +54,16 @@
       }
       #word {
         position: absolute;
+        left: 0;
+        top: 0;
+      }
+      .word {
+        position: absolute;
+      }
+      .word .cell {
         display: block;
       }
-      #word .cell {
-        display: block;
-      }
-      body.vert #word {
+      body.vert .word {
         display: flex;
       }
       #hint {
@@ -128,6 +132,12 @@
         <span style="white-space: nowrap"><span class="hint-btn" id="hb-flip">a flip</span></span>
         &nbsp;·&nbsp;
         <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-persist"
+            >p persist <span class="hb-persist-label">off</span></span
+          ></span
+        >
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"
           ><span class="hint-btn" id="hb-wik">w wiktionary</span></span
         >
         &nbsp;·&nbsp;
@@ -187,7 +197,7 @@
         stageEl.style.width = (vertical ? cellW : cellW * 26) + 'px';
         stageEl.style.height = (vertical ? cellH * 26 : cellH) + 'px';
         for (const c of alphabetEl.children) sizeCell(c);
-        renderWord();
+        renderWords();
       }
 
       function sizeCell(el) {
@@ -233,30 +243,40 @@
         return spots[Math.floor(Math.random() * spots.length)];
       }
 
-      let current = null; // { word, pos } so resize re-renders the same word
+      // Word(s) currently on screen, keyed by alphabet index → { word, pos }.
+      // Without persistence only the current letter ever has an entry; with it,
+      // every visited letter keeps its crossing word so they accumulate.
+      let words = {};
+      let persist = false; // hint-bar toggle: keep perpendicular words around
 
-      function renderWord() {
+      function renderWords() {
         wordEl.textContent = '';
         for (const c of alphabetEl.children) c.classList.remove('on');
-        if (index < 0) return;
-        alphabetEl.children[index].classList.add('on');
-        if (!current) return;
-        const { word, pos } = current;
-
-        if (vertical) {
-          wordEl.style.left = -pos * cellW + 'px';
-          wordEl.style.top = index * cellH + 'px';
-        } else {
-          wordEl.style.left = index * cellW + 'px';
-          wordEl.style.top = -pos * cellH + 'px';
-        }
+        if (index >= 0) alphabetEl.children[index].classList.add('on');
         const frag = document.createDocumentFragment();
-        for (let i = 0; i < word.length; i++) {
-          const span = document.createElement('span');
-          span.className = 'cell';
-          span.textContent = word[i];
-          sizeCell(span);
-          frag.appendChild(span);
+        for (const key in words) {
+          const i = +key;
+          const entry = words[i];
+          if (!entry) continue;
+          alphabetEl.children[i].classList.add('on');
+          const { word, pos } = entry;
+          const wEl = document.createElement('div');
+          wEl.className = 'word';
+          if (vertical) {
+            wEl.style.left = -pos * cellW + 'px';
+            wEl.style.top = i * cellH + 'px';
+          } else {
+            wEl.style.left = i * cellW + 'px';
+            wEl.style.top = -pos * cellH + 'px';
+          }
+          for (let j = 0; j < word.length; j++) {
+            const span = document.createElement('span');
+            span.className = 'cell';
+            span.textContent = word[j];
+            sizeCell(span);
+            wEl.appendChild(span);
+          }
+          frag.appendChild(wEl);
         }
         wordEl.appendChild(frag);
       }
@@ -265,32 +285,47 @@
       async function ensureWord() {
         if (index < 0) return;
         const my = ++seq;
-        const letter = LETTERS[index];
+        const target = index;
+        const letter = LETTERS[target];
         const list = await wordsFor(letter);
-        if (my !== seq || index < 0 || !list.length) return;
+        if (my !== seq || index !== target || !list.length) return;
         const word = list[Math.floor(Math.random() * list.length)];
-        current = { word, pos: pickIntersection(word, letter) };
-        renderWord();
+        words[target] = { word, pos: pickIntersection(word, letter) };
+        renderWords();
+      }
+
+      // Move to `next`. Without persistence the previous word is dropped; with
+      // it the words for other letters stay and only the destination's word is
+      // (re)generated — so revisiting a letter that already shows a word swaps
+      // it for a fresh one.
+      function moveTo(next) {
+        if (next === index) return;
+        index = next;
+        if (!persist) words = {};
+        seq++; // invalidate any in-flight pick
+        renderWords();
+        ensureWord();
       }
 
       function goTo(target) {
-        const next = Math.max(0, Math.min(25, target));
-        if (next === index) return;
-        index = next;
-        current = null;
-        seq++; // invalidate any in-flight pick
-        renderWord();
-        ensureWord();
+        moveTo(Math.max(0, Math.min(25, target)));
       }
 
       function go(delta) {
-        const next = Math.max(-1, Math.min(25, index + delta));
-        if (next === index) return;
-        index = next;
-        current = null;
-        seq++; // invalidate any in-flight pick
-        renderWord();
-        ensureWord();
+        moveTo(Math.max(-1, Math.min(25, index + delta)));
+      }
+
+      function togglePersist() {
+        persist = !persist;
+        const label = document.querySelector('.hb-persist-label');
+        if (label) label.textContent = persist ? 'on' : 'off';
+        if (!persist) {
+          // Collapse back to just the current letter's word.
+          const keep = words[index];
+          words = {};
+          if (keep) words[index] = keep;
+          renderWords();
+        }
       }
 
       function flip() {
@@ -300,9 +335,10 @@
       }
 
       function openWord() {
-        if (!current) return;
+        const entry = words[index];
+        if (!entry) return;
         window.open(
-          'https://en.wiktionary.org/wiki/' + encodeURIComponent(current.word),
+          'https://en.wiktionary.org/wiki/' + encodeURIComponent(entry.word),
           '_blank',
           'noopener'
         );
@@ -328,6 +364,8 @@
           openWord();
         } else if (e.key === 'a' || e.key === 'A') {
           flip();
+        } else if (e.key === 'p' || e.key === 'P') {
+          togglePersist();
         }
       });
 
@@ -387,6 +425,10 @@
       });
       document.getElementById('hb-flip').addEventListener('click', () => {
         flip();
+        showHint();
+      });
+      document.getElementById('hb-persist').addEventListener('click', () => {
+        togglePersist();
         showHint();
       });
       document.getElementById('hb-wik').addEventListener('click', () => {
