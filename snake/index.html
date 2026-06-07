@@ -633,7 +633,56 @@
         schedule();
       }
 
-      function gameOver() {
+      // Double-click / double-tap shortcut: if the snake is already pointed at
+      // the pellet and lined up with it (same row when moving horizontally, same
+      // column when moving vertically) with the pellet strictly ahead — no
+      // wall-wrap — jump straight forward and eat it in one move. Returns false
+      // (no effect) when those conditions aren't met. If the snake is aimed at
+      // the pellet but its own body lies in the straight path, the jump runs
+      // into itself and triggers a game over, just like a normal step would.
+      function teleportToPellet() {
+        if (state !== 'playing' || scoresOpen || !pellet) return false;
+        const head = body[0];
+        let dist = 0;
+        if (dir.y === 0 && pellet.y === head.y) {
+          const d = (pellet.x - head.x) * dir.x; // >0 only when pellet is ahead
+          if (d > 0) dist = d;
+        } else if (dir.x === 0 && pellet.x === head.x) {
+          const d = (pellet.y - head.y) * dir.y;
+          if (d > 0) dist = d;
+        }
+        if (dist <= 0) return false;
+        // Walk the straight path one cell at a time on a copy, mirroring step()
+        // so the body trails correctly; the final cell is the pellet, which
+        // grows the snake. If a path cell hits the snake's own body it's a
+        // collision — game over, leaving the snake where it is — exactly as a
+        // normal step into the body would behave.
+        const next = body.map((c) => ({ x: c.x, y: c.y }));
+        for (let s = 1; s <= dist; s++) {
+          const nx = head.x + dir.x * s;
+          const ny = head.y + dir.y * s;
+          const grow = s === dist;
+          const checkLen = grow ? next.length : next.length - 1;
+          for (let i = 0; i < checkLen; i++) {
+            if (next[i].x === nx && next[i].y === ny) {
+              gameOver();
+              return true;
+            }
+          }
+          next.unshift({ x: nx, y: ny });
+          if (!grow) next.pop();
+        }
+        body = next;
+        glyphs.push(pellet.ch);
+        eaten++;
+        updateScore();
+        spawnPellet();
+        render();
+        schedule(); // keep moving smoothly from the new position
+        return true;
+      }
+
+
         state = 'over';
         clearTimeout(timer);
         lastWasBest = eaten > getBest();
@@ -1021,12 +1070,33 @@
         },
         { passive: false }
       );
+      // Two taps within DOUBLE_MS of each other trigger the teleport shortcut;
+      // a lone tap still falls through to handleTap. lastTouchTime lets the
+      // desktop dblclick handler ignore the synthetic dblclick that follows a
+      // real touch double-tap so it isn't processed twice.
+      const DOUBLE_MS = 300;
+      let lastTapTime = 0,
+        lastTouchTime = 0;
       wrap.addEventListener('touchend', () => {
-        if (!tmoved) handleTap();
+        if (tmoved) return;
+        const now = Date.now();
+        lastTouchTime = now;
+        if (now - lastTapTime < DOUBLE_MS) {
+          lastTapTime = 0;
+          teleportToPellet();
+        } else {
+          lastTapTime = now;
+          handleTap();
+        }
       });
       wrap.addEventListener('click', (e) => {
         if (e.target.closest('#hint')) return;
         handleTap();
+      });
+      wrap.addEventListener('dblclick', (e) => {
+        if (e.target.closest('#hint')) return;
+        if (Date.now() - lastTouchTime < 700) return; // touch already handled it
+        teleportToPellet();
       });
 
       let resizeTimer = null;
