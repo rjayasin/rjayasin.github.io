@@ -463,6 +463,9 @@
       let pellet = null;
       let state = 'ready'; // ready | playing | over
       let timer = null;
+      // Set when a pellet has just spawned; render() fires the outward pulse once
+      // the new pellet glyph is on screen, then clears it.
+      let pulsePending = false;
 
       function setup() {
         const vw = window.innerWidth,
@@ -491,16 +494,16 @@
       // Flash a quick expanding ring over a cell, tinted to match the pellet.
       // The element lives in viewport coordinates (the board cell's pixel center)
       // and removes itself when the animation finishes.
-      function pulseAt(cell) {
+      // Flash an expanding ring centered on the given viewport pixel point.
+      function pulseAt(cx, cy) {
         if (!charW) return;
-        const rect = board.getBoundingClientRect();
         const el = document.createElement('div');
         el.className = 'pellet-pulse';
         const size = Math.max(24, charW * 6);
         el.style.width = size + 'px';
         el.style.height = size + 'px';
-        el.style.left = rect.left + (cell.x + 0.5) * charW + 'px';
-        el.style.top = rect.top + (cell.y + 0.5) * charH + 'px';
+        el.style.left = cx + 'px';
+        el.style.top = cy + 'px';
         el.addEventListener('animationend', () => el.remove());
         document.body.appendChild(el);
       }
@@ -517,7 +520,10 @@
           y = Math.floor(Math.random() * rows);
         } while (occupied.has(y * cols + x));
         pellet = { x, y, ch: randPellet() };
-        pulseAt(pellet);
+        // Defer the spawn pulse until render() has painted the pellet glyph, so
+        // it can be centered on the glyph's actual box rather than on a computed
+        // cell center (which drifted low relative to the rendered character).
+        pulsePending = true;
       }
 
       function reset() {
@@ -669,10 +675,12 @@
           cells[k] = glyphs[i] || '·';
           cls.set(k, i === 0 ? 'cell head' : 'cell');
         }
+        let pelletId = '';
         if (pellet) {
           const pk = key(pellet);
           cells[pk] = pellet.ch;
           cls.set(pk, 'cell pellet');
+          pelletId = pk;
         }
         let html = '';
         for (let y = 0; y < rows; y++) {
@@ -680,11 +688,20 @@
             const k = y * cols + x;
             const ch = esc(cells[k]);
             const c = cls.get(k);
-            html += c ? '<span class="' + c + '">' + ch + '</span>' : ch;
+            const idAttr = c && pellet && k === pelletId ? ' id="pellet-cell"' : '';
+            html += c ? '<span class="' + c + '"' + idAttr + '>' + ch + '</span>' : ch;
           }
           if (y < rows - 1) html += '\n';
         }
         board.innerHTML = html;
+        if (pulsePending && pellet) {
+          pulsePending = false;
+          const span = document.getElementById('pellet-cell');
+          if (span) {
+            const r = span.getBoundingClientRect();
+            pulseAt(r.left + r.width / 2, r.top + r.height / 2);
+          }
+        }
       }
 
       function updateScore() {
