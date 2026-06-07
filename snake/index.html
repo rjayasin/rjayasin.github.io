@@ -78,6 +78,38 @@
           color: #ff8dd1;
         }
       }
+      /* Outward ring drawn over a freshly spawned pellet: a quick expanding,
+         fading circle tinted the same pink as the pellet itself. It is a
+         throwaway element positioned in viewport coordinates over the pellet's
+         cell and removed once its animation ends. */
+      .pellet-pulse {
+        position: fixed;
+        border-radius: 50%;
+        border: 2px solid #d6409f;
+        pointer-events: none;
+        z-index: 4;
+        opacity: 0.9;
+        transform: translate(-50%, -50%) scale(0.3);
+        animation: pellet-pulse 0.45s ease-out forwards;
+      }
+      body.dark .pellet-pulse {
+        border-color: #ff8dd1;
+      }
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) .pellet-pulse {
+          border-color: #ff8dd1;
+        }
+      }
+      @keyframes pellet-pulse {
+        from {
+          opacity: 0.9;
+          transform: translate(-50%, -50%) scale(0.3);
+        }
+        to {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(1);
+        }
+      }
       #score {
         position: fixed;
         top: 12px;
@@ -456,6 +488,23 @@
         return c.y * cols + c.x;
       }
 
+      // Flash a quick expanding ring over a cell, tinted to match the pellet.
+      // The element lives in viewport coordinates (the board cell's pixel center)
+      // and removes itself when the animation finishes.
+      function pulseAt(cell) {
+        if (!charW) return;
+        const rect = board.getBoundingClientRect();
+        const el = document.createElement('div');
+        el.className = 'pellet-pulse';
+        const size = Math.max(24, charW * 6);
+        el.style.width = size + 'px';
+        el.style.height = size + 'px';
+        el.style.left = rect.left + (cell.x + 0.5) * charW + 'px';
+        el.style.top = rect.top + (cell.y + 0.5) * charH + 'px';
+        el.addEventListener('animationend', () => el.remove());
+        document.body.appendChild(el);
+      }
+
       function spawnPellet() {
         const occupied = new Set(body.map(key));
         if (occupied.size >= cols * rows) {
@@ -468,6 +517,7 @@
           y = Math.floor(Math.random() * rows);
         } while (occupied.has(y * cols + x));
         pellet = { x, y, ch: randPellet() };
+        pulseAt(pellet);
       }
 
       function reset() {
