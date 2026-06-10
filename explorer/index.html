@@ -465,7 +465,7 @@
         position: fixed;
         left: 0;
         right: 0;
-        bottom: 12px;
+        bottom: 0;
         text-align: center;
         font-family:
           ui-monospace,
@@ -481,7 +481,17 @@
         transition: opacity 0.4s ease;
         user-select: none;
         z-index: 65;
-        padding: 0 8px;
+        padding: 8px 8px 12px;
+        /* opaque so scrolling content doesn't show through the bar */
+        background: #fff;
+      }
+      body.dark #hint {
+        background: #111;
+      }
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) #hint {
+          background: #111;
+        }
       }
       #hint.hidden {
         opacity: 0;
