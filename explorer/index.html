@@ -138,6 +138,7 @@
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
         padding: 24px 0 96px;
+        transition: opacity 0.18s ease; /* keep in sync with FADE_MS */
       }
       #content.centered {
         display: flex;
@@ -231,6 +232,25 @@
         font-size: calc(14px * var(--scale));
         font-style: italic;
         color: var(--faint);
+      }
+      /* Synonyms arrive after the definition; fade them in on swap. */
+      @keyframes fade-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      #syn-tags,
+      .syn-status {
+        animation: fade-in 0.2s ease;
+      }
+      button,
+      .suggestion,
+      .side-item,
+      .w {
+        touch-action: manipulation;
       }
       @media (max-width: 700px) {
         :root {
@@ -710,6 +730,11 @@
         }, 150);
       }
 
+      function setHighlight(i) {
+        highlighted = i;
+        [...suggestionsEl.children].forEach((el, j) => el.classList.toggle('highlighted', j === i));
+      }
+
       function renderSuggestions() {
         suggestionsEl.innerHTML = '';
         if (!suggestions.length) {
@@ -720,20 +745,33 @@
           const div = document.createElement('div');
           div.className = 'suggestion' + (i === highlighted ? ' highlighted' : '');
           div.textContent = word;
-          // mousedown so it fires before the input's blur hides the list
-          div.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            hideSuggestions();
-            lookupWord(word);
-          });
-          div.addEventListener('mouseenter', () => {
-            highlighted = i;
-            renderSuggestions();
-          });
+          // Highlight in place — rebuilding the list here breaks iOS Safari,
+          // which fires a synthesized mouseenter before the tap's mouse events
+          // and aborts them if the target is removed from the DOM.
+          div.addEventListener('mouseenter', () => setHighlight(i));
           suggestionsEl.appendChild(div);
         });
         suggestionsEl.hidden = false;
       }
+
+      // Select on pointerup (works for both mouse and touch, and fires before
+      // the input's blur). pointerdown's preventDefault keeps the input
+      // focused while tapping; the movement guard ignores scroll gestures.
+      let suggestionTap = null;
+      suggestionsEl.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        suggestionTap = { x: e.clientX, y: e.clientY };
+      });
+      suggestionsEl.addEventListener('pointerup', (e) => {
+        const start = suggestionTap;
+        suggestionTap = null;
+        const item = e.target.closest('.suggestion');
+        if (!item || !start) return;
+        if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 10) return;
+        const word = item.textContent;
+        hideSuggestions();
+        lookupWord(word);
+      });
 
       // ---------- Rendering ----------
       function placeholder(text) {
@@ -1080,6 +1118,8 @@
       favBtn.addEventListener('click', toggleFavorite);
 
       // ---------- Lookup + browser-history navigation ----------
+      const FADE_MS = 180; // keep in sync with #content's opacity transition
+
       async function lookupWord(word, opts = {}) {
         const term = word.trim().toLowerCase();
         if (!term) return;
@@ -1100,10 +1140,15 @@
         synLoading = true;
 
         const seq = ++lookupSeq;
+        contentEl.style.opacity = '0';
+        const fadeOut = new Promise((r) => setTimeout(r, FADE_MS));
         const def = await fetchDefinition(term);
+        await fadeOut;
         if (seq !== lookupSeq) return;
         currentDef = def;
         renderContent();
+        contentEl.scrollTop = 0;
+        contentEl.style.opacity = '1';
         updateFavButton();
         if (def) addToHistory(term);
 
@@ -1124,12 +1169,17 @@
         if (items.length) {
           lookupWord(items[0], { fromPop: true });
         } else {
-          lookupSeq++;
+          const seq = ++lookupSeq;
           currentWord = '';
           currentDef = null;
           searchEl.value = '';
-          renderContent();
           updateFavButton();
+          contentEl.style.opacity = '0';
+          setTimeout(() => {
+            if (seq !== lookupSeq) return;
+            renderContent();
+            contentEl.style.opacity = '1';
+          }, FADE_MS);
         }
       });
 
@@ -1146,12 +1196,10 @@
         e.stopPropagation();
         if (e.key === 'ArrowDown' && suggestions.length) {
           e.preventDefault();
-          highlighted = Math.min(highlighted + 1, suggestions.length - 1);
-          renderSuggestions();
+          setHighlight(Math.min(highlighted + 1, suggestions.length - 1));
         } else if (e.key === 'ArrowUp' && suggestions.length) {
           e.preventDefault();
-          highlighted = highlighted <= 0 ? -1 : highlighted - 1;
-          renderSuggestions();
+          setHighlight(highlighted <= 0 ? -1 : highlighted - 1);
         } else if (e.key === 'Enter') {
           e.preventDefault();
           if (highlighted >= 0 && suggestions[highlighted]) {
