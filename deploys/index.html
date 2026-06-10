@@ -969,8 +969,14 @@
         // Duration bars use the full slot width. Repo size, when enabled,
         // overlays as an area + line so neither metric gets squashed.
         const n = ordered.length;
-        const gap = n > 60 ? 1 : n > 30 ? 1.5 : 2;
-        const slotW = Math.max(2, (innerW - gap * (n - 1)) / n);
+        let gap = n > 60 ? 1 : n > 30 ? 1.5 : 2;
+        // With many deploys loaded the bars must still fit inside the chart:
+        // shrink the gap (down to none) first, then let bars go sub-pixel
+        // rather than overflow past the right edge.
+        if ((innerW - gap * (n - 1)) / n < 2) {
+          gap = Math.max(0, Math.floor(innerW / n) - 1);
+        }
+        const slotW = (innerW - gap * (n - 1)) / n;
         const barW = slotW;
         const slotCenters = new Array(n);
         ordered.forEach((d, i) => {
@@ -1117,22 +1123,45 @@
         const xLabelY = PAD_T + innerH + 14;
         const targetLabels = Math.min(n, Math.max(2, Math.floor(innerW / 80)));
         const seenLabels = new Set();
+        const labels = [];
         for (let i = 0; i < targetLabels; i++) {
           const denom = Math.max(1, targetLabels - 1);
           const idx = Math.round((i / denom) * (n - 1));
           const text = fmtDay(ordered[idx].start);
           if (seenLabels.has(text)) continue;
           seenLabels.add(text);
+          let x = slotCenters[idx];
+          let anchor = 'middle';
+          if (idx === 0) {
+            x = PAD_L;
+            anchor = 'start';
+          } else if (idx === n - 1) {
+            x = W - PAD_R;
+            anchor = 'end';
+          }
+          labels.push({ x, anchor, text });
+        }
+        // Keep the first and last labels; drop middle labels that would sit
+        // too close to a neighbor and overlap it.
+        const MIN_LABEL_GAP = 56;
+        const lastLabel = labels[labels.length - 1];
+        const kept = [];
+        for (const l of labels) {
+          if (!kept.length || l === lastLabel) {
+            kept.push(l);
+            continue;
+          }
+          if (l.x - kept[kept.length - 1].x < MIN_LABEL_GAP) continue;
+          if (lastLabel.x - l.x < MIN_LABEL_GAP) continue;
+          kept.push(l);
+        }
+        for (const l of kept) {
           const txt = document.createElementNS(SVG_NS, 'text');
           txt.setAttribute('class', 'axis-label');
           txt.setAttribute('y', xLabelY);
-          const anchor = idx === 0 ? 'start' : idx === n - 1 ? 'end' : 'middle';
-          txt.setAttribute('text-anchor', anchor);
-          let x = slotCenters[idx];
-          if (idx === 0) x = PAD_L;
-          else if (idx === n - 1) x = W - PAD_R;
-          txt.setAttribute('x', x);
-          txt.textContent = text;
+          txt.setAttribute('text-anchor', l.anchor);
+          txt.setAttribute('x', l.x);
+          txt.textContent = l.text;
           chart.appendChild(txt);
         }
       }
