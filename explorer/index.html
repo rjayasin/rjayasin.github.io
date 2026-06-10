@@ -14,6 +14,7 @@
         --line: rgba(0, 0, 0, 0.12);
         --hover: rgba(0, 0, 0, 0.05);
         --star: #e7b416;
+        --side-bg: #fafafa;
         --search-base: 40px;
       }
       body.dark {
@@ -21,6 +22,7 @@
         --faint: rgba(255, 255, 255, 0.35);
         --line: rgba(255, 255, 255, 0.16);
         --hover: rgba(255, 255, 255, 0.07);
+        --side-bg: #161616;
       }
       @media (prefers-color-scheme: dark) {
         body:not(.light) {
@@ -28,6 +30,7 @@
           --faint: rgba(255, 255, 255, 0.35);
           --line: rgba(255, 255, 255, 0.16);
           --hover: rgba(255, 255, 255, 0.07);
+          --side-bg: #161616;
         }
       }
       html,
@@ -272,16 +275,17 @@
 
       /* --- Sidebar / drawer --- */
       #sidebar {
-        width: 250px;
+        width: 200px;
         flex: none;
         border-right: 1px solid var(--line);
         display: flex;
         flex-direction: column;
         overflow-y: auto;
-        background: inherit;
+        scrollbar-width: thin;
+        background: var(--side-bg);
       }
       .side-section {
-        padding: 16px;
+        padding: 14px 10px;
       }
       .side-section + .side-section {
         border-top: 1px solid var(--line);
@@ -291,10 +295,13 @@
         align-items: baseline;
         justify-content: space-between;
         margin-bottom: 8px;
+        padding: 0 6px;
       }
       .side-title {
-        font-size: calc(14px * var(--scale));
+        font-size: calc(11px * var(--scale));
         font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
         color: var(--muted);
       }
       #clear-history {
@@ -309,35 +316,42 @@
         color: var(--muted);
       }
       .side-empty {
-        font-size: calc(14px * var(--scale));
+        font-size: calc(13px * var(--scale));
         font-style: italic;
         color: var(--faint);
-        padding: 8px 0;
+        padding: 4px 6px;
       }
       .side-item {
+        position: relative;
         display: flex;
         align-items: center;
-        gap: 6px;
-        padding: 5px 8px;
-        border-radius: 4px;
+        gap: 4px;
+        padding: 4px 6px;
+        border-radius: 5px;
         cursor: pointer;
         font-size: calc(14px * var(--scale));
         user-select: none;
         -webkit-user-select: none;
+      }
+      .side-item.current {
+        background: var(--hover);
       }
       @media (hover: hover) {
         .side-item:hover {
           background: var(--hover);
         }
       }
+      /* fixed-width icon column keeps favorite and history terms aligned */
       .side-item .icon {
         flex: none;
+        width: calc(14px * var(--scale));
+        text-align: center;
         color: var(--faint);
       }
       .side-item .icon.star {
         color: var(--star);
         cursor: pointer;
-        font-size: calc(12px * var(--scale));
+        font-size: calc(11px * var(--scale));
       }
       .side-item .term {
         flex: 1;
@@ -370,7 +384,18 @@
         cursor: grab;
         touch-action: none;
         padding: 0 2px;
-        font-size: calc(13px * var(--scale));
+        font-size: calc(11px * var(--scale));
+      }
+      /* on hover-capable devices the grips stay out of sight until needed
+         (they keep their space so rows don't shift); always shown on touch */
+      @media (hover: hover) {
+        .side-item .grip {
+          opacity: 0;
+          transition: opacity 0.15s ease;
+        }
+        .side-item:hover .grip {
+          opacity: 1;
+        }
       }
       .side-item.dragging {
         opacity: 0.4;
@@ -410,18 +435,15 @@
           top: 0;
           left: 0;
           bottom: 0;
-          width: min(300px, 85vw);
+          width: min(260px, 80vw);
           transform: translateX(-100%);
           transition: transform 0.25s ease;
           z-index: 80;
-          background: #fff;
           padding-top: 8px;
-        }
-        body.dark #sidebar {
-          background: #191919;
         }
         #sidebar.open {
           transform: translateX(0);
+          box-shadow: 0 0 24px rgba(0, 0, 0, 0.25);
         }
         #backdrop {
           display: block;
@@ -438,14 +460,6 @@
           pointer-events: auto;
         }
       }
-      @media (prefers-color-scheme: dark) {
-        body:not(.light) #sidebar {
-          background: #191919;
-        }
-        body:not(.light) {
-          background: #111;
-        }
-      }
       @media (min-width: 860px) {
         #sidebar.collapsed {
           display: none;
@@ -453,7 +467,7 @@
         /* the sidebar sits to the left of #main, so mirror its width on the
            right to keep the search word centered on the page */
         #search-area {
-          padding-right: calc(16px + 250px);
+          padding-right: calc(16px + 200px);
         }
         #sidebar.collapsed ~ #main #search-area {
           padding-right: 16px;
@@ -958,7 +972,7 @@
 
       function makeSideItem(entry, kind) {
         const row = document.createElement('div');
-        row.className = 'side-item';
+        row.className = 'side-item' + (entry.term === currentWord ? ' current' : '');
         row.dataset.term = entry.term;
 
         if (kind === 'fav') {
@@ -1176,6 +1190,7 @@
         contentEl.style.opacity = '1';
         updateFavButton();
         if (def) addToHistory(term);
+        else renderSidebar(); // keep the current-word highlight in sync
 
         try {
           const syns = await fetchSynonyms(term);
@@ -1200,6 +1215,7 @@
           searchEl.value = '';
           updateFavButton();
           contentEl.style.opacity = '0';
+          renderSidebar();
           setTimeout(() => {
             if (seq !== lookupSeq) return;
             renderContent();
