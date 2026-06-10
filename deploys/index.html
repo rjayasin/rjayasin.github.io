@@ -284,7 +284,9 @@
         stroke: var(--median);
         stroke-width: 2;
         stroke-dasharray: 4 3;
+        stroke-linejoin: round;
         fill: none;
+        pointer-events: none;
       }
 
       .chart-svg .size-area {
@@ -541,8 +543,11 @@
         <span class="chart-meta">
           <span class="legend-item"><span class="legend-swatch"></span>success</span>
           <span class="legend-item"><span class="legend-swatch failure"></span>failure</span>
-          <span class="legend-item"
-            ><span class="legend-swatch median"></span><span id="legend-median">median</span></span
+          <span
+            class="legend-item"
+            title="Median of the trailing 10 successful deploys, showing how deploy times trend over time"
+            ><span class="legend-swatch median"></span
+            ><span id="legend-median">rolling median</span></span
           >
           <label
             class="legend-item legend-toggle"
@@ -1057,9 +1062,37 @@
           }
         }
 
-        // Median line. The value is rendered in the legend (see below) so
-        // there is no in-chart label overlapping the bars.
-        if (med > 0) {
+        // Rolling median over the trailing MEDIAN_WINDOW successful deploys,
+        // drawn as a line through the bars so the trend in deploy times is
+        // visible (a single overall median would just be flat). Failed and
+        // in-progress runs don't enter the window; the line carries the last
+        // value across them. The latest value is rendered in the legend (see
+        // below) so there is no in-chart label overlapping the bars.
+        const MEDIAN_WINDOW = 10;
+        const MEDIAN_MIN_SAMPLES = 3;
+        const recent = [];
+        const trendPts = [];
+        for (let i = 0; i < n; i++) {
+          const d = ordered[i];
+          const sec = d.durationSec;
+          if (d.conclusion === 'success' && sec != null && sec > 0) {
+            recent.push(sec);
+            if (recent.length > MEDIAN_WINDOW) recent.shift();
+          }
+          if (recent.length < MEDIAN_MIN_SAMPLES) continue;
+          const v = median([...recent].sort((a, b) => a - b));
+          trendPts.push({ x: slotCenters[i], y: PAD_T + innerH * (1 - v / max), v });
+        }
+        let legendMed = 0;
+        if (trendPts.length >= 2) {
+          const poly = document.createElementNS(SVG_NS, 'polyline');
+          poly.setAttribute('class', 'median-line');
+          poly.setAttribute('points', trendPts.map((p) => `${p.x},${p.y}`).join(' '));
+          chart.appendChild(poly);
+          legendMed = trendPts[trendPts.length - 1].v;
+        } else if (med > 0) {
+          // Too few successful deploys for a trend: fall back to a flat
+          // overall-median line.
           const medY = PAD_T + innerH * (1 - med / max);
           const line = document.createElementNS(SVG_NS, 'line');
           line.setAttribute('class', 'median-line');
@@ -1068,9 +1101,11 @@
           line.setAttribute('y1', medY);
           line.setAttribute('y2', medY);
           chart.appendChild(line);
+          legendMed = med;
         }
         if (legendMedian) {
-          legendMedian.textContent = med > 0 ? `median ${fmtDuration(med)}` : 'median';
+          legendMedian.textContent =
+            legendMed > 0 ? `rolling median ${fmtDuration(legendMed)}` : 'rolling median';
         }
         if (legendSize) {
           legendSize.textContent =
