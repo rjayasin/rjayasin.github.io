@@ -3,6 +3,7 @@
 `site`
 
 - [`/`](https://rjayasin.github.io/)
+- [`github`](https://github.com/rjayasin/rjayasin.github.io)
 - [`sitemap`](https://rjayasin.github.io/sitemap/)
 
 `fun`
@@ -30,7 +31,3 @@
 - [`commits`](https://rjayasin.github.io/commits/)
 - [`dodgers-notifier`](https://rjayasin.github.io/dodgers-notifier/)
 - [`deploys`](https://rjayasin.github.io/deploys/)
-
-`external`
-
-- [`github`](https://github.com/rjayasin/rjayasin.github.io)
