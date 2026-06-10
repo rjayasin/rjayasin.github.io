@@ -4,6 +4,7 @@
 
 - [`/`](https://rjayasin.github.io/)
 - [`sitemap`](https://rjayasin.github.io/sitemap/)
+- [`github`](https://github.com/rjayasin/rjayasin.github.io)
 
 `fun`
 
