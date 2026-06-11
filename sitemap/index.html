@@ -2,11 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <title>Ruvan / sitemap</title>
     <link rel="icon" id="favicon" />
     <link rel="stylesheet" href="/common.css" />
     <style>
+      html {
+        touch-action: manipulation;
+      }
       body {
         font-family: monospace;
         font-size: 13px;
@@ -175,6 +181,12 @@
     <script>
       Common.paintFaviconR();
       Common.initDarkMode();
+
+      // iOS Safari ignores user-scalable=no; touch-action handles double-tap, so
+      // this only needs to block the pinch-zoom gesture.
+      ['gesturestart', 'gesturechange', 'gestureend'].forEach((type) => {
+        document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
+      });
 
       const VIEW_KEY = 'sitemap-view';
       const treeView = document.getElementById('tree-view');
