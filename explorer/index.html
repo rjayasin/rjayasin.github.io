@@ -208,6 +208,14 @@
           background: var(--hover);
         }
       }
+      /* Tap feedback: shows during the content fade-out, then the re-render
+         replaces the span. var(--line) doubles as a highlight strong enough
+         to read on mobile in both themes. */
+      .w.tapped {
+        background: var(--line);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
       #syn-divider {
         border: none;
         border-top: 1px solid var(--line);
@@ -959,7 +967,9 @@
         if (!span) return;
         if (!isCoarse && !e.metaKey && !e.ctrlKey) return;
         const word = span.textContent.replace(/[^A-Za-z'’-]/g, '');
-        if (word) lookupWord(word);
+        if (!word) return;
+        span.classList.add('tapped');
+        lookupWord(word);
       });
 
       // ---------- Sidebar ----------
