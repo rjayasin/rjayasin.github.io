@@ -123,7 +123,7 @@
     </style>
     <script src="/common.js"></script>
   </head>
-  <body>
+  <body class="vert">
     <div id="stage">
       <div id="alphabet"></div>
       <div id="word"></div>
@@ -180,7 +180,7 @@
       const wordEl = document.getElementById('word');
 
       let index = -1; // -1 = no word shown yet
-      let vertical = false; // false: alphabet horizontal / word descends
+      let vertical = true; // true: alphabet vertical / word runs across (the default)
       let cellW = 0;
       let cellH = 0;
       let fontSize = 0;
@@ -294,26 +294,46 @@
         wordEl.appendChild(frag);
       }
 
+      // Each letter's word is assigned once and sticks across revisits; the
+      // whole set only resets after a full lap — reaching z and then coming
+      // back to a — at which point every letter draws fresh.
+      let assigned = {};
+      let reachedZ = false;
+
       let seq = 0; // guards against a slow fetch landing after a newer move
       async function ensureWord() {
         if (index < 0) return;
         const my = ++seq;
         const target = index;
+        if (assigned[target]) {
+          words[target] = assigned[target];
+          renderWords();
+          return;
+        }
         const letter = LETTERS[target];
         const list = await wordsFor(letter);
         if (my !== seq || index !== target || !list.length) return;
         const word = list[Math.floor(Math.random() * list.length)];
-        words[target] = { word, pos: pickIntersection(word, letter) };
+        assigned[target] = { word, pos: pickIntersection(word, letter) };
+        words[target] = assigned[target];
         renderWords();
       }
 
       // Move to `next`. Without persistence the previous word is dropped; with
-      // it the words for other letters stay and only the destination's word is
-      // (re)generated — so revisiting a letter that already shows a word swaps
-      // it for a fresh one.
+      // it the words for other letters stay on screen. Either way a letter
+      // keeps its assigned word until an a→z→a cycle completes.
       function moveTo(next) {
         if (next === index) return;
         index = next;
+        if (index === 25) {
+          reachedZ = true;
+        } else if (index === 0 && reachedZ) {
+          // Full cycle done: drop all assignments so each letter (starting
+          // with this fresh visit to a) picks a new word.
+          assigned = {};
+          reachedZ = false;
+          if (persist) words = {};
+        }
         if (!persist) words = {};
         seq++; // invalidate any in-flight pick
         renderWords();
