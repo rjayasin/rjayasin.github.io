@@ -185,6 +185,25 @@
         color: var(--muted);
         margin-left: 6px;
       }
+      .def-phon {
+        font-size: calc(15px * var(--scale));
+        color: var(--muted);
+        margin-left: 8px;
+      }
+      .phon-audio {
+        font: inherit;
+        font-size: calc(14px * var(--scale));
+        line-height: 1;
+        background: none;
+        border: none;
+        color: var(--muted);
+        cursor: pointer;
+        padding: 2px 4px;
+        margin-left: 2px;
+      }
+      .phon-audio:hover {
+        color: inherit;
+      }
       .def-body {
         font-size: calc(16px * var(--scale));
         line-height: 1.55;
@@ -687,8 +706,15 @@
             if (Array.isArray(data) && data.length) {
               const sections = [];
               let origin = '';
+              let phonetic = '';
+              let audio = '';
               for (const entry of data) {
                 if (entry.origin && !origin) origin = entry.origin;
+                if (entry.phonetic && !phonetic) phonetic = entry.phonetic;
+                for (const p of entry.phonetics || []) {
+                  if (p.text && !phonetic) phonetic = p.text;
+                  if (p.audio && !audio) audio = p.audio;
+                }
                 for (const meaning of entry.meanings || []) {
                   sections.push({
                     pos: meaning.partOfSpeech || '',
@@ -699,7 +725,7 @@
                   });
                 }
               }
-              if (sections.length) return { term, sections, origin };
+              if (sections.length) return { term, sections, origin, phonetic, audio };
             }
           }
         } catch {
@@ -707,12 +733,14 @@
         }
         try {
           const r = await fetch(
-            'https://api.datamuse.com/words?sp=' + encodeURIComponent(term) + '&md=d&max=1'
+            'https://api.datamuse.com/words?sp=' + encodeURIComponent(term) + '&md=dr&ipa=1&max=1'
           );
           if (!r.ok) return null;
           const data = await r.json();
           const match = data && data[0];
           if (!match || match.word !== term || !Array.isArray(match.defs)) return null;
+          const ipa = (match.tags || []).find((t) => t.startsWith('ipa_pron:'));
+          const phonetic = ipa ? ipa.slice('ipa_pron:'.length) : '';
           const byPos = new Map();
           for (const def of match.defs) {
             const tab = def.indexOf('\t');
@@ -721,7 +749,7 @@
             byPos.get(pos).push({ text: def.slice(tab + 1), example: '' });
           }
           const sections = [...byPos].map(([pos, senses]) => ({ pos, senses }));
-          return sections.length ? { term, sections, origin: '' } : null;
+          return sections.length ? { term, sections, origin: '', phonetic, audio: '' } : null;
         } catch {
           return null;
         }
@@ -864,7 +892,7 @@
           const block = document.createElement('div');
           block.className = 'def-block';
           block.id = 'definitions';
-          currentDef.sections.forEach((section) => {
+          currentDef.sections.forEach((section, i) => {
             const entry = document.createElement('div');
             entry.className = 'def-entry';
             const head = document.createElement('div');
@@ -873,6 +901,24 @@
             term.className = 'def-term';
             term.textContent = currentDef.term;
             head.appendChild(term);
+            if (i === 0) {
+              if (currentDef.phonetic) {
+                const phon = document.createElement('span');
+                phon.className = 'def-phon';
+                phon.textContent = currentDef.phonetic.startsWith('/')
+                  ? currentDef.phonetic
+                  : `/${currentDef.phonetic}/`;
+                head.appendChild(phon);
+              }
+              if (currentDef.audio) {
+                const play = document.createElement('button');
+                play.className = 'phon-audio';
+                play.textContent = '🔊';
+                play.title = 'Play pronunciation';
+                play.addEventListener('click', () => new Audio(currentDef.audio).play());
+                head.appendChild(play);
+              }
+            }
             if (section.pos) {
               const pos = document.createElement('span');
               pos.className = 'def-pos';
