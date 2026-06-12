@@ -706,6 +706,49 @@
         'univ',
       ]);
 
+      // The newer {{ety}}/{{etymon}} "etymon" templates encode descent as a
+      // language code followed by derivation keywords (each prefixed with ":")
+      // and etymons of the form "lang:term<modifiers>". A keyword applies to
+      // every etymon after it. Each template names only the immediate
+      // ancestor(s); deeper ancestry is recovered by tracing each one.
+      //   {{ety|en|:bor|es:tortilla}}  English borrowed from Spanish tortilla
+      const ETYMON_NAMES = new Set(['ety', 'etymon']);
+      const ETYMON_REL = {
+        from: 'from',
+        der: 'derived',
+        derived: 'derived',
+        uder: 'derived',
+        inh: 'inherited',
+        inherited: 'inherited',
+        bor: 'borrowed',
+        borrowed: 'borrowed',
+        lbor: 'learned borrowing',
+        slbor: 'semi-learned borrowing',
+        obor: 'orthographic borrowing',
+        ubor: 'unadapted borrowing',
+        cal: 'calque',
+        calque: 'calque',
+        clq: 'calque',
+        pcal: 'partial calque',
+        sl: 'semantic loan',
+        'semantic loan': 'semantic loan',
+        psm: 'phono-semantic match',
+      };
+      // Keywords that join etymons with a "+" (compound parts), rendered like
+      // the {{affix}}/{{compound}} templates above.
+      const ETYMON_AFFIX = new Set([
+        'af',
+        'affix',
+        'afeq',
+        'compound',
+        'com',
+        'con',
+        'confix',
+        'blend',
+        'univ',
+        'univerbation',
+      ]);
+
       // Extract top-level {{…}} templates with positional/named params.
       function parseTemplates(text) {
         const out = [];
@@ -868,6 +911,72 @@
         return parts;
       }
 
+      // Parse one etymon spec ("lang:term<t:gloss><tr:…><alt:…>"). The
+      // language code is optional (defaults to the entry's); "-" hides the
+      // term, showing only the language.
+      function etymonSpec(raw, defLang) {
+        const mods = {};
+        const reMod = /<([a-z]+):([^<>]*)>/gi;
+        let m;
+        while ((m = reMod.exec(raw))) mods[m[1].toLowerCase()] = m[2];
+        let base = raw;
+        let prev;
+        do {
+          prev = base;
+          base = base.replace(/<[^<>]*>/g, ''); // drop flag/value modifiers
+        } while (base !== prev);
+        base = base.trim();
+        let lang = defLang;
+        let term = base;
+        const ci = base.indexOf(':');
+        if (ci !== -1) {
+          lang = base.slice(0, ci).trim();
+          term = base.slice(ci + 1).trim();
+        }
+        if (term === '-') term = '';
+        return {
+          lang,
+          form: mods.alt || term,
+          gloss: mods.t || mods.gloss || '',
+          tr: mods.tr || '',
+        };
+      }
+
+      // Grow the tree from the immediate ancestors named in an {{ety}}/
+      // {{etymon}} template. Used as a fallback for pages that no longer
+      // spell the chain out in prose (e.g. "tortilla"); each ancestor is
+      // flagged for tracing so its own ancestry can be filled in later.
+      function buildFromEtymon(text, root, rootLang) {
+        const t = parseTemplates(text).find((t) => ETYMON_NAMES.has(t.name));
+        if (!t) return false;
+        const entryLang = t.pos[0];
+        let rel = 'from';
+        let affix = false;
+        let built = false;
+        for (const raw of t.pos.slice(1)) {
+          const arg = raw.trim();
+          if (!arg) continue;
+          if (arg.startsWith(':')) {
+            const kw = arg
+              .slice(1)
+              .replace(/<[\s\S]*$/, '')
+              .trim()
+              .toLowerCase();
+            affix = ETYMON_AFFIX.has(kw);
+            rel = affix ? '+' : ETYMON_REL[kw] || kw;
+            continue;
+          }
+          const spec = etymonSpec(arg, entryLang);
+          if (!spec.lang) continue;
+          if (spec.lang === rootLang && spec.form === root.form) continue;
+          const node = makeNode(spec.form, spec.lang, rel, spec.gloss, spec.tr);
+          if (!affix) node.trace = true;
+          root.children.push(node);
+          built = true;
+        }
+        return built;
+      }
+
       // Walk the first template-bearing paragraph and grow the tree under root.
       function buildChain(etymText, root, rootLang) {
         for (const para of etymText.split(/\n{2,}/)) {
@@ -914,7 +1023,7 @@
           }
           return true;
         }
-        return false;
+        return buildFromEtymon(etymText, root, rootLang);
       }
 
       // ---------- Wiktionary fetch ----------
@@ -959,7 +1068,10 @@
         if (!buildChain(ety, root, lang)) return null;
         if (depth < 2) {
           for (const child of root.children) {
-            if (child.rel !== '+' || !child.form || child.children.length) continue;
+            // Compound parts (+) and lone etymon-template ancestors carry no
+            // ancestry of their own yet — trace each to fill in its chain.
+            if ((child.rel !== '+' && !child.trace) || !child.form || child.children.length)
+              continue;
             const sub = await getTree(child.form, child.lang, depth + 1, budget);
             if (sub) {
               child.children = sub.children;

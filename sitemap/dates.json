@@ -1,7 +1,7 @@
 {
   "/commits/": {
-    "date": "2026-06-03T12:40:17-07:00",
-    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/154c248bc6d564a9a3968d46c9be7f64ce729c09"
+    "date": "2026-06-11T23:45:32-07:00",
+    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/2f63329b932964bf06e4fb97b2beda669d69e058"
   },
   "/isometric/": {
     "date": "2026-06-05T12:40:22-07:00",
@@ -20,8 +20,8 @@
     "url": "https://github.com/rjayasin/rjayasin.github.io/commit/19c752f6d6850dd381ad0aa1cf325dff2495821e"
   },
   "/deploys/": {
-    "date": "2026-05-28T13:13:43-07:00",
-    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/cfd3380e76447f8f3292c2c2ec636290065c3e2d"
+    "date": "2026-06-09T23:57:18-07:00",
+    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/ad5269cf76bebf40ab4d14856d19378343f482d6"
   },
   "/clock/": {
     "date": "2026-05-27T09:01:35-07:00",
@@ -32,8 +32,8 @@
     "url": "https://github.com/rjayasin/rjayasin.github.io/commit/0f5b66d64bd7a5cd9afe579a39cfe8a07c11b91e"
   },
   "https://rjayasin.github.io/dodgers-notifier/": {
-    "date": "2026-05-27T20:49:15Z",
-    "url": "https://github.com/rjayasin/dodgers-notifier/commit/17f5b88ccb41a9f5de05066e4b3d1410ceab6478"
+    "date": "2026-06-10T01:47:01Z",
+    "url": "https://github.com/rjayasin/dodgers-notifier/commit/ac10ddb3ec2150d8f0142b0ea29d885ecab3d822"
   },
   "https://rjayasin.github.io/visualizer/video-player.html": {
     "date": "2026-05-31T20:57:43Z",
@@ -56,19 +56,27 @@
     "url": "https://github.com/rjayasin/rjayasin.github.io/commit/a44393d392920ec81341e47b463faf8e832346a4"
   },
   "/snake/": {
-    "date": "2026-06-06T23:39:37-07:00",
-    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/4189c5d60dbfb82fbd9719482b2edf17a1f68fe4"
+    "date": "2026-06-10T23:34:01-07:00",
+    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/bd26fe68a534cfd173ef3d110d11073c07cb6da0"
   },
   "/sitemap/": {
-    "date": "2026-06-06T23:48:28-07:00",
-    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/1552ff69b02625470c84822c15dbe9f68cf70da9"
+    "date": "2026-06-11T23:14:48-07:00",
+    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/3410df15780c420178afffbe474fc9b8d4a5404d"
   },
   "/grid/": {
     "date": "2026-05-28T13:04:13-07:00",
     "url": "https://github.com/rjayasin/rjayasin.github.io/commit/a58dcda388645aa5a85b0e24b581562e2b96d230"
   },
   "/across/": {
-    "date": "2026-06-07T00:05:29-07:00",
-    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/65a974bf2ff415e00af0752d55e347adfd679adc"
+    "date": "2026-06-11T23:07:43-07:00",
+    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/09803a607b3aa36af788449fec1c7ac9234cff9f"
+  },
+  "/explorer/": {
+    "date": "2026-06-11T00:07:50-07:00",
+    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/c46f577e7f713dd593b65a019f707af5a2131814"
+  },
+  "/etymology/": {
+    "date": "2026-06-11T23:48:11-07:00",
+    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/eee76f2fd6a0bd3bae9a1c16a0cbb946a1c4a102"
   }
 }
