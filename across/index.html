@@ -74,12 +74,22 @@
       body.dark .word .cell.cross {
         color: #555;
       }
+      /* Single-line hint bar: the pill never wraps; on screens too narrow to
+         fit it the bar pans horizontally instead. Auto margins centre the
+         pill while it fits and collapse to zero once it overflows, keeping
+         the left edge reachable (justify-content: center would clip it); the
+         ::before/::after spacers leave a small gutter at both scroll ends. */
       #hint {
         position: fixed;
         left: 0;
         right: 0;
         bottom: 12px;
-        text-align: center;
+        display: flex;
+        overflow-x: auto;
+        scrollbar-width: none;
+        touch-action: pan-x;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
         font-size: 12px;
         color: #888;
         opacity: 1;
@@ -87,8 +97,18 @@
         user-select: none;
         z-index: 3;
       }
+      #hint::-webkit-scrollbar {
+        display: none;
+      }
+      #hint::before,
+      #hint::after {
+        content: '';
+        flex: 0 0 8px;
+      }
       #hint-inner {
-        display: inline-block;
+        flex: 0 0 auto;
+        margin: 0 auto;
+        white-space: nowrap;
         padding: 6px 10px;
         border-radius: 6px;
         background: #ffffff;
@@ -444,8 +464,13 @@
         { passive: true }
       );
 
+      const hintEl = document.getElementById('hint');
+      // Panning the hint bar horizontally must not scrub the alphabet, so
+      // keep its touches away from the document-level drag handlers.
+      hintEl.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+      hintEl.addEventListener('touchmove', (e) => e.stopPropagation(), { passive: true });
       const { show: showHint } = Common.initHintBar({
-        hintEl: document.getElementById('hint'),
+        hintEl,
         hintZoneEl: document.getElementById('hint-zone'),
       });
       document.getElementById('hb-left').addEventListener('click', () => {
