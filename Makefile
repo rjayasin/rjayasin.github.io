@@ -1,4 +1,3 @@
-# Tool versions are shared with .github/workflows/pr-validate.yml; keep in sync.
 PRETTIER_VERSION := 3.3.3
 PRETTIER := npx --yes prettier@$(PRETTIER_VERSION)
 HTML_VALIDATE_VERSION := 8.29.0
