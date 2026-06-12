@@ -66,13 +66,16 @@
       body.vert .word {
         display: flex;
       }
-      /* The crossing letter of the currently selected word matches the
-         alphabet's idle grey rather than the word's full-strength colour. */
+      /* The currently selected letter — the alphabet cell and the word's
+         crossing letter drawn on top of it — is always the same grey with a
+         thin white stroke, in light and dark mode alike. paint-order keeps
+         the stroke outside the glyph where supported. */
+      #alphabet .cell.sel,
+      body.dark #alphabet .cell.sel,
       .word .cell.cross {
         color: #bbb;
-      }
-      body.dark .word .cell.cross {
-        color: #555;
+        -webkit-text-stroke: 1px #fff;
+        paint-order: stroke fill;
       }
       /* Single-line hint bar: the pill never wraps; on screens too narrow to
          fit it the bar pans horizontally instead. Auto margins centre the
@@ -156,25 +159,25 @@
           >
           letters</span
         >
-        &nbsp;·&nbsp;
+        ·
         <span style="white-space: nowrap"><span class="hint-btn" id="hb-flip">a flip</span></span>
-        &nbsp;·&nbsp;
+        ·
         <span style="white-space: nowrap"
           ><span class="hint-btn" id="hb-persist"
             >p persist <span class="hb-persist-label">off</span></span
           ></span
         >
-        &nbsp;·&nbsp;
+        ·
         <span style="white-space: nowrap"
           ><span class="hint-btn" id="hb-wik">w wiktionary</span></span
         >
-        &nbsp;·&nbsp;
+        ·
         <span style="white-space: nowrap"
           ><span class="hint-btn" id="hb-dark"
             >1 <span class="hb-dark-label">dark</span></span
           ></span
         >
-        &nbsp;·&nbsp;
+        ·
         <span style="white-space: nowrap"
           ><span class="hint-btn" id="hb-sitemap">s sitemap</span></span
         ></span
@@ -279,7 +282,9 @@
 
       function renderWords() {
         wordEl.textContent = '';
-        for (const c of alphabetEl.children) c.classList.remove('on');
+        for (const c of alphabetEl.children) c.classList.remove('on', 'sel');
+        // Mark the selected alphabet letter even before its word arrives.
+        if (index >= 0) alphabetEl.children[index].classList.add('sel');
         const frag = document.createDocumentFragment();
         for (const key in words) {
           const i = +key;
