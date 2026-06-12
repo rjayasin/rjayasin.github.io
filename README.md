@@ -32,3 +32,4 @@
 - [`dodgers-notifier`](https://rjayasin.github.io/dodgers-notifier/)
 - [`deploys`](https://rjayasin.github.io/deploys/)
 - [`explorer`](https://rjayasin.github.io/explorer/)
+- [`etymology`](https://rjayasin.github.io/etymology/)
