@@ -1,0 +1,1193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ruvan / etymology</title>
+    <link rel="icon" id="favicon" />
+    <link rel="stylesheet" href="/common.css" />
+    <style>
+      :root {
+        --muted: rgba(0, 0, 0, 0.45);
+        --faint: rgba(0, 0, 0, 0.3);
+        --line: rgba(0, 0, 0, 0.18);
+        --hover: rgba(0, 0, 0, 0.05);
+        --card-bg: #fafafa;
+      }
+      body.dark {
+        --muted: rgba(255, 255, 255, 0.5);
+        --faint: rgba(255, 255, 255, 0.35);
+        --line: rgba(255, 255, 255, 0.22);
+        --hover: rgba(255, 255, 255, 0.07);
+        --card-bg: #181818;
+      }
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) {
+          --muted: rgba(255, 255, 255, 0.5);
+          --faint: rgba(255, 255, 255, 0.35);
+          --line: rgba(255, 255, 255, 0.22);
+          --hover: rgba(255, 255, 255, 0.07);
+          --card-bg: #181818;
+        }
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        font-family: 'Times New Roman', Times, Georgia, serif;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      /* --- Header --- */
+      #header {
+        position: relative;
+        padding: 16px;
+        border-bottom: 1px solid var(--line);
+      }
+      #search-row {
+        position: relative;
+        max-width: 560px;
+        margin: 0 auto;
+      }
+      #search {
+        font: inherit;
+        font-size: 34px;
+        text-align: center;
+        background: transparent;
+        color: inherit;
+        border: none;
+        outline: none;
+        display: block;
+        width: 100%;
+        padding: 0 44px;
+      }
+      #search::placeholder {
+        color: var(--faint);
+      }
+      #random-btn {
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        font: inherit;
+        font-size: 22px;
+        line-height: 1;
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--muted);
+        padding: 6px;
+      }
+      #random-btn:hover {
+        color: inherit;
+      }
+
+      /* --- Content / tree --- */
+      #content {
+        flex: 1;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 32px 16px 96px;
+        transition: opacity 0.18s ease; /* keep in sync with FADE_MS */
+      }
+      #content.centered {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+      .status {
+        font-size: 18px;
+        font-style: italic;
+        color: var(--faint);
+      }
+      .status a {
+        color: var(--muted);
+      }
+
+      /* Nested flexbox tree with connector lines drawn by ::before/::after. */
+      .tree {
+        width: max-content;
+        min-width: 100%;
+      }
+      .tree ul {
+        display: flex;
+        justify-content: center;
+        list-style: none;
+        position: relative;
+        padding-top: 22px;
+      }
+      .tree > ul {
+        padding-top: 0;
+      }
+      /* vertical drop from the parent node into the children row */
+      .tree ul ul::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        height: 22px;
+        border-left: 1px solid var(--line);
+      }
+      .tree li {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+        padding: 22px 10px 0;
+      }
+      /* horizontal distribution line plus the drop to each child */
+      .tree li::before,
+      .tree li::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 50%;
+        width: 50%;
+        height: 22px;
+        border-top: 1px solid var(--line);
+      }
+      .tree li::after {
+        right: auto;
+        left: 50%;
+        border-left: 1px solid var(--line);
+      }
+      .tree li:first-child::before,
+      .tree li:last-child::after {
+        border-top: none;
+      }
+      .tree li:last-child::before {
+        border-right: 1px solid var(--line);
+        border-radius: 0 6px 0 0;
+      }
+      .tree li:first-child::after {
+        border-radius: 6px 0 0 0;
+      }
+      /* an only child continues straight down: one line, no elbows */
+      .tree li:only-child::before {
+        display: none;
+      }
+      .tree li:only-child::after {
+        border-top: none;
+        border-radius: 0;
+      }
+      .tree > ul > li {
+        padding-top: 0;
+      }
+      .tree > ul > li::before,
+      .tree > ul > li::after {
+        display: none;
+      }
+
+      .node {
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px 16px 10px;
+        text-align: center;
+        max-width: 240px;
+      }
+      .node.clickable {
+        cursor: pointer;
+      }
+      @media (hover: hover) {
+        .node.clickable:hover {
+          background: var(--hover);
+        }
+      }
+      .node .rel {
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        font-size: 9px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--faint);
+        margin-bottom: 2px;
+      }
+      .node .lang {
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 3px;
+      }
+      .node .form {
+        font-size: 21px;
+        line-height: 1.2;
+      }
+      .node .form.empty {
+        color: var(--faint);
+      }
+      .node .tr {
+        font-size: 13px;
+        color: var(--muted);
+        margin-top: 1px;
+      }
+      .node .gloss {
+        font-size: 13px;
+        font-style: italic;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .tree > ul > li > .node .form {
+        font-size: 30px;
+      }
+
+      #source-line {
+        text-align: center;
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        font-size: 11px;
+        color: var(--faint);
+        margin-top: 36px;
+      }
+      #source-line a {
+        color: inherit;
+      }
+
+      button,
+      .node {
+        touch-action: manipulation;
+      }
+      @media (max-width: 700px) {
+        #search {
+          font-size: 26px;
+        }
+        #content {
+          padding: 24px 10px 96px;
+        }
+        .node {
+          padding: 6px 10px 8px;
+          max-width: 180px;
+        }
+        .node .form {
+          font-size: 17px;
+        }
+        .tree > ul > li > .node .form {
+          font-size: 24px;
+        }
+        .tree li {
+          padding-left: 5px;
+          padding-right: 5px;
+        }
+      }
+
+      /* --- Hint bar --- */
+      #hint {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        text-align: center;
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        font-size: 12px;
+        color: #888;
+        opacity: 1;
+        transition: opacity 0.4s ease;
+        user-select: none;
+        z-index: 65;
+        padding: 8px 8px 12px;
+        background: #fff;
+      }
+      body.dark #hint {
+        background: #111;
+      }
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) #hint {
+          background: #111;
+        }
+      }
+      #hint.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #hint .hint-btn {
+        cursor: pointer;
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        text-underline-offset: 2px;
+      }
+      #hint .hint-btn:hover {
+        color: #333;
+      }
+      body.dark #hint .hint-btn:hover {
+        color: #ccc;
+      }
+      #hint-zone {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 50px;
+        z-index: 64;
+      }
+    </style>
+    <script src="/common.js"></script>
+  </head>
+  <body>
+    <header id="header">
+      <div id="search-row">
+        <input
+          id="search"
+          type="text"
+          placeholder="word"
+          autocomplete="off"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+          enterkeyhint="search"
+        />
+        <button id="random-btn" title="Random word (n)">⟳</button>
+      </div>
+    </header>
+    <div id="content" class="centered"><div class="status">…</div></div>
+    <div id="hint">
+      <span id="hint-inner">
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-random">n random</span></span
+        >
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-search">/ search</span></span
+        >
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-dark"
+            >1 <span class="hb-dark-label">dark</span></span
+          ></span
+        >
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-sitemap">s sitemap</span></span
+        >
+      </span>
+    </div>
+    <div id="hint-zone"></div>
+    <script>
+      Common.paintFaviconR();
+      Common.initDarkMode();
+      Common.initSitemapShortcut();
+
+      // ---------- Language codes ----------
+      // Wiktionary language codes seen in etymology templates → display names.
+      // Anything missing falls back to showing the raw code.
+      const LANGS = {
+        en: 'English',
+        enm: 'Middle English',
+        ang: 'Old English',
+        sco: 'Scots',
+        'gmw-pro': 'Proto-West Germanic',
+        'gem-pro': 'Proto-Germanic',
+        'ine-pro': 'Proto-Indo-European',
+        non: 'Old Norse',
+        is: 'Icelandic',
+        fo: 'Faroese',
+        da: 'Danish',
+        sv: 'Swedish',
+        no: 'Norwegian',
+        nb: 'Norwegian Bokmål',
+        nn: 'Norwegian Nynorsk',
+        de: 'German',
+        goh: 'Old High German',
+        gmh: 'Middle High German',
+        nds: 'Low German',
+        gml: 'Middle Low German',
+        osx: 'Old Saxon',
+        nl: 'Dutch',
+        dum: 'Middle Dutch',
+        odt: 'Old Dutch',
+        af: 'Afrikaans',
+        fy: 'West Frisian',
+        ofs: 'Old Frisian',
+        frk: 'Frankish',
+        got: 'Gothic',
+        yi: 'Yiddish',
+        lb: 'Luxembourgish',
+        fr: 'French',
+        frm: 'Middle French',
+        fro: 'Old French',
+        xno: 'Anglo-Norman',
+        oc: 'Occitan',
+        pro: 'Old Occitan',
+        ca: 'Catalan',
+        es: 'Spanish',
+        osp: 'Old Spanish',
+        pt: 'Portuguese',
+        'roa-opt': 'Old Galician-Portuguese',
+        gl: 'Galician',
+        it: 'Italian',
+        ro: 'Romanian',
+        rm: 'Romansch',
+        scn: 'Sicilian',
+        vec: 'Venetian',
+        nap: 'Neapolitan',
+        la: 'Latin',
+        'la-cla': 'Classical Latin',
+        'la-lat': 'Late Latin',
+        'la-vul': 'Vulgar Latin',
+        'la-med': 'Medieval Latin',
+        'la-new': 'New Latin',
+        'la-ecc': 'Ecclesiastical Latin',
+        'VL.': 'Vulgar Latin',
+        'LL.': 'Late Latin',
+        'ML.': 'Medieval Latin',
+        'NL.': 'New Latin',
+        'EL.': 'Ecclesiastical Latin',
+        'itc-pro': 'Proto-Italic',
+        'itc-ola': 'Old Latin',
+        grc: 'Ancient Greek',
+        'grc-koi': 'Koine Greek',
+        gkm: 'Byzantine Greek',
+        el: 'Greek',
+        'grk-pro': 'Proto-Hellenic',
+        'cel-pro': 'Proto-Celtic',
+        'cel-bry-pro': 'Proto-Brythonic',
+        sga: 'Old Irish',
+        mga: 'Middle Irish',
+        ga: 'Irish',
+        gd: 'Scottish Gaelic',
+        gv: 'Manx',
+        cy: 'Welsh',
+        br: 'Breton',
+        kw: 'Cornish',
+        ru: 'Russian',
+        orv: 'Old East Slavic',
+        cu: 'Old Church Slavonic',
+        'sla-pro': 'Proto-Slavic',
+        'ine-bsl-pro': 'Proto-Balto-Slavic',
+        pl: 'Polish',
+        cs: 'Czech',
+        sk: 'Slovak',
+        uk: 'Ukrainian',
+        be: 'Belarusian',
+        bg: 'Bulgarian',
+        sh: 'Serbo-Croatian',
+        sl: 'Slovene',
+        mk: 'Macedonian',
+        lt: 'Lithuanian',
+        lv: 'Latvian',
+        prg: 'Old Prussian',
+        sa: 'Sanskrit',
+        pi: 'Pali',
+        'inc-pro': 'Proto-Indo-Aryan',
+        'iir-pro': 'Proto-Indo-Iranian',
+        'ira-pro': 'Proto-Iranian',
+        hi: 'Hindi',
+        ur: 'Urdu',
+        pal: 'Middle Persian',
+        peo: 'Old Persian',
+        fa: 'Persian',
+        'fa-cls': 'Classical Persian',
+        ps: 'Pashto',
+        ku: 'Kurdish',
+        bn: 'Bengali',
+        mr: 'Marathi',
+        gu: 'Gujarati',
+        pa: 'Punjabi',
+        ne: 'Nepali',
+        si: 'Sinhalese',
+        ta: 'Tamil',
+        te: 'Telugu',
+        ml: 'Malayalam',
+        kn: 'Kannada',
+        'dra-pro': 'Proto-Dravidian',
+        ar: 'Arabic',
+        'sem-pro': 'Proto-Semitic',
+        'afa-pro': 'Proto-Afroasiatic',
+        he: 'Hebrew',
+        hbo: 'Biblical Hebrew',
+        arc: 'Aramaic',
+        syc: 'Classical Syriac',
+        akk: 'Akkadian',
+        phn: 'Phoenician',
+        egy: 'Egyptian',
+        cop: 'Coptic',
+        mt: 'Maltese',
+        am: 'Amharic',
+        gez: 'Geʽez',
+        tr: 'Turkish',
+        ota: 'Ottoman Turkish',
+        'trk-pro': 'Proto-Turkic',
+        az: 'Azerbaijani',
+        kk: 'Kazakh',
+        ky: 'Kyrgyz',
+        uz: 'Uzbek',
+        tt: 'Tatar',
+        mn: 'Mongolian',
+        zh: 'Chinese',
+        ltc: 'Middle Chinese',
+        och: 'Old Chinese',
+        cmn: 'Mandarin',
+        yue: 'Cantonese',
+        'sit-pro': 'Proto-Sino-Tibetan',
+        bo: 'Tibetan',
+        my: 'Burmese',
+        ja: 'Japanese',
+        ojp: 'Old Japanese',
+        ko: 'Korean',
+        okm: 'Middle Korean',
+        vi: 'Vietnamese',
+        th: 'Thai',
+        km: 'Khmer',
+        lo: 'Lao',
+        ms: 'Malay',
+        id: 'Indonesian',
+        jv: 'Javanese',
+        tl: 'Tagalog',
+        'poz-pro': 'Proto-Malayo-Polynesian',
+        'map-pro': 'Proto-Austronesian',
+        haw: 'Hawaiian',
+        mi: 'Maori',
+        sm: 'Samoan',
+        to: 'Tongan',
+        fj: 'Fijian',
+        hu: 'Hungarian',
+        fi: 'Finnish',
+        et: 'Estonian',
+        'urj-pro': 'Proto-Uralic',
+        eu: 'Basque',
+        ka: 'Georgian',
+        hy: 'Armenian',
+        xcl: 'Old Armenian',
+        sq: 'Albanian',
+        sw: 'Swahili',
+        zu: 'Zulu',
+        'bnt-pro': 'Proto-Bantu',
+        yo: 'Yoruba',
+        ha: 'Hausa',
+        wo: 'Wolof',
+        nci: 'Classical Nahuatl',
+        qu: 'Quechua',
+        gn: 'Guaraní',
+        ay: 'Aymara',
+        chr: 'Cherokee',
+        oj: 'Ojibwe',
+        'alg-pro': 'Proto-Algonquian',
+        ett: 'Etruscan',
+        sux: 'Sumerian',
+        hit: 'Hittite',
+        xto: 'Tocharian A',
+        txb: 'Tocharian B',
+        eo: 'Esperanto',
+        mul: 'Translingual',
+        und: 'Undetermined',
+      };
+      // Etymology-only varieties live under their parent language's heading.
+      const SECTION_OVERRIDES = {
+        'la-cla': 'Latin',
+        'la-lat': 'Latin',
+        'la-vul': 'Latin',
+        'la-med': 'Latin',
+        'la-new': 'Latin',
+        'la-ecc': 'Latin',
+        'VL.': 'Latin',
+        'LL.': 'Latin',
+        'ML.': 'Latin',
+        'NL.': 'Latin',
+        'EL.': 'Latin',
+        'grc-koi': 'Ancient Greek',
+        'fa-cls': 'Persian',
+        cmn: 'Chinese',
+        yue: 'Chinese',
+      };
+      // Languages whose entry titles drop the vowel-length marks shown in
+      // etymology templates (Latin macrons, Old English macrons/dots, …).
+      const STRIP_MARKS = new Set([
+        'la',
+        'la-cla',
+        'la-lat',
+        'la-vul',
+        'la-med',
+        'la-new',
+        'la-ecc',
+        'VL.',
+        'LL.',
+        'ML.',
+        'NL.',
+        'EL.',
+        'itc-ola',
+        'ang',
+        'grc',
+        'grc-koi',
+      ]);
+
+      function langName(code) {
+        return LANGS[code] || code;
+      }
+      function sectionName(code) {
+        return SECTION_OVERRIDES[code] || LANGS[code] || null;
+      }
+      function stripMarks(s) {
+        return s.normalize('NFD').replace(/[̄̆̇]/g, '').normalize('NFC');
+      }
+
+      // ---------- Wikitext parsing ----------
+      // Etymology sections describe descent with a small set of templates:
+      //   {{inh|en|enm|water}}  inherited   {{bor|en|fr|ballet}}  borrowed
+      //   {{der|en|la|aqua}}    derived     {{m|grc|λόγος}}       mention
+      // Successive templates in the "From X, from Y, from Z" prose form the
+      // ancestry chain; a "+" between them (or a compound/affix template)
+      // splits the tree into branches.
+      const CHAIN_REL = {
+        inh: 'inherited',
+        'inh+': 'inherited',
+        der: 'derived',
+        'der+': 'derived',
+        bor: 'borrowed',
+        'bor+': 'borrowed',
+        lbor: 'learned borrowing',
+        slbor: 'semi-learned borrowing',
+        obor: 'orthographic borrowing',
+        ubor: 'unadapted borrowing',
+        cal: 'calque',
+        calque: 'calque',
+        clq: 'calque',
+        pcal: 'partial calque',
+        psm: 'phono-semantic match',
+        m: 'from',
+        mention: 'from',
+        'm+': 'from',
+        l: 'from',
+        link: 'from',
+      };
+      // First positional param of {{m}}/{{l}} is already the language.
+      const MENTION_NAMES = new Set(['m', 'mention', 'm+', 'l', 'link']);
+      const COMPOUND_NAMES = new Set([
+        'compound',
+        'com',
+        'affix',
+        'af',
+        'surf',
+        'suffix',
+        'suf',
+        'prefix',
+        'pre',
+        'confix',
+        'con',
+        'blend',
+        'univerbation',
+        'univ',
+      ]);
+
+      // Extract top-level {{…}} templates with positional/named params.
+      function parseTemplates(text) {
+        const out = [];
+        let i = 0;
+        while (i < text.length) {
+          const open = text.indexOf('{{', i);
+          if (open === -1) break;
+          let depth = 0;
+          let j = open;
+          let close = -1;
+          while (j < text.length - 1) {
+            if (text[j] === '{' && text[j + 1] === '{') {
+              depth++;
+              j += 2;
+            } else if (text[j] === '}' && text[j + 1] === '}') {
+              depth--;
+              j += 2;
+              if (depth === 0) {
+                close = j;
+                break;
+              }
+            } else {
+              j++;
+            }
+          }
+          if (close === -1) break;
+          const inner = text.slice(open + 2, close - 2);
+          const parts = splitTop(inner);
+          const name = (parts.shift() || '').trim().toLowerCase();
+          const pos = [];
+          const named = {};
+          for (const part of parts) {
+            const eq = topLevelEq(part);
+            if (eq !== -1) named[part.slice(0, eq).trim()] = part.slice(eq + 1).trim();
+            else pos.push(part.trim());
+          }
+          out.push({ name, pos, named, start: open, end: close });
+          i = close;
+        }
+        return out;
+      }
+
+      // Split template params on | ignoring nested {{…}} and [[…]].
+      function splitTop(s) {
+        const parts = [];
+        let depth = 0;
+        let cur = '';
+        for (let i = 0; i < s.length; i++) {
+          const two = s.slice(i, i + 2);
+          if (two === '{{' || two === '[[') {
+            depth++;
+            cur += two;
+            i++;
+          } else if (two === '}}' || two === ']]') {
+            depth--;
+            cur += two;
+            i++;
+          } else if (s[i] === '|' && depth === 0) {
+            parts.push(cur);
+            cur = '';
+          } else {
+            cur += s[i];
+          }
+        }
+        parts.push(cur);
+        return parts;
+      }
+
+      function topLevelEq(s) {
+        let depth = 0;
+        for (let i = 0; i < s.length; i++) {
+          const two = s.slice(i, i + 2);
+          if (two === '{{' || two === '[[') {
+            depth++;
+            i++;
+          } else if (two === '}}' || two === ']]') {
+            depth--;
+            i++;
+          } else if (s[i] === '=' && depth === 0) {
+            return i;
+          }
+        }
+        return -1;
+      }
+
+      function cleanText(s) {
+        return (s || '')
+          .replace(/\[\[[^\]|]*\|([^\]]*)\]\]/g, '$1')
+          .replace(/\[\[([^\]]*)\]\]/g, '$1')
+          .replace(/'{2,}/g, '')
+          .replace(/<[^>]*>/g, '')
+          .trim();
+      }
+
+      // The ==Language== section of a page's wikitext.
+      function extractLangSection(wikitext, language) {
+        const text = wikitext
+          .replace(/<!--[\s\S]*?-->/g, '')
+          .replace(/<ref[\s\S]*?(<\/ref>|\/>)/gi, '');
+        const esc = language.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp('(^|\\n)==\\s*' + esc + '\\s*==\\s*\\n');
+        const m = re.exec(text);
+        if (!m) return null;
+        const start = m.index + m[0].length;
+        const next = /\n==[^=]/.exec(text.slice(start));
+        return next ? text.slice(start, start + next.index) : text.slice(start);
+      }
+
+      // The first Etymology subsection (handles "Etymology" and "Etymology 1").
+      function extractEtymology(section) {
+        const m = /(^|\n)(={3,})\s*Etymology(\s+1)?\s*\2\s*\n/.exec(section);
+        if (!m) return null;
+        const start = m.index + m[0].length;
+        const next = /\n=/.exec(section.slice(start));
+        return (next ? section.slice(start, start + next.index) : section.slice(start)).trim();
+      }
+
+      // Prose after these markers lists cognates and cross-references,
+      // not ancestors — cut before extracting the chain.
+      const STOP_RE =
+        /\b(?:[Cc]ognate|[Cc]ompare|[Rr]elated to|[Mm]ore at|[Dd]oublet|[Ss]ee also|[Aa]kin to|[Dd]isplaced|[Ss]uperseded|[Ss]ynchronically)\b/;
+
+      function makeNode(form, lang, rel, gloss, tr) {
+        return {
+          form: cleanText(form),
+          lang,
+          rel,
+          gloss: cleanText(gloss),
+          tr: tr || '',
+          children: [],
+        };
+      }
+
+      function chainNodeFrom(t) {
+        const mention = MENTION_NAMES.has(t.name);
+        const lang = mention ? t.pos[0] : t.pos[1];
+        if (!lang) return null;
+        let form = mention ? t.pos[1] : t.pos[2];
+        const alt = mention ? t.pos[2] : t.pos[3];
+        const gloss = t.named.t || t.named.gloss || (mention ? t.pos[3] : t.pos[4]) || '';
+        if (form === '-') form = '';
+        return makeNode(alt || form || '', lang, CHAIN_REL[t.name], gloss, t.named.tr);
+      }
+
+      function compoundParts(t) {
+        const lang = t.pos[0];
+        const parts = [];
+        t.pos.slice(1).forEach((raw, idx) => {
+          let part = raw;
+          if (!part || part === '-') return;
+          if ((t.name === 'suffix' || t.name === 'suf') && idx > 0 && !part.startsWith('-')) {
+            part = '-' + part;
+          }
+          if ((t.name === 'prefix' || t.name === 'pre') && idx === 0 && !part.endsWith('-')) {
+            part = part + '-';
+          }
+          const gloss = t.named['t' + (idx + 1)] || t.named['gloss' + (idx + 1)] || '';
+          parts.push(makeNode(part, lang, '+', gloss));
+        });
+        return parts;
+      }
+
+      // Walk the first template-bearing paragraph and grow the tree under root.
+      function buildChain(etymText, root, rootLang) {
+        for (const para of etymText.split(/\n{2,}/)) {
+          const stop = STOP_RE.exec(para);
+          const text = stop ? para.slice(0, stop.index) : para;
+          const templates = parseTemplates(text).filter(
+            (t) => CHAIN_REL[t.name] || COMPOUND_NAMES.has(t.name)
+          );
+          if (!templates.length) continue;
+          let attach = root; // parent of the next chain node
+          let last = null;
+          let lastEnd = 0;
+          for (const t of templates) {
+            const gap = text.slice(lastEnd, t.start);
+            lastEnd = t.end;
+            if (COMPOUND_NAMES.has(t.name)) {
+              // Morphological analysis describes the headword itself; an
+              // ancestor-language compound belongs to the current node.
+              const target = t.pos[0] === rootLang ? root : last || root;
+              for (const part of compoundParts(t)) target.children.push(part);
+              continue;
+            }
+            const node = chainNodeFrom(t);
+            if (!node) continue;
+            // Skip the headword itself and repeated mentions of the same form.
+            if (node.lang === rootLang && node.form === root.form && !root.children.length)
+              continue;
+            if (last && node.lang === last.lang && node.form === last.form) {
+              if (!last.gloss && node.gloss) last.gloss = node.gloss;
+              continue;
+            }
+            // Descent steps are spelled out ("from X, from Y"); a bare
+            // comma, parenthesis, or "+" introduces an alternate form or
+            // compound part — a sibling branch, not an ancestor.
+            const sibling =
+              last &&
+              gap.length <= 30 &&
+              (gap.includes('+') ||
+                /(^|[\s,;])(or|and)\s/.test(gap) ||
+                !/(from|via|through|of|ultimately|after|<)/i.test(gap));
+            if (last && !sibling) attach = last;
+            attach.children.push(node);
+            last = node;
+          }
+          return true;
+        }
+        return false;
+      }
+
+      // ---------- Wiktionary fetch ----------
+      const API =
+        'https://en.wiktionary.org/w/api.php?action=parse&prop=wikitext&format=json' +
+        '&formatversion=2&redirects=1&origin=*&page=';
+      const pageCache = new Map();
+
+      function fetchWikitext(title) {
+        if (!pageCache.has(title)) {
+          pageCache.set(
+            title,
+            fetch(API + encodeURIComponent(title))
+              .then((r) => (r.ok ? r.json() : null))
+              .then((j) => (j && j.parse && j.parse.wikitext) || null)
+              .catch(() => null)
+          );
+        }
+        return pageCache.get(title);
+      }
+
+      function pageTitleFor(form, lang) {
+        const name = langName(lang);
+        if (form.startsWith('*')) return 'Reconstruction:' + name + '/' + form.slice(1);
+        return STRIP_MARKS.has(lang) ? stripMarks(form) : form;
+      }
+
+      // Fetch a word's etymology and build its tree. Compound parts are
+      // expanded recursively (depth-limited, shared fetch budget).
+      async function getTree(form, lang, depth = 0, budget = { left: 10 }) {
+        if (budget.left <= 0) return null;
+        budget.left--;
+        const section = sectionName(lang);
+        if (!section) return null;
+        const wikitext = await fetchWikitext(pageTitleFor(form, lang));
+        if (!wikitext) return null;
+        const langSection = extractLangSection(wikitext, section);
+        if (!langSection) return null;
+        const ety = extractEtymology(langSection);
+        if (!ety) return null;
+        const root = makeNode(form, lang, '');
+        if (!buildChain(ety, root, lang)) return null;
+        if (depth < 2) {
+          for (const child of root.children) {
+            if (child.rel !== '+' || !child.form || child.children.length) continue;
+            const sub = await getTree(child.form, child.lang, depth + 1, budget);
+            if (sub) {
+              child.children = sub.children;
+              if (!child.gloss) child.gloss = sub.gloss;
+            }
+          }
+        }
+        return root;
+      }
+
+      // ---------- Rendering ----------
+      const contentEl = document.getElementById('content');
+      const searchEl = document.getElementById('search');
+
+      function nodeEl(node, isRoot) {
+        const div = document.createElement('div');
+        div.className = 'node';
+        if (node.rel && !isRoot) {
+          const rel = document.createElement('div');
+          rel.className = 'rel';
+          rel.textContent = node.rel === '+' ? '+' : node.rel;
+          div.appendChild(rel);
+        }
+        const lang = document.createElement('div');
+        lang.className = 'lang';
+        lang.textContent = langName(node.lang);
+        div.appendChild(lang);
+        const form = document.createElement('div');
+        form.className = 'form' + (node.form ? '' : ' empty');
+        form.textContent = node.form || '—';
+        div.appendChild(form);
+        if (node.tr) {
+          const tr = document.createElement('div');
+          tr.className = 'tr';
+          tr.textContent = node.tr;
+          div.appendChild(tr);
+        }
+        if (node.gloss) {
+          const gloss = document.createElement('div');
+          gloss.className = 'gloss';
+          gloss.textContent = '“' + node.gloss + '”';
+          div.appendChild(gloss);
+        }
+        if (!isRoot && node.form && sectionName(node.lang)) {
+          div.classList.add('clickable');
+          div.title = 'Trace ' + node.form;
+          div.addEventListener('click', () => lookup(node.form, node.lang));
+        }
+        return div;
+      }
+
+      function subtreeEl(node, isRoot) {
+        const li = document.createElement('li');
+        li.appendChild(nodeEl(node, isRoot));
+        if (node.children.length) {
+          const ul = document.createElement('ul');
+          for (const child of node.children) ul.appendChild(subtreeEl(child, false));
+          li.appendChild(ul);
+        }
+        return li;
+      }
+
+      function wiktionaryUrl(form, lang) {
+        return 'https://en.wiktionary.org/wiki/' + encodeURIComponent(pageTitleFor(form, lang));
+      }
+
+      function renderTree(root) {
+        contentEl.className = '';
+        contentEl.innerHTML = '';
+        const tree = document.createElement('div');
+        tree.className = 'tree';
+        const ul = document.createElement('ul');
+        ul.appendChild(subtreeEl(root, true));
+        tree.appendChild(ul);
+        contentEl.appendChild(tree);
+        const source = document.createElement('div');
+        source.id = 'source-line';
+        const a = document.createElement('a');
+        a.href = wiktionaryUrl(root.form, root.lang);
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.textContent = 'wiktionary';
+        source.append('source: ', a, ' (CC BY-SA)');
+        contentEl.appendChild(source);
+      }
+
+      function renderStatus(text, link) {
+        contentEl.className = 'centered';
+        contentEl.innerHTML = '';
+        const div = document.createElement('div');
+        div.className = 'status';
+        div.textContent = text;
+        if (link) {
+          const a = document.createElement('a');
+          a.href = link.href;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.textContent = link.text;
+          div.append(' — ', a);
+        }
+        contentEl.appendChild(div);
+      }
+
+      // ---------- Lookup / navigation ----------
+      const FADE_MS = 180; // keep in sync with #content's opacity transition
+      let seq = 0;
+
+      function queryFor(form, lang) {
+        return encodeURIComponent(lang === 'en' ? form : form + '@' + lang);
+      }
+
+      function setUrl(form, lang, replace) {
+        const q = '?' + queryFor(form, lang);
+        if (location.search === q) return;
+        const url = location.pathname + q;
+        if (replace) history.replaceState(null, '', url);
+        else history.pushState(null, '', url);
+      }
+
+      async function lookup(form, lang, opts = {}) {
+        form = form.trim();
+        if (!form) return;
+        if (lang === 'en') form = form.toLowerCase();
+        const my = ++seq;
+        if (!opts.fromPop) setUrl(form, lang, opts.replace);
+        searchEl.value = lang === 'en' ? form : form + ' (' + langName(lang) + ')';
+        searchEl.blur();
+        contentEl.style.opacity = '0';
+        const fadeOut = new Promise((r) => setTimeout(r, FADE_MS));
+        const tree = await getTree(form, lang);
+        await fadeOut;
+        if (my !== seq) return;
+        if (tree) renderTree(tree);
+        else {
+          renderStatus('no etymology found for “' + form + '”', {
+            href: wiktionaryUrl(form, lang),
+            text: 'check wiktionary',
+          });
+        }
+        contentEl.scrollTop = 0;
+        contentEl.scrollLeft = 0;
+        contentEl.style.opacity = '1';
+      }
+
+      // ---------- Random words ----------
+      const wordsPromise = fetch('/words.txt')
+        .then((r) => r.text())
+        .then((t) => t.split(/\s+/).filter(Boolean))
+        .catch(() => []);
+
+      async function randomWord(opts = {}) {
+        const my = ++seq;
+        contentEl.style.opacity = '0';
+        await new Promise((r) => setTimeout(r, FADE_MS));
+        if (my !== seq) return;
+        renderStatus('tracing…');
+        contentEl.style.opacity = '1';
+        const words = await wordsPromise;
+        if (!words.length) {
+          if (my === seq) renderStatus('could not load the word list');
+          return;
+        }
+        // Not every word has a documented history; keep drawing until one does.
+        for (let i = 0; i < 8; i++) {
+          const word = words[Math.floor(Math.random() * words.length)].toLowerCase();
+          const tree = await getTree(word, 'en');
+          if (my !== seq) return;
+          if (tree) {
+            setUrl(word, 'en', opts.replace && i === 0);
+            searchEl.value = word;
+            renderTree(tree);
+            contentEl.scrollTop = 0;
+            contentEl.scrollLeft = 0;
+            return;
+          }
+        }
+        renderStatus('the dice came up empty — try again');
+      }
+
+      window.addEventListener('popstate', () => {
+        const items = Common.parseQueryItems();
+        if (!items.length) return;
+        const at = items[0].lastIndexOf('@');
+        if (at > 0) lookup(items[0].slice(0, at), items[0].slice(at + 1), { fromPop: true });
+        else lookup(items[0], 'en', { fromPop: true });
+      });
+
+      // ---------- Input + shortcuts ----------
+      searchEl.addEventListener('keydown', (e) => {
+        e.stopPropagation();
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          lookup(searchEl.value, 'en');
+        } else if (e.key === 'Escape') {
+          searchEl.blur();
+        }
+      });
+
+      document.getElementById('random-btn').addEventListener('click', () => randomWord());
+
+      document.addEventListener('keydown', (e) => {
+        const t = e.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        if (e.key === '/') {
+          e.preventDefault();
+          searchEl.focus();
+          searchEl.select();
+        } else if (e.key === 'n' || e.key === 'N') {
+          randomWord();
+        }
+      });
+
+      // ---------- Hint bar ----------
+      document.getElementById('hb-random').addEventListener('click', () => randomWord());
+      document.getElementById('hb-search').addEventListener('click', () => {
+        searchEl.focus();
+        searchEl.select();
+      });
+      document.getElementById('hb-dark').addEventListener('click', Common.toggleDark);
+      document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
+      Common.initHintBar({
+        hintEl: document.getElementById('hint'),
+        hintZoneEl: document.getElementById('hint-zone'),
+      });
+
+      // ---------- Init ----------
+      const initial = Common.parseQueryItems();
+      if (initial.length) {
+        const at = initial[0].lastIndexOf('@');
+        if (at > 0) lookup(initial[0].slice(0, at), initial[0].slice(at + 1), { replace: true });
+        else lookup(initial[0], 'en', { replace: true });
+      } else {
+        randomWord({ replace: true });
+      }
+    </script>
+  </body>
+</html>
