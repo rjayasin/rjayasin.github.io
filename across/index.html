@@ -49,9 +49,6 @@
       body.dark #alphabet .cell {
         color: #555;
       }
-      #alphabet .cell.on {
-        color: inherit;
-      }
       #word {
         position: absolute;
         left: 0;
@@ -66,22 +63,21 @@
       body.vert .word {
         display: flex;
       }
-      /* The currently selected letter — the alphabet cell and the word's
-         crossing letter drawn on top of it — is always the same grey with a
-         thin white stroke, in light and dark mode alike. paint-order keeps
-         the stroke outside the glyph where supported. */
+      /* Selected letter (alphabet cell + the word's crossing letter):
+         always grey, with a thin contrasting stroke. */
       #alphabet .cell.sel,
-      body.dark #alphabet .cell.sel,
       .word .cell.cross {
         color: #bbb;
-        -webkit-text-stroke: 1px #fff;
+        -webkit-text-stroke: 1px #000;
         paint-order: stroke fill;
       }
-      /* Single-line hint bar: the pill never wraps; on screens too narrow to
-         fit it the bar pans horizontally instead. Auto margins centre the
-         pill while it fits and collapse to zero once it overflows, keeping
-         the left edge reachable (justify-content: center would clip it); the
-         ::before/::after spacers leave a small gutter at both scroll ends. */
+      body.dark #alphabet .cell.sel,
+      body.dark .word .cell.cross {
+        color: #bbb;
+        -webkit-text-stroke-color: #fff;
+      }
+      /* Single-line hint bar; pans horizontally when it overflows. Auto
+         margins centre the pill yet keep the left edge reachable. */
       #hint {
         position: fixed;
         left: 0;
@@ -282,8 +278,8 @@
 
       function renderWords() {
         wordEl.textContent = '';
-        for (const c of alphabetEl.children) c.classList.remove('on', 'sel');
-        // Mark the selected alphabet letter even before its word arrives.
+        for (const c of alphabetEl.children) c.classList.remove('sel');
+        // Mark the selected letter even before its word arrives.
         if (index >= 0) alphabetEl.children[index].classList.add('sel');
         const frag = document.createDocumentFragment();
         for (const key in words) {
@@ -291,9 +287,6 @@
           const entry = words[i];
           if (!entry) continue;
           const isCurrent = i === index;
-          // The selected letter keeps the alphabet's idle grey; other letters
-          // that still show a (persisted) word are highlighted.
-          if (!isCurrent) alphabetEl.children[i].classList.add('on');
           const { word, pos } = entry;
           const wEl = document.createElement('div');
           wEl.className = 'word';
@@ -470,8 +463,7 @@
       );
 
       const hintEl = document.getElementById('hint');
-      // Panning the hint bar horizontally must not scrub the alphabet, so
-      // keep its touches away from the document-level drag handlers.
+      // Keep hint-bar panning from scrubbing the alphabet.
       hintEl.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
       hintEl.addEventListener('touchmove', (e) => e.stopPropagation(), { passive: true });
       const { show: showHint } = Common.initHintBar({
