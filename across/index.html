@@ -17,7 +17,11 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        /* iOS needs the prefixed property (pre-18.2) and callout suppression,
+           or dragging over text starts a selection and stalls scrubbing. */
+        -webkit-user-select: none;
         user-select: none;
+        -webkit-touch-callout: none;
         touch-action: none;
         font-family:
           ui-monospace,
