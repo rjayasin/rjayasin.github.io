@@ -280,14 +280,44 @@ window.Common = window.Common || {};
       hintTimer = setTimeout(() => hintEl.classList.add('hidden'), hideDelay);
     }
     show();
+    // A tap while the bar is hidden only reveals it: clicks (including the
+    // mouse events the same tap synthesizes) are swallowed for a beat, so
+    // the buttons need a second, deliberate tap.
+    let revealTapAt = -Infinity;
     if (hintZoneEl) {
       hintZoneEl.addEventListener('mouseenter', show);
       hintZoneEl.addEventListener('mousemove', show);
-      hintZoneEl.addEventListener('touchstart', show, { passive: true });
+      hintZoneEl.addEventListener(
+        'touchstart',
+        () => {
+          if (hintEl.classList.contains('hidden')) revealTapAt = Date.now();
+          show();
+        },
+        { passive: true }
+      );
       hintZoneEl.addEventListener('touchend', (e) => e.stopPropagation());
     }
+    hintEl.addEventListener(
+      'click',
+      (e) => {
+        if (Date.now() - revealTapAt < 800) {
+          revealTapAt = -Infinity;
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      },
+      true
+    );
     hintEl.addEventListener('click', (e) => e.stopPropagation());
-    hintEl.addEventListener('touchstart', () => clearTimeout(hintTimer), { passive: true });
+    hintEl.addEventListener(
+      'touchstart',
+      () => {
+        // A touch starting on the visible bar is a real button press.
+        revealTapAt = -Infinity;
+        clearTimeout(hintTimer);
+      },
+      { passive: true }
+    );
     hintEl.addEventListener('touchend', (e) => {
       e.stopPropagation();
       show();
