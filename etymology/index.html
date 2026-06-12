@@ -1005,7 +1005,13 @@
           rel.textContent = node.rel === '+' ? '+' : node.rel;
           div.appendChild(rel);
         }
-        if (!isRoot && node.form && sectionName(node.lang)) {
+        if (isRoot) {
+          div.classList.add('clickable');
+          div.title = 'View on Wiktionary';
+          div.addEventListener('click', () => {
+            window.open(wiktionaryUrl(node.form, node.lang), '_blank', 'noopener');
+          });
+        } else if (node.form && sectionName(node.lang)) {
           div.classList.add('clickable');
           div.title = 'Trace ' + node.form;
           div.addEventListener('click', () => lookup(node.form, node.lang));
