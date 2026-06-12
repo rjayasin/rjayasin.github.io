@@ -113,6 +113,12 @@
         width: max-content;
         min-width: 100%;
       }
+      /* The tree reads bottom-up — the word at the bottom, ancestors rising
+         above it. The connector geometry below is written top-down, so mirror
+         the whole tree vertically; .node mirrors each card back upright. */
+      .tree > ul {
+        transform: scaleY(-1);
+      }
       .tree ul {
         display: flex;
         justify-content: center;
@@ -189,6 +195,7 @@
         padding: 8px 16px 10px;
         text-align: center;
         max-width: 240px;
+        transform: scaleY(-1); /* undo the .tree > ul mirror */
       }
       .node.clickable {
         cursor: pointer;
@@ -211,7 +218,7 @@
         letter-spacing: 0.14em;
         text-transform: uppercase;
         color: var(--faint);
-        margin-bottom: 2px;
+        margin-top: 3px;
       }
       .node .lang {
         font-family:
@@ -970,12 +977,6 @@
       function nodeEl(node, isRoot) {
         const div = document.createElement('div');
         div.className = 'node';
-        if (node.rel && !isRoot) {
-          const rel = document.createElement('div');
-          rel.className = 'rel';
-          rel.textContent = node.rel === '+' ? '+' : node.rel;
-          div.appendChild(rel);
-        }
         const lang = document.createElement('div');
         lang.className = 'lang';
         lang.textContent = langName(node.lang);
@@ -996,6 +997,14 @@
           gloss.textContent = '“' + node.gloss + '”';
           div.appendChild(gloss);
         }
+        // The relation sits at the card's bottom edge, nearest the
+        // descendant (below it) that the relation describes.
+        if (node.rel && !isRoot) {
+          const rel = document.createElement('div');
+          rel.className = 'rel';
+          rel.textContent = node.rel === '+' ? '+' : node.rel;
+          div.appendChild(rel);
+        }
         if (!isRoot && node.form && sectionName(node.lang)) {
           div.classList.add('clickable');
           div.title = 'Trace ' + node.form;
@@ -1013,6 +1022,12 @@
           li.appendChild(ul);
         }
         return li;
+      }
+
+      // Bring the looked-up word — bottom center of the tree — into view.
+      function scrollToWord() {
+        contentEl.scrollTop = contentEl.scrollHeight;
+        contentEl.scrollLeft = (contentEl.scrollWidth - contentEl.clientWidth) / 2;
       }
 
       function wiktionaryUrl(form, lang) {
@@ -1092,8 +1107,7 @@
             text: 'check wiktionary',
           });
         }
-        contentEl.scrollTop = 0;
-        contentEl.scrollLeft = 0;
+        scrollToWord();
         contentEl.style.opacity = '1';
       }
 
@@ -1124,8 +1138,7 @@
             setUrl(word, 'en', opts.replace && i === 0);
             searchEl.value = word;
             renderTree(tree);
-            contentEl.scrollTop = 0;
-            contentEl.scrollLeft = 0;
+            scrollToWord();
             return;
           }
         }
