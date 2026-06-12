@@ -1,0 +1,21 @@
+name: Validate PR files
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    # Not marked as a required check, so failures inform but don't gate merges.
+    name: Validate files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          # html-validate 11 uses fs.globSync, which needs Node 22+
+          node-version: '24'
+      # -k keeps going so every check reports even when an earlier one fails.
+      - run: make -k check
