@@ -21,7 +21,6 @@
 - [`isometric`](https://rjayasin.github.io/isometric/)
 - [`shooter`](https://rjayasin.github.io/shooter/)
 - [`gravity`](https://rjayasin.github.io/gravity/)
-- [`across`](https://rjayasin.github.io/across/)
 
 `tools`
 
@@ -32,4 +31,8 @@
 - [`dodgers-notifier`](https://rjayasin.github.io/dodgers-notifier/)
 - [`deploys`](https://rjayasin.github.io/deploys/)
 - [`explorer`](https://rjayasin.github.io/explorer/)
+
+`words`
+
+- [`across`](https://rjayasin.github.io/across/)
 - [`etymology`](https://rjayasin.github.io/etymology/)
