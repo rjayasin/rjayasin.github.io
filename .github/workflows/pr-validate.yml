@@ -1,0 +1,45 @@
+name: Validate PR files
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate modified files (advisory)
+    runs-on: ubuntu-latest
+    # Advisory only: failures annotate the PR but never gate merging.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+      - name: Collect modified files
+        run: |
+          git diff --name-only --diff-filter=ACMR \
+            "${{ github.event.pull_request.base.sha }}...HEAD" > modified-files.txt
+          echo "Modified files:"
+          cat modified-files.txt
+      - name: Formatting (prettier)
+        if: ${{ !cancelled() }}
+        run: |
+          if [ -s modified-files.txt ]; then
+            xargs -a modified-files.txt npx --yes prettier@3.3.3 --check --ignore-unknown
+          fi
+      - name: HTML validity (html-validate)
+        if: ${{ !cancelled() }}
+        run: |
+          if grep '\.html$' modified-files.txt > html-files.txt; then
+            xargs -a html-files.txt npx --yes html-validate@8.29.0
+          fi
+      - name: Script and JSON syntax
+        if: ${{ !cancelled() }}
+        run: |
+          if grep -E '\.(js|json|html)$' modified-files.txt > syntax-files.txt; then
+            xargs -a syntax-files.txt node scripts/validate-files.js
+          fi
