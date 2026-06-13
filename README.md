@@ -1,16 +1,16 @@
 <!-- Keep every sublist ordered by date added, oldest at the top and newest at the bottom. -->
 
-`words`
-
-- [`across`](https://rjayasin.github.io/across/)
-- [`etymology`](https://rjayasin.github.io/etymology/)
-- [`explorer`](https://rjayasin.github.io/explorer/)
-
 `tools`
 
 - [`commits`](https://rjayasin.github.io/commits/)
 - [`dodgers-notifier`](https://rjayasin.github.io/dodgers-notifier/)
 - [`deploys`](https://rjayasin.github.io/deploys/)
+
+`words`
+
+- [`across`](https://rjayasin.github.io/across/)
+- [`etymology`](https://rjayasin.github.io/etymology/)
+- [`explorer`](https://rjayasin.github.io/explorer/)
 
 `text`
 
