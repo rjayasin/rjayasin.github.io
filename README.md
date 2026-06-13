@@ -6,6 +6,12 @@
 - [`etymology`](https://rjayasin.github.io/etymology/)
 - [`explorer`](https://rjayasin.github.io/explorer/)
 
+`tools`
+
+- [`commits`](https://rjayasin.github.io/commits/)
+- [`dodgers-notifier`](https://rjayasin.github.io/dodgers-notifier/)
+- [`deploys`](https://rjayasin.github.io/deploys/)
+
 `text`
 
 - [`grid`](https://rjayasin.github.io/grid/)
@@ -17,19 +23,13 @@
 - [`shooter`](https://rjayasin.github.io/shooter/)
 - [`gravity`](https://rjayasin.github.io/gravity/)
 
-`tools`
-
-- `visualizer`
-  - [`video-player`](https://rjayasin.github.io/visualizer/video-player.html)
-  - [`spotify-auth`](https://rjayasin.github.io/visualizer/spotify-auth.html)
-- [`commits`](https://rjayasin.github.io/commits/)
-- [`dodgers-notifier`](https://rjayasin.github.io/dodgers-notifier/)
-- [`deploys`](https://rjayasin.github.io/deploys/)
-
 `fun`
 
 - [`maze-canvas`](https://rjayasin.github.io/maze-canvas/)
 - [`snake`](https://rjayasin.github.io/snake/)
+- `visualizer`
+  - [`video-player`](https://rjayasin.github.io/visualizer/video-player.html)
+  - [`spotify-auth`](https://rjayasin.github.io/visualizer/spotify-auth.html)
 
 `site`
 
