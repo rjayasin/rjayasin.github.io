@@ -1,15 +1,10 @@
-<!-- Keep every section and sublist ordered by date added, oldest at the top and newest at the bottom. -->
+<!-- Keep every sublist ordered by date added, oldest at the top and newest at the bottom. -->
 
-`site`
+`words`
 
-- [`/`](https://rjayasin.github.io/)
-- [`github`](https://github.com/rjayasin/rjayasin.github.io)
-- [`sitemap`](https://rjayasin.github.io/sitemap/)
-
-`fun`
-
-- [`maze-canvas`](https://rjayasin.github.io/maze-canvas/)
-- [`snake`](https://rjayasin.github.io/snake/)
+- [`across`](https://rjayasin.github.io/across/)
+- [`etymology`](https://rjayasin.github.io/etymology/)
+- [`explorer`](https://rjayasin.github.io/explorer/)
 
 `text`
 
@@ -30,9 +25,14 @@
 - [`commits`](https://rjayasin.github.io/commits/)
 - [`dodgers-notifier`](https://rjayasin.github.io/dodgers-notifier/)
 - [`deploys`](https://rjayasin.github.io/deploys/)
-- [`explorer`](https://rjayasin.github.io/explorer/)
 
-`words`
+`fun`
 
-- [`across`](https://rjayasin.github.io/across/)
-- [`etymology`](https://rjayasin.github.io/etymology/)
+- [`maze-canvas`](https://rjayasin.github.io/maze-canvas/)
+- [`snake`](https://rjayasin.github.io/snake/)
+
+`site`
+
+- [`/`](https://rjayasin.github.io/)
+- [`github`](https://github.com/rjayasin/rjayasin.github.io)
+- [`sitemap`](https://rjayasin.github.io/sitemap/)
