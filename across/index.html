@@ -195,8 +195,10 @@
       const COL = 0.62;
       const ROW = 0.9;
       // Nominal cross-axis cells used only to keep the font a sensible size; the
-      // word can be any length and simply extends past the viewport if longer.
+      // word can be any length and is shrunk per-word to fit (see wordFont).
       const VNOM = 13;
+      // Small breathing room kept at the run-axis edges when shrinking a word.
+      const MARGIN = 8;
 
       const stageEl = document.getElementById('stage');
       const alphabetEl = document.getElementById('alphabet');
@@ -236,6 +238,38 @@
         el.style.height = cellH + 'px';
         el.style.lineHeight = cellH + 'px';
         el.style.fontSize = fontSize + 'px';
+      }
+
+      // Size a word cell at an arbitrary font (independent of the alphabet).
+      function sizeWordCell(el, f) {
+        el.style.width = f * COL + 'px';
+        el.style.height = f * ROW + 'px';
+        el.style.lineHeight = f * ROW + 'px';
+        el.style.fontSize = f + 'px';
+      }
+
+      // The crossing letter sits at the run axis's viewport centre, so the word
+      // reaches pos+0.5 cells one way and length-pos-0.5 cells the other. Pick
+      // the largest font (never above the alphabet's) that keeps both ends on
+      // screen with a small margin; long words therefore shrink to fit while the
+      // alphabet letter underneath stays at its full size.
+      function wordFont(word, pos) {
+        const cellsBefore = pos + 0.5;
+        const cellsAfter = word.length - pos - 0.5;
+        let before, after, factor;
+        if (vertical) {
+          // Word runs across: centre is innerWidth/2, symmetric margins.
+          before = window.innerWidth / 2 - MARGIN;
+          after = window.innerWidth / 2 - MARGIN;
+          factor = COL;
+        } else {
+          // Word runs down: centre is innerHeight/2; leave room for the hint bar.
+          before = window.innerHeight / 2 - MARGIN;
+          after = window.innerHeight / 2 - 60;
+          factor = ROW;
+        }
+        const advance = Math.min(before / cellsBefore, after / cellsAfter);
+        return Math.max(6, Math.min(fontSize, Math.floor(advance / factor)));
       }
 
       function buildAlphabet() {
@@ -292,14 +326,20 @@
           if (!entry) continue;
           const isCurrent = i === index;
           const { word, pos } = entry;
+          // Per-word font: full size when it fits, smaller when the word would
+          // otherwise run off the run axis. The crossing cell is then centred on
+          // the (full-size) alphabet letter it sits over.
+          const wFont = wordFont(word, pos);
+          const wCol = wFont * COL;
+          const wRow = wFont * ROW;
           const wEl = document.createElement('div');
           wEl.className = 'word';
           if (vertical) {
-            wEl.style.left = -pos * cellW + 'px';
-            wEl.style.top = i * cellH + 'px';
+            wEl.style.left = cellW / 2 - (pos + 0.5) * wCol + 'px';
+            wEl.style.top = i * cellH + cellH / 2 - wRow / 2 + 'px';
           } else {
-            wEl.style.left = i * cellW + 'px';
-            wEl.style.top = -pos * cellH + 'px';
+            wEl.style.left = i * cellW + cellW / 2 - wCol / 2 + 'px';
+            wEl.style.top = cellH / 2 - (pos + 0.5) * wRow + 'px';
           }
           for (let j = 0; j < word.length; j++) {
             const span = document.createElement('span');
@@ -308,7 +348,7 @@
             // letter it sits over reads as still-grey, not black.
             if (isCurrent && j === pos) span.classList.add('cross');
             span.textContent = word[j];
-            sizeCell(span);
+            sizeWordCell(span, wFont);
             wEl.appendChild(span);
           }
           frag.appendChild(wEl);
