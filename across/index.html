@@ -57,6 +57,11 @@
         position: absolute;
         left: 0;
         top: 0;
+        /* Decorative layer; never a touch target. Letting touches fall through
+           keeps scrubbing alive when a drag starts over a revealed word (persist
+           mode) — otherwise the next re-render detaches the touchstart node and
+           the event stream stops reaching the document listener. */
+        pointer-events: none;
       }
       .word {
         position: absolute;
