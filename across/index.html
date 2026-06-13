@@ -57,6 +57,12 @@
         position: absolute;
         left: 0;
         top: 0;
+        /* Words are decorative — never a touch target. Letting touches fall
+           through keeps scrubbing alive when a drag starts over a revealed word
+           (persist mode): touch events stay bound to their touchstart target, so
+           if that target were a word cell it would be torn out by the next
+           re-render and the stream would stop bubbling to the document. */
+        pointer-events: none;
       }
       .word {
         position: absolute;
