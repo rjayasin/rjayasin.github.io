@@ -1277,34 +1277,68 @@
           .catch(() => []);
       }
 
+      // Draw words until one has a documented history, returning its built
+      // tree. Most random entries have no parseable English etymology (other
+      // languages, missing sections), so draw fresh batches and trace the
+      // first that does, within a bounded budget.
+      async function findRandomTree() {
+        for (let batch = 0; batch < 4; batch++) {
+          const words = await fetchRandomWords();
+          for (const word of words) {
+            const tree = await getTree(word, 'en');
+            if (tree) return { word, tree };
+          }
+        }
+        return null;
+      }
+
+      // Buffer a few ready-to-render random words so pressing "random" again
+      // is instant — the slow part (drawing + fetching until one has an
+      // etymology) is paid ahead of time in the background.
+      const RANDOM_BUFFER = 2;
+      const randomQueue = [];
+      let prefilling = false;
+      async function prefillRandom() {
+        if (prefilling) return;
+        prefilling = true;
+        try {
+          while (randomQueue.length < RANDOM_BUFFER) {
+            const item = await findRandomTree();
+            if (!item) break; // word list unavailable; stop trying
+            randomQueue.push(item);
+          }
+        } finally {
+          prefilling = false;
+        }
+      }
+
+      function showRandom(item, opts) {
+        setUrl(item.word, 'en', opts.replace);
+        searchEl.value = item.word;
+        renderTree(item.tree);
+        scrollToWord();
+      }
+
       async function randomWord(opts = {}) {
         const my = ++seq;
+        // Serve a buffered word instantly, then top the buffer back up.
+        const buffered = randomQueue.shift();
+        if (buffered) {
+          showRandom(buffered, opts);
+          prefillRandom();
+          return;
+        }
+        // Nothing buffered yet — do a live draw behind the spinner.
         contentEl.style.opacity = '0';
         await new Promise((r) => setTimeout(r, FADE_MS));
         if (my !== seq) return;
         renderSpinner();
         contentEl.style.opacity = '1';
-        // Most random entries have no parseable English etymology (other
-        // languages, missing sections); draw fresh batches and trace the
-        // first that does, within a bounded budget.
-        let attempt = 0;
-        for (let batch = 0; batch < 4; batch++) {
-          const words = await fetchRandomWords();
-          if (my !== seq) return;
-          for (const word of words) {
-            const tree = await getTree(word, 'en');
-            if (my !== seq) return;
-            if (tree) {
-              setUrl(word, 'en', opts.replace && attempt === 0);
-              searchEl.value = word;
-              renderTree(tree);
-              scrollToWord();
-              return;
-            }
-            attempt++;
-          }
-        }
-        renderStatus('the dice came up empty — try again');
+        const item = await findRandomTree();
+        if (my !== seq) return;
+        if (item) showRandom(item, opts);
+        else renderStatus('the dice came up empty — try again');
+        prefillRandom();
       }
 
       window.addEventListener('popstate', () => {
@@ -1363,6 +1397,8 @@
       } else {
         renderStatus('search a word, or press n for a random one');
       }
+      // Warm the buffer so the first random word is ready on demand.
+      prefillRandom();
     </script>
   </body>
 </html>
