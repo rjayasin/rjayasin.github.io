@@ -1349,7 +1349,7 @@
         if (at > 0) lookup(initial[0].slice(0, at), initial[0].slice(at + 1), { replace: true });
         else lookup(initial[0], 'en', { replace: true });
       } else {
-        randomWord({ replace: true });
+        renderStatus('search a word, or press n for a random one');
       }
     </script>
   </body>
