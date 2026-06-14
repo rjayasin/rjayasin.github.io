@@ -1262,10 +1262,20 @@
       }
 
       // ---------- Random words ----------
-      const wordsPromise = fetch('/words.txt')
-        .then((r) => r.text())
-        .then((t) => t.split(/\s+/).filter(Boolean))
-        .catch(() => []);
+      // Draw random main-namespace entries straight from Wiktionary rather
+      // than a fixed list. Titles span every language and part of speech, so
+      // keep just the ones that look like a plain lowercase headword.
+      const RANDOM_API =
+        'https://en.wiktionary.org/w/api.php?action=query&list=random' +
+        '&rnnamespace=0&rnlimit=20&format=json&formatversion=2&origin=*';
+
+      function fetchRandomWords() {
+        return fetch(RANDOM_API)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((j) => ((j && j.query && j.query.random) || []).map((p) => p.title))
+          .then((titles) => titles.filter((t) => /^[a-z]+$/.test(t)))
+          .catch(() => []);
+      }
 
       async function randomWord(opts = {}) {
         const my = ++seq;
@@ -1274,22 +1284,24 @@
         if (my !== seq) return;
         renderSpinner();
         contentEl.style.opacity = '1';
-        const words = await wordsPromise;
-        if (!words.length) {
-          if (my === seq) renderStatus('could not load the word list');
-          return;
-        }
-        // Not every word has a documented history; keep drawing until one does.
-        for (let i = 0; i < 8; i++) {
-          const word = words[Math.floor(Math.random() * words.length)].toLowerCase();
-          const tree = await getTree(word, 'en');
+        // Most random entries have no parseable English etymology (other
+        // languages, missing sections); draw fresh batches and trace the
+        // first that does, within a bounded budget.
+        let attempt = 0;
+        for (let batch = 0; batch < 4; batch++) {
+          const words = await fetchRandomWords();
           if (my !== seq) return;
-          if (tree) {
-            setUrl(word, 'en', opts.replace && i === 0);
-            searchEl.value = word;
-            renderTree(tree);
-            scrollToWord();
-            return;
+          for (const word of words) {
+            const tree = await getTree(word, 'en');
+            if (my !== seq) return;
+            if (tree) {
+              setUrl(word, 'en', opts.replace && attempt === 0);
+              searchEl.value = word;
+              renderTree(tree);
+              scrollToWord();
+              return;
+            }
+            attempt++;
           }
         }
         renderStatus('the dice came up empty — try again');
