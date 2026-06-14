@@ -78,24 +78,36 @@
         background: none;
         border: none;
         cursor: pointer;
-        color: #6f6f6f;
+        color: #000;
         padding: 6px;
       }
       body.dark #random-btn {
-        color: #b3b3b3;
+        color: #fff;
       }
       @media (prefers-color-scheme: dark) {
         body:not(.light) #random-btn {
-          color: #b3b3b3;
+          color: #fff;
         }
       }
-      #random-btn:hover {
-        color: inherit;
-      }
+      /* Match the shuffle icon to the header's divider line (var(--line)):
+         the divider's base color at its alpha, applied to the whole SVG so
+         the two crossing strokes don't darken where they overlap. */
       #random-btn svg {
         display: block;
         width: 22px;
         height: 22px;
+        opacity: 0.18;
+      }
+      body.dark #random-btn svg {
+        opacity: 0.22;
+      }
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) #random-btn svg {
+          opacity: 0.22;
+        }
+      }
+      #random-btn:hover svg {
+        opacity: 0.5;
       }
 
       /* --- Content / tree --- */
