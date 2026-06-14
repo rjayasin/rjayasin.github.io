@@ -108,6 +108,21 @@
         color: var(--muted);
       }
 
+      /* Loading spinner shown while fetching from the Wiktionary API. */
+      .spinner {
+        width: 28px;
+        height: 28px;
+        border: 2px solid var(--line);
+        border-top-color: var(--muted);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
       /* Nested flexbox tree with connector lines drawn by ::before/::after. */
       .tree {
         width: max-content;
@@ -1189,6 +1204,14 @@
         contentEl.appendChild(div);
       }
 
+      function renderSpinner() {
+        contentEl.className = 'centered';
+        contentEl.innerHTML = '';
+        const div = document.createElement('div');
+        div.className = 'spinner';
+        contentEl.appendChild(div);
+      }
+
       // ---------- Lookup / navigation ----------
       const FADE_MS = 180; // keep in sync with #content's opacity transition
       let seq = 0;
@@ -1215,8 +1238,17 @@
         searchEl.blur();
         contentEl.style.opacity = '0';
         const fadeOut = new Promise((r) => setTimeout(r, FADE_MS));
-        const tree = await getTree(form, lang);
+        let resolved = false;
+        const treePromise = getTree(form, lang).then((t) => ((resolved = true), t));
         await fadeOut;
+        if (my !== seq) return;
+        // If the fetch is still outstanding after the fade, show a spinner so
+        // the wait (recursive API calls can be slow) isn't a blank screen.
+        if (!resolved) {
+          renderSpinner();
+          contentEl.style.opacity = '1';
+        }
+        const tree = await treePromise;
         if (my !== seq) return;
         if (tree) renderTree(tree);
         else {
@@ -1240,7 +1272,7 @@
         contentEl.style.opacity = '0';
         await new Promise((r) => setTimeout(r, FADE_MS));
         if (my !== seq) return;
-        renderStatus('tracing…');
+        renderSpinner();
         contentEl.style.opacity = '1';
         const words = await wordsPromise;
         if (!words.length) {
