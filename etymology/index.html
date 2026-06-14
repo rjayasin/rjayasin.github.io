@@ -78,8 +78,16 @@
         background: none;
         border: none;
         cursor: pointer;
-        color: var(--muted);
+        color: #6f6f6f;
         padding: 6px;
+      }
+      body.dark #random-btn {
+        color: #b3b3b3;
+      }
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) #random-btn {
+          color: #b3b3b3;
+        }
       }
       #random-btn:hover {
         color: inherit;
@@ -399,15 +407,15 @@
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            stroke-width="1.8"
+            stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
             aria-hidden="true"
           >
-            <path d="M3 8 C 9 8, 13 16, 19 16" />
-            <polyline points="15.5 13.5 19 16 15.5 18.5" />
-            <path d="M3 16 C 9 16, 13 8, 19 8" />
-            <polyline points="15.5 5.5 19 8 15.5 10.5" />
+            <path d="M3 7 C 9 7, 13 17, 20 17" />
+            <polyline points="15.5 14 20 17 15.5 20" />
+            <path d="M3 17 C 9 17, 13 7, 20 7" />
+            <polyline points="15.5 4 20 7 15.5 10" />
           </svg>
         </button>
       </div>
