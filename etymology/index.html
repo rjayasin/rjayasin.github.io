@@ -1375,12 +1375,7 @@
         );
         if (!todo.length) return;
         const text = todo
-          .map(
-            (c) =>
-              '{{#invoke:languages/templates|getByCode|' +
-              c +
-              '|getCanonicalName|allowEtymLang=1|allowFamily=1}}'
-          )
+          .map((c) => '{{#invoke:languages/templates|getByCode|' + c + '|getCanonicalName}}')
           .join(LANG_SEP);
         try {
           const r = await fetch(LANG_API + encodeURIComponent(text));
