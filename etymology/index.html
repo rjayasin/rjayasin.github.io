@@ -759,6 +759,10 @@
         <span style="white-space: nowrap"><span class="hint-btn" id="hb-def">d def</span></span>
         &nbsp;·&nbsp;
         <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-explorer">e explorer</span></span
+        >
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"
           ><span class="hint-btn" id="hb-dark"
             >1 <span class="hb-dark-label">dark</span></span
           ></span
@@ -1853,6 +1857,12 @@
         if (prefs.def && !def.childElementCount) loadDefinition(currentForm, currentLang, def);
       }
 
+      // Open the current word in the explorer (hint bar / "e").
+      function openExplorer() {
+        if (!currentForm) return;
+        window.open('/explorer/?' + encodeURIComponent(currentForm), '_blank', 'noopener');
+      }
+
       function renderTree(root) {
         contentEl.className = '';
         contentEl.innerHTML = '';
@@ -2097,6 +2107,8 @@
           togglePanel();
         } else if (e.key === 'd' || e.key === 'D') {
           toggleDef();
+        } else if (e.key === 'e' || e.key === 'E') {
+          openExplorer();
         }
       });
 
@@ -2109,6 +2121,7 @@
       document.getElementById('hb-fav').addEventListener('click', toggleStar);
       document.getElementById('hb-panel').addEventListener('click', togglePanel);
       document.getElementById('hb-def').addEventListener('click', toggleDef);
+      document.getElementById('hb-explorer').addEventListener('click', openExplorer);
       document.getElementById('hb-dark').addEventListener('click', Common.toggleDark);
       document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
       Common.initHintBar({
