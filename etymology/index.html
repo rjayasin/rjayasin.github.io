@@ -720,7 +720,7 @@
               enterkeyhint="search"
             />
             <button id="fav-btn" hidden title="Star word (f)" aria-label="Star word">☆</button>
-            <button id="random-btn" title="Random word (n)" aria-label="Random word">
+            <button id="random-btn" title="Random word (r)" aria-label="Random word">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -745,7 +745,7 @@
     <div id="hint">
       <span id="hint-inner">
         <span style="white-space: nowrap"
-          ><span class="hint-btn" id="hb-random">n random</span></span
+          ><span class="hint-btn" id="hb-random">r random</span></span
         >
         &nbsp;·&nbsp;
         <span style="white-space: nowrap"
@@ -2019,7 +2019,7 @@
           e.preventDefault();
           searchEl.focus();
           searchEl.select();
-        } else if (e.key === 'n' || e.key === 'N') {
+        } else if (e.key === 'r' || e.key === 'R') {
           randomWord();
         } else if (e.key === 'f' || e.key === 'F') {
           toggleStar();
