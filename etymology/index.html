@@ -1416,6 +1416,28 @@
         return pageCache.get(title);
       }
 
+      // Rendered HTML of a page. Wiktionary builds the full "Etymology tree"
+      // (an .etytree NavFrame) server-side here, recursively tracing every
+      // ancestor — so when one is present we can mirror it exactly instead of
+      // reconstructing the chain from wikitext templates.
+      const HTML_API =
+        'https://en.wiktionary.org/w/api.php?action=parse&prop=text&format=json' +
+        '&formatversion=2&redirects=1&origin=*&page=';
+      const htmlCache = new Map();
+
+      function fetchPageHtml(title) {
+        if (!htmlCache.has(title)) {
+          htmlCache.set(
+            title,
+            fetch(HTML_API + encodeURIComponent(title))
+              .then((r) => (r.ok ? r.json() : null))
+              .then((j) => (j && j.parse && j.parse.text) || null)
+              .catch(() => null)
+          );
+        }
+        return htmlCache.get(title);
+      }
+
       // Resolve language/family codes to their canonical names via Wiktionary's
       // own language data, so the tree never has to fall back to a raw code.
       // Unknown codes are batched into a single expandtemplates call; both
@@ -1495,6 +1517,123 @@
         // it's handed off to be rendered.
         if (depth === 0) await resolveLangNames(collectLangs(root));
         return root;
+      }
+
+      // ---------- Wiktionary "Etymology tree" (.etytree) ----------
+      // Relation labels shown in the rendered tree (e.g. "der.", "bor.")
+      // mapped to the words our cards use. Anything unmapped falls back to the
+      // <abbr>'s title (its spelled-out form).
+      const ETYTREE_REL = {
+        der: 'derived',
+        inh: 'inherited',
+        bor: 'borrowed',
+        lbor: 'learned borrowing',
+        slbor: 'semi-learned borrowing',
+        obor: 'orthographic borrowing',
+        ubor: 'unadapted borrowing',
+        cal: 'calque',
+        clq: 'calque',
+        calque: 'calque',
+        pcal: 'partial calque',
+        psm: 'phono-semantic match',
+        sl: 'semantic loan',
+      };
+
+      // Turn one .etytree-block into a node: its language and term come from the
+      // mention link; the optional label (sitting on the block) is the relation
+      // to the descendant directly below it — exactly what our .rel renders.
+      function etytreeBlockNode(block) {
+        const i = block.querySelector('.etytree-term i');
+        const lang = i ? i.getAttribute('lang') || '' : '';
+        const form = i ? i.textContent.trim() : '';
+        const trEl = block.querySelector('.mention-tr');
+        const glossEl = block.querySelector('.mention-gloss');
+        const labEl = block.querySelector('.etytree-label abbr');
+        let rel = '';
+        if (labEl) {
+          const key = labEl.textContent.trim().replace(/\.$/, '').toLowerCase();
+          rel = ETYTREE_REL[key] || (labEl.getAttribute('title') || '').toLowerCase();
+        }
+        return makeNode(
+          form,
+          lang,
+          rel,
+          glossEl ? glossEl.textContent : '',
+          trEl ? trEl.textContent.trim() : ''
+        );
+      }
+
+      // The tree is laid out bottom-up: within a container, blocks (and
+      // branch-groups) are stacked oldest-first and the bottom one is the
+      // headword. Each item is the ancestor of the item below it, so reading
+      // bottom-to-top yields our parent→children chain. A branch-group holds
+      // the several lineages that merge into the block just beneath it; each
+      // branch is itself such a sequence.
+      function parseEtytreeSeq(el) {
+        const items = [];
+        for (const c of el.children) {
+          if (c.classList.contains('etytree-block') || c.classList.contains('etytree-branch-group'))
+            items.push(c);
+        }
+        if (!items.length) return null;
+        const root = etytreeBlockNode(items[items.length - 1]);
+        let cur = root;
+        for (let k = items.length - 2; k >= 0; k--) {
+          const it = items[k];
+          if (it.classList.contains('etytree-block')) {
+            const parent = etytreeBlockNode(it);
+            cur.children.push(parent);
+            cur = parent;
+          } else {
+            for (const br of it.children) {
+              if (!br.classList.contains('etytree-branch')) continue;
+              const branch = parseEtytreeSeq(br);
+              if (branch) cur.children.push(branch);
+            }
+            break; // a branch-group is the top of its sequence
+          }
+        }
+        return root;
+      }
+
+      function etytreeBottomLang(frame) {
+        const blocks = frame.querySelectorAll('.etytree-block');
+        const last = blocks[blocks.length - 1];
+        const i = last && last.querySelector('.etytree-term i');
+        return i ? i.getAttribute('lang') || '' : '';
+      }
+
+      // Mirror the page's rendered Etymology tree, if it has one. Picks the tree
+      // whose headword (bottom block) is in the looked-up language.
+      async function treeFromEtytree(form, lang) {
+        if (!sectionName(lang)) return null;
+        const html = await fetchPageHtml(pageTitleFor(form, lang));
+        if (!html || html.indexOf('etytree') === -1) return null;
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const frames = doc.querySelectorAll('.etytree.NavFrame');
+        if (!frames.length) return null;
+        // A page can carry trees for several languages (e.g. descendants
+        // sections); only mirror the one whose headword is in this language.
+        let frame = null;
+        for (const f of frames) {
+          if (etytreeBottomLang(f) === lang) {
+            frame = f;
+            break;
+          }
+        }
+        if (!frame) return null;
+        const body = frame.querySelector('.etytree-body');
+        const root = body && parseEtytreeSeq(body);
+        if (!root || !root.children.length) return null;
+        await resolveLangNames(collectLangs(root));
+        return root;
+      }
+
+      // Prefer Wiktionary's own tree; fall back to parsing the etymology prose.
+      async function buildTree(form, lang) {
+        const mirrored = await treeFromEtytree(form, lang);
+        if (mirrored) return mirrored;
+        return getTree(form, lang);
       }
 
       // ---------- Rendering ----------
@@ -1720,7 +1859,7 @@
         contentEl.style.opacity = '0';
         const fadeOut = new Promise((r) => setTimeout(r, FADE_MS));
         let resolved = false;
-        const treePromise = getTree(form, lang).then((t) => ((resolved = true), t));
+        const treePromise = buildTree(form, lang).then((t) => ((resolved = true), t));
         await fadeOut;
         if (my !== seq) return;
         // If the fetch is still outstanding after the fade, show a spinner so
@@ -1769,7 +1908,7 @@
         for (let batch = 0; batch < 4; batch++) {
           const words = await fetchRandomWords();
           for (const word of words) {
-            const tree = await getTree(word, 'en');
+            const tree = await buildTree(word, 'en');
             if (tree) return { word, tree };
           }
         }
