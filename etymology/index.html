@@ -334,11 +334,22 @@
         font-size: 30px;
       }
 
+      /* Wrap the tree, definition, and source line in one max-content column so
+         the narrower blocks center on the tree's center (i.e. under the root
+         node) rather than on the viewport when the tree overflows horizontally. */
+      .content-inner {
+        width: max-content;
+        min-width: 100%;
+      }
+
       /* Definition of the looked-up word, shown beneath the bottommost node. */
       #definition {
         max-width: 540px;
         margin: 30px auto 0;
         text-align: left;
+      }
+      #definition[hidden] {
+        display: none;
       }
       #definition .def-pos {
         text-align: center;
@@ -736,6 +747,8 @@
         <span style="white-space: nowrap"><span class="hint-btn" id="hb-fav">f star</span></span>
         &nbsp;·&nbsp;
         <span style="white-space: nowrap"><span class="hint-btn" id="hb-panel">h panel</span></span>
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"><span class="hint-btn" id="hb-def">d def</span></span>
         &nbsp;·&nbsp;
         <span style="white-space: nowrap"
           ><span class="hint-btn" id="hb-dark"
@@ -1612,19 +1625,33 @@
         if (slack < 80) scrollToWord();
       }
 
+      // Toggle the definition block (hint bar / "d"). Fetches lazily the first
+      // time it's shown for the current word.
+      function toggleDef() {
+        prefs.def = !prefs.def;
+        savePrefs();
+        const def = document.getElementById('definition');
+        if (!def) return;
+        def.hidden = !prefs.def;
+        if (prefs.def && !def.childElementCount) loadDefinition(currentForm, currentLang, def);
+      }
+
       function renderTree(root) {
         contentEl.className = '';
         contentEl.innerHTML = '';
+        const inner = document.createElement('div');
+        inner.className = 'content-inner';
         const tree = document.createElement('div');
         tree.className = 'tree';
         const ul = document.createElement('ul');
         ul.appendChild(subtreeEl(root, true));
         tree.appendChild(ul);
-        contentEl.appendChild(tree);
+        inner.appendChild(tree);
         const def = document.createElement('div');
         def.id = 'definition';
-        contentEl.appendChild(def);
-        loadDefinition(root.form, root.lang, def);
+        def.hidden = !prefs.def;
+        inner.appendChild(def);
+        if (prefs.def) loadDefinition(root.form, root.lang, def);
         const source = document.createElement('div');
         source.id = 'source-line';
         const a = document.createElement('a');
@@ -1633,7 +1660,8 @@
         a.rel = 'noopener';
         a.textContent = 'wiktionary';
         source.append('source: ', a, ' (CC BY-SA)');
-        contentEl.appendChild(source);
+        inner.appendChild(source);
+        contentEl.appendChild(inner);
       }
 
       function renderStatus(text, link) {
@@ -1850,6 +1878,8 @@
           toggleStar();
         } else if (e.key === 'h' || e.key === 'H') {
           togglePanel();
+        } else if (e.key === 'd' || e.key === 'D') {
+          toggleDef();
         }
       });
 
@@ -1861,6 +1891,7 @@
       });
       document.getElementById('hb-fav').addEventListener('click', toggleStar);
       document.getElementById('hb-panel').addEventListener('click', togglePanel);
+      document.getElementById('hb-def').addEventListener('click', toggleDef);
       document.getElementById('hb-dark').addEventListener('click', Common.toggleDark);
       document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
       Common.initHintBar({
@@ -1888,7 +1919,7 @@
       let stars = loadJSON(STARS_KEY, []).filter(
         (e) => e && typeof e.form === 'string' && typeof e.lang === 'string'
       );
-      const prefs = Object.assign({ sidebar: true }, loadJSON(PREFS_KEY, {}));
+      const prefs = Object.assign({ sidebar: true, def: true }, loadJSON(PREFS_KEY, {}));
 
       function saveStars() {
         localStorage.setItem(STARS_KEY, JSON.stringify(stars));
