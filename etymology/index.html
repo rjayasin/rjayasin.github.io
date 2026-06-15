@@ -13,6 +13,8 @@
         --line: rgba(0, 0, 0, 0.18);
         --hover: rgba(0, 0, 0, 0.05);
         --card-bg: #fafafa;
+        --star: #e7b416;
+        --side-bg: #fafafa;
       }
       body.dark {
         --muted: rgba(255, 255, 255, 0.5);
@@ -20,6 +22,7 @@
         --line: rgba(255, 255, 255, 0.22);
         --hover: rgba(255, 255, 255, 0.07);
         --card-bg: #181818;
+        --side-bg: #161616;
       }
       @media (prefers-color-scheme: dark) {
         body:not(.light) {
@@ -28,6 +31,7 @@
           --line: rgba(255, 255, 255, 0.22);
           --hover: rgba(255, 255, 255, 0.07);
           --card-bg: #181818;
+          --side-bg: #161616;
         }
       }
       html,
@@ -36,9 +40,18 @@
       }
       body {
         font-family: 'Times New Roman', Times, Georgia, serif;
+        overflow: hidden;
+      }
+      #app {
+        display: flex;
+        height: 100vh;
+        height: 100dvh;
+      }
+      #main {
+        flex: 1;
+        min-width: 0;
         display: flex;
         flex-direction: column;
-        overflow: hidden;
       }
 
       /* --- Header --- */
@@ -62,14 +75,17 @@
         outline: none;
         display: block;
         width: 100%;
-        padding: 0 44px;
+        /* symmetric padding keeps the word centered while clearing the
+           hamburger on the left and the star + shuffle icons on the right */
+        padding: 0 72px;
+        box-sizing: border-box;
       }
       #search::placeholder {
         color: var(--faint);
       }
       #random-btn {
         position: absolute;
-        right: 0;
+        right: 6px;
         top: 50%;
         transform: translateY(-50%);
         font: inherit;
@@ -80,6 +96,27 @@
         cursor: pointer;
         color: #000;
         padding: 6px;
+      }
+      /* Star toggle for the current word, left of the shuffle icon. */
+      #fav-btn {
+        position: absolute;
+        right: 40px;
+        top: 50%;
+        transform: translateY(-50%);
+        font: inherit;
+        font-size: 24px;
+        line-height: 1;
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--faint);
+        padding: 4px;
+      }
+      #fav-btn.active {
+        color: var(--star);
+      }
+      #fav-btn[hidden] {
+        display: none;
       }
       body.dark #random-btn {
         color: #fff;
@@ -342,6 +379,204 @@
         }
       }
 
+      /* --- Sidebar / drawer (starred words) --- */
+      #sidebar {
+        width: 200px;
+        flex: none;
+        border-right: 1px solid var(--line);
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        background: var(--side-bg);
+      }
+      .side-section {
+        padding: 14px 10px;
+      }
+      .side-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        padding: 0 6px;
+      }
+      .side-title {
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .side-empty {
+        font-size: 14px;
+        font-style: italic;
+        color: var(--faint);
+        padding: 4px 6px;
+      }
+      .side-item {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 6px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 15px;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      .side-item.current {
+        background: var(--hover);
+      }
+      @media (hover: hover) {
+        .side-item:hover {
+          background: var(--hover);
+        }
+      }
+      .side-item .icon.star {
+        flex: none;
+        width: 14px;
+        text-align: center;
+        color: var(--star);
+        cursor: pointer;
+        font-size: 11px;
+      }
+      .side-item .term {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .side-item .term .side-lang {
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--faint);
+        margin-left: 5px;
+      }
+      .side-item .remove {
+        flex: none;
+        background: none;
+        border: none;
+        color: var(--faint);
+        font: inherit;
+        font-size: 14px;
+        cursor: pointer;
+        padding: 0 2px;
+      }
+      @media (hover: hover) {
+        .side-item .remove {
+          visibility: hidden;
+        }
+        .side-item:hover .remove {
+          visibility: visible;
+        }
+      }
+      .side-item .grip {
+        flex: none;
+        color: var(--faint);
+        cursor: grab;
+        touch-action: none;
+        padding: 0 2px;
+        font-size: 11px;
+      }
+      /* on hover-capable devices the grips stay out of sight until needed
+         (they keep their space so rows don't shift); always shown on touch */
+      @media (hover: hover) {
+        .side-item .grip {
+          opacity: 0;
+          transition: opacity 0.15s ease;
+        }
+        .side-item:hover .grip {
+          opacity: 1;
+        }
+      }
+      .side-item.dragging {
+        opacity: 0.4;
+      }
+      .drop-indicator {
+        height: 2px;
+        border-radius: 1px;
+        background: var(--star);
+        margin: 2px 8px;
+      }
+
+      /* Hamburger lives inside the header, vertically centered and sized
+         like the shuffle icon. The open mobile drawer (z-index 80) covers it. */
+      #panel-btn {
+        position: absolute;
+        top: 50%;
+        left: 8px;
+        transform: translateY(-50%);
+        /* above the full-width search input, which would steal its taps */
+        z-index: 10;
+        font: inherit;
+        font-size: 24px;
+        line-height: 1;
+        background: none;
+        border: none;
+        color: var(--muted);
+        cursor: pointer;
+        padding: 6px 10px;
+      }
+      #backdrop {
+        display: none;
+      }
+
+      @media (max-width: 859px) {
+        #sidebar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          bottom: 0;
+          width: min(260px, 80vw);
+          transform: translateX(-100%);
+          transition: transform 0.25s ease;
+          z-index: 80;
+          padding-top: 8px;
+        }
+        #sidebar.open {
+          transform: translateX(0);
+          box-shadow: 0 0 24px rgba(0, 0, 0, 0.25);
+        }
+        #backdrop {
+          display: block;
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.35);
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.25s ease;
+          z-index: 70;
+        }
+        #backdrop.open {
+          opacity: 1;
+          pointer-events: auto;
+        }
+      }
+      @media (min-width: 860px) {
+        #sidebar.collapsed {
+          display: none;
+        }
+      }
+
       /* --- Hint bar --- */
       #hint {
         position: fixed;
@@ -402,37 +637,52 @@
     <script src="/common.js"></script>
   </head>
   <body>
-    <header id="header">
-      <div id="search-row">
-        <input
-          id="search"
-          type="text"
-          placeholder="word"
-          autocomplete="off"
-          autocapitalize="off"
-          autocorrect="off"
-          spellcheck="false"
-          enterkeyhint="search"
-        />
-        <button id="random-btn" title="Random word (n)" aria-label="Random word">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M3 7 C 9 7, 13 17, 16.5 17" />
-            <polyline points="16.5 14 20 17 16.5 20" />
-            <path d="M3 17 C 9 17, 13 7, 16.5 7" />
-            <polyline points="16.5 4 20 7 16.5 10" />
-          </svg>
-        </button>
-      </div>
-    </header>
-    <div id="content" class="centered"><div class="status">…</div></div>
+    <div id="app">
+      <aside id="sidebar">
+        <div class="side-section">
+          <div class="side-head"><span class="side-title">Starred</span></div>
+          <div id="starred-list"></div>
+        </div>
+      </aside>
+      <main id="main">
+        <header id="header">
+          <button id="panel-btn" title="Toggle starred panel (h)" aria-label="Toggle starred panel">
+            ☰
+          </button>
+          <div id="search-row">
+            <input
+              id="search"
+              type="text"
+              placeholder="word"
+              autocomplete="off"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+              enterkeyhint="search"
+            />
+            <button id="fav-btn" hidden title="Star word (f)" aria-label="Star word">☆</button>
+            <button id="random-btn" title="Random word (n)" aria-label="Random word">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M3 7 C 9 7, 13 17, 16.5 17" />
+                <polyline points="16.5 14 20 17 16.5 20" />
+                <path d="M3 17 C 9 17, 13 7, 16.5 7" />
+                <polyline points="16.5 4 20 7 16.5 10" />
+              </svg>
+            </button>
+          </div>
+        </header>
+        <div id="content" class="centered"><div class="status">…</div></div>
+      </main>
+    </div>
+    <div id="backdrop"></div>
     <div id="hint">
       <span id="hint-inner">
         <span style="white-space: nowrap"
@@ -442,6 +692,10 @@
         <span style="white-space: nowrap"
           ><span class="hint-btn" id="hb-search">/ search</span></span
         >
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"><span class="hint-btn" id="hb-fav">f star</span></span>
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"><span class="hint-btn" id="hb-panel">h panel</span></span>
         &nbsp;·&nbsp;
         <span style="white-space: nowrap"
           ><span class="hint-btn" id="hb-dark"
@@ -1275,6 +1529,7 @@
         const my = ++seq;
         if (!opts.fromPop) setUrl(form, lang, opts.replace);
         searchEl.value = lang === 'en' ? form : form + ' (' + langName(lang) + ')';
+        setCurrent(form, lang);
         searchEl.blur();
         contentEl.style.opacity = '0';
         const fadeOut = new Promise((r) => setTimeout(r, FADE_MS));
@@ -1355,6 +1610,7 @@
       function showRandom(item, opts) {
         setUrl(item.word, 'en', opts.replace);
         searchEl.value = item.word;
+        setCurrent(item.word, 'en');
         renderTree(item.tree);
         scrollToWord();
       }
@@ -1412,6 +1668,10 @@
           searchEl.select();
         } else if (e.key === 'n' || e.key === 'N') {
           randomWord();
+        } else if (e.key === 'f' || e.key === 'F') {
+          toggleStar();
+        } else if (e.key === 'h' || e.key === 'H') {
+          togglePanel();
         }
       });
 
@@ -1421,12 +1681,248 @@
         searchEl.focus();
         searchEl.select();
       });
+      document.getElementById('hb-fav').addEventListener('click', toggleStar);
+      document.getElementById('hb-panel').addEventListener('click', togglePanel);
       document.getElementById('hb-dark').addEventListener('click', Common.toggleDark);
       document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
       Common.initHintBar({
         hintEl: document.getElementById('hint'),
         hintZoneEl: document.getElementById('hint-zone'),
       });
+
+      // ---------- Starred words ----------
+      // Persisted in localStorage and shown in the hamburger panel. A word is
+      // identified by its form + language, so the same spelling in different
+      // languages stays distinct.
+      const STARS_KEY = 'etymology-stars';
+      const PREFS_KEY = 'etymology-prefs';
+
+      function loadJSON(key, fallback) {
+        try {
+          const v = JSON.parse(localStorage.getItem(key));
+          return v == null ? fallback : v;
+        } catch {
+          return fallback;
+        }
+      }
+
+      // stars: [{ form, lang, date (ms), order (number) }]
+      let stars = loadJSON(STARS_KEY, []).filter(
+        (e) => e && typeof e.form === 'string' && typeof e.lang === 'string'
+      );
+      const prefs = Object.assign({ sidebar: true }, loadJSON(PREFS_KEY, {}));
+
+      function saveStars() {
+        localStorage.setItem(STARS_KEY, JSON.stringify(stars));
+      }
+      function savePrefs() {
+        localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+      }
+
+      let currentForm = '';
+      let currentLang = '';
+      const isDesktop = () => window.matchMedia('(min-width: 860px)').matches;
+
+      const panelBtn = document.getElementById('panel-btn');
+      const favBtn = document.getElementById('fav-btn');
+      const sidebarEl = document.getElementById('sidebar');
+      const backdropEl = document.getElementById('backdrop');
+      const starredListEl = document.getElementById('starred-list');
+
+      function findStar(form, lang) {
+        return stars.find((e) => e.form === form && e.lang === lang);
+      }
+      function nextOrder() {
+        return stars.reduce((max, e) => Math.max(max, e.order), -1) + 1;
+      }
+
+      function setStar(form, lang, on) {
+        const existing = findStar(form, lang);
+        if (on && !existing) {
+          stars.push({ form, lang, date: Date.now(), order: nextOrder() });
+        } else if (!on && existing) {
+          stars = stars.filter((e) => e !== existing);
+        }
+        saveStars();
+        renderSidebar();
+        updateFavButton();
+      }
+
+      function toggleStar() {
+        if (!currentForm) return;
+        setStar(currentForm, currentLang, !findStar(currentForm, currentLang));
+      }
+
+      function updateFavButton() {
+        favBtn.hidden = !currentForm;
+        const on = !!findStar(currentForm, currentLang);
+        favBtn.textContent = on ? '★' : '☆';
+        favBtn.classList.toggle('active', on);
+      }
+
+      // Called on every lookup so the star button and panel highlight track
+      // the word currently on screen.
+      function setCurrent(form, lang) {
+        currentForm = form;
+        currentLang = lang;
+        updateFavButton();
+        renderSidebar();
+      }
+
+      // ---------- Sidebar ----------
+      function starredEntries() {
+        return [...stars].sort((a, b) => a.order - b.order);
+      }
+
+      function makeSideItem(entry) {
+        const row = document.createElement('div');
+        const isCurrent = entry.form === currentForm && entry.lang === currentLang;
+        row.className = 'side-item' + (isCurrent ? ' current' : '');
+
+        const grip = document.createElement('span');
+        grip.className = 'grip';
+        grip.textContent = '⠿';
+        grip.title = 'Drag to reorder';
+        row.appendChild(grip);
+
+        const star = document.createElement('span');
+        star.className = 'icon star';
+        star.textContent = '★';
+        star.title = 'Remove star';
+        star.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setStar(entry.form, entry.lang, false);
+        });
+        row.appendChild(star);
+
+        const term = document.createElement('span');
+        term.className = 'term';
+        term.textContent = entry.form;
+        if (entry.lang !== 'en') {
+          const lang = document.createElement('span');
+          lang.className = 'side-lang';
+          lang.textContent = langName(entry.lang);
+          term.appendChild(lang);
+        }
+        row.appendChild(term);
+
+        const remove = document.createElement('button');
+        remove.className = 'remove';
+        remove.textContent = '✕';
+        remove.title = 'Remove star';
+        remove.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setStar(entry.form, entry.lang, false);
+        });
+        row.appendChild(remove);
+
+        row.addEventListener('click', () => {
+          closeDrawerOnMobile();
+          lookup(entry.form, entry.lang);
+        });
+        return row;
+      }
+
+      function renderSidebar() {
+        const entries = starredEntries();
+        starredListEl.innerHTML = '';
+        if (!entries.length) {
+          const empty = document.createElement('div');
+          empty.className = 'side-empty';
+          empty.textContent = 'No starred words yet';
+          starredListEl.appendChild(empty);
+          return;
+        }
+        entries.forEach((entry) => starredListEl.appendChild(makeSideItem(entry)));
+      }
+
+      // ---------- Drag-to-reorder (pointer events on the grip) ----------
+      let drag = null; // { fromIndex, toIndex }
+      starredListEl.addEventListener('pointerdown', (e) => {
+        const grip = e.target.closest('.grip');
+        if (!grip) return;
+        const row = grip.closest('.side-item');
+        const rows = [...starredListEl.querySelectorAll('.side-item')];
+        drag = { fromIndex: rows.indexOf(row), toIndex: null };
+        row.classList.add('dragging');
+        grip.setPointerCapture(e.pointerId);
+        e.preventDefault();
+      });
+      starredListEl.addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        const rows = [...starredListEl.querySelectorAll('.side-item')];
+        let to = rows.length;
+        for (let i = 0; i < rows.length; i++) {
+          const rect = rows[i].getBoundingClientRect();
+          if (e.clientY < rect.top + rect.height / 2) {
+            to = i;
+            break;
+          }
+        }
+        starredListEl.querySelector('.drop-indicator')?.remove();
+        if (to === drag.fromIndex || to === drag.fromIndex + 1) {
+          drag.toIndex = null;
+          return;
+        }
+        drag.toIndex = to;
+        const indicator = document.createElement('div');
+        indicator.className = 'drop-indicator';
+        if (to >= rows.length) starredListEl.appendChild(indicator);
+        else starredListEl.insertBefore(indicator, rows[to]);
+      });
+      function endDrag() {
+        if (!drag) return;
+        starredListEl.querySelector('.drop-indicator')?.remove();
+        if (drag.toIndex != null) {
+          const ordered = starredEntries();
+          const moved = ordered.splice(drag.fromIndex, 1)[0];
+          const insertAt = drag.toIndex > drag.fromIndex ? drag.toIndex - 1 : drag.toIndex;
+          ordered.splice(Math.min(insertAt, ordered.length), 0, moved);
+          ordered.forEach((entry, i) => (entry.order = i));
+          saveStars();
+        }
+        drag = null;
+        renderSidebar();
+      }
+      starredListEl.addEventListener('pointerup', endDrag);
+      starredListEl.addEventListener('pointercancel', endDrag);
+
+      // ---------- Panel (sidebar / mobile drawer) ----------
+      let drawerOpen = false;
+      function syncPanel() {
+        if (isDesktop()) {
+          sidebarEl.classList.toggle('collapsed', !prefs.sidebar);
+          sidebarEl.classList.remove('open');
+          backdropEl.classList.remove('open');
+        } else {
+          sidebarEl.classList.remove('collapsed');
+          sidebarEl.classList.toggle('open', drawerOpen);
+          backdropEl.classList.toggle('open', drawerOpen);
+        }
+      }
+      function togglePanel() {
+        if (isDesktop()) {
+          prefs.sidebar = !prefs.sidebar;
+          savePrefs();
+        } else {
+          drawerOpen = !drawerOpen;
+        }
+        syncPanel();
+      }
+      function closeDrawerOnMobile() {
+        if (!isDesktop() && drawerOpen) {
+          drawerOpen = false;
+          syncPanel();
+        }
+      }
+      panelBtn.addEventListener('click', togglePanel);
+      favBtn.addEventListener('click', toggleStar);
+      backdropEl.addEventListener('click', closeDrawerOnMobile);
+      window.matchMedia('(min-width: 860px)').addEventListener('change', syncPanel);
+
+      renderSidebar();
+      updateFavButton();
+      syncPanel();
 
       // ---------- Init ----------
       const initial = Common.parseQueryItems();
