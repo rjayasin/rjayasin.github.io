@@ -52,6 +52,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Alexandria | OFL | Mohamed Gaber, Julieta Ulanovsky | Copyright 2022 The Alexandria Project Authors (https://github.com/Gue3bara/Alexandria) |
 | Alfa Slab One | OFL | JM Solé | Copyright 2016 The Alfa Slab One Project Authors (http://www.jmsole.cl \| info@jmsole.cl), with Reserved Font Name "Alfa Slab". |
 | Alice | OFL | Ksenya Erulevich, Cyreal | Copyright 2011 The Alice Project Authors (https://github.com/cyrealtype/Alice) |
+| Alien Block | OFL | Kensuke Uchida | Copyright 2025 The Alien Block Project Authors (https://github.com/koci-design/AlienBlock) |
 | Alike | OFL | Sveta Sebyakina, Cyreal | Copyright 2009 The Alike Project Authors (https://github.com/cyrealtype/Alike) with Reserved Font Name "Alike" and "Alike Angular". |
 | Alike Angular | OFL | Sveta Sebyakina, Cyreal | Copyright 2009 The Alike Angular Project Authors (https://github.com/cyrealtype/Alike-Angular) with Reserved Font Name "Alike" and "Alike Angular". |
 | Alkalami | OFL | SIL International | Copyright (c) SIL International, 2015-2023 |
@@ -1467,6 +1468,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Playwrite VN Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
 | Playwrite ZA | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
 | Playwrite ZA Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
+| Pliant | OFL | Non Foundry, Jona Saucedo | Copyright 2025 The Pliant Project Authors (https://github.com/TheJonassss/Pliant) |
 | Plus Jakarta Sans | OFL | Tokotype | Copyright 2020 The Plus Jakarta Sans Project Authors (https://github.com/tokotype/PlusJakartaSans) |
 | Pochaevsk | OFL | Aleksandr Andreev | Copyright 2025 The Pochaevsk Project Authors (https://github.com/slavonic/pochaevsk). |
 | Podkova | OFL | Cyreal | Copyright 2011 The Podkova Project Authors (https://github.com/cyrealtype/Podkova) |

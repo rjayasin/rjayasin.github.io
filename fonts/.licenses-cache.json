@@ -328,6 +328,14 @@
       "copyright": "Copyright 2011 The Alice Project Authors (https://github.com/cyrealtype/Alice)",
       "resolved": true
     },
+    "Alien Block": {
+      "family": "Alien Block",
+      "slug": "alienblock",
+      "licenseCode": "OFL",
+      "designer": "Kensuke Uchida",
+      "copyright": "Copyright 2025 The Alien Block Project Authors (https://github.com/koci-design/AlienBlock)",
+      "resolved": true
+    },
     "Alike": {
       "family": "Alike",
       "slug": "alike",
@@ -11686,6 +11694,14 @@
       "licenseCode": "OFL",
       "designer": "TypeTogether, Veronika Burian, José Scaglione",
       "copyright": "Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite)",
+      "resolved": true
+    },
+    "Pliant": {
+      "family": "Pliant",
+      "slug": "pliant",
+      "licenseCode": "OFL",
+      "designer": "Non Foundry, Jona Saucedo",
+      "copyright": "Copyright 2025 The Pliant Project Authors (https://github.com/TheJonassss/Pliant)",
       "resolved": true
     },
     "Plus Jakarta Sans": {
