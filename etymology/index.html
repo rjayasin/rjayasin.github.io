@@ -1704,6 +1704,26 @@
       });
 
       // ---------- Input + shortcuts ----------
+      // Tapping/clicking into the search bar highlights any existing word so a
+      // new query overwrites it immediately, without deleting it first.
+      let selectOnTap = false;
+      searchEl.addEventListener('focus', () => {
+        selectOnTap = true;
+        searchEl.select();
+      });
+      // Mobile browsers reposition the caret on the touch that follows focus,
+      // which would clear the selection; reselect once after that tap.
+      searchEl.addEventListener('mouseup', (e) => {
+        if (selectOnTap) {
+          e.preventDefault();
+          searchEl.select();
+          selectOnTap = false;
+        }
+      });
+      searchEl.addEventListener('blur', () => {
+        selectOnTap = false;
+      });
+
       searchEl.addEventListener('keydown', (e) => {
         e.stopPropagation();
         if (e.key === 'Enter') {
