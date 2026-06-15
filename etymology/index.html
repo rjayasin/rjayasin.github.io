@@ -1712,58 +1712,128 @@
       }
 
       // ---------- Definition (shown under the bottommost node) ----------
-      // The looked-up word's senses, pulled from Wiktionary's REST definition
-      // endpoint (structured per language, so it works for any root language).
-      const DEF_API = 'https://en.wiktionary.org/api/rest_v1/page/definition/';
-      const defCache = new Map();
+      // Senses are read from the looked-up word's rendered page (the same HTML
+      // the etymology tree comes from), scoped to its language section and
+      // first part-of-speech list. Wiktionary's REST definition endpoint is
+      // tidier but drops template-transcluded content (e.g. the exponent in
+      // "10⁵⁷") and leaks template CSS, so the fully-rendered senses are used.
       let defSeq = 0;
 
-      function fetchDefinition(form, lang) {
-        if (!form || form.startsWith('*')) return Promise.resolve(null); // no entry page
-        const title = pageTitleFor(form, lang);
-        const key = lang + '|' + title;
-        if (!defCache.has(key)) {
-          defCache.set(
-            key,
-            fetch(DEF_API + encodeURIComponent(title) + '?redirect=true')
-              .then((r) => (r.ok ? r.json() : null))
-              .then((j) => (j && j[lang]) || null)
-              .catch(() => null)
-          );
+      // Turn a sense's <li> into a fragment that is plain text except for the
+      // sub/sup that carry meaning (so "H₂O" and "10⁵⁷" render): quotations and
+      // subsenses (nested lists), sense labels, footnotes, and any remote
+      // markup are dropped, and every other element is unwrapped to its text.
+      function sanitizeSense(li) {
+        const frag = document.createDocumentFragment();
+        (function walk(node, out) {
+          for (const child of node.childNodes) {
+            if (child.nodeType === 3) {
+              out.appendChild(document.createTextNode(child.nodeValue));
+              continue;
+            }
+            if (child.nodeType !== 1) continue;
+            const tag = child.tagName.toLowerCase();
+            if (tag === 'ul' || tag === 'ol' || tag === 'dl') continue; // quotations / subsenses
+            if (tag === 'style' || tag === 'script' || tag === 'link') continue;
+            if (child.classList.contains('usage-label-sense')) continue; // (US, rare, …)
+            if (child.classList.contains('reference')) continue; // footnote markers
+            if (tag === 'sub' || tag === 'sup') {
+              const el = document.createElement(tag);
+              walk(child, el);
+              out.appendChild(el);
+            } else {
+              walk(child, out); // unwrap everything else to its text
+            }
+          }
+        })(li, frag);
+        // Collapse whitespace across the kept text nodes and trim the ends.
+        const texts = [];
+        (function collect(n) {
+          for (const c of n.childNodes) {
+            if (c.nodeType === 3) texts.push(c);
+            else collect(c);
+          }
+        })(frag);
+        texts.forEach((t) => (t.nodeValue = t.nodeValue.replace(/\s+/g, ' ')));
+        if (texts.length) {
+          texts[0].nodeValue = texts[0].nodeValue.replace(/^\s+/, '');
+          const last = texts[texts.length - 1];
+          last.nodeValue = last.nodeValue.replace(/\s+$/, '');
         }
-        return defCache.get(key);
+        return frag;
       }
 
-      // Definition senses come back as HTML; render them as plain text so no
-      // remote markup (or its images/scripts) ever touches the page.
-      function htmlToText(html) {
-        const doc = new DOMParser().parseFromString(html || '', 'text/html');
-        return doc.body.textContent.replace(/\s+/g, ' ').trim();
+      // The part of speech and first few senses from the first definition list
+      // in the given language's section of a rendered page.
+      function definitionFromHtml(html, lang) {
+        const section = sectionName(lang);
+        if (!section || !html) return null;
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const root = doc.querySelector('.mw-parser-output');
+        if (!root) return null;
+        const anchor = section.replace(/ /g, '_');
+        let langHeading = null;
+        for (const wrap of root.querySelectorAll(':scope > .mw-heading2')) {
+          const h2 = wrap.querySelector('h2');
+          if (h2 && (h2.id === anchor || h2.textContent.trim() === section)) {
+            langHeading = wrap;
+            break;
+          }
+        }
+        if (!langHeading) return null;
+        let pos = '';
+        let ol = null;
+        for (let n = langHeading.nextElementSibling; n; n = n.nextElementSibling) {
+          if (n.classList.contains('mw-heading2')) break; // reached the next language
+          if (n.classList.contains('mw-heading')) {
+            const h = n.querySelector('h3, h4, h5, h6');
+            if (h)
+              pos = (h.id || '').replace(/_\d+$/, '').replace(/_/g, ' ') || h.textContent.trim();
+            continue;
+          }
+          if (n.tagName === 'OL') {
+            if (!n.classList.contains('references')) {
+              ol = n;
+              break;
+            }
+            continue;
+          }
+          const found = n.querySelector('ol:not(.references)');
+          if (found) {
+            ol = found;
+            break;
+          }
+        }
+        if (!ol) return null;
+        const senses = [];
+        for (const li of ol.children) {
+          if (li.tagName !== 'LI') continue;
+          const frag = sanitizeSense(li);
+          if (frag.textContent.trim()) senses.push(frag);
+          if (senses.length === 3) break;
+        }
+        return senses.length ? { partOfSpeech: pos, senses } : null;
       }
 
       async function loadDefinition(form, lang, container) {
+        if (!form || form.startsWith('*')) return; // reconstructions have no entry page
         const my = ++defSeq;
-        const groups = await fetchDefinition(form, lang);
-        if (my !== defSeq || !container.isConnected || !groups) return;
-        const group = groups.find((g) => g.definitions && g.definitions.length);
-        if (!group) return;
-        const senses = group.definitions
-          .map((d) => htmlToText(d.definition))
-          .filter(Boolean)
-          .slice(0, 3);
-        if (!senses.length) return;
-        if (group.partOfSpeech) {
+        const html = await fetchPageHtml(pageTitleFor(form, lang));
+        if (my !== defSeq || !container.isConnected || !html) return;
+        const data = definitionFromHtml(html, lang);
+        if (!data) return;
+        if (data.partOfSpeech) {
           const pos = document.createElement('div');
           pos.className = 'def-pos';
-          pos.textContent = group.partOfSpeech;
+          pos.textContent = data.partOfSpeech;
           container.appendChild(pos);
         }
         const list = document.createElement('ul');
         list.className = 'def-senses';
-        for (const text of senses) {
+        for (const frag of data.senses) {
           const li = document.createElement('li');
           li.className = 'def-sense';
-          li.textContent = text;
+          li.appendChild(frag);
           list.appendChild(li);
         }
         container.appendChild(list);
