@@ -345,8 +345,13 @@
         min-width: 100%;
       }
 
-      /* Definition of the looked-up word, shown beneath the bottommost node. */
+      /* Definition of the looked-up word, shown beneath the bottommost node.
+         width: fit-content shrink-wraps the block to its text (up to 540px) so
+         margin auto centers that block — and thus the center of the
+         left-aligned text — under the root node, instead of stretching the
+         block full-width and stranding the text at the left edge. */
       #definition {
+        width: fit-content;
         max-width: 540px;
         margin: 30px auto 0;
         text-align: left;
