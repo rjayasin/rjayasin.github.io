@@ -1977,6 +1977,7 @@
       function setCurrent(form, lang) {
         currentForm = form;
         currentLang = lang;
+        document.title = form ? form + ' • etymology' : 'Ruvan / etymology';
         updateFavButton();
         renderSidebar();
       }
