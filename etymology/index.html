@@ -422,6 +422,13 @@
         #content {
           padding: 24px 10px 96px;
         }
+        /* On a phone the definition's 540px cap can exceed the viewport, and
+           since .content-inner is max-content that overflow forces horizontal
+           scrolling even when the tree itself fits. Hold the block to the
+           viewport (minus #content's 10px side padding) so its text wraps. */
+        #definition {
+          max-width: min(540px, calc(100vw - 20px));
+        }
         .node {
           padding: 6px 10px 8px;
           max-width: 180px;
