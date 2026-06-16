@@ -339,10 +339,16 @@
 
       /* Wrap the tree, definition, and source line in one max-content column so
          the narrower blocks center on the tree's center (i.e. under the root
-         node) rather than on the viewport when the tree overflows horizontally. */
+         node) rather than on the viewport when the tree overflows horizontally.
+         Fill at least the content area's height and lay the blocks out as a
+         flex column so the source line (margin-top: auto) is pinned to the
+         bottom even when the tree is short. */
       .content-inner {
         width: max-content;
         min-width: 100%;
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
       }
 
       /* Definition of the looked-up word, shown beneath the bottommost node.
@@ -405,7 +411,10 @@
           monospace;
         font-size: 11px;
         color: var(--faint);
-        margin-top: 36px;
+        /* auto top margin pins the line to the bottom of the content area when
+           the tree is short; padding keeps a minimum gap when it isn't. */
+        margin-top: auto;
+        padding-top: 36px;
       }
       #source-line a {
         color: inherit;
