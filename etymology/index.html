@@ -653,12 +653,20 @@
       }
 
       /* --- Hint bar --- */
+      /* Single-line hint bar; pans horizontally when it overflows (on a phone
+         the full set of shortcuts is wider than the screen). Auto margins
+         centre the pill yet keep its left edge reachable while scrolling. */
       #hint {
         position: fixed;
         left: 0;
         right: 0;
-        bottom: 0;
-        text-align: center;
+        bottom: 12px;
+        display: flex;
+        overflow-x: auto;
+        scrollbar-width: none;
+        touch-action: pan-x;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
         font-family:
           ui-monospace,
           SFMono-Regular,
@@ -673,14 +681,29 @@
         transition: opacity 0.4s ease;
         user-select: none;
         z-index: 65;
-        padding: 8px 8px 12px;
+      }
+      #hint::-webkit-scrollbar {
+        display: none;
+      }
+      /* Flex spacers so the centred pill can scroll clear of both edges. */
+      #hint::before,
+      #hint::after {
+        content: '';
+        flex: 0 0 8px;
+      }
+      #hint-inner {
+        flex: 0 0 auto;
+        margin: 0 auto;
+        white-space: nowrap;
+        padding: 6px 10px;
+        border-radius: 6px;
         background: #fff;
       }
-      body.dark #hint {
+      body.dark #hint-inner {
         background: #111;
       }
       @media (prefers-color-scheme: dark) {
-        body:not(.light) #hint {
+        body:not(.light) #hint-inner {
           background: #111;
         }
       }
