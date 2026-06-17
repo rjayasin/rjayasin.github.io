@@ -942,7 +942,7 @@
           if (!bodyEl.hasAttribute('hidden')) bodyEl.scrollLeft = bodyEl.scrollWidth;
         }
 
-        toggle.addEventListener('click', () => {
+        function toggleGraph() {
           const open = bodyEl.hasAttribute('hidden');
           if (open) {
             bodyEl.removeAttribute('hidden');
@@ -952,6 +952,17 @@
             bodyEl.setAttribute('hidden', '');
             toggle.setAttribute('aria-expanded', 'false');
           }
+        }
+        toggle.addEventListener('click', toggleGraph);
+
+        // Press "g" to toggle the graph (ignore when typing in a field).
+        document.addEventListener('keydown', (e) => {
+          if (e.key !== 'g' || e.metaKey || e.ctrlKey || e.altKey) return;
+          const t = e.target;
+          if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable))
+            return;
+          e.preventDefault();
+          toggleGraph();
         });
         window.addEventListener('darkmodechange', render);
 
