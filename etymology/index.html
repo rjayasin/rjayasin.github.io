@@ -352,6 +352,15 @@
         min-height: 100%;
         display: flex;
         flex-direction: column;
+        /* Pinch-to-zoom (touch) scales this block from its top-left corner; the
+           sizer below then reserves the scaled area so panning still works. */
+        transform-origin: 0 0;
+      }
+      /* Wraps .content-inner. Transparent (display: contents) at 1:1 so the tree
+         lays out exactly as if it weren't here; while zoomed it becomes a block
+         sized to the scaled tree so #content's scrollbars track it. */
+      .zoom-sizer {
+        display: contents;
       }
 
       /* Definition of the looked-up word, shown beneath the bottommost node.
@@ -1755,15 +1764,24 @@
 
       // ---------- Pinch-to-zoom (touch) ----------
       // Large trees overflow a phone screen; a two-finger pinch scales the tree
-      // so more of it fits at once (or to read small ancestors up close). The
-      // layout-affecting `zoom` is set on .content-inner — unlike a transform,
-      // it resizes #content's scroll area so one-finger panning still reaches
-      // every node at any scale. The pinch's midpoint is held fixed by
-      // adjusting scroll, so the tree grows/shrinks around the fingers.
+      // so more of it fits at once (or to read small ancestors up close).
+      //
+      // The tree is scaled with a CSS `transform: scale()` rather than the
+      // `zoom` property: zoom is unreliable here because the layout flips nodes
+      // with their own transforms (see .node), and mobile WebKit then reflows
+      // the spacing without scaling the flipped text — a transform composes
+      // with those flips and scales everything uniformly. A transform doesn't
+      // resize the element's layout box, though, so the .zoom-sizer wrapper is
+      // grown to the scaled dimensions to keep #content's scroll area (and thus
+      // one-finger panning) correct at any scale. The pinch midpoint is held
+      // fixed by adjusting scroll, so the tree grows/shrinks around the fingers.
       const ZOOM_MIN = 0.3;
       const ZOOM_MAX = 2.5;
       let contentInnerEl = null;
+      let contentSizerEl = null;
       let treeZoom = 1;
+      let naturalW = 0; // unscaled layout size of .content-inner, measured lazily
+      let naturalH = 0;
 
       function clamp(v, lo, hi) {
         return Math.min(hi, Math.max(lo, v));
@@ -1774,19 +1792,51 @@
       function setTreeZoom(next, focalX, focalY) {
         next = clamp(next, ZOOM_MIN, ZOOM_MAX);
         const prev = treeZoom;
+        if (!contentInnerEl || !contentSizerEl) {
+          treeZoom = next;
+          return;
+        }
+        if (next === 1) {
+          // Back to pristine: drop every override so the tree lays out exactly
+          // as its base CSS describes (sizer transparent again).
+          contentSizerEl.style.cssText = '';
+          contentInnerEl.style.transform = '';
+          contentInnerEl.style.width = '';
+          contentInnerEl.style.height = '';
+          contentInnerEl.style.minWidth = '';
+          contentInnerEl.style.minHeight = '';
+        } else {
+          // Measure the natural (unscaled) size once per tree, then lock the
+          // block to it so scaling can't feed back into layout. Clearing the
+          // overrides first lets this re-measure correctly even when already
+          // zoomed (e.g. after the definition loads and invalidates the size).
+          if (!naturalW) {
+            contentInnerEl.style.transform = '';
+            contentInnerEl.style.width = '';
+            contentInnerEl.style.height = '';
+            contentInnerEl.style.minWidth = '';
+            contentInnerEl.style.minHeight = '';
+            naturalW = contentInnerEl.offsetWidth;
+            naturalH = contentInnerEl.offsetHeight;
+          }
+          contentInnerEl.style.width = naturalW + 'px';
+          contentInnerEl.style.height = naturalH + 'px';
+          contentInnerEl.style.minWidth = '0';
+          contentInnerEl.style.minHeight = '0';
+          contentInnerEl.style.transform = 'scale(' + next + ')';
+          contentSizerEl.style.display = 'block';
+          contentSizerEl.style.width = naturalW * next + 'px';
+          contentSizerEl.style.height = naturalH * next + 'px';
+        }
         treeZoom = next;
-        if (contentInnerEl) contentInnerEl.style.zoom = next;
         if (prev === next || focalX == null) return;
-        // Scroll metrics are in rendered (zoomed) pixels: a layout point L sits
-        // at L*zoom in the scroll content. Solve for the layout point under the
-        // focal pixel before the change, then re-pin it after.
+        // Keep the content fraction under the finger fixed: the sizer is the
+        // scroll content, so a point at scroll offset P scales as P*next/prev.
         const rect = contentEl.getBoundingClientRect();
         const fx = focalX - rect.left;
         const fy = focalY - rect.top;
-        const lx = (contentEl.scrollLeft + fx) / prev;
-        const ly = (contentEl.scrollTop + fy) / prev;
-        contentEl.scrollLeft = lx * next - fx;
-        contentEl.scrollTop = ly * next - fy;
+        contentEl.scrollLeft = (contentEl.scrollLeft + fx) * (next / prev) - fx;
+        contentEl.scrollTop = (contentEl.scrollTop + fy) * (next / prev) - fy;
       }
 
       let pinchStartDist = 0;
@@ -1828,6 +1878,17 @@
       // iOS fires its own gesture events for two-finger zoom; block them over
       // the tree so only our pinch handler scales it.
       contentEl.addEventListener('gesturestart', (e) => e.preventDefault());
+
+      // The locked dimensions reflect the current viewport; a rotation changes
+      // it, so snap back to 1:1 rather than leaving a stale, clipped scroll area.
+      window.addEventListener('orientationchange', () => setTreeZoom(1));
+
+      // The tree's natural size changed (e.g. the definition loaded or toggled);
+      // forget the cached measurement and, if zoomed, re-apply at the new size.
+      function refreshTreeZoom() {
+        naturalW = naturalH = 0;
+        if (treeZoom !== 1) setTreeZoom(treeZoom);
+      }
 
       function wiktionaryUrl(form, lang) {
         return 'https://en.wiktionary.org/wiki/' + encodeURIComponent(pageTitleFor(form, lang));
@@ -1959,6 +2020,9 @@
           list.appendChild(li);
         }
         container.appendChild(list);
+        // The block just grew taller; if zoomed, re-measure so the scroll area
+        // includes the definition.
+        refreshTreeZoom();
         // Bring the new definition into view if the word was at the bottom.
         const slack = contentEl.scrollHeight - contentEl.scrollTop - contentEl.clientHeight;
         if (slack < 80) scrollToWord();
@@ -1973,6 +2037,7 @@
         if (!def) return;
         def.hidden = !prefs.def;
         if (prefs.def && !def.childElementCount) loadDefinition(currentForm, currentLang, def);
+        else refreshTreeZoom(); // shown-from-cache or hidden: size changed
       }
 
       // Open the current word in the explorer (hint bar / "e").
@@ -2006,14 +2071,19 @@
         a.textContent = 'wiktionary';
         source.append('source: ', a, ' (CC BY-SA)');
         inner.appendChild(source);
-        contentEl.appendChild(inner);
+        const sizer = document.createElement('div');
+        sizer.className = 'zoom-sizer';
+        sizer.appendChild(inner);
+        contentEl.appendChild(sizer);
         // Each new tree starts at 1:1; pinch-to-zoom (touch) scales this block.
         contentInnerEl = inner;
-        setTreeZoom(1);
+        contentSizerEl = sizer;
+        treeZoom = 1;
+        naturalW = naturalH = 0;
       }
 
       function renderStatus(text, link) {
-        contentInnerEl = null;
+        contentInnerEl = contentSizerEl = null;
         contentEl.className = 'centered';
         contentEl.innerHTML = '';
         const div = document.createElement('div');
@@ -2031,7 +2101,7 @@
       }
 
       function renderSpinner() {
-        contentInnerEl = null;
+        contentInnerEl = contentSizerEl = null;
         contentEl.className = 'centered';
         contentEl.innerHTML = '';
         const div = document.createElement('div');
