@@ -226,6 +226,10 @@
         .w:hover {
           background: var(--hover);
         }
+        /* ⌘/Ctrl-click explores a word, so show the hand while the key is held. */
+        body.mod-held .w {
+          cursor: pointer;
+        }
       }
       /* Tap feedback: shows during the content fade-out, then the re-render
          replaces the span. var(--line) doubles as a highlight strong enough
@@ -1383,6 +1387,15 @@
           bumpScale(-0.1);
         }
       });
+
+      // Track ⌘/Ctrl so the definition words can show the pointer cursor while
+      // it's held (CSS can't see modifier keys on its own).
+      function syncModCursor(e) {
+        document.body.classList.toggle('mod-held', e.metaKey || e.ctrlKey);
+      }
+      window.addEventListener('keydown', syncModCursor);
+      window.addEventListener('keyup', syncModCursor);
+      window.addEventListener('blur', () => document.body.classList.remove('mod-held'));
 
       // ---------- Hint bar ----------
       document.getElementById('hb-fav').addEventListener('click', toggleFavorite);
