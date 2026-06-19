@@ -25,11 +25,15 @@
 
 `fun`
 
-- [`maze-canvas`](https://rjayasin.github.io/maze-canvas/)
-- [`snake`](https://rjayasin.github.io/snake/)
 - `visualizer`
   - [`video-player`](https://rjayasin.github.io/visualizer/video-player.html)
   - [`spotify-auth`](https://rjayasin.github.io/visualizer/spotify-auth.html)
+- [`maze-canvas`](https://rjayasin.github.io/maze-canvas/)
+- [`snake`](https://rjayasin.github.io/snake/)
+
+`experiments`
+
+- [`mirror`](https://rjayasin.github.io/mirror/)
 
 `site`
 
