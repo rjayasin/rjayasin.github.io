@@ -19,7 +19,7 @@ window.Common = window.Common || {};
     setFaviconHref('data:image/svg+xml,' + encodeURIComponent(FAVICON_R_SVG));
   }
 
-  function paintFavicon({ glyph, font, fontSize = 52, transparent = false }) {
+  function paintFavicon({ glyph, font, fontSize = 52, transparent = false, dy = 0 }) {
     const c = document.createElement('canvas');
     c.width = c.height = 64;
     const ctx = c.getContext('2d');
@@ -32,7 +32,7 @@ window.Common = window.Common || {};
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = isDark ? '#fff' : '#000';
-    ctx.fillText(glyph, 32, 32);
+    ctx.fillText(glyph, 32, 32 + dy);
     setFaviconHref(c.toDataURL());
   }
 
