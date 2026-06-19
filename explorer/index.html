@@ -613,6 +613,10 @@
         <span style="white-space: nowrap"><span class="hint-btn" id="hb-syns">y syns</span></span>
         &nbsp;·&nbsp;
         <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-etym">e etymology</span></span
+        >
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"
           ><span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd">−</span>
           font</span
         >
@@ -1203,6 +1207,12 @@
         setFavorite(currentWord, !(existing && existing.fav));
       }
 
+      // Open the current word in the etymology page (hint bar / "e").
+      function openEtymology() {
+        if (!currentWord) return;
+        window.open('/etymology/?' + encodeURIComponent(currentWord), '_blank', 'noopener');
+      }
+
       function updateFavButton() {
         favBtn.hidden = !currentWord;
         const entry = findEntry(currentWord);
@@ -1365,6 +1375,8 @@
           prefs.syns = !prefs.syns;
           savePrefs();
           renderContent();
+        } else if (e.key === 'e' || e.key === 'E') {
+          openEtymology();
         } else if (e.key === '+' || e.key === '=') {
           bumpScale(0.1);
         } else if (e.key === '-' || e.key === '_') {
@@ -1385,6 +1397,7 @@
         savePrefs();
         renderContent();
       });
+      document.getElementById('hb-etym').addEventListener('click', openEtymology);
       document.getElementById('hb-fi').addEventListener('click', () => bumpScale(0.1));
       document.getElementById('hb-fd').addEventListener('click', () => bumpScale(-0.1));
       document.getElementById('hb-dark').addEventListener('click', Common.toggleDark);
