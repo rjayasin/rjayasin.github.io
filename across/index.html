@@ -477,6 +477,9 @@
       // Warm the cache for every letter so switching is instant after load.
       LETTERS.forEach(wordsFor);
 
+      // Start on 'a' so a word is shown immediately on first load.
+      goTo(0);
+
       document.addEventListener('keydown', (e) => {
         const t = e.target;
         if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
