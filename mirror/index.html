@@ -57,25 +57,29 @@
       const MODEL_URL =
         'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
 
-      // MediaPipe FaceMesh outer eye-corner landmarks (right, left). These are
-      // rigid points: blinking and opening the mouth barely move them, so we
-      // derive both the crop's center and its scale from them. That keeps the
-      // zoom steady through expressions, unlike measuring eyelid-to-lip height.
+      // MediaPipe FaceMesh landmarks. To keep the framing rock-steady through
+      // expressions, each part of the crop comes from a point unaffected by it:
+      //   - horizontal center: outer eye corners (don't drift sideways)
+      //   - vertical anchor: nasion / nose bridge (rigid through blinks)
+      //   - scale: cheekbone width (rigid through both blinks and the mouth;
+      //     the eye corners subtly pull inward on a blink, which zoomed)
       const EYE_R = 33;
       const EYE_L = 263;
+      const NOSE_BRIDGE = 168;
+      const CHEEK_R = 234;
+      const CHEEK_L = 454;
 
       // Framing, expressed in multiples of the inter-ocular distance. SIZE_K is
       // the square's side; CENTER_DROP pushes its center below the eye line so
       // the eyes sit near the top and the mouth near the bottom.
-      const SIZE_K = 1.2;
+      const SIZE_K = 0.8;
       const CENTER_DROP = 0.31;
 
       // Easing time constants in seconds (frame-rate independent, see render()).
-      // Position tracks quickly; size eases much more slowly so transient
-      // landmark jitter from a blink doesn't change the zoom, while real
-      // move-closer/farther changes still come through.
+      // Position tracks quickly; size eases a touch slower just to damp landmark
+      // noise (the scale source itself is now expression-invariant).
       const SMOOTH_TAU = 0.1;
-      const SIZE_TAU = 0.6;
+      const SIZE_TAU = 0.4;
       const GRACE_MS = 250; // hold the last framing briefly to ride out dropouts
 
       const video = document.getElementById('cam');
@@ -143,21 +147,23 @@
         lastFaceAt = ts;
       }
 
-      // A square crop whose center and size come only from the (rigid) outer eye
-      // corners, so blinking or opening the mouth leaves the zoom unchanged.
+      // The crop's anchor (eye-line midpoint) and size both come only from the
+      // (rigid) outer eye corners, so blinking or opening the mouth leaves the
+      // framing unchanged. Anchor and size are kept separate so they can be
+      // eased on different channels (see render()); the vertical drop below the
+      // eyes is applied from the smoothed size, not the raw one, so size jitter
+      // can't bob the framing.
       function computeCrop(lm) {
         const vw = video.videoWidth;
         const vh = video.videoHeight;
-        const rx = lm[EYE_R].x * vw;
-        const ry = lm[EYE_R].y * vh;
-        const lx = lm[EYE_L].x * vw;
-        const ly = lm[EYE_L].y * vh;
-        const interOcular = Math.hypot(lx - rx, ly - ry);
-        const size = interOcular * SIZE_K;
+        const cheek = Math.hypot(
+          (lm[CHEEK_L].x - lm[CHEEK_R].x) * vw,
+          (lm[CHEEK_L].y - lm[CHEEK_R].y) * vh
+        );
         return {
-          cx: (rx + lx) / 2,
-          cy: (ry + ly) / 2 + size * CENTER_DROP,
-          size,
+          ax: ((lm[EYE_R].x + lm[EYE_L].x) / 2) * vw, // horizontal center from the eyes
+          ay: lm[NOSE_BRIDGE].y * vh, // vertical anchor from the rigid nose bridge
+          size: cheek * SIZE_K, // scale from rigid cheekbone width
         };
       }
 
@@ -183,27 +189,20 @@
         } else {
           const a = 1 - Math.exp(-dt / SMOOTH_TAU); // frame-rate independent ease
           const sa = 1 - Math.exp(-dt / SIZE_TAU); // slower, to hold the zoom
-          smooth.cx += (target.cx - smooth.cx) * a;
-          smooth.cy += (target.cy - smooth.cy) * a;
+          smooth.ax += (target.ax - smooth.ax) * a;
+          smooth.ay += (target.ay - smooth.ay) * a;
           smooth.size += (target.size - smooth.size) * sa;
         }
 
         sizeCanvas();
         const w = canvas.width;
+        const size = smooth.size;
+        const sx = smooth.ax - size / 2;
+        const sy = smooth.ay + size * CENTER_DROP - size / 2; // drop from smoothed size
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, w, w);
         ctx.setTransform(-1, 0, 0, 1, w, 0); // flip so it reads like a mirror
-        ctx.drawImage(
-          video,
-          smooth.cx - smooth.size / 2,
-          smooth.cy - smooth.size / 2,
-          smooth.size,
-          smooth.size,
-          0,
-          0,
-          w,
-          w
-        );
+        ctx.drawImage(video, sx, sy, size, size, 0, 0, w, w);
       }
 
       // Match the backing store to the displayed size × DPR for a crisp image.
