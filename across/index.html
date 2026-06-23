@@ -204,9 +204,12 @@
 
       const LETTERS = 'abcdefghijklmnopqrstuvwxyz'.split('');
       // Spacing as a fraction of font size: tight horizontal advance (monospace
-      // glyphs are ~0.6em wide) and slightly condensed vertical line pitch.
+      // glyphs are ~0.6em wide) and a vertical line pitch that clears a
+      // descender stacked above an ascender (e.g. j/k, g/h) so adjacent letters
+      // never touch — a descender reaches ~0.2em below the baseline and the next
+      // ascender ~0.7em above its own, so the pitch must exceed ~0.9em.
       const COL = 0.62;
-      const ROW = 0.9;
+      const ROW = 1.05;
       // Nominal cross-axis cells used only to keep the font a sensible size; the
       // word can be any length and is shrunk per-word to fit (see wordFont).
       const VNOM = 13;
