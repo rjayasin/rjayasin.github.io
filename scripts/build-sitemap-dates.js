@@ -34,9 +34,9 @@ function extractHrefs(html) {
   return [...new Set(hrefs)];
 }
 
-function gitEntry(relPath) {
+function gitEntry(pathspecs) {
   try {
-    const out = execFileSync('git', ['log', '-1', '--format=%cI%x09%H', '--', relPath], {
+    const out = execFileSync('git', ['log', '-1', '--format=%cI%x09%H', '--', ...pathspecs], {
       cwd: ROOT,
       encoding: 'utf8',
     }).trim();
@@ -49,15 +49,25 @@ function gitEntry(relPath) {
   }
 }
 
-function internalPath(href) {
-  if (href === '/') return 'index.html';
+// The git pathspec(s) whose last commit dates an internal href. Usually just
+// the page's own path, but a few entries need a narrower scope so a sibling's
+// commits don't bump their "updated" timestamp. Returns null for non-internal
+// hrefs (handled via the GitHub API instead).
+function internalPathspecs(href) {
+  if (href === '/') return ['index.html'];
   // The sitemap's own entry must track real page changes, not metadata churn:
   // scope it to index.html so commits that only touch sibling sitemap/dates.json
   // (regenerated on every deploy) don't bump its "updated" timestamp.
-  if (href === '/sitemap/') return 'sitemap/index.html';
+  if (href === '/sitemap/') return ['sitemap/index.html'];
+  // The tree-viewer (/etymology/) and the game (/etymology/game/) share a
+  // directory but are separate pages. Scope the viewer to everything under
+  // etymology/ EXCEPT the game subfolder, so game-only commits (e.g. its
+  // words.json growing) don't bump the viewer. The game maps to its own folder
+  // below and stays independent.
+  if (href === '/etymology/') return ['etymology', ':(exclude)etymology/game'];
   if (!href.startsWith('/')) return null;
   const clean = href.replace(/^\/+/, '').replace(/\/+$/, '');
-  return clean || 'index.html';
+  return [clean || 'index.html'];
 }
 
 function parseUserHost(href) {
@@ -107,7 +117,7 @@ async function main() {
   const entries = {};
   for (const href of hrefs) {
     let entry = null;
-    const rel = internalPath(href);
+    const rel = internalPathspecs(href);
     if (rel) {
       entry = gitEntry(rel);
     } else {
