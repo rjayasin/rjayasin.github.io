@@ -569,8 +569,8 @@
       <div id="pool-head">
         <span id="pool-title">node pool</span>
         <span id="msg"
-          >Drag a card up and drop it above another to make it that word’s ancestor; drop it beside
-          one to set them at the same level.</span
+          >Drop a card above another to make it that word’s ancestor, below it to slot it into the
+          line, or beside one to set them at the same level.</span
         >
         <button id="reset-btn" class="btn" disabled>reset</button>
         <button id="submit-btn" class="btn primary" disabled>submit</button>
@@ -726,20 +726,38 @@
       }
 
       // Apply a drop target to a tree (used both for the live board and for the
-      // ghost preview clone). target = { relId, relation: 'ancestor'|'before'|'after' }.
+      // ghost preview clone).
+      // target = { relId, relation: 'ancestor' | 'below' | 'before' | 'after' }.
       function applyTarget(root, p, target) {
         if (target.relation === 'ancestor') {
           findNode(root, target.relId).children.push(p);
-        } else {
-          const parent = findParent(root, target.relId);
-          if (!parent) {
-            findNode(root, target.relId).children.push(p);
+          return;
+        }
+        if (target.relation === 'below') {
+          // Splice p into the chain directly beneath the target: p takes the
+          // target's slot under its descendant, and the target becomes p's own
+          // (only) ancestor — so the line reads descendant → p → target.
+          const node = findNode(root, target.relId);
+          const desc = findParent(root, target.relId);
+          if (!desc) {
+            // The target is the root; nothing sits below it, so stack above.
+            node.children.push(p);
             return;
           }
-          let i = parent.children.findIndex((c) => c.id === target.relId);
-          if (target.relation === 'after') i += 1;
-          parent.children.splice(i, 0, p);
+          const i = desc.children.findIndex((c) => c.id === target.relId);
+          desc.children.splice(i, 1, p);
+          p.children.push(node);
+          return;
         }
+        // before / after: a sibling under the same descendant.
+        const parent = findParent(root, target.relId);
+        if (!parent) {
+          findNode(root, target.relId).children.push(p);
+          return;
+        }
+        let i = parent.children.findIndex((c) => c.id === target.relId);
+        if (target.relation === 'after') i += 1;
+        parent.children.splice(i, 0, p);
       }
 
       // ---------- Rendering ----------
@@ -988,11 +1006,14 @@
         // left/right sibling when the pointer clears its edge by a wide margin,
         // so small horizontal wobble keeps you stacking above/below rather than
         // flipping to the side. Sideways placement takes a deliberate reach out.
+        // Dropping clearly below the card (past its bottom edge) splices the
+        // piece into the chain directly beneath it instead.
         let relation = 'ancestor';
         if (!best.root) {
           const margin = Math.max(28, best.width * 0.45);
           if (x < best.left - margin) relation = 'before';
           else if (x > best.right + margin) relation = 'after';
+          else if (y > best.bottom) relation = 'below';
         }
         return { relId: best.id, relation };
       }
@@ -1086,8 +1107,16 @@
           link.target = '_blank';
           link.rel = 'noopener';
           link.textContent = boardRoot.form;
+          // A second link straight to the source: the etymology section of the
+          // word's Wiktionary page.
+          const wikt = document.createElement('a');
+          wikt.href = wiktionaryUrl(boardRoot.form, boardRoot.lang) + '#Etymology';
+          wikt.target = '_blank';
+          wikt.rel = 'noopener';
+          wikt.textContent = 'Wiktionary';
+          wikt.title = 'Etymology on Wiktionary';
           const span = document.createElement('span');
-          span.append('✓ Solved! The word was ', link, '.');
+          span.append('✓ Solved! The word was ', link, ' · ', wikt, '.');
           setMessage(span, 'ok');
         } else {
           markMistakes();
