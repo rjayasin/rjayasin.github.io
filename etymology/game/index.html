@@ -1,0 +1,1061 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <title>Ruvan / etymology game</title>
+    <link rel="icon" id="favicon" />
+    <link rel="stylesheet" href="/common.css" />
+    <style>
+      :root {
+        --muted: rgba(0, 0, 0, 0.45);
+        --faint: rgba(0, 0, 0, 0.3);
+        --line: rgba(0, 0, 0, 0.18);
+        --hover: rgba(0, 0, 0, 0.05);
+        --card-bg: #fafafa;
+        --pool-bg: #efece6;
+        --ok: #2e7d32;
+        --bad: #c0392b;
+        --gline: var(--line);
+      }
+      body.dark {
+        --muted: rgba(255, 255, 255, 0.5);
+        --faint: rgba(255, 255, 255, 0.35);
+        --line: rgba(255, 255, 255, 0.22);
+        --hover: rgba(255, 255, 255, 0.07);
+        --card-bg: #181818;
+        --pool-bg: #1d1c1a;
+        --ok: #7bc47f;
+        --bad: #e57373;
+      }
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) {
+          --muted: rgba(255, 255, 255, 0.5);
+          --faint: rgba(255, 255, 255, 0.35);
+          --line: rgba(255, 255, 255, 0.22);
+          --hover: rgba(255, 255, 255, 0.07);
+          --card-bg: #181818;
+          --pool-bg: #1d1c1a;
+          --ok: #7bc47f;
+          --bad: #e57373;
+        }
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        font-family: 'Times New Roman', Times, Georgia, serif;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        height: 100dvh;
+      }
+
+      /* --- Header / controls --- */
+      #gheader {
+        flex: none;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--line);
+      }
+      #gtitle {
+        font-size: 22px;
+        margin-right: auto;
+      }
+      #gtitle a {
+        color: inherit;
+        text-decoration: none;
+      }
+      #gtitle .sub {
+        color: var(--faint);
+      }
+      .ctl {
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        font-size: 12px;
+        letter-spacing: 0.06em;
+      }
+      .ctl-label {
+        color: var(--muted);
+        text-transform: uppercase;
+        margin-right: 6px;
+      }
+      select#difficulty,
+      button.btn,
+      input#word {
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        font-size: 12px;
+        color: inherit;
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 5px 9px;
+        cursor: pointer;
+      }
+      input#word {
+        cursor: text;
+        width: 140px;
+        background: transparent;
+      }
+      input#word::placeholder {
+        color: var(--faint);
+      }
+      button.btn:hover {
+        background: var(--hover);
+      }
+      button.btn:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+      button.btn.primary {
+        border-color: var(--muted);
+      }
+
+      /* --- Board (the tree viewer) --- */
+      #board {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+        position: relative;
+        padding: 24px 16px 32px;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+      }
+      #board.empty-hint::after {
+        content: 'drag pieces up here →';
+        position: absolute;
+        top: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        font-size: 12px;
+        color: var(--faint);
+        pointer-events: none;
+      }
+
+      /* The board tree: ancestors stack above, the (hidden) root word at the
+         bottom. Connectors run downward from each ancestor to the descendant
+         it feeds, tipped with an arrowhead — drop a card above another and the
+         arrow shows it as that word's ancestor; place two side by side and they
+         share a descendant at the same level. */
+      .gtree {
+        width: max-content;
+        min-width: 100%;
+        display: flex;
+        justify-content: center;
+        padding-top: 6px;
+      }
+      .gli {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+      }
+      .gul {
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        list-style: none;
+        position: relative;
+        padding-bottom: 30px;
+      }
+      /* drop from the sibling bus down into this node's card + arrowhead */
+      .gul::before {
+        content: '';
+        position: absolute;
+        left: 50%;
+        bottom: 9px;
+        height: 21px;
+        border-left: 1px solid var(--gline);
+      }
+      .gul::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        bottom: 1px;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 8px solid var(--gline);
+      }
+      /* each ancestor reserves space below it for the bus + its drop to it */
+      .gul > .gli {
+        padding: 0 14px 22px;
+      }
+      .gul > .gli::before,
+      .gul > .gli::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        width: 50%;
+        height: 22px;
+        border-bottom: 1px solid var(--gline);
+      }
+      .gul > .gli::before {
+        right: 50%;
+      }
+      .gul > .gli::after {
+        left: 50%;
+        border-left: 1px solid var(--gline);
+      }
+      .gul > .gli:first-child::before {
+        border-bottom: none;
+      }
+      .gul > .gli:last-child::after {
+        border-bottom: none;
+      }
+      .gul > .gli:last-child::before {
+        border-right: 1px solid var(--gline);
+        border-radius: 0 0 6px 0;
+      }
+      .gul > .gli:first-child::after {
+        border-radius: 0 0 0 6px;
+      }
+      .gul > .gli:only-child::before {
+        display: none;
+      }
+      .gul > .gli:only-child::after {
+        border-bottom: none;
+        border-radius: 0;
+      }
+
+      /* --- Cards --- */
+      .gcard {
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 7px 14px 9px;
+        text-align: center;
+        max-width: 220px;
+        min-width: min-content;
+        cursor: grab;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        position: relative;
+      }
+      .gcard:active {
+        cursor: grabbing;
+      }
+      .gcard .lang {
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 2px;
+      }
+      .gcard .form {
+        font-size: 20px;
+        line-height: 1.2;
+      }
+      .gcard .form.empty {
+        color: var(--faint);
+      }
+      .gcard .tr {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 1px;
+      }
+      .gcard .gloss {
+        font-size: 12px;
+        font-style: italic;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .gcard .rel {
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        font-size: 9px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--faint);
+        margin-top: 3px;
+      }
+      /* The mystery root word sits at the bottom of the board, face-down until
+         the tree is solved. */
+      .gcard.root {
+        border-style: dashed;
+        border-width: 2px;
+      }
+      .gcard.root .form {
+        letter-spacing: 0.1em;
+        color: var(--muted);
+      }
+      .gcard.root.won {
+        border-style: solid;
+        border-color: var(--ok);
+      }
+      .gcard.root.won .form {
+        color: inherit;
+        letter-spacing: 0;
+      }
+      .gcard.ghost {
+        opacity: 0.45;
+        border-style: dashed;
+        background: var(--hover);
+      }
+      .gcard.wrong {
+        border-color: var(--bad);
+      }
+      .gcard.correct {
+        border-color: var(--ok);
+      }
+      .gcard.dragging-src {
+        display: none;
+      }
+
+      /* the card that follows the pointer while dragging */
+      #drag-clone {
+        position: fixed;
+        z-index: 200;
+        pointer-events: none;
+        opacity: 0.9;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+        transform: translate(-50%, -50%) rotate(-1.5deg);
+      }
+
+      /* --- Node pool --- */
+      #pool-wrap {
+        flex: none;
+        height: 38vh;
+        min-height: 150px;
+        display: flex;
+        flex-direction: column;
+        background: var(--pool-bg);
+        border-top: 1px solid var(--line);
+      }
+      #pool-head {
+        flex: none;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 9px 16px;
+        border-bottom: 1px solid var(--line);
+      }
+      #pool-title {
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      #msg {
+        flex: 1;
+        min-width: 0;
+        font-size: 14px;
+        font-style: italic;
+        color: var(--muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      #msg.ok {
+        color: var(--ok);
+        font-style: normal;
+      }
+      #msg.bad {
+        color: var(--bad);
+      }
+      #msg a {
+        color: inherit;
+      }
+      #pool {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 16px;
+        display: flex;
+        flex-wrap: wrap;
+        align-content: flex-start;
+        gap: 12px;
+      }
+      #pool.drop-active {
+        outline: 2px dashed var(--muted);
+        outline-offset: -8px;
+      }
+      #pool .pool-empty {
+        font-size: 14px;
+        font-style: italic;
+        color: var(--faint);
+        margin: auto;
+      }
+
+      /* loading / status overlay on the board */
+      .board-status {
+        margin: auto;
+        text-align: center;
+        color: var(--faint);
+        font-style: italic;
+        font-size: 16px;
+      }
+      .spinner {
+        width: 28px;
+        height: 28px;
+        margin: auto;
+        border: 2px solid var(--line);
+        border-top-color: var(--muted);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (max-width: 700px) {
+        #gtitle {
+          font-size: 18px;
+          width: 100%;
+        }
+        .gcard {
+          max-width: 160px;
+          padding: 6px 10px 8px;
+        }
+        .gcard .form {
+          font-size: 17px;
+        }
+      }
+    </style>
+    <script src="/common.js"></script>
+    <script src="../engine.js"></script>
+  </head>
+  <body>
+    <header id="gheader">
+      <div id="gtitle"><a href="/etymology/">etymology</a> <span class="sub">· game</span></div>
+      <span class="ctl">
+        <span class="ctl-label">difficulty</span>
+        <select id="difficulty" class="ctl" title="Bigger trees → harder">
+          <option value="easy">easy · 2–4</option>
+          <option value="medium">medium · 5–6</option>
+          <option value="hard">hard · 7–9</option>
+          <option value="expert">expert · 10+</option>
+        </select>
+      </span>
+      <input
+        id="word"
+        class="ctl"
+        type="text"
+        placeholder="or set a word…"
+        autocomplete="off"
+        autocapitalize="off"
+        autocorrect="off"
+        spellcheck="false"
+        enterkeyhint="go"
+      />
+      <button id="new-btn" class="btn">new game</button>
+    </header>
+
+    <div id="board"><div class="board-status">press “new game” to start</div></div>
+
+    <section id="pool-wrap">
+      <div id="pool-head">
+        <span id="pool-title">node pool</span>
+        <span id="msg"
+          >Drag a card up and drop it above another to make it that word’s ancestor; drop it beside
+          one to set them at the same level.</span
+        >
+        <button id="reset-btn" class="btn" disabled>reset</button>
+        <button id="submit-btn" class="btn primary" disabled>submit</button>
+      </div>
+      <div id="pool"></div>
+    </section>
+
+    <script>
+      Common.paintFaviconR();
+      Common.initDarkMode();
+      Common.initSitemapShortcut();
+
+      // ---------- Difficulty ----------
+      // The game scales with the total number of nodes in the word's etymology
+      // tree: more pieces, more ways to misplace them. Each level targets a
+      // node-count band; generation draws random words until one lands in band
+      // (or keeps the closest it saw).
+      const DIFFS = {
+        easy: { min: 2, max: 4 },
+        medium: { min: 5, max: 6 },
+        hard: { min: 7, max: 9 },
+        expert: { min: 10, max: 99 },
+      };
+      const DIFF_KEY = 'etymology-game-difficulty';
+      const difficultyEl = document.getElementById('difficulty');
+      difficultyEl.value = (() => {
+        const v = localStorage.getItem(DIFF_KEY);
+        return v && DIFFS[v] ? v : 'medium';
+      })();
+      difficultyEl.addEventListener('change', () => {
+        localStorage.setItem(DIFF_KEY, difficultyEl.value);
+      });
+
+      // ---------- Elements ----------
+      const boardEl = document.getElementById('board');
+      const poolEl = document.getElementById('pool');
+      const poolWrapEl = document.getElementById('pool-wrap');
+      const msgEl = document.getElementById('msg');
+      const submitBtn = document.getElementById('submit-btn');
+      const resetBtn = document.getElementById('reset-btn');
+      const newBtn = document.getElementById('new-btn');
+      const wordEl = document.getElementById('word');
+      const DEFAULT_MSG = msgEl.textContent;
+
+      // ---------- Puzzle state ----------
+      // realRoot   the answer tree, kept only to check the player's work.
+      // boardRoot  the player's working tree (root word at the bottom, hidden).
+      // pool       the still-unplaced piece objects.
+      // Every node carries a stable numeric id so the board and pool refer to
+      // the same pieces; correctness, though, is judged by content + shape so
+      // two identical-looking pieces are interchangeable.
+      let realRoot = null;
+      let realSig = '';
+      let boardRoot = null;
+      let pool = [];
+      let solved = false;
+
+      const SEP = '␟'; // unit separator, won't appear in a form/gloss
+
+      function nodeKey(n) {
+        return [n.form, n.lang, n.rel, n.gloss, n.tr].join(SEP);
+      }
+      // Canonical, order-independent signature of a (sub)tree.
+      function signature(n) {
+        const kids = n.children.map(signature).sort();
+        return nodeKey(n) + '{' + kids.join('|') + '}';
+      }
+      function countNodes(n) {
+        return 1 + n.children.reduce((s, c) => s + countNodes(c), 0);
+      }
+      function walk(n, fn, parent = null) {
+        fn(n, parent);
+        for (const c of n.children) walk(c, fn, n);
+      }
+      function shuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      }
+      function clamp(v, lo, hi) {
+        return Math.min(hi, Math.max(lo, v));
+      }
+
+      // A bare piece: one card, no descent of its own (the player supplies that).
+      function piece(n) {
+        return {
+          id: n.id,
+          form: n.form,
+          lang: n.lang,
+          rel: n.rel,
+          gloss: n.gloss,
+          tr: n.tr,
+          root: n.root || false,
+          children: [],
+        };
+      }
+
+      // ---------- Building a puzzle from a tree ----------
+      function startPuzzleWithTree(tree) {
+        realRoot = tree;
+        let id = 0;
+        walk(realRoot, (n) => (n.id = id++));
+        realRoot.root = true;
+        realSig = signature(realRoot);
+
+        // The root word is placed on the board straight away, face-down; every
+        // other node becomes a shuffled pool piece.
+        boardRoot = piece(realRoot);
+        pool = [];
+        walk(realRoot, (n) => {
+          if (n !== realRoot) pool.push(piece(n));
+        });
+        shuffle(pool);
+        solved = false;
+        setMessage(DEFAULT_MSG, '');
+        render();
+      }
+
+      // ---------- Tree mutation (by id, on the live board) ----------
+      function findNode(root, id) {
+        let hit = null;
+        walk(root, (n) => {
+          if (n.id === id) hit = n;
+        });
+        return hit;
+      }
+      function findParent(root, id) {
+        let hit = null;
+        walk(root, (n, p) => {
+          if (n.id === id) hit = p;
+        });
+        return hit;
+      }
+      // Pull a placed node out of the board, lifting its ancestors up to its
+      // former descendant so nothing on the board is lost when you grab a card.
+      function detach(root, id) {
+        const parent = findParent(root, id);
+        if (!parent) return null;
+        const node = parent.children.find((c) => c.id === id);
+        const i = parent.children.indexOf(node);
+        parent.children.splice(i, 1, ...node.children);
+        node.children = [];
+        return node;
+      }
+      function cloneTree(n) {
+        return Object.assign({}, n, { children: n.children.map(cloneTree) });
+      }
+
+      // Apply a drop target to a tree (used both for the live board and for the
+      // ghost preview clone). target = { relId, relation: 'ancestor'|'before'|'after' }.
+      function applyTarget(root, p, target) {
+        if (target.relation === 'ancestor') {
+          findNode(root, target.relId).children.push(p);
+        } else {
+          const parent = findParent(root, target.relId);
+          if (!parent) {
+            findNode(root, target.relId).children.push(p);
+            return;
+          }
+          let i = parent.children.findIndex((c) => c.id === target.relId);
+          if (target.relation === 'after') i += 1;
+          parent.children.splice(i, 0, p);
+        }
+      }
+
+      // ---------- Rendering ----------
+      function cardEl(n) {
+        const div = document.createElement('div');
+        div.className = 'gcard' + (n.root ? ' root' : '') + (n.ghost ? ' ghost' : '');
+        div.dataset.id = n.id;
+
+        const lang = document.createElement('div');
+        lang.className = 'lang';
+        lang.textContent = langName(n.lang);
+        div.appendChild(lang);
+
+        const form = document.createElement('div');
+        const hide = n.root && !solved;
+        form.className = 'form' + (!hide && !n.form ? ' empty' : '');
+        form.textContent = hide ? '? ? ?' : n.form || '—';
+        div.appendChild(form);
+
+        if (!hide && n.tr) {
+          const tr = document.createElement('div');
+          tr.className = 'tr';
+          tr.textContent = n.tr;
+          div.appendChild(tr);
+        }
+        if (!hide && n.gloss) {
+          const gloss = document.createElement('div');
+          gloss.className = 'gloss';
+          gloss.textContent = '“' + n.gloss + '”';
+          div.appendChild(gloss);
+        }
+        if (n.rel && !n.root) {
+          const rel = document.createElement('div');
+          rel.className = 'rel';
+          rel.textContent = n.rel === '+' ? 'compound' : n.rel;
+          div.appendChild(rel);
+        }
+        return div;
+      }
+
+      function liEl(n) {
+        const li = document.createElement('li');
+        li.className = 'gli' + (n.root ? ' root' : '');
+        if (n.children.length) {
+          const ul = document.createElement('ul');
+          ul.className = 'gul';
+          for (const c of n.children) ul.appendChild(liEl(c));
+          li.appendChild(ul);
+        }
+        li.appendChild(cardEl(n));
+        return li;
+      }
+
+      // Render an arbitrary tree into the board (the live boardRoot, or a clone
+      // carrying a ghost preview of the card being dragged).
+      function renderBoard(tree) {
+        boardEl.innerHTML = '';
+        boardEl.classList.toggle('empty-hint', !tree.children.length && !dragging);
+        const gtree = document.createElement('div');
+        gtree.className = 'gtree';
+        gtree.appendChild(liEl(tree));
+        boardEl.appendChild(gtree);
+      }
+
+      function renderPool() {
+        poolEl.innerHTML = '';
+        if (!pool.length) {
+          const empty = document.createElement('div');
+          empty.className = 'pool-empty';
+          empty.textContent = solved ? 'solved!' : 'all pieces placed — hit submit';
+          poolEl.appendChild(empty);
+          return;
+        }
+        for (const p of pool) poolEl.appendChild(cardEl(p));
+      }
+
+      function render() {
+        renderBoard(boardRoot);
+        renderPool();
+        const ready = boardRoot !== null;
+        const placed = ready && pool.length === 0;
+        submitBtn.disabled = !placed || solved;
+        resetBtn.disabled = !ready || solved || pool.length === countAll() - 1;
+      }
+      function countAll() {
+        return realRoot ? countNodes(realRoot) : 0;
+      }
+
+      function setMessage(text, kind) {
+        msgEl.className = kind || '';
+        if (typeof text === 'string') msgEl.textContent = text;
+        else {
+          msgEl.textContent = '';
+          msgEl.appendChild(text);
+        }
+      }
+
+      // ---------- Drag & drop (pointer based: mouse + touch) ----------
+      let dragging = null; // { p, clone, grabDX, grabDY, lastKey }
+
+      function pointerCard(e) {
+        const el = e.target.closest && e.target.closest('.gcard');
+        return el && el.dataset.id != null ? el : null;
+      }
+
+      boardEl.addEventListener('pointerdown', onPointerDown);
+      poolEl.addEventListener('pointerdown', onPointerDown);
+
+      function onPointerDown(e) {
+        if (solved || dragging || (e.button != null && e.button !== 0)) return;
+        const card = pointerCard(e);
+        if (!card) return;
+        const id = Number(card.dataset.id);
+        if (card.classList.contains('root')) return; // the answer card stays put
+
+        let p;
+        if (boardEl.contains(card)) {
+          p = detach(boardRoot, id);
+        } else {
+          const i = pool.findIndex((x) => x.id === id);
+          p = pool.splice(i, 1)[0];
+        }
+        if (!p) return;
+
+        const rect = card.getBoundingClientRect();
+        const clone = cardEl(p);
+        clone.id = 'drag-clone';
+        clone.style.width = rect.width + 'px';
+        document.body.appendChild(clone);
+
+        dragging = {
+          p,
+          clone,
+          grabDX: e.clientX - (rect.left + rect.width / 2),
+          grabDY: e.clientY - (rect.top + rect.height / 2),
+          lastKey: undefined,
+        };
+        clearFeedback();
+        render();
+        moveClone(e.clientX, e.clientY);
+        updatePreview(e.clientX, e.clientY);
+
+        window.addEventListener('pointermove', onPointerMove, { passive: false });
+        window.addEventListener('pointerup', onPointerUp);
+        window.addEventListener('pointercancel', onPointerUp);
+        e.preventDefault();
+      }
+
+      function moveClone(x, y) {
+        dragging.clone.style.left = x - dragging.grabDX + 'px';
+        dragging.clone.style.top = y - dragging.grabDY + 'px';
+      }
+
+      function onPointerMove(e) {
+        if (!dragging) return;
+        e.preventDefault();
+        moveClone(e.clientX, e.clientY);
+        updatePreview(e.clientX, e.clientY);
+      }
+
+      // Where would a drop at (x, y) land? null means "back to the pool".
+      function dropTarget(x, y) {
+        const pr = poolWrapEl.getBoundingClientRect();
+        if (x >= pr.left && x <= pr.right && y >= pr.top && y <= pr.bottom) return null;
+        const br = boardEl.getBoundingClientRect();
+        if (x < br.left || x > br.right || y < br.top || y > br.bottom) return null;
+
+        const cards = [...boardEl.querySelectorAll('.gcard:not(.ghost)')];
+        if (!cards.length) return null;
+        let best = null;
+        let bestDist = Infinity;
+        for (const c of cards) {
+          const r = c.getBoundingClientRect();
+          const dx = x - clamp(x, r.left, r.right);
+          const dy = y - clamp(y, r.top, r.bottom);
+          const d = Math.hypot(dx, dy);
+          if (d < bestDist) {
+            bestDist = d;
+            best = { id: Number(c.dataset.id), r, root: c.classList.contains('root') };
+          }
+        }
+        let relation = 'ancestor';
+        if (!best.root && x < best.r.left - 2) relation = 'before';
+        else if (!best.root && x > best.r.right + 2) relation = 'after';
+        return { relId: best.id, relation };
+      }
+
+      function targetKey(t) {
+        return t ? t.relId + ':' + t.relation : 'pool';
+      }
+
+      // Redraw the board with a ghost of the dragged card slotted in at the
+      // current target, so the player sees the arrows form before dropping.
+      function updatePreview(x, y) {
+        const target = dropTarget(x, y);
+        const overPool = target === null && pointInPool(x, y);
+        poolEl.classList.toggle('drop-active', overPool);
+        const key = targetKey(target);
+        if (key === dragging.lastKey) return;
+        dragging.lastKey = key;
+        if (!target) {
+          renderBoard(boardRoot);
+          return;
+        }
+        const preview = cloneTree(boardRoot);
+        const ghost = Object.assign(piece(dragging.p), { ghost: true });
+        applyTarget(preview, ghost, target);
+        renderBoard(preview);
+      }
+      function pointInPool(x, y) {
+        const pr = poolWrapEl.getBoundingClientRect();
+        return x >= pr.left && x <= pr.right && y >= pr.top && y <= pr.bottom;
+      }
+
+      function onPointerUp(e) {
+        if (!dragging) return;
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('pointercancel', onPointerUp);
+        const { p, clone } = dragging;
+        clone.remove();
+        const target = dropTarget(e.clientX, e.clientY);
+        dragging = null;
+        poolEl.classList.remove('drop-active');
+        if (target) applyTarget(boardRoot, p, target);
+        else pool.push(p);
+        render();
+      }
+
+      // ---------- Feedback / checking ----------
+      function clearFeedback() {
+        for (const c of boardEl.querySelectorAll('.wrong, .correct')) {
+          c.classList.remove('wrong', 'correct');
+        }
+        if (!solved && msgEl.classList.contains('bad')) setMessage(DEFAULT_MSG, '');
+      }
+
+      // Mark every placed card that sits under the wrong descendant, judged by
+      // content so identical-looking pieces are accepted in either slot.
+      function markMistakes() {
+        const want = new Map();
+        walk(realRoot, (n, p) => {
+          if (!p) return;
+          const k = nodeKey(n) + '>' + nodeKey(p);
+          want.set(k, (want.get(k) || 0) + 1);
+        });
+        const byId = new Map();
+        for (const c of boardEl.querySelectorAll('.gcard')) byId.set(Number(c.dataset.id), c);
+        walk(boardRoot, (n, p) => {
+          if (!p) return;
+          const k = nodeKey(n) + '>' + nodeKey(p);
+          const left = want.get(k) || 0;
+          const el = byId.get(n.id);
+          if (!el) return;
+          if (left > 0) {
+            want.set(k, left - 1);
+            el.classList.add('correct');
+          } else {
+            el.classList.add('wrong');
+          }
+        });
+      }
+
+      function onSubmit() {
+        if (!boardRoot || pool.length || solved) return;
+        if (signature(boardRoot) === realSig) {
+          solved = true;
+          render();
+          const rootCard = boardEl.querySelector('.gcard.root');
+          if (rootCard) rootCard.classList.add('won');
+          const link = document.createElement('a');
+          link.href = '/etymology/?' + encodeURIComponent(boardRoot.form);
+          link.target = '_blank';
+          link.rel = 'noopener';
+          link.textContent = boardRoot.form;
+          const span = document.createElement('span');
+          span.append('✓ Solved! The word was ', link, '.');
+          setMessage(span, 'ok');
+        } else {
+          markMistakes();
+          setMessage('Not quite — the red cards feed the wrong word. Keep rearranging.', 'bad');
+        }
+      }
+
+      function onReset() {
+        if (!realRoot || solved) return;
+        pool = [];
+        walk(realRoot, (n) => {
+          if (n !== realRoot) pool.push(piece(n));
+        });
+        shuffle(pool);
+        boardRoot = piece(realRoot);
+        setMessage(DEFAULT_MSG, '');
+        render();
+      }
+
+      submitBtn.addEventListener('click', onSubmit);
+      resetBtn.addEventListener('click', onReset);
+
+      // ---------- Generating a game ----------
+      const GEN_ATTEMPTS = 8;
+
+      function showBoardStatus(text, spinner) {
+        boardEl.classList.remove('empty-hint');
+        boardEl.innerHTML = '';
+        const div = document.createElement('div');
+        div.className = spinner ? 'spinner' : 'board-status';
+        if (!spinner) div.textContent = text;
+        boardEl.appendChild(div);
+      }
+
+      let genSeq = 0;
+      async function newGame() {
+        const my = ++genSeq;
+        const band = DIFFS[difficultyEl.value];
+        newBtn.disabled = true;
+        boardRoot = null;
+        pool = [];
+        realRoot = null;
+        solved = false;
+        submitBtn.disabled = resetBtn.disabled = true;
+        setMessage('Finding a word…', '');
+        showBoardStatus('', true);
+        try {
+          let best = null;
+          let bestDelta = Infinity;
+          for (let i = 0; i < GEN_ATTEMPTS; i++) {
+            const item = await findRandomTree();
+            if (my !== genSeq) return;
+            if (!item) continue;
+            const n = countNodes(item.tree);
+            if (n < 2) continue; // need at least one ancestor to place
+            const delta = n < band.min ? band.min - n : n > band.max ? n - band.max : 0;
+            if (delta === 0) {
+              startPuzzleWithTree(item.tree);
+              return;
+            }
+            if (delta < bestDelta) {
+              bestDelta = delta;
+              best = item.tree;
+            }
+          }
+          if (my !== genSeq) return;
+          if (best) startPuzzleWithTree(best);
+          else showBoardStatus('couldn’t find a word — try again', false);
+        } finally {
+          if (my === genSeq) newBtn.disabled = false;
+        }
+      }
+
+      // Play a specific word instead of a random one.
+      async function playWord(raw) {
+        const form = raw.trim().toLowerCase();
+        if (!form) return;
+        const my = ++genSeq;
+        newBtn.disabled = true;
+        solved = false;
+        setMessage('Looking up “' + form + '”…', '');
+        showBoardStatus('', true);
+        try {
+          const tree = await buildTree(form, 'en');
+          if (my !== genSeq) return;
+          if (tree && tree.children.length) startPuzzleWithTree(tree);
+          else showBoardStatus('no etymology tree for “' + form + '”', false);
+        } finally {
+          if (my === genSeq) newBtn.disabled = false;
+        }
+      }
+
+      newBtn.addEventListener('click', () => newGame());
+      wordEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const v = wordEl.value;
+          wordEl.value = '';
+          wordEl.blur();
+          playWord(v);
+        }
+      });
+
+      // Expose a hook so the rendering can be exercised without the network.
+      window.__startPuzzleWithTree = startPuzzleWithTree;
+
+      // Kick off the first game automatically.
+      newGame();
+    </script>
+  </body>
+</html>
