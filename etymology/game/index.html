@@ -554,10 +554,9 @@
       <span class="ctl">
         <span class="ctl-label">difficulty</span>
         <select id="difficulty" class="ctl" title="Bigger trees → harder">
-          <option value="easy">easy · 2–4</option>
-          <option value="medium">medium · 5–6</option>
-          <option value="hard">hard · 7–9</option>
-          <option value="expert">expert · 10+</option>
+          <option value="easy">easy · 3–5</option>
+          <option value="medium">medium · 6–8</option>
+          <option value="hard">hard · 9+</option>
         </select>
       </span>
       <button id="new-btn" class="btn">new game</button>
@@ -602,10 +601,9 @@
       // node-count band; generation draws random words until one lands in band
       // (or keeps the closest it saw).
       const DIFFS = {
-        easy: { min: 2, max: 4 },
-        medium: { min: 5, max: 6 },
-        hard: { min: 7, max: 9 },
-        expert: { min: 10, max: 99 },
+        easy: { min: 3, max: 5 },
+        medium: { min: 6, max: 8 },
+        hard: { min: 9, max: 99 },
       };
       const DIFF_KEY = 'etymology-game-difficulty';
       const difficultyEl = document.getElementById('difficulty');
@@ -1169,7 +1167,7 @@
       // over time (see the "growing the pool" section). The node-count band
       // still validates each pick at runtime, so a mis-bucketed entry is just
       // skipped — the buckets only bias which words we try first.
-      const WORD_POOL = { easy: [], medium: [], hard: [], expert: [] };
+      const WORD_POOL = { easy: [], medium: [], hard: [] };
 
       async function loadWordPool() {
         try {
@@ -1236,8 +1234,20 @@
         const w = word.toLowerCase();
         return Object.values(pool).some((arr) => arr.some((x) => x.toLowerCase() === w));
       }
+      // Keep the four bands roughly even: the random hunt naturally turns up far
+      // more big trees than small ones, so refuse to add to a band that's already
+      // this many words longer than the smallest band. (Easy/medium can still
+      // grow until they catch up.)
+      const MAX_BAND_SKEW = 5;
+      function wouldUnbalanceBand(pool, band) {
+        const others = Object.keys(DIFFS)
+          .filter((k) => k !== band)
+          .map((k) => (pool[k] || []).length);
+        const minOther = others.length ? Math.min(...others) : 0;
+        return (pool[band] || []).length + 1 - minOther > MAX_BAND_SKEW;
+      }
       function normalizePool(obj) {
-        const out = { easy: [], medium: [], hard: [], expert: [] };
+        const out = { easy: [], medium: [], hard: [] };
         for (const k of Object.keys(out))
           if (Array.isArray(obj[k])) out[k] = obj[k].filter((w) => typeof w === 'string');
         return out;
@@ -1258,6 +1268,7 @@
         if (!word || !/^[\p{L}]+$/u.test(word)) return;
         const band = bandForCount(countNodes(tree));
         if (!band || poolHas(WORD_POOL, word) || pendingContrib.has(word)) return;
+        if (wouldUnbalanceBand(WORD_POOL, band)) return; // band already too far ahead
         WORD_POOL[band].push(word);
         pendingContrib.set(word, band);
         scheduleFlush();
@@ -1331,7 +1342,7 @@
               return; // keep the batch; the finally reschedules past the backoff
             }
             let sha;
-            let current = { easy: [], medium: [], hard: [], expert: [] };
+            let current = { easy: [], medium: [], hard: [] };
             if (getR.ok) {
               const f = await getR.json();
               sha = f.sha;
@@ -1345,6 +1356,9 @@
             let added = 0;
             for (const [word, band] of pendingContrib) {
               if (poolHas(current, word)) continue;
+              // Re-check balance against the freshly read file: another player may
+              // have grown this band since we queued the word.
+              if (wouldUnbalanceBand(current, band)) continue;
               (current[band] || (current[band] = [])).push(word);
               added++;
             }
