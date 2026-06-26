@@ -9,7 +9,9 @@
 `words`
 
 - [`across`](https://rjayasin.github.io/across/)
-- [`etymology`](https://rjayasin.github.io/etymology/)
+- `etymology`
+  - [`tree-explorer`](https://rjayasin.github.io/etymology/)
+  - [`tree-game`](https://rjayasin.github.io/etymology/game/)
 - [`explorer`](https://rjayasin.github.io/explorer/)
 
 `text`
