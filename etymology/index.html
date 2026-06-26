@@ -1664,7 +1664,7 @@
         if (at > 0) lookup(initial[0].slice(0, at), initial[0].slice(at + 1), { replace: true });
         else lookup(initial[0], 'en', { replace: true });
       } else {
-        renderStatus('search a word, or press n for a random one');
+        renderStatus('search a word, or press r for a random one');
       }
       // Warm the buffer so the first random word is ready on demand.
       prefillRandom();
