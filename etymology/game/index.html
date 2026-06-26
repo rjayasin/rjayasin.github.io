@@ -168,8 +168,13 @@
       .gtree {
         width: max-content;
         min-width: 100%;
+        /* Fill the board and sink the tree to the bottom, so the (hidden)
+           root word starts low and there's room above it to drag ancestors.
+           A taller tree grows past 100% and the board scrolls from the top. */
+        min-height: 100%;
         display: flex;
         justify-content: center;
+        align-items: flex-end;
         padding-top: 6px;
       }
       .gli {
@@ -972,6 +977,118 @@
 
       // ---------- Generating a game ----------
       const GEN_ATTEMPTS = 8;
+      const POOL_ATTEMPTS = 6;
+
+      // A curated pool of English headwords that reliably have an etymology
+      // tree on Wiktionary, bucketed by the size of that tree. Drawing from
+      // here on launch resolves a puzzle in a fetch or two instead of the
+      // random-word hunt (which discards most draws for having no etymology).
+      // Each word was run through the engine and placed by its real node
+      // count (easy 2–4, medium 5–6, hard 7–9, expert 10+); the node-count
+      // band still validates each pick at runtime, so the buckets only need to
+      // bias which words we try first.
+      const WORD_POOL = {
+        easy: [
+          'ballet',
+          'bungalow',
+          'café',
+          'cargo',
+          'chrysanthemum',
+          'daisy',
+          'dinosaur',
+          'guru',
+          'kangaroo',
+          'ketchup',
+          'patio',
+          'piano',
+          'rhinoceros',
+          'rodeo',
+          'safari',
+          'sushi',
+          'tattoo',
+          'tycoon',
+          'Wednesday',
+        ],
+        medium: [
+          'brother',
+          'coffee',
+          'fish',
+          'garlic',
+          'geography',
+          'heart',
+          'hound',
+          'husband',
+          'mother',
+          'mouse',
+          'name',
+          'night',
+          'shampoo',
+          'ski',
+          'taboo',
+          'tomato',
+        ],
+        hard: [
+          'daughter',
+          'father',
+          'foot',
+          'goose',
+          'hippopotamus',
+          'hypothesis',
+          'jungle',
+          'kiosk',
+          'knee',
+          'lady',
+          'lemon',
+          'marshal',
+          'metaphor',
+          'moon',
+          'orange',
+          'photosynthesis',
+          'snow',
+          'star',
+          'symphony',
+          'telephone',
+          'thermometer',
+          'three',
+          'tongue',
+          'tooth',
+          'water',
+          'wolf',
+          'yacht',
+        ],
+        expert: [
+          'atmosphere',
+          'biology',
+          'breakfast',
+          'democracy',
+          'encyclopedia',
+          'etymology',
+          'gospel',
+          'lord',
+          'milk',
+          'philosophy',
+          'photograph',
+          'robot',
+          'sheriff',
+          'steward',
+          'sugar',
+          'window',
+          'woman',
+          'world',
+        ],
+      };
+
+      // Words to try from the pool for a given difficulty: the matching bucket
+      // first (most likely to land in band), then everything else, shuffled.
+      function poolCandidates(diff) {
+        const bucket = shuffle([...(WORD_POOL[diff] || [])]);
+        const rest = shuffle(
+          Object.keys(WORD_POOL)
+            .filter((k) => k !== diff)
+            .flatMap((k) => WORD_POOL[k])
+        );
+        return [...bucket, ...rest];
+      }
 
       function showBoardStatus(text, spinner) {
         boardEl.classList.remove('empty-hint');
@@ -997,21 +1114,38 @@
         try {
           let best = null;
           let bestDelta = Infinity;
+          // Weigh a tree against the difficulty band; an exact fit starts the
+          // puzzle immediately, otherwise we remember the closest miss.
+          const consider = (tree) => {
+            const n = countNodes(tree);
+            if (n < 2) return false; // need at least one ancestor to place
+            const delta = n < band.min ? band.min - n : n > band.max ? n - band.max : 0;
+            if (delta === 0) {
+              startPuzzleWithTree(tree);
+              return true;
+            }
+            if (delta < bestDelta) {
+              bestDelta = delta;
+              best = tree;
+            }
+            return false;
+          };
+
+          // Try the curated static pool first — these reliably build, so the
+          // launch resolves without the slow random-word hunt.
+          for (const word of poolCandidates(difficultyEl.value).slice(0, POOL_ATTEMPTS)) {
+            const tree = await buildTree(word, 'en');
+            if (my !== genSeq) return;
+            if (tree && consider(tree)) return;
+          }
+
+          // Fall back to fully random words for variety and when no pool word
+          // fit the band.
           for (let i = 0; i < GEN_ATTEMPTS; i++) {
             const item = await findRandomTree();
             if (my !== genSeq) return;
             if (!item) continue;
-            const n = countNodes(item.tree);
-            if (n < 2) continue; // need at least one ancestor to place
-            const delta = n < band.min ? band.min - n : n > band.max ? n - band.max : 0;
-            if (delta === 0) {
-              startPuzzleWithTree(item.tree);
-              return;
-            }
-            if (delta < bestDelta) {
-              bestDelta = delta;
-              best = item.tree;
-            }
+            if (consider(item.tree)) return;
           }
           if (my !== genSeq) return;
           if (best) startPuzzleWithTree(best);
