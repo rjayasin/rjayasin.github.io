@@ -797,7 +797,7 @@
       }
 
       // ---------- Drag & drop (pointer based: mouse + touch) ----------
-      let dragging = null; // { p, clone, grabDX, grabDY, lastKey }
+      let dragging = null; // { p, clone, grabDX, grabDY, lastKey, layout }
 
       function pointerCard(e) {
         const el = e.target.closest && e.target.closest('.gcard');
@@ -838,6 +838,13 @@
         };
         clearFeedback();
         render();
+        // Freeze the board's resting layout now (before any ghost preview
+        // reflows it) and hit-test against this snapshot for the whole drag.
+        // boardRoot doesn't change until the drop, so these positions stay
+        // valid — and dropping applies to this resting tree, so it's also the
+        // correct geometry to test against. This is what kills the jitter:
+        // the preview reflow no longer feeds back into the drop target.
+        dragging.layout = snapshotBoardCards();
         moveClone(e.clientX, e.clientY);
         updatePreview(e.clientX, e.clientY);
 
@@ -859,30 +866,56 @@
         updatePreview(e.clientX, e.clientY);
       }
 
+      // Snapshot every board card's resting rectangle as plain numbers, taken
+      // before any ghost is inserted. Used as the stable hit-test geometry for
+      // the duration of a drag.
+      function snapshotBoardCards() {
+        return [...boardEl.querySelectorAll('.gcard')].map((c) => {
+          const r = c.getBoundingClientRect();
+          return {
+            id: Number(c.dataset.id),
+            left: r.left,
+            right: r.right,
+            top: r.top,
+            bottom: r.bottom,
+            width: r.width,
+            root: c.classList.contains('root'),
+          };
+        });
+      }
+
       // Where would a drop at (x, y) land? null means "back to the pool".
+      // Geometry comes from the frozen drag snapshot, not the live (reflowing)
+      // DOM, so the answer is stable for a given pointer position.
       function dropTarget(x, y) {
         const pr = poolWrapEl.getBoundingClientRect();
         if (x >= pr.left && x <= pr.right && y >= pr.top && y <= pr.bottom) return null;
         const br = boardEl.getBoundingClientRect();
         if (x < br.left || x > br.right || y < br.top || y > br.bottom) return null;
 
-        const cards = [...boardEl.querySelectorAll('.gcard:not(.ghost)')];
+        const cards = (dragging && dragging.layout) || [];
         if (!cards.length) return null;
         let best = null;
         let bestDist = Infinity;
         for (const c of cards) {
-          const r = c.getBoundingClientRect();
-          const dx = x - clamp(x, r.left, r.right);
-          const dy = y - clamp(y, r.top, r.bottom);
+          const dx = x - clamp(x, c.left, c.right);
+          const dy = y - clamp(y, c.top, c.bottom);
           const d = Math.hypot(dx, dy);
           if (d < bestDist) {
             bestDist = d;
-            best = { id: Number(c.dataset.id), r, root: c.classList.contains('root') };
+            best = c;
           }
         }
+        // Bias strongly toward stacking (ancestor): a card only becomes a
+        // left/right sibling when the pointer clears its edge by a wide margin,
+        // so small horizontal wobble keeps you stacking above/below rather than
+        // flipping to the side. Sideways placement takes a deliberate reach out.
         let relation = 'ancestor';
-        if (!best.root && x < best.r.left - 2) relation = 'before';
-        else if (!best.root && x > best.r.right + 2) relation = 'after';
+        if (!best.root) {
+          const margin = Math.max(28, best.width * 0.45);
+          if (x < best.left - margin) relation = 'before';
+          else if (x > best.right + margin) relation = 'after';
+        }
         return { relId: best.id, relation };
       }
 
