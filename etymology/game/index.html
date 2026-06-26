@@ -423,8 +423,6 @@
       /* --- Node pool --- */
       #pool-wrap {
         flex: none;
-        height: 38vh;
-        min-height: 150px;
         display: flex;
         flex-direction: column;
         background: var(--pool-bg);
@@ -438,20 +436,10 @@
         padding: 9px 16px;
         border-bottom: 1px solid var(--line);
       }
+      /* The "node pool" label is hidden — the instruction text carries the
+         context and we want to spend the vertical space on the cards. */
       #pool-title {
-        font-family:
-          ui-monospace,
-          SFMono-Regular,
-          SF Mono,
-          Menlo,
-          Consolas,
-          Liberation Mono,
-          monospace;
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: var(--muted);
+        display: none;
       }
       #msg {
         flex: 1;
@@ -474,11 +462,14 @@
         color: inherit;
       }
       #pool {
-        flex: 1;
-        min-height: 0;
-        overflow: auto;
+        flex: none;
+        /* Size to the cards: one row tall, plus a little breathing room.
+           Wraps to more rows when the cards don't fit horizontally, and only
+           scrolls once the wrapped rows would grow taller than this cap. */
+        max-height: 38vh;
+        overflow-y: auto;
         -webkit-overflow-scrolling: touch;
-        padding: 16px;
+        padding: 12px 16px;
         display: flex;
         flex-wrap: wrap;
         align-content: flex-start;
@@ -529,6 +520,28 @@
         }
         .gcard .form {
           font-size: 17px;
+        }
+        /* Let the instruction text wrap to as many lines as it needs so it's
+           never clipped; the buttons drop onto their own row beneath it. */
+        #pool-head {
+          flex-wrap: wrap;
+          row-gap: 8px;
+        }
+        #msg {
+          flex: 1 1 100%;
+          white-space: normal;
+          overflow: visible;
+          text-overflow: clip;
+        }
+        /* One node tall: cards stay on a single row and scroll sideways. */
+        #pool {
+          flex-wrap: nowrap;
+          max-height: none;
+          overflow-x: auto;
+          overflow-y: hidden;
+        }
+        .gcard {
+          flex: none;
         }
       }
     </style>
