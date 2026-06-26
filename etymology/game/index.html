@@ -346,9 +346,13 @@
         letter-spacing: 0.1em;
         color: var(--muted);
       }
+      /* Every node gets a heavy green outline once the tree is solved. */
+      .gcard.won {
+        border-color: var(--ok);
+        box-shadow: 0 0 0 3px var(--ok);
+      }
       .gcard.root.won {
         border-style: solid;
-        border-color: var(--ok);
       }
       .gcard.root.won .form {
         color: inherit;
@@ -774,7 +778,8 @@
       // ---------- Rendering ----------
       function cardEl(n) {
         const div = document.createElement('div');
-        div.className = 'gcard' + (n.root ? ' root' : '') + (n.ghost ? ' ghost' : '');
+        div.className =
+          'gcard' + (n.root ? ' root' : '') + (n.ghost ? ' ghost' : '') + (solved ? ' won' : '');
         div.dataset.id = n.id;
 
         const lang = document.createElement('div');
@@ -914,7 +919,9 @@
       poolEl.addEventListener('pointerdown', onPointerDown);
 
       function onPointerDown(e) {
-        if (solved || dragging || (e.button != null && e.button !== 0)) return;
+        // The tree stays re-organizeable after a solve (cards keep their
+        // won-green outline), so only block while another drag is in flight.
+        if (dragging || (e.button != null && e.button !== 0)) return;
         const card = pointerCard(e);
         if (!card) return;
         const id = Number(card.dataset.id);
@@ -1110,9 +1117,7 @@
         if (!boardRoot || pool.length || solved) return;
         if (signature(boardRoot) === realSig) {
           solved = true;
-          render();
-          const rootCard = boardEl.querySelector('.gcard.root');
-          if (rootCard) rootCard.classList.add('won');
+          render(); // re-renders with the root revealed and every card won-green
           const link = document.createElement('a');
           link.href = '/etymology/?' + encodeURIComponent(boardRoot.form);
           link.target = '_blank';
