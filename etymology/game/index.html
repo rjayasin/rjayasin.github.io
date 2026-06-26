@@ -369,6 +369,47 @@
         display: none;
       }
 
+      /* While dragging, ease the preview between states instead of snapping:
+         surviving cards FLIP to their new spots (driven by JS), a freshly
+         shown ghost fades/scales in, and the connector lines fade in as the
+         layout resettles. Honors reduced-motion. */
+      @keyframes gcard-in {
+        from {
+          opacity: 0;
+          transform: scale(0.85);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes gconnector-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      .gcard.gcard-enter {
+        animation: gcard-in 150ms ease both;
+      }
+      #board.dragging .gul::before,
+      #board.dragging .gul::after,
+      #board.dragging .gul > .gli::before,
+      #board.dragging .gul > .gli::after {
+        animation: gconnector-in 150ms ease both;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .gcard.gcard-enter,
+        #board.dragging .gul::before,
+        #board.dragging .gul::after,
+        #board.dragging .gul > .gli::before,
+        #board.dragging .gul > .gli::after {
+          animation: none;
+        }
+      }
+
       /* the card that follows the pointer while dragging */
       #drag-clone {
         position: fixed;
@@ -763,6 +804,42 @@
         boardEl.appendChild(gtree);
       }
 
+      // Re-render the board but ease the change in: FLIP each surviving card
+      // (matched by node id) from where it was to where it now is, so the
+      // preview glides instead of snapping. Cards with no prior position — a
+      // newly shown ghost — fade in via CSS; connectors fade via the
+      // #board.dragging rules. Used only during a drag.
+      const PREVIEW_ANIM_MS = 150;
+      function renderBoardAnimated(tree) {
+        const prev = new Map();
+        for (const c of boardEl.querySelectorAll('.gcard'))
+          prev.set(c.dataset.id, c.getBoundingClientRect());
+        renderBoard(tree);
+        const cards = [...boardEl.querySelectorAll('.gcard')];
+        const now = cards.map((c) => c.getBoundingClientRect()); // read all before writing
+        const moving = [];
+        cards.forEach((c, i) => {
+          const before = prev.get(c.dataset.id);
+          if (!before) {
+            c.classList.add('gcard-enter'); // new (e.g. the ghost) — fade/scale in
+            return;
+          }
+          const dx = before.left - now[i].left;
+          const dy = before.top - now[i].top;
+          if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+          c.style.transition = 'none';
+          c.style.transform = `translate(${dx}px, ${dy}px)`;
+          moving.push(c);
+        });
+        if (!moving.length) return;
+        requestAnimationFrame(() => {
+          for (const c of moving) {
+            c.style.transition = `transform ${PREVIEW_ANIM_MS}ms cubic-bezier(0.2, 0.7, 0.3, 1)`;
+            c.style.transform = 'translate(0, 0)';
+          }
+        });
+      }
+
       function renderPool() {
         poolEl.innerHTML = '';
         if (!pool.length) {
@@ -845,6 +922,7 @@
         // correct geometry to test against. This is what kills the jitter:
         // the preview reflow no longer feeds back into the drop target.
         dragging.layout = snapshotBoardCards();
+        boardEl.classList.add('dragging'); // enable the preview transitions
         moveClone(e.clientX, e.clientY);
         updatePreview(e.clientX, e.clientY);
 
@@ -933,13 +1011,13 @@
         if (key === dragging.lastKey) return;
         dragging.lastKey = key;
         if (!target) {
-          renderBoard(boardRoot);
+          renderBoardAnimated(boardRoot);
           return;
         }
         const preview = cloneTree(boardRoot);
         const ghost = Object.assign(piece(dragging.p), { ghost: true });
         applyTarget(preview, ghost, target);
-        renderBoard(preview);
+        renderBoardAnimated(preview);
       }
       function pointInPool(x, y) {
         const pr = poolWrapEl.getBoundingClientRect();
@@ -956,6 +1034,7 @@
         const target = dropTarget(e.clientX, e.clientY);
         dragging = null;
         poolEl.classList.remove('drop-active');
+        boardEl.classList.remove('dragging');
         if (target) applyTarget(boardRoot, p, target);
         else pool.push(p);
         render();
@@ -1088,7 +1167,13 @@
       const POOL_PATH = 'etymology/game/words.json';
       const pendingContrib = new Map(); // word -> band, not yet persisted
       let flushTimer = null;
+      let flushScheduled = false;
       let flushing = false;
+      let lastCommitAt = 0;
+      let backoffUntil = 0; // epoch ms; GitHub asked us to hold off until here
+      const FLUSH_DELAY = 30000; // gather discoveries this long before committing
+      const MIN_COMMIT_INTERVAL = 60000; // and never commit more than once a minute
+      const DEFAULT_BACKOFF = 90000; // fallback wait when rate-limited with no hint
 
       // GitHub returns/expects file contents as base64; wrap btoa/atob so
       // non-ASCII headwords (e.g. "café") survive the round trip.
@@ -1136,10 +1221,42 @@
         scheduleFlush();
       }
 
+      // How long GitHub wants us to wait, read from a 403/429 response: the
+      // Retry-After header (secondary/abuse limits) or, when the primary quota
+      // is spent, X-RateLimit-Reset. Both are CORS-exposed by the API. Returns
+      // 0 when the response carries no rate-limit signal.
+      function rateLimitDelayMs(res) {
+        const ra = parseInt(res.headers.get('retry-after') || '', 10);
+        if (!isNaN(ra)) return ra * 1000;
+        if (res.headers.get('x-ratelimit-remaining') === '0') {
+          const reset = parseInt(res.headers.get('x-ratelimit-reset') || '', 10);
+          if (!isNaN(reset)) return reset * 1000 - Date.now();
+        }
+        return 0;
+      }
+
+      // Schedule a single batched commit. Discoveries that land before it fires
+      // just join the batch (this is a no-op while one is already pending or in
+      // flight), so a burst of finds becomes one commit instead of one per word.
+      // The delay respects the batch window, a minimum gap between commits, and
+      // any rate-limit backoff GitHub has asked for.
       function scheduleFlush() {
-        if (!Common.GH.isAuthed() || !pendingContrib.size) return;
+        if (flushScheduled || flushing || !Common.GH.isAuthed() || !pendingContrib.size) return;
+        flushScheduled = true;
+        const now = Date.now();
+        const delay = Math.max(
+          FLUSH_DELAY,
+          backoffUntil - now,
+          lastCommitAt + MIN_COMMIT_INTERVAL - now
+        );
         clearTimeout(flushTimer);
-        flushTimer = setTimeout(flushContributions, 4000);
+        flushTimer = setTimeout(
+          () => {
+            flushScheduled = false;
+            flushContributions();
+          },
+          Math.max(0, delay)
+        );
       }
 
       // Merge the queued discoveries into the latest words.json and commit. Read
@@ -1147,57 +1264,84 @@
       // elsewhere since page load.
       async function flushContributions() {
         if (flushing || !Common.GH.isAuthed() || !pendingContrib.size) return;
+        if (Date.now() < backoffUntil) {
+          scheduleFlush(); // still in a rate-limit hold; try again after it lifts
+          return;
+        }
         flushing = true;
         const token = Common.GH.getToken();
         const headers = { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}` };
         const url = `https://api.github.com/repos/${REPO}/contents/${POOL_PATH}`;
         try {
-          const getR = await fetch(url, { headers });
-          if (getR.status === 401) {
-            Common.GH.clearToken();
-            ghAuth.refresh();
-            return;
-          }
-          let sha;
-          let current = { easy: [], medium: [], hard: [], expert: [] };
-          if (getR.ok) {
-            const f = await getR.json();
-            sha = f.sha;
-            try {
-              const parsed = JSON.parse(b64decode(f.content));
-              if (parsed && typeof parsed === 'object') current = normalizePool(parsed);
-            } catch (e) {
-              /* malformed file — rebuild it from our entries */
+          // Read → merge → write, retrying on 409. A 409 isn't a rate limit: it
+          // means our sha went stale (a concurrent commit, or the API's
+          // read-after-write lag), so we re-read the latest file and rebuild on
+          // top of it. A short, growing pause lets GitHub's replicas catch up.
+          for (let attempt = 0; attempt < 3; attempt++) {
+            const getR = await fetch(url, { headers });
+            if (getR.status === 401) {
+              Common.GH.clearToken();
+              ghAuth.refresh();
+              return;
             }
-          }
-          let added = 0;
-          for (const [word, band] of pendingContrib) {
-            if (poolHas(current, word)) continue;
-            (current[band] || (current[band] = [])).push(word);
-            added++;
-          }
-          if (!added) {
-            pendingContrib.clear();
-            return;
-          }
-          for (const k of Object.keys(current)) current[k] = sortBucket(current[k]);
-          const putR = await fetch(url, {
-            method: 'PUT',
-            headers,
-            body: JSON.stringify({
-              message: `etymology game: add ${added} discovered word${added > 1 ? 's' : ''}`,
-              content: b64encode(JSON.stringify(current, null, 2) + '\n'),
-              sha,
-            }),
-          });
-          if (putR.ok) {
-            pendingContrib.clear();
-            for (const k of Object.keys(WORD_POOL)) WORD_POOL[k] = (current[k] || []).slice();
+            if (getR.status === 403 || getR.status === 429) {
+              backoffUntil = Date.now() + (rateLimitDelayMs(getR) || DEFAULT_BACKOFF);
+              return; // keep the batch; the finally reschedules past the backoff
+            }
+            let sha;
+            let current = { easy: [], medium: [], hard: [], expert: [] };
+            if (getR.ok) {
+              const f = await getR.json();
+              sha = f.sha;
+              try {
+                const parsed = JSON.parse(b64decode(f.content));
+                if (parsed && typeof parsed === 'object') current = normalizePool(parsed);
+              } catch (e) {
+                /* malformed file — rebuild it from our entries */
+              }
+            }
+            let added = 0;
+            for (const [word, band] of pendingContrib) {
+              if (poolHas(current, word)) continue;
+              (current[band] || (current[band] = [])).push(word);
+              added++;
+            }
+            if (!added) {
+              pendingContrib.clear(); // already in the file (committed elsewhere)
+              return;
+            }
+            for (const k of Object.keys(current)) current[k] = sortBucket(current[k]);
+            const putR = await fetch(url, {
+              method: 'PUT',
+              headers,
+              body: JSON.stringify({
+                message: `etymology game: add ${added} discovered word${added > 1 ? 's' : ''}`,
+                content: b64encode(JSON.stringify(current, null, 2) + '\n'),
+                sha,
+              }),
+            });
+            if (putR.status === 403 || putR.status === 429) {
+              backoffUntil = Date.now() + (rateLimitDelayMs(putR) || DEFAULT_BACKOFF);
+              return; // rate-limited mid-write; keep the batch, retry after backoff
+            }
+            if (putR.status === 409) {
+              await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+              continue; // stale sha — re-read and try again
+            }
+            if (putR.ok) {
+              lastCommitAt = Date.now();
+              pendingContrib.clear();
+              for (const k of Object.keys(WORD_POOL)) WORD_POOL[k] = (current[k] || []).slice();
+            }
+            return; // success, or a non-retryable failure (keep batch, reschedule)
           }
         } catch (e) {
-          /* network/permission error: keep the queue, retry on the next find */
+          /* network error: keep the queue and retry on the next scheduled flush */
         } finally {
           flushing = false;
+          // Fold anything still pending — rate-limited, conflicted, errored, or
+          // discovered mid-flush — into the next batched attempt.
+          if (pendingContrib.size) scheduleFlush();
         }
       }
 
