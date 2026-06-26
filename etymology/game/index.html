@@ -92,8 +92,7 @@
         margin-right: 6px;
       }
       select#difficulty,
-      button.btn,
-      input#word {
+      button.btn {
         font-family:
           ui-monospace,
           SFMono-Regular,
@@ -110,14 +109,6 @@
         padding: 5px 9px;
         cursor: pointer;
       }
-      input#word {
-        cursor: text;
-        width: 140px;
-        background: transparent;
-      }
-      input#word::placeholder {
-        color: var(--faint);
-      }
       button.btn:hover {
         background: var(--hover);
       }
@@ -127,6 +118,32 @@
       }
       button.btn.primary {
         border-color: var(--muted);
+      }
+      /* GitHub sign-in: a quiet icon in the header that brightens on hover and
+         while signed in. Signed-in players' discoveries are saved to the pool. */
+      #gh-auth {
+        width: 22px;
+        height: 22px;
+        padding: 0;
+        border: none;
+        background: none;
+        cursor: pointer;
+        color: var(--muted);
+        opacity: 0.65;
+        transition:
+          opacity 0.15s,
+          color 0.15s;
+      }
+      #gh-auth:hover,
+      #gh-auth.authed {
+        opacity: 1;
+        color: inherit;
+      }
+      #gh-auth svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+        fill: currentColor;
       }
 
       /* --- Board (the tree viewer) --- */
@@ -489,18 +506,20 @@
           <option value="expert">expert · 10+</option>
         </select>
       </span>
-      <input
-        id="word"
-        class="ctl"
-        type="text"
-        placeholder="or set a word…"
-        autocomplete="off"
-        autocapitalize="off"
-        autocorrect="off"
-        spellcheck="false"
-        enterkeyhint="go"
-      />
       <button id="new-btn" class="btn">new game</button>
+      <button
+        id="gh-auth"
+        type="button"
+        aria-label="Sign in with GitHub"
+        title="Sign in with GitHub to save discovered words to the pool"
+      >
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <path
+            fill-rule="evenodd"
+            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
+          />
+        </svg>
+      </button>
     </header>
 
     <div id="board"><div class="board-status">press “new game” to start</div></div>
@@ -542,6 +561,11 @@
       })();
       difficultyEl.addEventListener('change', () => {
         localStorage.setItem(DIFF_KEY, difficultyEl.value);
+        // Queued puzzles are built for one band; drop them and warm the new one
+        // so the next "new game" is still instant.
+        readyQueue = [];
+        queueDiff = difficultyEl.value;
+        fillQueue(difficultyEl.value);
       });
 
       // ---------- Elements ----------
@@ -552,7 +576,6 @@
       const submitBtn = document.getElementById('submit-btn');
       const resetBtn = document.getElementById('reset-btn');
       const newBtn = document.getElementById('new-btn');
-      const wordEl = document.getElementById('word');
       const DEFAULT_MSG = msgEl.textContent;
 
       // ---------- Puzzle state ----------
@@ -982,101 +1005,33 @@
       // A curated pool of English headwords that reliably have an etymology
       // tree on Wiktionary, bucketed by the size of that tree. Drawing from
       // here on launch resolves a puzzle in a fetch or two instead of the
-      // random-word hunt (which discards most draws for having no etymology).
-      // Each word was run through the engine and placed by its real node
-      // count (easy 2–4, medium 5–6, hard 7–9, expert 10+); the node-count
-      // band still validates each pick at runtime, so the buckets only need to
-      // bias which words we try first.
-      const WORD_POOL = {
-        easy: [
-          'ballet',
-          'bungalow',
-          'café',
-          'cargo',
-          'chrysanthemum',
-          'daisy',
-          'dinosaur',
-          'guru',
-          'kangaroo',
-          'ketchup',
-          'patio',
-          'piano',
-          'rhinoceros',
-          'rodeo',
-          'safari',
-          'sushi',
-          'tattoo',
-          'tycoon',
-          'Wednesday',
-        ],
-        medium: [
-          'brother',
-          'coffee',
-          'fish',
-          'garlic',
-          'geography',
-          'heart',
-          'hound',
-          'husband',
-          'mother',
-          'mouse',
-          'name',
-          'night',
-          'shampoo',
-          'ski',
-          'taboo',
-          'tomato',
-        ],
-        hard: [
-          'daughter',
-          'father',
-          'foot',
-          'goose',
-          'hippopotamus',
-          'hypothesis',
-          'jungle',
-          'kiosk',
-          'knee',
-          'lady',
-          'lemon',
-          'marshal',
-          'metaphor',
-          'moon',
-          'orange',
-          'photosynthesis',
-          'snow',
-          'star',
-          'symphony',
-          'telephone',
-          'thermometer',
-          'three',
-          'tongue',
-          'tooth',
-          'water',
-          'wolf',
-          'yacht',
-        ],
-        expert: [
-          'atmosphere',
-          'biology',
-          'breakfast',
-          'democracy',
-          'encyclopedia',
-          'etymology',
-          'gospel',
-          'lord',
-          'milk',
-          'philosophy',
-          'photograph',
-          'robot',
-          'sheriff',
-          'steward',
-          'sugar',
-          'window',
-          'woman',
-          'world',
-        ],
-      };
+      // random-word hunt (which discards most draws for having no etymology),
+      // and keeps us from hammering Wiktionary on every game.
+      //
+      // The list is the static file words.json, loaded once at launch. The
+      // random-word hunt is still the source of new entries: any word it turns
+      // up with a usable tree is filed into its band here, and a signed-in
+      // player's discoveries are committed back to words.json so the pool grows
+      // over time (see the "growing the pool" section). The node-count band
+      // still validates each pick at runtime, so a mis-bucketed entry is just
+      // skipped — the buckets only bias which words we try first.
+      const WORD_POOL = { easy: [], medium: [], hard: [], expert: [] };
+
+      async function loadWordPool() {
+        try {
+          const r = await fetch('words.json?t=' + Date.now(), { cache: 'no-store' });
+          if (!r.ok) return;
+          const data = await r.json();
+          if (data && typeof data === 'object') {
+            for (const k of Object.keys(WORD_POOL)) {
+              if (Array.isArray(data[k]))
+                WORD_POOL[k] = data[k].filter((w) => typeof w === 'string');
+            }
+          }
+        } catch (e) {
+          /* no pool — newGame falls back to the random hunt, just slower */
+        }
+      }
 
       // Words to try from the pool for a given difficulty: the matching bucket
       // first (most likely to land in band), then everything else, shuffled.
@@ -1090,6 +1045,129 @@
         return [...bucket, ...rest];
       }
 
+      // ---------- Growing the pool ----------
+      // The random-word hunt is the only thing that scrapes Wiktionary at play
+      // time. Whatever it turns up with a usable tree is filed into its band so
+      // the rest of the session can reuse it, and — for a signed-in player —
+      // batched and committed back to words.json via the GitHub Contents API so
+      // future visitors get it from the static file instead of re-scraping.
+      const REPO = 'rjayasin/rjayasin.github.io';
+      const POOL_PATH = 'etymology/game/words.json';
+      const pendingContrib = new Map(); // word -> band, not yet persisted
+      let flushTimer = null;
+      let flushing = false;
+
+      // GitHub returns/expects file contents as base64; wrap btoa/atob so
+      // non-ASCII headwords (e.g. "café") survive the round trip.
+      function b64encode(str) {
+        return btoa(unescape(encodeURIComponent(str)));
+      }
+      function b64decode(b64) {
+        return decodeURIComponent(escape(atob(b64.replace(/\s/g, ''))));
+      }
+
+      function bandForCount(n) {
+        for (const [name, b] of Object.entries(DIFFS)) {
+          if (n >= b.min && n <= b.max) return name;
+        }
+        return null;
+      }
+      function poolHas(pool, word) {
+        const w = word.toLowerCase();
+        return Object.values(pool).some((arr) => arr.some((x) => x.toLowerCase() === w));
+      }
+      function normalizePool(obj) {
+        const out = { easy: [], medium: [], hard: [], expert: [] };
+        for (const k of Object.keys(out))
+          if (Array.isArray(obj[k])) out[k] = obj[k].filter((w) => typeof w === 'string');
+        return out;
+      }
+      function sortBucket(arr) {
+        const seen = new Set();
+        return arr
+          .filter((w) => {
+            const k = w.toLowerCase();
+            return seen.has(k) ? false : seen.add(k);
+          })
+          .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+      }
+
+      // File a freshly discovered word into its band (locally always; queued
+      // for commit too). Only plain single-token headwords are stored.
+      function recordDiscovered(word, tree) {
+        if (!word || !/^[\p{L}]+$/u.test(word)) return;
+        const band = bandForCount(countNodes(tree));
+        if (!band || poolHas(WORD_POOL, word) || pendingContrib.has(word)) return;
+        WORD_POOL[band].push(word);
+        pendingContrib.set(word, band);
+        scheduleFlush();
+      }
+
+      function scheduleFlush() {
+        if (!Common.GH.isAuthed() || !pendingContrib.size) return;
+        clearTimeout(flushTimer);
+        flushTimer = setTimeout(flushContributions, 4000);
+      }
+
+      // Merge the queued discoveries into the latest words.json and commit. Read
+      // the file fresh first so we extend, rather than clobber, anything added
+      // elsewhere since page load.
+      async function flushContributions() {
+        if (flushing || !Common.GH.isAuthed() || !pendingContrib.size) return;
+        flushing = true;
+        const token = Common.GH.getToken();
+        const headers = { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}` };
+        const url = `https://api.github.com/repos/${REPO}/contents/${POOL_PATH}`;
+        try {
+          const getR = await fetch(url, { headers });
+          if (getR.status === 401) {
+            Common.GH.clearToken();
+            ghAuth.refresh();
+            return;
+          }
+          let sha;
+          let current = { easy: [], medium: [], hard: [], expert: [] };
+          if (getR.ok) {
+            const f = await getR.json();
+            sha = f.sha;
+            try {
+              const parsed = JSON.parse(b64decode(f.content));
+              if (parsed && typeof parsed === 'object') current = normalizePool(parsed);
+            } catch (e) {
+              /* malformed file — rebuild it from our entries */
+            }
+          }
+          let added = 0;
+          for (const [word, band] of pendingContrib) {
+            if (poolHas(current, word)) continue;
+            (current[band] || (current[band] = [])).push(word);
+            added++;
+          }
+          if (!added) {
+            pendingContrib.clear();
+            return;
+          }
+          for (const k of Object.keys(current)) current[k] = sortBucket(current[k]);
+          const putR = await fetch(url, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({
+              message: `etymology game: add ${added} discovered word${added > 1 ? 's' : ''}`,
+              content: b64encode(JSON.stringify(current, null, 2) + '\n'),
+              sha,
+            }),
+          });
+          if (putR.ok) {
+            pendingContrib.clear();
+            for (const k of Object.keys(WORD_POOL)) WORD_POOL[k] = (current[k] || []).slice();
+          }
+        } catch (e) {
+          /* network/permission error: keep the queue, retry on the next find */
+        } finally {
+          flushing = false;
+        }
+      }
+
       function showBoardStatus(text, spinner) {
         boardEl.classList.remove('empty-hint');
         boardEl.innerHTML = '';
@@ -1099,10 +1177,124 @@
         boardEl.appendChild(div);
       }
 
+      // Building a word's tree means a Wiktionary fetch; cache by word so the
+      // same pool word isn't re-scraped to refill the queue all session.
+      const treeCache = new Map();
+      async function cachedBuildTree(word) {
+        if (treeCache.has(word)) return treeCache.get(word);
+        const tree = await buildTree(word, 'en');
+        if (tree) treeCache.set(word, tree);
+        return tree;
+      }
+
+      // Build (or fetch) one tree that fits the difficulty band — no rendering.
+      // The curated pool first (reliable, cached), then the random hunt; any
+      // random word with a usable tree is filed into the pool on the way.
+      // Returns the best tree found (an exact band fit when possible) or null.
+      async function findPuzzleTree(diff) {
+        const band = DIFFS[diff];
+        let best = null;
+        let bestDelta = Infinity;
+        const consider = (tree) => {
+          const n = countNodes(tree);
+          if (n < 2) return null; // need at least one ancestor to place
+          const delta = n < band.min ? band.min - n : n > band.max ? n - band.max : 0;
+          if (delta === 0) return tree;
+          if (delta < bestDelta) {
+            bestDelta = delta;
+            best = tree;
+          }
+          return null;
+        };
+        for (const word of poolCandidates(diff).slice(0, POOL_ATTEMPTS)) {
+          const tree = await cachedBuildTree(word);
+          const hit = tree && consider(tree);
+          if (hit) return hit;
+        }
+        for (let i = 0; i < GEN_ATTEMPTS; i++) {
+          const item = await findRandomTree();
+          if (!item) continue;
+          recordDiscovered(item.word, item.tree); // grow the static pool
+          const hit = consider(item.tree);
+          if (hit) return hit;
+        }
+        return best;
+      }
+
+      // ---------- Ready queue ----------
+      // "New game" must be instant, so puzzles are built ahead of time and
+      // parked here. Each click pops one and the queue refills in the
+      // background. The queue belongs to a single difficulty; switching bands
+      // drops it and warms a fresh one.
+      const QUEUE_TARGET = 2;
+      let readyQueue = [];
+      let queueDiff = null;
+      let filling = false;
+      let lastForm = '';
+
+      async function fillQueue(diff) {
+        if (filling) return;
+        filling = true;
+        try {
+          let attempts = 0;
+          while (
+            diff === difficultyEl.value &&
+            readyQueue.length < QUEUE_TARGET &&
+            attempts < QUEUE_TARGET + 4
+          ) {
+            attempts++;
+            const tree = await findPuzzleTree(diff);
+            if (diff !== difficultyEl.value) break; // difficulty changed mid-build
+            if (!tree) break; // nothing found this round; stop to avoid a hot loop
+            // Prefer variety: skip a repeat of the last shown or an already-queued word.
+            if (tree.form === lastForm || readyQueue.some((t) => t.form === tree.form)) continue;
+            readyQueue.push(tree);
+          }
+        } finally {
+          filling = false;
+        }
+      }
+
+      // ---------- Background discovery ----------
+      // Every new game also nudges the shared pool forward: a signed-in player
+      // triggers one random-word find, committed back to words.json (debounced).
+      // One at a time, so rapid clicks don't pile up Wiktionary fetches.
+      let discovering = false;
+      async function discoverAndCommit() {
+        if (discovering || !Common.GH.isAuthed()) return;
+        discovering = true;
+        try {
+          const item = await findRandomTree();
+          if (item) recordDiscovered(item.word, item.tree);
+        } catch (e) {
+          /* ignore — try again on the next new game */
+        } finally {
+          discovering = false;
+        }
+      }
+
+      // ---------- New game ----------
       let genSeq = 0;
-      async function newGame() {
-        const my = ++genSeq;
-        const band = DIFFS[difficultyEl.value];
+      function newGame() {
+        const diff = difficultyEl.value;
+        const my = ++genSeq; // supersede any in-flight cold build
+        if (queueDiff !== diff) {
+          readyQueue = [];
+          queueDiff = diff;
+        }
+        if (readyQueue.length) {
+          const tree = readyQueue.shift();
+          lastForm = tree.form;
+          startPuzzleWithTree(tree); // instant — no network on the click path
+        } else {
+          surfaceBlocking(my, diff); // cold start (first game / just switched bands)
+        }
+        fillQueue(diff); // refill for the next click
+        discoverAndCommit(); // grow the pool in the background
+      }
+
+      // Cold path: nothing queued yet, so build one with the loading spinner up.
+      async function surfaceBlocking(my, diff) {
         newBtn.disabled = true;
         boardRoot = null;
         pool = [];
@@ -1112,84 +1304,39 @@
         setMessage('Finding a word…', '');
         showBoardStatus('', true);
         try {
-          let best = null;
-          let bestDelta = Infinity;
-          // Weigh a tree against the difficulty band; an exact fit starts the
-          // puzzle immediately, otherwise we remember the closest miss.
-          const consider = (tree) => {
-            const n = countNodes(tree);
-            if (n < 2) return false; // need at least one ancestor to place
-            const delta = n < band.min ? band.min - n : n > band.max ? n - band.max : 0;
-            if (delta === 0) {
-              startPuzzleWithTree(tree);
-              return true;
-            }
-            if (delta < bestDelta) {
-              bestDelta = delta;
-              best = tree;
-            }
-            return false;
-          };
-
-          // Try the curated static pool first — these reliably build, so the
-          // launch resolves without the slow random-word hunt.
-          for (const word of poolCandidates(difficultyEl.value).slice(0, POOL_ATTEMPTS)) {
-            const tree = await buildTree(word, 'en');
-            if (my !== genSeq) return;
-            if (tree && consider(tree)) return;
-          }
-
-          // Fall back to fully random words for variety and when no pool word
-          // fit the band.
-          for (let i = 0; i < GEN_ATTEMPTS; i++) {
-            const item = await findRandomTree();
-            if (my !== genSeq) return;
-            if (!item) continue;
-            if (consider(item.tree)) return;
-          }
+          const tree = await findPuzzleTree(diff);
           if (my !== genSeq) return;
-          if (best) startPuzzleWithTree(best);
-          else showBoardStatus('couldn’t find a word — try again', false);
-        } finally {
-          if (my === genSeq) newBtn.disabled = false;
-        }
-      }
-
-      // Play a specific word instead of a random one.
-      async function playWord(raw) {
-        const form = raw.trim().toLowerCase();
-        if (!form) return;
-        const my = ++genSeq;
-        newBtn.disabled = true;
-        solved = false;
-        setMessage('Looking up “' + form + '”…', '');
-        showBoardStatus('', true);
-        try {
-          const tree = await buildTree(form, 'en');
-          if (my !== genSeq) return;
-          if (tree && tree.children.length) startPuzzleWithTree(tree);
-          else showBoardStatus('no etymology tree for “' + form + '”', false);
+          if (tree) {
+            lastForm = tree.form;
+            startPuzzleWithTree(tree);
+          } else showBoardStatus('couldn’t find a word — try again', false);
         } finally {
           if (my === genSeq) newBtn.disabled = false;
         }
       }
 
       newBtn.addEventListener('click', () => newGame());
-      wordEl.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          const v = wordEl.value;
-          wordEl.value = '';
-          wordEl.blur();
-          playWord(v);
-        }
-      });
 
       // Expose a hook so the rendering can be exercised without the network.
       window.__startPuzzleWithTree = startPuzzleWithTree;
 
-      // Kick off the first game automatically.
-      newGame();
+      // ---------- GitHub sign-in (optional) ----------
+      // The game is fully playable signed out. Signing in only lets the words
+      // the background random hunt discovers be committed back to words.json so
+      // the shared pool grows for everyone.
+      const ghAuth = Common.GH.initAuthButton({
+        buttonEl: document.getElementById('gh-auth'),
+        signedInTitle: 'Signed in — new words you find are saved to the pool (click to sign out)',
+        signedOutTitle: 'Sign in with GitHub to save discovered words to the pool',
+      });
+
+      // Load the static pool, then kick off the first game. Finish any OAuth
+      // redirect in parallel and flush anything queued before sign-in returned.
+      loadWordPool().then(newGame);
+      Common.GH.handleRedirect().then((signedIn) => {
+        if (signedIn) ghAuth.refresh();
+        scheduleFlush();
+      });
     </script>
   </body>
 </html>
