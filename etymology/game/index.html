@@ -815,6 +815,7 @@
 
       // ---------- Building a puzzle from a tree ----------
       function startPuzzleWithTree(tree) {
+        markSeen(tree.form); // played or skipped, it won't be offered again
         realRoot = tree;
         let id = 0;
         walk(realRoot, (n) => (n.id = id++));
@@ -1346,8 +1347,39 @@
         }
       }
 
+      // ---------- Seen words ----------
+      // Every word surfaced to the player — whether they solved it or skipped
+      // past it by clicking "new game" — is remembered so it isn't shown again.
+      // Kept in localStorage (lowercased forms) so it persists across visits.
+      const SEEN_KEY = 'etymology-game-seen';
+      const seenWords = (() => {
+        try {
+          const v = JSON.parse(localStorage.getItem(SEEN_KEY) || '[]');
+          return new Set(Array.isArray(v) ? v.map((w) => String(w).toLowerCase()) : []);
+        } catch (e) {
+          return new Set();
+        }
+      })();
+      function isSeen(form) {
+        return !!form && seenWords.has(form.toLowerCase());
+      }
+      function markSeen(form) {
+        if (!form) return;
+        const k = form.toLowerCase();
+        if (seenWords.has(k)) return;
+        seenWords.add(k);
+        try {
+          localStorage.setItem(SEEN_KEY, JSON.stringify([...seenWords]));
+        } catch (e) {
+          /* storage full/unavailable — in-memory tracking still holds for now */
+        }
+      }
+
       // Words to try from the pool for a given difficulty: the matching bucket
       // first (most likely to land in band), then everything else, shuffled.
+      // Already-seen words are dropped so they aren't surfaced again — unless the
+      // player has worked through the entire pool, in which case we replay it
+      // rather than coming up empty.
       function poolCandidates(diff) {
         const bucket = shuffle([...(WORD_POOL[diff] || [])]);
         const rest = shuffle(
@@ -1355,7 +1387,9 @@
             .filter((k) => k !== diff)
             .flatMap((k) => WORD_POOL[k])
         );
-        return [...bucket, ...rest];
+        const all = [...bucket, ...rest];
+        const unseen = all.filter((w) => !isSeen(w));
+        return unseen.length ? unseen : all;
       }
 
       // ---------- Growing the pool ----------
@@ -1609,6 +1643,7 @@
           const item = await findRandomTree();
           if (!item) continue;
           recordDiscovered(item.word, item.tree); // grow the static pool
+          if (isSeen(item.tree.form)) continue; // already played/skipped — don't reoffer
           const hit = consider(item.tree);
           if (hit) return hit;
         }
