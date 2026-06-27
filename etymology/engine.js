@@ -271,22 +271,39 @@ function stripMarks(s) {
 // Successive templates in the "From X, from Y, from Z" prose form the
 // ancestry chain; a "+" between them (or a compound/affix template)
 // splits the tree into branches.
+// Every relation template has an abbreviated name and a spelled-out alias on
+// Wiktionary ({{bor}} = {{borrowed}}, {{der}} = {{derived}}, {{lbor}} =
+// {{learned borrowing}}, …), plus {{uder}} ("ultimately derived"). Accept them
+// all: when only the abbreviations were listed, an ancestor written with the
+// long form fell out of CHAIN_REL and was silently dropped from the chain —
+// e.g. "rhinoceros" ("From {{uder|en|la}}, from {{derived|en|grc}}, …") lost
+// both its Latin and Greek-compound steps, jumping straight to the two roots.
 const CHAIN_REL = {
   inh: 'inherited',
   'inh+': 'inherited',
+  inherited: 'inherited',
   der: 'derived',
   'der+': 'derived',
+  derived: 'derived',
+  uder: 'derived', // "ultimately derived from" — an ancestor, like {{der}}
   bor: 'borrowed',
   'bor+': 'borrowed',
+  borrowed: 'borrowed',
   lbor: 'learned borrowing',
+  'learned borrowing': 'learned borrowing',
   slbor: 'semi-learned borrowing',
+  'semi-learned borrowing': 'semi-learned borrowing',
   obor: 'orthographic borrowing',
+  'orthographic borrowing': 'orthographic borrowing',
   ubor: 'unadapted borrowing',
+  'unadapted borrowing': 'unadapted borrowing',
   cal: 'calque',
   calque: 'calque',
   clq: 'calque',
   pcal: 'partial calque',
+  'partial calque': 'partial calque',
   psm: 'phono-semantic match',
+  'phono-semantic matching': 'phono-semantic match',
   m: 'from',
   mention: 'from',
   'm+': 'from',
