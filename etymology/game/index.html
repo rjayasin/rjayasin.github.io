@@ -109,6 +109,11 @@
         padding: 5px 9px;
         cursor: pointer;
       }
+      /* Keep the picker compact: the short labels already trim the natural
+         width, and tightening the side padding pulls it in further. */
+      select#difficulty {
+        padding: 5px 5px 5px 7px;
+      }
       button.btn:hover {
         background: var(--hover);
       }
@@ -275,9 +280,9 @@
         background: var(--card-bg);
         border: 1px solid var(--line);
         border-radius: 8px;
-        padding: 7px 14px 9px;
+        padding: 5px 11px 7px;
         text-align: center;
-        max-width: 220px;
+        max-width: 200px;
         min-width: min-content;
         cursor: grab;
         touch-action: none;
@@ -297,29 +302,29 @@
           Consolas,
           Liberation Mono,
           monospace;
-        font-size: 10px;
-        letter-spacing: 0.14em;
+        font-size: 9px;
+        letter-spacing: 0.13em;
         text-transform: uppercase;
         color: var(--muted);
-        margin-bottom: 2px;
+        margin-bottom: 1px;
       }
       .gcard .form {
-        font-size: 20px;
-        line-height: 1.2;
+        font-size: 18px;
+        line-height: 1.15;
       }
       .gcard .form.empty {
         color: var(--faint);
       }
       .gcard .tr {
-        font-size: 12px;
+        font-size: 11px;
         color: var(--muted);
         margin-top: 1px;
       }
       .gcard .gloss {
-        font-size: 12px;
+        font-size: 11px;
         font-style: italic;
         color: var(--muted);
-        margin-top: 2px;
+        margin-top: 1px;
       }
       .gcard .rel {
         font-family:
@@ -514,16 +519,39 @@
       }
 
       @media (max-width: 700px) {
+        /* Pack the header onto one line: shrink the logo, label, picker, and
+           buttons and tighten the gaps so the title, difficulty, new game, and
+           the GitHub icon all sit on a single row (wrapping only if forced). */
+        #gheader {
+          gap: 8px;
+          padding: 8px 12px;
+        }
         #gtitle {
-          font-size: 18px;
-          width: 100%;
+          font-size: 15px;
+          white-space: nowrap;
+        }
+        .ctl-label {
+          font-size: 10px;
+          letter-spacing: 0.03em;
+          margin-right: 4px;
+        }
+        select#difficulty,
+        button.btn {
+          font-size: 11px;
+          padding: 4px 6px;
+        }
+        select#difficulty {
+          padding-left: 6px;
+        }
+        #new-btn {
+          white-space: nowrap;
         }
         .gcard {
-          max-width: 160px;
-          padding: 6px 10px 8px;
+          max-width: 140px;
+          padding: 5px 8px 6px;
         }
         .gcard .form {
-          font-size: 17px;
+          font-size: 15px;
         }
         /* Let the instruction text wrap to as many lines as it needs so it's
            never clipped; the buttons drop onto their own row beneath it. */
@@ -558,9 +586,9 @@
       <span class="ctl">
         <span class="ctl-label">difficulty</span>
         <select id="difficulty" class="ctl" title="Bigger trees → harder">
-          <option value="easy">easy · 3–5</option>
-          <option value="medium">medium · 6–8</option>
-          <option value="hard">hard · 9+</option>
+          <option value="easy">easy 3–5</option>
+          <option value="medium">medium 6–8</option>
+          <option value="hard">hard 9+</option>
         </select>
       </span>
       <button id="new-btn" class="btn">new game</button>
