@@ -27,6 +27,8 @@
         --pool-bg: #1d1c1a;
         --ok: #7bc47f;
         --bad: #e57373;
+        /* the connecting arrows need more contrast than card borders do */
+        --gline: rgba(255, 255, 255, 0.5);
       }
       @media (prefers-color-scheme: dark) {
         body:not(.light) {
@@ -38,6 +40,7 @@
           --pool-bg: #1d1c1a;
           --ok: #7bc47f;
           --bad: #e57373;
+          --gline: rgba(255, 255, 255, 0.5);
         }
       }
       html,
@@ -561,30 +564,50 @@
       @media (max-width: 700px) {
         /* Pack the header onto one line: shrink the logo, label, picker, and
            buttons and tighten the gaps so the title, difficulty, new game, and
-           the GitHub icon all sit on a single row (wrapping only if forced). */
+           the GitHub icon all sit on a single row. The row never wraps; the
+           controls hold their size and the logo absorbs any squeeze (ellipsis)
+           on the narrowest phones rather than bumping a control to a new row. */
         #gheader {
-          gap: 8px;
-          padding: 8px 12px;
+          gap: 7px;
+          padding: 8px 10px;
+          flex-wrap: nowrap;
         }
         #gtitle {
-          font-size: 15px;
+          font-size: 14px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          /* take the leftover space (pushing the controls to the right) and,
+             when the row is tight, shrink below the logo's width and ellipsize
+             instead of wrapping a control onto a second line */
+          flex: 1 1 auto;
+          min-width: 0;
+          margin-right: 0;
+        }
+        .ctl,
+        #new-btn,
+        #gh-auth {
+          flex: none;
+        }
+        .ctl {
           white-space: nowrap;
         }
         .ctl-label {
-          font-size: 10px;
-          letter-spacing: 0.03em;
-          margin-right: 4px;
+          font-size: 9px;
+          letter-spacing: 0.02em;
+          margin-right: 3px;
         }
         select#difficulty,
         button.btn {
           font-size: 11px;
-          padding: 4px 6px;
+          padding: 4px 5px;
         }
         select#difficulty {
           padding-left: 6px;
         }
-        #new-btn {
-          white-space: nowrap;
+        #gh-auth {
+          width: 20px;
+          height: 20px;
         }
         .gcard {
           max-width: 140px;
