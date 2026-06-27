@@ -503,6 +503,12 @@
         text-overflow: ellipsis;
         white-space: nowrap;
       }
+      /* Once the player has placed a piece they know the rules, so the
+         instruction hint is hidden — kept as a spacer (visibility, not
+         display) so the reset/submit buttons stay right-aligned. */
+      #msg.hint-off {
+        visibility: hidden;
+      }
       #msg.ok {
         color: var(--ok);
         font-style: normal;
@@ -627,6 +633,12 @@
           white-space: normal;
           overflow: visible;
           text-overflow: clip;
+        }
+        /* The hint owns its own row here, so collapse it outright (rather than
+           just hiding it) once a piece is placed, letting the reset/submit bar
+           shrink up to reclaim the space. */
+        #msg.hint-off {
+          display: none;
         }
         /* One node tall: cards stay on a single row and scroll sideways. */
         #pool {
@@ -994,6 +1006,14 @@
         submitBtn.disabled = !placed || solved;
         resetBtn.disabled = !ready || pool.length === countAll() - 1;
         if (solved) setMessage(won ? solvedMessageNode() : DEFAULT_MSG, won ? 'ok' : '');
+        // Drop the instruction hint once a piece is on the board. The solved
+        // line and the 'bad' submit feedback keep showing — only the plain hint
+        // is hidden, and it returns if every piece goes back to the pool.
+        const placedAny = ready && pool.length < countAll() - 1;
+        msgEl.classList.toggle(
+          'hint-off',
+          placedAny && !solved && !msgEl.classList.contains('bad')
+        );
       }
       function countAll() {
         return realRoot ? countNodes(realRoot) : 0;
