@@ -262,6 +262,9 @@
       }
       .gul > .gli:last-child::after {
         border-bottom: none;
+        /* the rightmost ancestor's drop is the rounded ::before corner; the
+           straight border-left here would jut out past that curve as a stub */
+        border-left: none;
       }
       .gul > .gli:last-child::before {
         border-right: 1px solid var(--gline);
