@@ -1021,7 +1021,13 @@
         renderPool();
         const ready = boardRoot !== null;
         const placed = ready && pool.length === 0;
-        submitBtn.disabled = !placed || solved;
+        // Gate submit on the live `won`, not the sticky `solved`: before the
+        // first solve `won` is always false, so this still just needs every
+        // piece placed. After a solve the tree stays re-organizeable — once it's
+        // broken out of the winning shape (won === false), re-enable submit so
+        // the player can re-check the new arrangement. A matching board (won)
+        // already shows the solved line on its own, so submit stays disabled.
+        submitBtn.disabled = !placed || won;
         resetBtn.disabled = !ready || pool.length === countAll() - 1;
         if (solved) setMessage(won ? solvedMessageNode() : DEFAULT_MSG, won ? 'ok' : '');
         // Drop the instruction hint once a piece is on the board. The solved
@@ -1275,7 +1281,10 @@
       }
 
       function onSubmit() {
-        if (!boardRoot || pool.length || solved) return;
+        // Allow re-submitting after a solve (the button is only enabled then
+        // when the tree has been broken out of the winning shape), so a matching
+        // board re-confirms and a wrong one gets its mistakes marked again.
+        if (!boardRoot || pool.length) return;
         if (signature(boardRoot) === realSig) {
           solved = true;
           render(); // reveals the root, sweeps every card green, sets the solved msg
