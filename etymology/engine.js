@@ -696,14 +696,25 @@ const LANG_API =
   '&format=json&formatversion=2&origin=*&text=';
 const LANG_SEP = '␟'; // unit separator: won't occur inside a name
 
+// Per-code lookup that covers all three flavours of code that appear in
+// etymology templates: full languages and etymology-only varieties (both via
+// {{langname}}, e.g. hi-mid → "Middle Hindi") and language families (via the
+// families module, e.g. inc-hnd → "Hindustani"). {{langname}} and the module
+// each throw a Lua error on a code of the wrong kind, so {{#iferror}} chains
+// them — langname first, families on its failure — and yields an empty string
+// when neither matches, which the caller treats as "unresolved".
+function langNameQuery(code) {
+  const lang = '{{langname|' + code + '}}';
+  const fam = '{{#invoke:families/templates|getByCode|' + code + '|getCanonicalName}}';
+  return '{{#iferror:' + lang + '|{{#iferror:' + fam + '||' + fam + '}}|' + lang + '}}';
+}
+
 async function resolveLangNames(codes) {
   const todo = [...new Set(codes)].filter(
     (c) => c && !LANGS[c] && !RESOLVED[c] && !langResolveFailed.has(c)
   );
   if (!todo.length) return;
-  const text = todo
-    .map((c) => '{{#invoke:languages/templates|getByCode|' + c + '|getCanonicalName}}')
-    .join(LANG_SEP);
+  const text = todo.map(langNameQuery).join(LANG_SEP);
   try {
     const r = await fetch(LANG_API + encodeURIComponent(text));
     if (!r.ok) throw new Error('http');
