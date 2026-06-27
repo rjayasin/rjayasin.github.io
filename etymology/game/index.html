@@ -351,10 +351,45 @@
         letter-spacing: 0.1em;
         color: var(--muted);
       }
-      /* Every node gets a heavy green outline once the tree is solved. */
+      /* Every node gets a heavy green outline once the tree is solved. The
+         thick part of the stroke is a ::before ring that wipes in clockwise
+         (see @property --won-a / won-sweep below); the card's 1px border turns
+         green alongside it. */
       .gcard.won {
         border-color: var(--ok);
-        box-shadow: 0 0 0 3px var(--ok);
+      }
+      @property --won-a {
+        syntax: '<angle>';
+        inherits: false;
+        initial-value: 0deg;
+      }
+      .gcard.won::before {
+        content: '';
+        position: absolute;
+        inset: -3px;
+        border-radius: 11px;
+        padding: 3px;
+        /* green sweeps clockwise from 12 o'clock as --won-a grows 0 → 360 */
+        background: conic-gradient(var(--ok) var(--won-a), transparent 0);
+        /* mask to a hollow rounded-rect so only the 3px ring band shows */
+        -webkit-mask:
+          linear-gradient(#000 0 0) content-box,
+          linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask:
+          linear-gradient(#000 0 0) content-box,
+          linear-gradient(#000 0 0);
+        mask-composite: exclude;
+        pointer-events: none;
+        animation: won-sweep 520ms ease-out both;
+      }
+      @keyframes won-sweep {
+        from {
+          --won-a: 0deg;
+        }
+        to {
+          --won-a: 360deg;
+        }
       }
       .gcard.root.won {
         border-style: solid;
@@ -416,6 +451,11 @@
         #board.dragging .gul > .gli::before,
         #board.dragging .gul > .gli::after {
           animation: none;
+        }
+        /* skip the sweep — show the full ring straight away */
+        .gcard.won::before {
+          animation: none;
+          --won-a: 360deg;
         }
       }
 
@@ -673,7 +713,8 @@
       let realSig = '';
       let boardRoot = null;
       let pool = [];
-      let solved = false;
+      let solved = false; // the puzzle has been solved at least once
+      let won = false; // the board currently matches the answer (drives the green)
 
       const SEP = '␟'; // unit separator, won't appear in a form/gloss
 
@@ -807,7 +848,7 @@
       function cardEl(n) {
         const div = document.createElement('div');
         div.className =
-          'gcard' + (n.root ? ' root' : '') + (n.ghost ? ' ghost' : '') + (solved ? ' won' : '');
+          'gcard' + (n.root ? ' root' : '') + (n.ghost ? ' ghost' : '') + (won ? ' won' : '');
         div.dataset.id = n.id;
 
         const lang = document.createElement('div');
@@ -907,7 +948,11 @@
         if (!pool.length) {
           const empty = document.createElement('div');
           empty.className = 'pool-empty';
-          empty.textContent = solved ? 'solved!' : 'all pieces placed — hit submit';
+          empty.textContent = won
+            ? 'solved!'
+            : solved
+              ? 'all pieces placed'
+              : 'all pieces placed — hit submit';
           poolEl.appendChild(empty);
           return;
         }
@@ -915,12 +960,17 @@
       }
 
       function render() {
+        // Once solved, the tree stays re-organizeable and the green strokes
+        // track the live arrangement: lit only while the board still matches the
+        // answer, so moving a piece drops them and rebuilding re-adds them.
+        won = solved && pool.length === 0 && signature(boardRoot) === realSig;
         renderBoard(boardRoot);
         renderPool();
         const ready = boardRoot !== null;
         const placed = ready && pool.length === 0;
         submitBtn.disabled = !placed || solved;
-        resetBtn.disabled = !ready || solved || pool.length === countAll() - 1;
+        resetBtn.disabled = !ready || pool.length === countAll() - 1;
+        if (solved) setMessage(won ? solvedMessageNode() : DEFAULT_MSG, won ? 'ok' : '');
       }
       function countAll() {
         return realRoot ? countNodes(realRoot) : 0;
@@ -963,6 +1013,7 @@
           p = pool.splice(i, 1)[0];
         }
         if (!p) return;
+        won = false; // any pickup breaks the solved arrangement — drop the strokes
 
         const rect = card.getBoundingClientRect();
         const clone = cardEl(p);
@@ -1141,27 +1192,32 @@
         });
       }
 
+      // The success line shown while the solved tree is intact: the word, linked
+      // to the etymology viewer and to its Wiktionary etymology section. Rebuilt
+      // on each render so it can come and go as the tree is taken apart and
+      // reassembled.
+      function solvedMessageNode() {
+        const link = document.createElement('a');
+        link.href = '/etymology/?' + encodeURIComponent(boardRoot.form);
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.textContent = boardRoot.form;
+        const wikt = document.createElement('a');
+        wikt.href = wiktionaryUrl(boardRoot.form, boardRoot.lang) + '#Etymology';
+        wikt.target = '_blank';
+        wikt.rel = 'noopener';
+        wikt.textContent = 'Wiktionary';
+        wikt.title = 'Etymology on Wiktionary';
+        const span = document.createElement('span');
+        span.append('✓ Solved! The word was ', link, ' · ', wikt, '.');
+        return span;
+      }
+
       function onSubmit() {
         if (!boardRoot || pool.length || solved) return;
         if (signature(boardRoot) === realSig) {
           solved = true;
-          render(); // re-renders with the root revealed and every card won-green
-          const link = document.createElement('a');
-          link.href = '/etymology/?' + encodeURIComponent(boardRoot.form);
-          link.target = '_blank';
-          link.rel = 'noopener';
-          link.textContent = boardRoot.form;
-          // A second link straight to the source: the etymology section of the
-          // word's Wiktionary page.
-          const wikt = document.createElement('a');
-          wikt.href = wiktionaryUrl(boardRoot.form, boardRoot.lang) + '#Etymology';
-          wikt.target = '_blank';
-          wikt.rel = 'noopener';
-          wikt.textContent = 'Wiktionary';
-          wikt.title = 'Etymology on Wiktionary';
-          const span = document.createElement('span');
-          span.append('✓ Solved! The word was ', link, ' · ', wikt, '.');
-          setMessage(span, 'ok');
+          render(); // reveals the root, sweeps every card green, sets the solved msg
         } else {
           markMistakes();
           setMessage('Not quite — the red cards feed the wrong word. Keep rearranging.', 'bad');
@@ -1169,7 +1225,7 @@
       }
 
       function onReset() {
-        if (!realRoot || solved) return;
+        if (!realRoot) return;
         pool = [];
         walk(realRoot, (n) => {
           if (n !== realRoot) pool.push(piece(n));
