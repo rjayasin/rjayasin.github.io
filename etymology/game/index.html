@@ -16,7 +16,14 @@
         --pool-bg: #efece6;
         --ok: #2e7d32;
         --bad: #c0392b;
-        --gline: var(--line);
+        /* The connecting lines are drawn as many small overlapping borders
+           (drops meeting the bus, the bus halves meeting at each sibling seam,
+           the arrowhead over its stem). A translucent colour double-paints at
+           those overlaps and shows up as bright specks, so --gline is solid —
+           set to the colour a translucent line would resolve to over the board
+           background (rgba(0,0,0,0.18) over #fff). Keep it in sync with the
+           board background (body) if that ever changes. */
+        --gline: #d1d1d1;
       }
       body.dark {
         --muted: rgba(255, 255, 255, 0.5);
@@ -27,8 +34,10 @@
         --pool-bg: #1d1c1a;
         --ok: #7bc47f;
         --bad: #e57373;
-        /* the connecting arrows need more contrast than card borders do */
-        --gline: rgba(255, 255, 255, 0.5);
+        /* the connecting arrows need more contrast than card borders do; solid
+           (not translucent) so overlapping line borders don't double-paint into
+           bright specks — matched to rgba(255,255,255,0.5) over #111. */
+        --gline: #888888;
       }
       @media (prefers-color-scheme: dark) {
         body:not(.light) {
@@ -40,7 +49,7 @@
           --pool-bg: #1d1c1a;
           --ok: #7bc47f;
           --bad: #e57373;
-          --gline: rgba(255, 255, 255, 0.5);
+          --gline: #888888;
         }
       }
       html,
@@ -279,6 +288,12 @@
       .gul > .gli:only-child::after {
         border-bottom: none;
         border-radius: 0;
+        /* An only child is also the :last-child, whose rule above drops the
+           border-left to avoid a stub past the rounded bus corner. With no bus
+           here, though, that border-left IS the straight drop from this lone
+           ancestor down to the arrow into its descendant — restore it, or the
+           connector floats detached below the card. */
+        border-left: 1px solid var(--gline);
       }
 
       /* --- Cards --- */
