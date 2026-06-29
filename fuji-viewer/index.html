@@ -86,9 +86,11 @@
         text-align: center;
         color: var(--muted);
         cursor: pointer;
+        overflow: hidden;
         transition:
           border-color 0.15s ease,
-          background-color 0.15s ease;
+          background-color 0.15s ease,
+          padding 0.3s ease;
         background: var(--card);
       }
 
@@ -112,6 +114,55 @@
         display: none;
       }
 
+      #thumb {
+        display: none;
+        width: 100%;
+        max-height: 70vh;
+        object-fit: contain;
+        border-radius: 12px;
+        background: var(--card);
+      }
+
+      #drop.has-photo {
+        padding: 0;
+        border-style: solid;
+        border-color: var(--border);
+        background: transparent;
+        cursor: default;
+      }
+
+      #drop.has-photo:hover {
+        border-color: var(--border);
+        background: transparent;
+      }
+
+      #drop.has-photo .prompt {
+        display: none;
+      }
+
+      #drop.has-photo #thumb {
+        display: block;
+        transform-origin: center;
+        animation: grow-in 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+      }
+
+      @keyframes grow-in {
+        from {
+          transform: scale(0.35);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #drop.has-photo #thumb {
+          animation: none;
+        }
+      }
+
       #error {
         color: #dc2626;
         margin-top: 16px;
@@ -122,55 +173,42 @@
         color: #f87171;
       }
 
-      #result {
-        display: none;
-        margin-top: 24px;
-        gap: 24px;
-        grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
-        align-items: start;
+      #caption {
+        margin-top: 14px;
       }
 
-      #result.show {
-        display: grid;
-      }
-
-      @media (max-width: 680px) {
-        #result.show {
-          grid-template-columns: 1fr;
-        }
-      }
-
-      .preview {
-        position: sticky;
-        top: 24px;
-      }
-
-      .preview img {
-        width: 100%;
-        border-radius: 12px;
-        display: block;
-        border: 1px solid var(--border);
-        background: var(--card);
-      }
-
-      .preview .filename {
-        font-size: 12px;
-        color: var(--muted);
-        margin-top: 8px;
-        word-break: break-all;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      }
-
-      .preview .recipe-name {
+      #caption .recipe-name {
         font-family: Georgia, 'Times New Roman', serif;
-        font-size: 18px;
-        margin-top: 12px;
+        font-size: 20px;
       }
 
-      .preview .cam {
+      #caption .cam {
         font-size: 12px;
         color: var(--muted);
         margin-top: 2px;
+      }
+
+      #caption .filemeta {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 8px;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 4px 8px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      #caption .filemeta .sep {
+        opacity: 0.5;
+      }
+
+      #fields {
+        margin-top: 24px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 0 24px;
+        align-items: start;
       }
 
       section {
@@ -222,7 +260,7 @@
         background: none;
         border: none;
         padding: 0;
-        margin-top: 4px;
+        margin-left: auto;
         text-decoration: underline;
       }
     </style>
@@ -239,25 +277,30 @@
     </header>
 
     <div id="drop" tabindex="0">
-      <div class="big">Drop a photo here</div>
-      <div class="small">
-        or click to choose &middot; JPEG / HEIC / TIFF &middot; paste works too
+      <div class="prompt">
+        <div class="big">Drop a photo here</div>
+        <div class="small">
+          or click to choose &middot; JPEG / HEIC / TIFF &middot; paste works too
+        </div>
       </div>
+      <img id="thumb" alt="dropped photo" />
       <input type="file" id="file" accept="image/*" />
+    </div>
+
+    <div id="caption" hidden>
+      <div class="recipe-name" id="recipe-name"></div>
+      <div class="cam" id="cam"></div>
+      <div class="filemeta">
+        <span id="filename"></span>
+        <span class="sep">&middot;</span>
+        <span id="filesize"></span>
+        <button type="button" class="reset" id="reset">drop another</button>
+      </div>
     </div>
 
     <div id="error"></div>
 
-    <div id="result">
-      <div class="preview">
-        <img id="thumb" alt="dropped photo" />
-        <div class="recipe-name" id="recipe-name"></div>
-        <div class="cam" id="cam"></div>
-        <div class="filename" id="filename"></div>
-        <button type="button" class="reset" id="reset">drop another</button>
-      </div>
-      <div id="fields"></div>
-    </div>
+    <div id="fields"></div>
 
     <script>
       Common.initDarkMode();
@@ -565,12 +608,25 @@
       const dropEl = document.getElementById('drop');
       const fileInput = document.getElementById('file');
       const errorEl = document.getElementById('error');
-      const resultEl = document.getElementById('result');
+      const captionEl = document.getElementById('caption');
       const fieldsEl = document.getElementById('fields');
       const thumbEl = document.getElementById('thumb');
       const filenameEl = document.getElementById('filename');
+      const filesizeEl = document.getElementById('filesize');
       const recipeNameEl = document.getElementById('recipe-name');
       const camEl = document.getElementById('cam');
+
+      function fmtBytes(n) {
+        if (n == null) return '';
+        const units = ['B', 'KB', 'MB', 'GB'];
+        let v = n;
+        let i = 0;
+        while (v >= 1024 && i < units.length - 1) {
+          v /= 1024;
+          i++;
+        }
+        return (i === 0 ? v : v.toFixed(v < 10 ? 1 : 0)) + ' ' + units[i];
+      }
 
       function row(label, value) {
         if (value == null || value === '') return '';
@@ -715,14 +771,17 @@
 
           render(std || {}, fuji, file);
 
-          // preview
+          // preview — replay the grow-in animation each time a new photo lands
           if (thumbEl.dataset.url) URL.revokeObjectURL(thumbEl.dataset.url);
           const url = URL.createObjectURL(file);
+          dropEl.classList.remove('has-photo');
+          void dropEl.offsetWidth; // force reflow so the animation restarts
           thumbEl.src = url;
           thumbEl.dataset.url = url;
+          dropEl.classList.add('has-photo');
           filenameEl.textContent = file.name;
-
-          resultEl.classList.add('show');
+          filesizeEl.textContent = fmtBytes(file.size);
+          captionEl.hidden = false;
           if (!std || !std.Make) {
             errorEl.textContent =
               'No EXIF found. This file may have been stripped of metadata, or it is not a camera original.';
@@ -783,8 +842,15 @@
       });
 
       document.getElementById('reset').addEventListener('click', () => {
-        resultEl.classList.remove('show');
+        dropEl.classList.remove('has-photo');
+        captionEl.hidden = true;
+        fieldsEl.innerHTML = '';
         errorEl.textContent = '';
+        if (thumbEl.dataset.url) {
+          URL.revokeObjectURL(thumbEl.dataset.url);
+          delete thumbEl.dataset.url;
+        }
+        thumbEl.removeAttribute('src');
         fileInput.value = '';
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
