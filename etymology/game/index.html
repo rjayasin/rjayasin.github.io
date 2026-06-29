@@ -1019,7 +1019,11 @@
       // piece is dragged out), and the pool's own height animates as rows are
       // added or removed (so it grows/shrinks smoothly instead of jumping).
       let poolHeightTimer = 0;
-      function renderPool() {
+      let poolRestRects = new Map(); // card id -> its last settled rect (for drag hit-testing)
+      // `previewList`, when given, is rendered instead of the live pool — used
+      // mid-drag to show a ghost piece slotted into the gap it would drop into.
+      function renderPool(previewList) {
+        const items = previewList || pool;
         const prevPos = new Map();
         for (const c of poolEl.querySelectorAll('.gcard'))
           prevPos.set(c.dataset.id, c.getBoundingClientRect());
@@ -1035,7 +1039,7 @@
         poolEl.style.overflow = '';
 
         poolEl.innerHTML = '';
-        if (!pool.length) {
+        if (!items.length) {
           const empty = document.createElement('div');
           empty.className = 'pool-empty';
           empty.textContent = won
@@ -1045,7 +1049,7 @@
               : 'all pieces placed — hit submit';
           poolEl.appendChild(empty);
         } else {
-          for (const p of pool) poolEl.appendChild(cardEl(p));
+          for (const p of items) poolEl.appendChild(cardEl(p));
         }
 
         const targetH = poolEl.getBoundingClientRect().height;
@@ -1053,6 +1057,11 @@
         // FLIP the surviving cards from their old positions to the new layout.
         const cards = [...poolEl.querySelectorAll('.gcard')];
         const now = cards.map((c) => c.getBoundingClientRect()); // read before writing
+        // Record each card's *resting* rect (measured here, before the FLIP
+        // transform is applied) so a drag can hit-test the pool against settled
+        // geometry instead of the mid-animation transformed positions.
+        poolRestRects = new Map();
+        cards.forEach((c, i) => poolRestRects.set(c.dataset.id, now[i]));
         const moving = [];
         cards.forEach((c, i) => {
           const before = prevPos.get(c.dataset.id);
@@ -1187,6 +1196,9 @@
           grabDY: e.clientY - (rect.top + rect.height / 2),
           lastKey: undefined,
           lastTarget: null, // the target the preview currently shows (for hysteresis)
+          poolIndex: -1, // gap index the pool preview currently shows (-1 = none)
+          poolGhost: false, // is a ghost gap currently rendered in the pool?
+          boardPreviewing: false, // is the board showing a drop preview (vs. resting)?
         };
         clearFeedback();
         render();
@@ -1197,6 +1209,7 @@
         // correct geometry to test against. This is what kills the jitter:
         // the preview reflow no longer feeds back into the drop target.
         dragging.layout = snapshotBoardCards();
+        dragging.poolLayout = snapshotPoolCards();
         boardEl.classList.add('dragging'); // enable the preview transitions
         moveClone(e.clientX, e.clientY);
         updatePreview(e.clientX, e.clientY);
@@ -1249,6 +1262,48 @@
             root: c.classList.contains('root'),
           };
         });
+      }
+
+      // Pool piece rects, frozen at drag start (after the grabbed piece has
+      // been lifted out) so the insertion point is hit-tested against stable
+      // geometry — the ghost gap we open mid-drag never feeds back into it.
+      // Built from the settled rects renderPool recorded (not live
+      // getBoundingClientRect), so it isn't skewed by the pickup's FLIP tween.
+      function snapshotPoolCards() {
+        const out = [];
+        for (const p of pool) {
+          const r = poolRestRects.get(String(p.id));
+          if (r) out.push({ left: r.left, right: r.right, top: r.top, bottom: r.bottom });
+        }
+        return out;
+      }
+
+      // Where in the pool would a drop at (x, y) land? Returns an index into
+      // `pool` (0 … length). Picks the nearest resting piece, then inserts
+      // before it when the pointer is left of its midpoint, after it otherwise
+      // — so a piece can be dropped to the left of any other. `current` (the
+      // index the gap is already at) gets DRAG_HYSTERESIS of slack so hovering
+      // near a midpoint doesn't flip-flop the gap between two slots.
+      function poolDropIndex(x, y, current) {
+        const cards = (dragging && dragging.poolLayout) || [];
+        if (!cards.length) return 0;
+        let best = 0;
+        let bestDist = Infinity;
+        for (let i = 0; i < cards.length; i++) {
+          const c = cards[i];
+          const dx = x - clamp(x, c.left, c.right);
+          const dy = y - clamp(y, c.top, c.bottom);
+          const d = Math.hypot(dx, dy);
+          if (d < bestDist) {
+            bestDist = d;
+            best = i;
+          }
+        }
+        const c = cards[best];
+        let edge = (c.left + c.right) / 2;
+        if (current === best) edge += DRAG_HYSTERESIS;
+        else if (current === best + 1) edge -= DRAG_HYSTERESIS;
+        return x < edge ? best : best + 1;
       }
 
       // How far (px) the pointer must travel *back* across a boundary before
@@ -1321,18 +1376,41 @@
         const target = dropTarget(x, y, dragging.lastTarget);
         const overPool = target === null && pointInPool(x, y);
         poolEl.classList.toggle('drop-active', overPool);
-        const key = targetKey(target);
+        const poolIdx = overPool ? poolDropIndex(x, y, dragging.poolIndex) : -1;
         dragging.lastTarget = target; // remember for next move's hysteresis
+        dragging.poolIndex = poolIdx;
+        const key = overPool ? 'pool:' + poolIdx : targetKey(target);
         if (key === dragging.lastKey) return;
         dragging.lastKey = key;
+        if (overPool) {
+          // Open a gap in the pool where the piece would land; rest the board.
+          const previewList = pool.slice();
+          previewList.splice(poolIdx, 0, Object.assign(piece(dragging.p), { ghost: true }));
+          renderPool(previewList);
+          dragging.poolGhost = true;
+          if (dragging.boardPreviewing) {
+            renderBoardAnimated(boardRoot);
+            dragging.boardPreviewing = false;
+          }
+          return;
+        }
+        // Off the pool: close any ghost gap we'd opened in it.
+        if (dragging.poolGhost) {
+          renderPool();
+          dragging.poolGhost = false;
+        }
         if (!target) {
-          renderBoardAnimated(boardRoot);
+          if (dragging.boardPreviewing) {
+            renderBoardAnimated(boardRoot);
+            dragging.boardPreviewing = false;
+          }
           return;
         }
         const preview = cloneTree(boardRoot);
         const ghost = Object.assign(piece(dragging.p), { ghost: true });
         applyTarget(preview, ghost, target);
         renderBoardAnimated(preview);
+        dragging.boardPreviewing = true;
       }
       function pointInPool(x, y) {
         const pr = poolWrapEl.getBoundingClientRect();
@@ -1352,11 +1430,17 @@
         clone.remove();
         // Drop where the preview is showing — same hysteresis as the last move.
         const target = dropTarget(e.clientX, e.clientY, dragging.lastTarget);
+        // No board target → back to the pool, at the gap the preview showed
+        // (so a piece can be reordered, not just appended to the end).
+        const poolIdx =
+          !target && pointInPool(e.clientX, e.clientY)
+            ? poolDropIndex(e.clientX, e.clientY, dragging.poolIndex)
+            : pool.length;
         dragging = null;
         poolEl.classList.remove('drop-active');
         boardEl.classList.remove('dragging');
         if (target) applyTarget(boardRoot, p, target);
-        else pool.push(p);
+        else pool.splice(poolIdx, 0, p);
         render();
       }
 
