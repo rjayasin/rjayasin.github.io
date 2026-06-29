@@ -649,6 +649,7 @@ function buildChain(etymText, root, rootLang) {
     let attach = root; // parent of the next chain node
     let last = null;
     let lastEnd = 0;
+    let parenResume = null; // node to resume the chain from after a "(…)" aside
     for (const t of templates) {
       const gap = text.slice(lastEnd, t.start);
       lastEnd = t.end;
@@ -695,18 +696,28 @@ function buildChain(etymText, root, rootLang) {
       // parenthesis, or "+" introduces an alternate form or compound part — a
       // sibling branch, not an ancestor. A hard descent relation (borrowed,
       // derived, …) always introduces an ancestor unless it's joined by
-      // "+"/"or"/"and"; only mentions fall back to the prose-gap heuristic.
+      // "+"/"/"/"or"/"and" (compound parts or alternant forms/scripts); only
+      // mentions fall back to the prose-gap heuristic.
       const hardRel = node.rel && node.rel !== 'from' && node.rel !== '+';
-      const joined = gap.includes('+') || /(^|[\s,;])(or|and)\s/.test(gap);
+      const joined = /[+/]/.test(gap) || /(^|[\s,;])(or|and)\s/.test(gap);
       const sibling =
         last &&
         (joined ||
           (!hardRel && gap.length <= 30 && !/(from|via|through|of|ultimately|after|<)/i.test(gap)));
-      if (last && !sibling) attach = last;
-      // Components spelled "A + B" share one relation to their descendant
-      // ("derived from 藝 + 者"); a bare mention defaults to "from", so let the
-      // second part inherit the relation the first carried.
-      if (sibling && gap.includes('+') && node.rel === 'from' && last.rel) node.rel = last.rel;
+      // A parenthetical aside ("Hindustani (Hindi जंगल / Urdu جَن٘گَل), from
+      // Sauraseni Prakrit …") elaborates the node it follows; once it closes,
+      // the chain resumes from that node, not from the last alternant inside.
+      if (parenResume && gap.includes(')')) {
+        attach = parenResume;
+        parenResume = null;
+      } else if (last && !sibling) {
+        attach = last;
+      }
+      // Components or alternants spelled "A + B" / "A / B" share one relation to
+      // their descendant ("derived from 藝 + 者"); a bare mention defaults to
+      // "from", so let the later part inherit the relation the first carried.
+      if (sibling && /[+/]/.test(gap) && node.rel === 'from' && last.rel) node.rel = last.rel;
+      if (gap.includes('(') && !gap.includes(')') && last) parenResume = last;
       attach.children.push(node);
       last = node;
     }
@@ -808,6 +819,60 @@ function collectLangs(node, acc = []) {
   return acc;
 }
 
+function walkNodes(node, fn) {
+  fn(node);
+  for (const child of node.children) walkNodes(child, fn);
+}
+
+// A form whose reading isn't obvious from the Latin alphabet — Devanagari,
+// Arabic, Brahmi, CJK, … — wants a transliteration under it. Reconstructions
+// (already Latin, marked with "*") and plain Latin forms are left alone.
+const NON_LATIN_RE = /[^ -ɏḀ-ỿ]/;
+function wantsTr(n) {
+  return n.form && !n.tr && !n.form.startsWith('*') && NON_LATIN_RE.test(n.form);
+}
+
+// Transliterations (the romanized reading shown under a form) are produced by
+// Wiktionary's modules at render time, so they never appear in raw wikitext.
+// The .etytree mirror reads them off the rendered page; for the wikitext
+// fallback we ask {{xlit|lang|term}} to supply them — batched into one
+// expandtemplates call and cached per term so each is fetched at most once.
+const XLIT_CACHE = new Map(); // "lang␟form" -> tr ('' when none/unsupported)
+async function resolveTransliterations(root) {
+  const todo = new Map(); // key -> { lang, form }
+  walkNodes(root, (n) => {
+    if (!wantsTr(n)) return;
+    const key = n.lang + LANG_SEP + n.form;
+    if (!XLIT_CACHE.has(key)) todo.set(key, { lang: n.lang, form: n.form });
+  });
+  if (todo.size) {
+    const entries = [...todo.entries()];
+    const text = entries.map(([, q]) => '{{xlit|' + q.lang + '|' + q.form + '}}').join(LANG_SEP);
+    try {
+      const r = await fetch(LANG_API + encodeURIComponent(text));
+      if (!r.ok) throw new Error('http');
+      const j = await r.json();
+      const parts = ((j && j.expandtemplates && j.expandtemplates.wikitext) || '').split(LANG_SEP);
+      entries.forEach(([key], i) => {
+        let tr = (parts[i] || '').trim();
+        // Languages without a transliteration module expand to a Lua/script
+        // error or empty text; cache the miss so we never retry it. Some
+        // readings (e.g. Middle Chinese tone marks) come back wrapped in
+        // <sup> markup, so strip tags before caching.
+        if (!tr || /error|#invoke|\{\{|\[\[/i.test(tr)) tr = '';
+        XLIT_CACHE.set(key, cleanText(tr));
+      });
+    } catch {
+      entries.forEach(([key]) => XLIT_CACHE.set(key, ''));
+    }
+  }
+  walkNodes(root, (n) => {
+    if (!wantsTr(n)) return;
+    const tr = XLIT_CACHE.get(n.lang + LANG_SEP + n.form);
+    if (tr) n.tr = tr;
+  });
+}
+
 function pageTitleFor(form, lang) {
   const name = langName(lang);
   if (form.startsWith('*')) return 'Reconstruction:' + name + '/' + form.slice(1);
@@ -843,7 +908,10 @@ async function getTree(form, lang, depth = 0, budget = { left: 10 }) {
   }
   // The full tree is built; fill in any names missing from LANGS before
   // it's handed off to be rendered.
-  if (depth === 0) await resolveLangNames(collectLangs(root));
+  if (depth === 0) {
+    await resolveLangNames(collectLangs(root));
+    await resolveTransliterations(root);
+  }
   return root;
 }
 
