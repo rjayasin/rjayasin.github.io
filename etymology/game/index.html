@@ -1102,6 +1102,7 @@
           grabDX: e.clientX - (rect.left + rect.width / 2),
           grabDY: e.clientY - (rect.top + rect.height / 2),
           lastKey: undefined,
+          lastTarget: null, // the target the preview currently shows (for hysteresis)
         };
         clearFeedback();
         render();
@@ -1166,10 +1167,23 @@
         });
       }
 
+      // How far (px) the pointer must travel *back* across a boundary before
+      // the in-flight piece leaves the state it's currently in. This is the
+      // hysteresis that stops the preview jittering when the pointer hovers
+      // right on a seam between two states.
+      const DRAG_HYSTERESIS = 18;
+
       // Where would a drop at (x, y) land? null means "back to the pool".
       // Geometry comes from the frozen drag snapshot, not the live (reflowing)
       // DOM, so the answer is stable for a given pointer position.
-      function dropTarget(x, y) {
+      //
+      // `current` is the target the preview is already showing. We bias toward
+      // keeping it: the active card gets a small distance discount so it stays
+      // selected until another is clearly closer, and whichever relation is
+      // active has its region widened by DRAG_HYSTERESIS. So crossing a
+      // boundary commits to the new state, but drifting back across it does
+      // nothing until the pointer travels DRAG_HYSTERESIS *past* the boundary.
+      function dropTarget(x, y, current) {
         const pr = poolWrapEl.getBoundingClientRect();
         if (x >= pr.left && x <= pr.right && y >= pr.top && y <= pr.bottom) return null;
         const br = boardEl.getBoundingClientRect();
@@ -1177,12 +1191,15 @@
 
         const cards = (dragging && dragging.layout) || [];
         if (!cards.length) return null;
+        const stickId = current ? current.relId : null;
         let best = null;
         let bestDist = Infinity;
         for (const c of cards) {
           const dx = x - clamp(x, c.left, c.right);
           const dy = y - clamp(y, c.top, c.bottom);
-          const d = Math.hypot(dx, dy);
+          let d = Math.hypot(dx, dy);
+          // Keep the active card selected until another is clearly closer.
+          if (c.id === stickId) d -= DRAG_HYSTERESIS;
           if (d < bestDist) {
             bestDist = d;
             best = c;
@@ -1197,9 +1214,15 @@
         let relation = 'ancestor';
         if (!best.root) {
           const margin = Math.max(28, best.width * 0.45);
-          if (x < best.left - margin) relation = 'before';
-          else if (x > best.right + margin) relation = 'after';
-          else if (y > best.bottom) relation = 'below';
+          // Widen whichever relation is already active on this card so leaving
+          // it takes an extra DRAG_HYSTERESIS of travel back across the edge.
+          const cur = current && current.relId === best.id ? current.relation : null;
+          const beforeEdge = best.left - margin + (cur === 'before' ? DRAG_HYSTERESIS : 0);
+          const afterEdge = best.right + margin - (cur === 'after' ? DRAG_HYSTERESIS : 0);
+          const belowEdge = best.bottom - (cur === 'below' ? DRAG_HYSTERESIS : 0);
+          if (x < beforeEdge) relation = 'before';
+          else if (x > afterEdge) relation = 'after';
+          else if (y > belowEdge) relation = 'below';
         }
         return { relId: best.id, relation };
       }
@@ -1211,10 +1234,11 @@
       // Redraw the board with a ghost of the dragged card slotted in at the
       // current target, so the player sees the arrows form before dropping.
       function updatePreview(x, y) {
-        const target = dropTarget(x, y);
+        const target = dropTarget(x, y, dragging.lastTarget);
         const overPool = target === null && pointInPool(x, y);
         poolEl.classList.toggle('drop-active', overPool);
         const key = targetKey(target);
+        dragging.lastTarget = target; // remember for next move's hysteresis
         if (key === dragging.lastKey) return;
         dragging.lastKey = key;
         if (!target) {
@@ -1242,7 +1266,8 @@
         window.removeEventListener('pointercancel', onPointerUp);
         const { p, clone } = dragging;
         clone.remove();
-        const target = dropTarget(e.clientX, e.clientY);
+        // Drop where the preview is showing — same hysteresis as the last move.
+        const target = dropTarget(e.clientX, e.clientY, dragging.lastTarget);
         dragging = null;
         poolEl.classList.remove('drop-active');
         boardEl.classList.remove('dragging');
