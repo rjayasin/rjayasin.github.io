@@ -480,6 +480,17 @@
         return sz && sz !== 'Off' ? `${r}, ${sz}` : r;
       }
 
+      // Monochromatic Color (B&W / Acros only): 0x1049 warm-cool, 0x104b
+      // magenta-green. Stored as signed bytes, so normalise values > 127.
+      function monochromaticColor(t) {
+        const s8 = (v) => (v == null ? null : v > 127 ? v - 256 : v);
+        const wc = s8(t[0x1049]);
+        const mg = s8(t[0x104b]);
+        if (wc == null && mg == null) return null;
+        const sign = (x) => (x == null ? '0' : x > 0 ? '+' + x : String(x));
+        return `WC ${sign(wc)}, MG ${sign(mg)}`;
+      }
+
       function dynamicRangeLabel(t) {
         const dev = t[0x1403]; // DevelopmentDynamicRange: 100/200/400/800
         const setting = look(DR_SETTING, t[0x1402]);
@@ -607,6 +618,7 @@
           row('Highlight Tone', esc(toneLabel(t[0x1041]))),
           row('Shadow Tone', esc(toneLabel(t[0x1040]))),
           row('Color', esc(bwOrAcros ? null : look(SATURATION, satRaw))),
+          row('Monochromatic Color', esc(monochromaticColor(t))),
           row('Sharpness', esc(look(SHARPNESS, t[0x1001]))),
           row(
             'Noise Reduction',
