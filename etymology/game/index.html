@@ -767,6 +767,10 @@
       const resetBtn = document.getElementById('reset-btn');
       const newBtn = document.getElementById('new-btn');
       const DEFAULT_MSG = msgEl.textContent;
+      // Once the player has dragged a node out, they know the rules — hide the
+      // instruction hint for good, and remember that across games and visits.
+      const HINT_KEY = 'etymology-game-hint-dismissed';
+      let hintDismissed = localStorage.getItem(HINT_KEY) === '1';
 
       // ---------- Puzzle state ----------
       // realRoot   the answer tree, kept only to check the player's work.
@@ -1010,7 +1014,26 @@
         });
       }
 
+      // Re-render the pool, easing the change in: surviving pieces FLIP-slide
+      // from their old slots to their new ones (so the row closes up when a
+      // piece is dragged out), and the pool's own height animates as rows are
+      // added or removed (so it grows/shrinks smoothly instead of jumping).
+      let poolHeightTimer = 0;
       function renderPool() {
+        const prevPos = new Map();
+        for (const c of poolEl.querySelectorAll('.gcard'))
+          prevPos.set(c.dataset.id, c.getBoundingClientRect());
+        const prevH = poolEl.getBoundingClientRect().height;
+
+        // Drop any in-flight height tween so we can measure the natural target.
+        if (poolHeightTimer) {
+          clearTimeout(poolHeightTimer);
+          poolHeightTimer = 0;
+        }
+        poolEl.style.transition = 'none';
+        poolEl.style.height = '';
+        poolEl.style.overflow = '';
+
         poolEl.innerHTML = '';
         if (!pool.length) {
           const empty = document.createElement('div');
@@ -1021,9 +1044,56 @@
               ? 'all pieces placed'
               : 'all pieces placed — hit submit';
           poolEl.appendChild(empty);
-          return;
+        } else {
+          for (const p of pool) poolEl.appendChild(cardEl(p));
         }
-        for (const p of pool) poolEl.appendChild(cardEl(p));
+
+        const targetH = poolEl.getBoundingClientRect().height;
+
+        // FLIP the surviving cards from their old positions to the new layout.
+        const cards = [...poolEl.querySelectorAll('.gcard')];
+        const now = cards.map((c) => c.getBoundingClientRect()); // read before writing
+        const moving = [];
+        cards.forEach((c, i) => {
+          const before = prevPos.get(c.dataset.id);
+          if (!before) return; // a piece returning to the pool just appears
+          const dx = before.left - now[i].left;
+          const dy = before.top - now[i].top;
+          if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+          c.style.transition = 'none';
+          c.style.transform = `translate(${dx}px, ${dy}px)`;
+          moving.push(c);
+        });
+
+        // Pin the height to its old value so it can tween to the new one. Hide
+        // overflow during the tween so a scrollbar doesn't flash mid-animation.
+        const animateH = Math.abs(prevH - targetH) > 0.5;
+        if (animateH) {
+          poolEl.style.height = prevH + 'px';
+          poolEl.style.overflow = 'hidden';
+        }
+        poolEl.getBoundingClientRect(); // force the "from" state to stick
+
+        if (!moving.length && !animateH) return;
+        requestAnimationFrame(() => {
+          const ease = `cubic-bezier(0.2, 0.7, 0.3, 1)`;
+          for (const c of moving) {
+            c.style.transition = `transform ${PREVIEW_ANIM_MS}ms ${ease}`;
+            c.style.transform = 'translate(0, 0)';
+          }
+          if (animateH) {
+            poolEl.style.transition = `height ${PREVIEW_ANIM_MS}ms ${ease}`;
+            poolEl.style.height = targetH + 'px';
+            // Hand height back to natural sizing once the tween is done, so
+            // later reflows (resize, font load) aren't pinned to a stale px.
+            poolHeightTimer = setTimeout(() => {
+              poolHeightTimer = 0;
+              poolEl.style.transition = 'none';
+              poolEl.style.height = '';
+              poolEl.style.overflow = '';
+            }, PREVIEW_ANIM_MS + 40);
+          }
+        });
       }
 
       function render() {
@@ -1044,13 +1114,14 @@
         submitBtn.disabled = !placed || won;
         resetBtn.disabled = !ready || pool.length === countAll() - 1;
         if (solved) setMessage(won ? solvedMessageNode() : DEFAULT_MSG, won ? 'ok' : '');
-        // Drop the instruction hint once a piece is on the board. The solved
-        // line and the 'bad' submit feedback keep showing — only the plain hint
-        // is hidden, and it returns if every piece goes back to the pool.
+        // Drop the instruction hint once the player has ever dragged a node out
+        // (hintDismissed, which persists across games), or while a piece is on
+        // the board this game. The solved line and the 'bad' submit feedback
+        // keep showing — only the plain hint is hidden.
         const placedAny = ready && pool.length < countAll() - 1;
         msgEl.classList.toggle(
           'hint-off',
-          placedAny && !solved && !msgEl.classList.contains('bad')
+          (hintDismissed || placedAny) && !solved && !msgEl.classList.contains('bad')
         );
       }
       function countAll() {
@@ -1095,6 +1166,13 @@
         }
         if (!p) return;
         won = false; // any pickup breaks the solved arrangement — drop the strokes
+        if (!hintDismissed) {
+          // First node dragged out — retire the instruction hint permanently.
+          hintDismissed = true;
+          try {
+            localStorage.setItem(HINT_KEY, '1');
+          } catch (_) {}
+        }
 
         const rect = card.getBoundingClientRect();
         const clone = cardEl(p);
