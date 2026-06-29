@@ -680,9 +680,7 @@ function buildChain(etymText, root, rootLang) {
       const sibling =
         last &&
         (joined ||
-          (!hardRel &&
-            gap.length <= 30 &&
-            !/(from|via|through|of|ultimately|after|<)/i.test(gap)));
+          (!hardRel && gap.length <= 30 && !/(from|via|through|of|ultimately|after|<)/i.test(gap)));
       if (last && !sibling) attach = last;
       attach.children.push(node);
       last = node;
