@@ -514,6 +514,24 @@ function chainNodeFrom(t) {
   return makeNode(alt || form || '', lang, CHAIN_REL[t.name], gloss, t.named.tr);
 }
 
+// Language-specific romanization templates ({{ja-r}}, {{ryu-r}}, {{ko-r}}, …)
+// carry the script form, its reading, and a gloss for CJK-style languages.
+// The relation template just before them often hides its own term with "-"
+// ("{{bor+|en|ja|-}} {{ja-r|空%手|から%て}}"), leaving these to supply it. The
+// language is the template-name prefix; "%" and "^" are ruby alignment marks.
+const ROMANIZATION_RE = /^([a-z][a-z0-9-]*)-r$/;
+function romanizationNode(t) {
+  const m = ROMANIZATION_RE.exec(t.name);
+  if (!m) return null;
+  const strip = (s) => (s || '').replace(/[%^]/g, '').trim();
+  return {
+    lang: m[1],
+    form: strip(t.pos[0]),
+    tr: strip(t.pos[1]),
+    gloss: t.named.t || t.named.gloss || t.pos[2] || '',
+  };
+}
+
 function compoundParts(t) {
   const lang = t.pos[0];
   const parts = [];
@@ -604,7 +622,7 @@ function buildChain(etymText, root, rootLang) {
     const stop = STOP_RE.exec(para);
     const text = stop ? para.slice(0, stop.index) : para;
     const templates = parseTemplates(text).filter(
-      (t) => CHAIN_REL[t.name] || COMPOUND_NAMES.has(t.name)
+      (t) => CHAIN_REL[t.name] || COMPOUND_NAMES.has(t.name) || ROMANIZATION_RE.test(t.name)
     );
     if (!templates.length) continue;
     let attach = root; // parent of the next chain node
@@ -620,23 +638,49 @@ function buildChain(etymText, root, rootLang) {
         for (const part of compoundParts(t)) target.children.push(part);
         continue;
       }
-      const node = chainNodeFrom(t);
-      if (!node) continue;
+      let node;
+      const rom = romanizationNode(t);
+      if (rom) {
+        // A relation template that hid its term with "-" is completed by the
+        // romanization template right after it ("borrowed from Japanese 空手"):
+        // fold its script form, reading, and gloss into that node rather than
+        // adding a second one. Only when it sits adjacent (no comma/"from").
+        if (
+          last &&
+          !last.form &&
+          last.lang === rom.lang &&
+          !/[,;]/.test(gap) &&
+          !/(from|via|through|of|ultimately|after|<)/i.test(gap)
+        ) {
+          last.form = cleanText(rom.form);
+          if (!last.tr) last.tr = rom.tr;
+          if (!last.gloss) last.gloss = cleanText(rom.gloss);
+          continue;
+        }
+        // Otherwise it stands alone as a mention ("from {{ja-r|唐%手|から%て}}").
+        node = makeNode(rom.form, rom.lang, 'from', rom.gloss, rom.tr);
+      } else {
+        node = chainNodeFrom(t);
+        if (!node) continue;
+      }
       // Skip the headword itself and repeated mentions of the same form.
       if (node.lang === rootLang && node.form === root.form && !root.children.length) continue;
       if (last && node.lang === last.lang && node.form === last.form) {
         if (!last.gloss && node.gloss) last.gloss = node.gloss;
+        if (!last.tr && node.tr) last.tr = node.tr;
         continue;
       }
-      // Descent steps are spelled out ("from X, from Y"); a bare
-      // comma, parenthesis, or "+" introduces an alternate form or
-      // compound part — a sibling branch, not an ancestor.
+      // Descent steps are spelled out ("from X, from Y"); a bare comma,
+      // parenthesis, or "+" introduces an alternate form or compound part — a
+      // sibling branch, not an ancestor. A hard descent relation (borrowed,
+      // derived, …) always introduces an ancestor unless it's joined by
+      // "+"/"or"/"and"; only mentions fall back to the prose-gap heuristic.
+      const hardRel = node.rel && node.rel !== 'from' && node.rel !== '+';
+      const joined = gap.includes('+') || /(^|[\s,;])(or|and)\s/.test(gap);
       const sibling =
         last &&
-        gap.length <= 30 &&
-        (gap.includes('+') ||
-          /(^|[\s,;])(or|and)\s/.test(gap) ||
-          !/(from|via|through|of|ultimately|after|<)/i.test(gap));
+        (joined ||
+          (!hardRel && gap.length <= 30 && !/(from|via|through|of|ultimately|after|<)/i.test(gap)));
       if (last && !sibling) attach = last;
       attach.children.push(node);
       last = node;
