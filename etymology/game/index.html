@@ -459,13 +459,13 @@
         }
       }
       .gcard.gcard-enter {
-        animation: gcard-in 220ms ease both;
+        animation: gcard-in 320ms ease both;
       }
       #board.dragging .gul::before,
       #board.dragging .gul::after,
       #board.dragging .gul > .gli::before,
       #board.dragging .gul > .gli::after {
-        animation: gconnector-in 220ms ease both;
+        animation: gconnector-in 320ms ease both;
       }
       @media (prefers-reduced-motion: reduce) {
         .gcard.gcard-enter,
@@ -973,7 +973,7 @@
       // preview glides instead of snapping. Cards with no prior position — a
       // newly shown ghost — fade in via CSS; connectors fade via the
       // #board.dragging rules. Used only during a drag.
-      const PREVIEW_ANIM_MS = 220;
+      const PREVIEW_ANIM_MS = 320;
       function renderBoardAnimated(tree) {
         const prev = new Map();
         for (const c of boardEl.querySelectorAll('.gcard'))
