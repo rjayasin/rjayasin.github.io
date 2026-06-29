@@ -482,14 +482,19 @@
         }
       }
 
-      /* the card that follows the pointer while dragging */
+      /* the card that follows the pointer while dragging. It's positioned with
+         transform (not left/top) so pointer tracking stays on the compositor
+         and never forces a layout — that's what keeps the drag smooth. */
       #drag-clone {
         position: fixed;
+        left: 0;
+        top: 0;
         z-index: 200;
         pointer-events: none;
         opacity: 0.9;
         box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
         transform: translate(-50%, -50%) rotate(-1.5deg);
+        will-change: transform;
       }
 
       /* --- Node pool --- */
@@ -1118,15 +1123,29 @@
       }
 
       function moveClone(x, y) {
-        dragging.clone.style.left = x - dragging.grabDX + 'px';
-        dragging.clone.style.top = y - dragging.grabDY + 'px';
+        // Position purely via transform: compositor-only, no layout per frame.
+        dragging.clone.style.transform =
+          `translate(${x - dragging.grabDX}px, ${y - dragging.grabDY}px)` +
+          ' translate(-50%, -50%) rotate(-1.5deg)';
       }
 
+      // Pointermove can fire several times per frame; coalesce the work into a
+      // single rAF so the clone tracks the latest position and the (heavier)
+      // hit-test + preview rebuild run at most once per frame.
+      let moveRAF = 0;
+      let lastPointer = { x: 0, y: 0 };
       function onPointerMove(e) {
         if (!dragging) return;
         e.preventDefault();
-        moveClone(e.clientX, e.clientY);
-        updatePreview(e.clientX, e.clientY);
+        lastPointer.x = e.clientX;
+        lastPointer.y = e.clientY;
+        if (moveRAF) return;
+        moveRAF = requestAnimationFrame(() => {
+          moveRAF = 0;
+          if (!dragging) return;
+          moveClone(lastPointer.x, lastPointer.y);
+          updatePreview(lastPointer.x, lastPointer.y);
+        });
       }
 
       // Snapshot every board card's resting rectangle as plain numbers, taken
@@ -1214,6 +1233,10 @@
 
       function onPointerUp(e) {
         if (!dragging) return;
+        if (moveRAF) {
+          cancelAnimationFrame(moveRAF);
+          moveRAF = 0;
+        }
         window.removeEventListener('pointermove', onPointerMove);
         window.removeEventListener('pointerup', onPointerUp);
         window.removeEventListener('pointercancel', onPointerUp);
