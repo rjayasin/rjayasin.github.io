@@ -63,6 +63,12 @@
         flex-direction: column;
         height: 100vh;
         height: 100dvh;
+        /* Make all text unselectable (incl. iOS Safari, which also needs the
+           -webkit- prefix and the touch-callout suppression to stop the
+           long-press selection/callout menu). Cascades to all descendants. */
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
       }
 
       /* --- Header / controls --- */
