@@ -85,32 +85,25 @@
         margin-top: 4px;
       }
 
-      /* ---- Stage: empty | single (photo + info) | compare (A | meta | B) --- */
+      /* ---- Stage: empty | single (photo + info) | compare (full-width grid) - */
 
       #stage {
         align-items: start;
       }
 
-      #stage.single,
-      #stage.compare {
+      #stage.single {
         display: grid;
         gap: 28px;
-      }
-
-      #stage.single {
         grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
       }
 
-      /* Photos on the far edges, one shared metadata table in the middle so the
-         two photos' categories and rows line up exactly. */
+      /* Comparison is rendered as one full-width grid (see .compare-meta). */
       #stage.compare {
-        grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.55fr) minmax(0, 1.15fr);
-        gap: 26px;
+        display: block;
       }
 
       @media (max-width: 820px) {
-        #stage.single,
-        #stage.compare {
+        #stage.single {
           grid-template-columns: 1fr;
         }
       }
@@ -167,10 +160,6 @@
         display: none;
       }
 
-      .photo-frame {
-        align-self: start;
-      }
-
       .thumb-img {
         display: none;
         width: 100%;
@@ -181,11 +170,11 @@
       }
 
       #stage.compare .thumb-img {
-        max-height: 82vh;
+        max-height: 68vh;
       }
 
       #drop.has-photo .thumb-img,
-      .photo-frame .thumb-img {
+      .cm-photo .thumb-img {
         display: block;
       }
 
@@ -325,41 +314,56 @@
         color: var(--muted);
       }
 
-      /* ---- Comparison table: one grid shared by both photos ----------------
-         A single grid (Label | Photo A | Photo B) guarantees that every category
-         header and every attribute row lines up across the two photos, no matter
-         how the captions or values differ in height. */
+      /* ---- Comparison: each photo sits above its own column of metadata -----
+         The whole thing is one grid so category headers and every attribute row
+         line up exactly across the two photos. Columns are
+         [A name][A value][gutter][B name][B value]. */
       .compare-meta {
         display: grid;
-        grid-template-columns: max-content minmax(0, 1fr) minmax(0, 1fr);
-        column-gap: 22px;
-        row-gap: 7px;
+        grid-template-columns: max-content minmax(0, 1fr) 24px max-content minmax(0, 1fr);
+        column-gap: 16px;
+        row-gap: 8px;
         align-content: start;
         align-items: baseline;
       }
 
-      .cm-caption {
+      /* Every cell is a pure `span` auto item emitted in row order, so each row
+         fills completely and placement follows the DOM exactly (no backfilling
+         into the empty gutter cells, no definite-line reordering). */
+      .cm-photo {
+        grid-column: span 2;
+        align-self: start;
+        margin-bottom: 6px;
+      }
+
+      .cm-cap {
+        grid-column: span 2;
         padding-bottom: 4px;
       }
 
       .cm-section {
-        grid-column: 1 / -1;
+        grid-column: span 5;
         font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 0.08em;
         color: var(--accent);
         font-weight: 600;
-        margin-top: 18px;
+        margin-top: 16px;
         padding-top: 12px;
         border-top: 1px solid var(--border);
       }
 
+      /* The metadata name is clearly secondary to its value. */
       .cm-label {
         color: var(--label);
+        font-size: 12.5px;
         white-space: nowrap;
       }
 
+      /* The value is the primary text. */
       .cm-val {
+        color: var(--fg);
+        font-weight: 500;
         font-variant-numeric: tabular-nums;
       }
 
@@ -372,14 +376,20 @@
         text-decoration: underline;
       }
 
-      /* Differing recipe attributes — background fill only, so it never shifts
-         alignment between the two value columns. */
-      .cm-label.diff,
+      /* Differing recipe values — names are never highlighted. Background fill
+         only, so it never shifts row alignment. */
       .cm-val.diff {
         color: var(--accent);
         font-weight: 600;
         background: color-mix(in srgb, var(--accent) 13%, transparent);
         border-radius: 4px;
+      }
+
+      @media (max-width: 760px) {
+        .compare-meta {
+          column-gap: 10px;
+          grid-template-columns: max-content minmax(0, 1fr) 10px max-content minmax(0, 1fr);
+        }
       }
 
       .reset {
@@ -418,10 +428,6 @@
         <input type="file" id="file" accept="image/*" />
       </div>
       <div id="infoA" class="info" hidden></div>
-      <div id="infoB" class="info" hidden></div>
-      <div id="photoB" class="photo-frame" hidden>
-        <img id="thumbB" class="thumb-img" alt="second photo" />
-      </div>
     </div>
 
     <p id="legend" hidden><span class="swatch"></span> Highlighted recipe values differ.</p>
@@ -747,10 +753,7 @@
       const errorEl = document.getElementById('error');
       const legendEl = document.getElementById('legend');
       const thumbEl = document.getElementById('thumb');
-      const photoBEl = document.getElementById('photoB');
-      const thumbBEl = document.getElementById('thumbB');
       const infoAEl = document.getElementById('infoA');
-      const infoBEl = document.getElementById('infoB');
 
       function fmtBytes(n) {
         if (n == null) return '';
@@ -910,15 +913,24 @@
         return captionHTML(photo, slot, 'drop another') + body;
       }
 
-      // Comparison view: a single grid (Label | Photo A | Photo B) so categories
-      // and rows line up exactly across the two photos. Differing recipe
-      // attributes are highlighted. A row is shown when either photo has a value.
-      function compareHTML(a, b) {
+      // Comparison view: each photo sits above its own column of metadata, but
+      // everything is one grid so categories and rows line up exactly across the
+      // two photos. Only differing recipe *values* are highlighted (never the
+      // names). A row is shown when either photo has a value.
+      function compareHTML(a, b, animateSlot) {
         const diffSet = diffSetFor(a.data, b.data);
+        const gut = '<div class="cm-gut"></div>';
+        const photoCell = (p, animate) =>
+          `<div class="cm-photo">` +
+          `<img class="thumb-img${animate ? ' animate' : ''}" src="${p.url}" alt="${esc(p.file.name)}" />` +
+          `</div>`;
         const parts = [
-          '<div></div>',
-          `<div class="cm-caption">${captionHTML(a, 0, 'remove')}</div>`,
-          `<div class="cm-caption">${captionHTML(b, 1, 'remove')}</div>`,
+          photoCell(a, animateSlot === 0),
+          gut,
+          photoCell(b, animateSlot === 1),
+          `<div class="cm-cap">${captionHTML(a, 0, 'remove')}</div>`,
+          gut,
+          `<div class="cm-cap">${captionHTML(b, 1, 'remove')}</div>`,
         ];
 
         a.data.sections.forEach((secA, si) => {
@@ -930,8 +942,10 @@
               if (isEmpty(va) && isEmpty(vb)) return '';
               const d = isRecipe && diffSet.has(label) ? ' diff' : '';
               return (
-                `<div class="cm-label${d}">${label}</div>` +
+                `<div class="cm-label">${label}</div>` +
                 `<div class="cm-val${d}">${dashIfEmpty(va)}</div>` +
+                `<div class="cm-gut"></div>` +
+                `<div class="cm-label">${label}</div>` +
                 `<div class="cm-val${d}">${dashIfEmpty(vb)}</div>`
               );
             })
@@ -966,13 +980,12 @@
 
         if (!a && !b) {
           stageEl.className = 'empty';
+          dropEl.hidden = false;
           dropEl.classList.remove('has-photo');
           thumbEl.removeAttribute('src');
           delete thumbEl.dataset.url;
-          thumbBEl.removeAttribute('src');
-          delete thumbBEl.dataset.url;
-          infoAEl.hidden = infoBEl.hidden = photoBEl.hidden = true;
-          infoAEl.innerHTML = infoBEl.innerHTML = '';
+          infoAEl.hidden = true;
+          infoAEl.innerHTML = '';
           legendEl.hidden = true;
           errorEl.textContent = '';
           return;
@@ -981,24 +994,17 @@
         const compare = !!(a && b);
         stageEl.className = compare ? 'compare' : 'single';
         legendEl.hidden = !compare;
-
-        showThumb(dropEl, thumbEl, a, animateSlot === 0);
         infoAEl.hidden = false;
 
         if (compare) {
-          // infoA holds the shared metadata table (middle column); infoB unused.
-          infoAEl.innerHTML = compareHTML(a, b);
-          photoBEl.hidden = false;
-          showThumb(photoBEl, thumbBEl, b, animateSlot === 1);
-          infoBEl.hidden = true;
-          infoBEl.innerHTML = '';
+          // Photos live inside the comparison grid, so the standalone dropzone
+          // is hidden while comparing.
+          dropEl.hidden = true;
+          infoAEl.innerHTML = compareHTML(a, b, animateSlot);
         } else {
+          dropEl.hidden = false;
+          showThumb(dropEl, thumbEl, a, animateSlot === 0);
           infoAEl.innerHTML = infoHTML(a, 0);
-          photoBEl.hidden = true;
-          thumbBEl.removeAttribute('src');
-          delete thumbBEl.dataset.url;
-          infoBEl.hidden = true;
-          infoBEl.innerHTML = '';
         }
       }
 
@@ -1062,7 +1068,6 @@
           slots[0] = photo;
           slots[1] = null;
           delete thumbEl.dataset.url;
-          delete thumbBEl.dataset.url;
           animateSlot = 0;
         } else if (!slots[0]) {
           slots[0] = photo;
@@ -1083,9 +1088,8 @@
         } else {
           slots[1] = null;
         }
-        // Force the remaining thumb(s) to repaint into their new positions.
+        // Force the remaining thumb to repaint into its new position.
         delete thumbEl.dataset.url;
-        delete thumbBEl.dataset.url;
         const empty = !slots[0];
         layout(empty ? undefined : 0);
         if (empty) window.scrollTo({ top: 0, behavior: 'smooth' });
