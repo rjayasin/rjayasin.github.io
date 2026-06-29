@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ruvan / fuji-viewer</title>
+    <link rel="icon" id="favicon" />
+    <link rel="stylesheet" href="/common.css" />
+    <style>
+      :root {
+        --muted: #6b7280;
+        --fg: #111827;
+        --bg: #ffffff;
+        --card: #f9fafb;
+        --border: #e5e7eb;
+        --accent: #00a2ff;
+        --label: #6b7280;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+          sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+        padding: 40px 24px 80px;
+        max-width: 980px;
+        margin: 0 auto;
+        color: var(--fg);
+      }
+
+      body.dark {
+        --muted: #9ca3af;
+        --fg: #f5f5f5;
+        --bg: #111111;
+        --card: #1a1a1a;
+        --border: #2a2a2a;
+        --label: #9ca3af;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) {
+          --muted: #9ca3af;
+          --fg: #f5f5f5;
+          --bg: #111111;
+          --card: #1a1a1a;
+          --border: #2a2a2a;
+          --label: #9ca3af;
+        }
+      }
+
+      header {
+        margin-bottom: 20px;
+      }
+
+      header a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      header a:hover {
+        text-decoration: underline;
+      }
+
+      h1 {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 28px;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+      }
+
+      h1 .crumb {
+        color: var(--muted);
+        font-weight: 400;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 4px;
+      }
+
+      #drop {
+        border: 2px dashed var(--border);
+        border-radius: 14px;
+        padding: 56px 24px;
+        text-align: center;
+        color: var(--muted);
+        cursor: pointer;
+        transition:
+          border-color 0.15s ease,
+          background-color 0.15s ease;
+        background: var(--card);
+      }
+
+      #drop:hover,
+      #drop.over {
+        border-color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 6%, var(--card));
+      }
+
+      #drop .big {
+        font-size: 16px;
+        color: var(--fg);
+        margin-bottom: 6px;
+      }
+
+      #drop .small {
+        font-size: 12px;
+      }
+
+      #drop input {
+        display: none;
+      }
+
+      #error {
+        color: #dc2626;
+        margin-top: 16px;
+        font-size: 13px;
+      }
+
+      body.dark #error {
+        color: #f87171;
+      }
+
+      #result {
+        display: none;
+        margin-top: 24px;
+        gap: 24px;
+        grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
+        align-items: start;
+      }
+
+      #result.show {
+        display: grid;
+      }
+
+      @media (max-width: 680px) {
+        #result.show {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .preview {
+        position: sticky;
+        top: 24px;
+      }
+
+      .preview img {
+        width: 100%;
+        border-radius: 12px;
+        display: block;
+        border: 1px solid var(--border);
+        background: var(--card);
+      }
+
+      .preview .filename {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 8px;
+        word-break: break-all;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      .preview .recipe-name {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 18px;
+        margin-top: 12px;
+      }
+
+      .preview .cam {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+
+      section {
+        margin-bottom: 22px;
+      }
+
+      section h2 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+
+      dl {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 6px 18px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px 16px;
+      }
+
+      dt {
+        color: var(--label);
+        white-space: nowrap;
+      }
+
+      dd {
+        font-variant-numeric: tabular-nums;
+        word-break: break-word;
+      }
+
+      dd a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      dd a:hover {
+        text-decoration: underline;
+      }
+
+      .reset {
+        font-size: 12px;
+        color: var(--muted);
+        cursor: pointer;
+        background: none;
+        border: none;
+        padding: 0;
+        margin-top: 4px;
+        text-decoration: underline;
+      }
+    </style>
+    <script src="/common.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.umd.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">Ruvan</a> <span class="crumb">/ fuji-viewer</span></h1>
+      <p class="subtitle">
+        Drop a Fujifilm photo to read the film-simulation recipe it was shot with. Everything is
+        parsed in your browser &mdash; nothing is uploaded.
+      </p>
+    </header>
+
+    <div id="drop" tabindex="0">
+      <div class="big">Drop a photo here</div>
+      <div class="small">
+        or click to choose &middot; JPEG / HEIC / TIFF &middot; paste works too
+      </div>
+      <input type="file" id="file" accept="image/*" />
+    </div>
+
+    <div id="error"></div>
+
+    <div id="result">
+      <div class="preview">
+        <img id="thumb" alt="dropped photo" />
+        <div class="recipe-name" id="recipe-name"></div>
+        <div class="cam" id="cam"></div>
+        <div class="filename" id="filename"></div>
+        <button type="button" class="reset" id="reset">drop another</button>
+      </div>
+      <div id="fields"></div>
+    </div>
+
+    <script>
+      Common.initDarkMode();
+      Common.initCursorHide();
+      Common.paintFaviconR();
+      Common.initSitemapShortcut();
+      window.addEventListener('darkmodechange', () => Common.paintFaviconR());
+
+      // ---- Fujifilm MakerNote parsing ---------------------------------------
+      // Fuji maker notes are self-contained: the IFD offset stored at byte 8 is
+      // relative to the start of the maker-note blob, so we can parse the raw
+      // bytes exifr hands back without knowing the TIFF base offset.
+
+      const COMPONENT_BYTES = { 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 6: 1, 7: 1, 8: 2, 9: 4, 10: 8 };
+
+      function readEntryValue(dv, type, count, valuePtr) {
+        const unit = COMPONENT_BYTES[type] || 1;
+        const total = unit * count;
+        let base = valuePtr;
+        if (total > 4) base = dv.getUint32(valuePtr, true); // offset, maker-note relative
+        const out = [];
+        for (let i = 0; i < count; i++) {
+          const at = base + i * unit;
+          switch (type) {
+            case 1:
+            case 7:
+              out.push(dv.getUint8(at));
+              break;
+            case 2:
+              out.push(dv.getUint8(at));
+              break;
+            case 3:
+              out.push(dv.getUint16(at, true));
+              break;
+            case 4:
+              out.push(dv.getUint32(at, true));
+              break;
+            case 8:
+              out.push(dv.getInt16(at, true));
+              break;
+            case 9:
+              out.push(dv.getInt32(at, true));
+              break;
+            case 5:
+              out.push(dv.getUint32(at, true) / dv.getUint32(at + 4, true));
+              break;
+            case 10:
+              out.push(dv.getInt32(at, true) / dv.getInt32(at + 4, true));
+              break;
+            default:
+              out.push(dv.getUint8(at));
+          }
+        }
+        if (type === 2) return String.fromCharCode(...out).replace(/\0+$/, '');
+        return count === 1 ? out[0] : out;
+      }
+
+      function parseFujiMakerNote(bytes) {
+        if (!bytes || bytes.length < 12) return null;
+        const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+        let sig = '';
+        for (let i = 0; i < 8; i++) sig += String.fromCharCode(bytes[i]);
+        if (sig !== 'FUJIFILM') return null;
+        const ifdOffset = dv.getUint32(8, true);
+        const count = dv.getUint16(ifdOffset, true);
+        if (count > 256) return null;
+        const tags = {};
+        for (let i = 0; i < count; i++) {
+          const e = ifdOffset + 2 + i * 12;
+          const tag = dv.getUint16(e, true);
+          const type = dv.getUint16(e + 2, true);
+          const num = dv.getUint32(e + 4, true);
+          try {
+            tags[tag] = readEntryValue(dv, type, num, e + 8);
+          } catch (_) {
+            /* skip malformed entry */
+          }
+        }
+        return tags;
+      }
+
+      // ---- Value -> label maps (from ExifTool FujiFilm.pm) -------------------
+
+      const SHARPNESS = {
+        0x00: '-4 (softest)',
+        0x01: '-3 (very soft)',
+        0x02: '-2 (soft)',
+        0x03: '0 (normal)',
+        0x04: '+2 (hard)',
+        0x05: '+3 (very hard)',
+        0x06: '+4 (hardest)',
+        0x82: '-1 (medium soft)',
+        0x84: '+1 (medium hard)',
+        0x8000: 'Film Simulation',
+        0xffff: 'n/a',
+      };
+
+      const WHITE_BALANCE = {
+        0x0: 'Auto',
+        0x1: 'Auto (white priority)',
+        0x2: 'Auto (ambiance priority)',
+        0x100: 'Daylight',
+        0x200: 'Cloudy',
+        0x300: 'Daylight Fluorescent',
+        0x301: 'Day White Fluorescent',
+        0x302: 'White Fluorescent',
+        0x303: 'Warm White Fluorescent',
+        0x304: 'Living Room Warm White Fluorescent',
+        0x400: 'Incandescent',
+        0x500: 'Flash',
+        0x600: 'Underwater',
+        0xf00: 'Custom',
+        0xf01: 'Custom2',
+        0xf02: 'Custom3',
+        0xf03: 'Custom4',
+        0xf04: 'Custom5',
+        0xff0: 'Kelvin',
+      };
+
+      const SATURATION = {
+        0x0: '0 (normal)',
+        0x080: '+1 (medium high)',
+        0x0c0: '+3 (very high)',
+        0x0e0: '+4 (highest)',
+        0x100: '+2 (high)',
+        0x180: '-1 (medium low)',
+        0x200: 'Low',
+        0x300: 'None (B&W)',
+        0x301: 'B&W Red Filter',
+        0x302: 'B&W Yellow Filter',
+        0x303: 'B&W Green Filter',
+        0x310: 'B&W Sepia',
+        0x400: '-2 (low)',
+        0x4c0: '-3 (very low)',
+        0x4e0: '-4 (lowest)',
+        0x500: 'Acros',
+        0x501: 'Acros Red Filter',
+        0x502: 'Acros Yellow Filter',
+        0x503: 'Acros Green Filter',
+        0x8000: 'Film Simulation',
+      };
+
+      const NOISE_REDUCTION = {
+        0x000: '0 (normal)',
+        0x100: '+2 (strong)',
+        0x180: '+1 (medium strong)',
+        0x1c0: '+3 (very strong)',
+        0x1e0: '+4 (strongest)',
+        0x200: '-2 (weak)',
+        0x280: '-1 (medium weak)',
+        0x2c0: '-3 (very weak)',
+        0x2e0: '-4 (weakest)',
+      };
+
+      const NOISE_REDUCTION_OLD = { 0x40: 'Low', 0x80: 'Normal', 0x100: 'n/a' };
+
+      const FILM_MODE = {
+        0x000: 'Provia / Standard',
+        0x100: 'Studio Portrait',
+        0x110: 'Studio Portrait Enhanced Saturation',
+        0x120: 'Astia / Soft',
+        0x130: 'Studio Portrait Increased Sharpness',
+        0x200: 'Velvia / Vivid',
+        0x300: 'Studio Portrait Ex',
+        0x400: 'Velvia',
+        0x500: 'Pro Neg. Std',
+        0x501: 'Pro Neg. Hi',
+        0x600: 'Classic Chrome',
+        0x700: 'Eterna',
+        0x800: 'Classic Negative',
+        0x900: 'Bleach Bypass',
+        0xa00: 'Nostalgic Neg',
+        0xb00: 'Reala ACE',
+      };
+
+      const DR_SETTING = {
+        0x000: 'Auto',
+        0x001: 'Manual',
+        0x100: 'Standard (100%)',
+        0x200: 'Wide1 (230%)',
+        0x201: 'Wide2 (400%)',
+        0x8000: 'Film Simulation',
+      };
+
+      const GRAIN_ROUGHNESS = { 0: 'Off', 32: 'Weak', 64: 'Strong' };
+      const GRAIN_SIZE = { 0: 'Off', 16: 'Small', 32: 'Large' };
+      const STRENGTH_3 = { 0: 'Off', 32: 'Weak', 64: 'Strong' };
+      const DRANGE_PRIORITY = { 0: 'Auto', 1: 'Fixed' };
+      const DRANGE_PRIORITY_AUTO = { 1: 'Weak', 2: 'Strong', 3: 'Plus' };
+      const DRANGE_PRIORITY_FIXED = { 1: 'Weak', 2: 'Strong' };
+
+      function look(map, v) {
+        if (v == null) return null;
+        return map[v] != null ? map[v] : '0x' + v.toString(16) + ' (unknown)';
+      }
+
+      // Highlight/Shadow tone: label = -value/16, signed.
+      function toneLabel(v) {
+        if (v == null) return null;
+        const n = -v / 16;
+        if (n === 0) return '0';
+        return (n > 0 ? '+' + n : String(n)) + (n > 0 ? ' (harder)' : ' (softer)');
+      }
+
+      function whiteBalanceShift(v) {
+        if (v == null || !Array.isArray(v) || v.length < 2) return null;
+        // newer cameras store steps * 20
+        const scale = (x) => (x % 20 === 0 ? x / 20 : x);
+        const r = scale(v[0]);
+        const b = scale(v[1]);
+        const s = (x) => (x > 0 ? '+' + x : String(x));
+        return `Red ${s(r)}, Blue ${s(b)}`;
+      }
+
+      function grainLabel(t) {
+        const r = look(GRAIN_ROUGHNESS, t[0x1047]);
+        const sz = t[0x104c] != null ? look(GRAIN_SIZE, t[0x104c]) : null;
+        if (r == null) return null;
+        if (r === 'Off') return 'Off';
+        return sz && sz !== 'Off' ? `${r}, ${sz}` : r;
+      }
+
+      function dynamicRangeLabel(t) {
+        const dev = t[0x1403]; // DevelopmentDynamicRange: 100/200/400/800
+        const setting = look(DR_SETTING, t[0x1402]);
+        if (dev != null) {
+          const dr = 'DR' + dev;
+          return setting && setting !== 'Auto' && !/Standard/.test(setting)
+            ? `${dr} (${setting})`
+            : dr;
+        }
+        if (t[0x1400] != null) return t[0x1400] === 3 ? 'Wide' : 'Standard';
+        return setting;
+      }
+
+      function drPriorityLabel(t) {
+        if (t[0x1443] == null) return null;
+        const base = look(DRANGE_PRIORITY, t[0x1443]);
+        if (t[0x1444] != null) return `Auto (${look(DRANGE_PRIORITY_AUTO, t[0x1444])})`;
+        if (t[0x1445] != null) return `Fixed (${look(DRANGE_PRIORITY_FIXED, t[0x1445])})`;
+        return base;
+      }
+
+      // ---- Standard EXIF formatting -----------------------------------------
+
+      function fmtShutter(t) {
+        if (t == null) return null;
+        if (t >= 1) return Number.isInteger(t) ? `${t}s` : `${t.toFixed(1)}s`;
+        return `1/${Math.round(1 / t)}s`;
+      }
+
+      function fmtAperture(f) {
+        if (f == null) return null;
+        return 'f/' + (Number.isInteger(f) ? f : f.toFixed(1));
+      }
+
+      function fmtExpComp(v) {
+        if (v == null) return null;
+        if (v === 0) return '0 EV';
+        const thirds = Math.round(v * 3);
+        const whole = Math.trunc(thirds / 3);
+        const rem = Math.abs(thirds % 3);
+        const sign = v > 0 ? '+' : '-';
+        let mag;
+        if (rem === 0) mag = String(Math.abs(whole));
+        else if (whole === 0) mag = `${rem}/3`;
+        else mag = `${Math.abs(whole)} ${rem}/3`;
+        return `${sign}${mag} EV`;
+      }
+
+      function fmtDate(d, offset) {
+        if (!d) return null;
+        try {
+          const date = d instanceof Date ? d : new Date(d);
+          if (isNaN(date)) return String(d);
+          const opts = {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          };
+          let s = date.toLocaleString(undefined, opts);
+          if (offset) s += ` (UTC${offset})`;
+          return s;
+        } catch (_) {
+          return String(d);
+        }
+      }
+
+      // ---- Rendering --------------------------------------------------------
+
+      const dropEl = document.getElementById('drop');
+      const fileInput = document.getElementById('file');
+      const errorEl = document.getElementById('error');
+      const resultEl = document.getElementById('result');
+      const fieldsEl = document.getElementById('fields');
+      const thumbEl = document.getElementById('thumb');
+      const filenameEl = document.getElementById('filename');
+      const recipeNameEl = document.getElementById('recipe-name');
+      const camEl = document.getElementById('cam');
+
+      function row(label, value) {
+        if (value == null || value === '') return '';
+        return `<dt>${label}</dt><dd>${value}</dd>`;
+      }
+
+      function section(title, rows) {
+        const body = rows.filter(Boolean).join('');
+        if (!body) return '';
+        return `<section><h2>${title}</h2><dl>${body}</dl></section>`;
+      }
+
+      function esc(s) {
+        if (s == null) return '';
+        return String(s).replace(
+          /[&<>"]/g,
+          (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]
+        );
+      }
+
+      function render(std, t, file) {
+        const filmSim = look(FILM_MODE, t[0x1401]);
+        // film sim can also live in Saturation (Acros / B&W modes)
+        const satRaw = t[0x1003];
+        const bwOrAcros = satRaw != null && satRaw >= 0x300;
+        const recipeName = bwOrAcros ? look(SATURATION, satRaw) : filmSim;
+
+        recipeNameEl.textContent = recipeName || std.Model || '';
+        const camBits = [std.Make, std.Model].filter(Boolean).join(' ');
+        camEl.textContent = camBits + (std.LensModel ? ` · ${std.LensModel}` : '');
+
+        const recipe = [
+          row('Film Simulation', esc(filmSim || '—')),
+          row('Dynamic Range', esc(dynamicRangeLabel(t))),
+          row('DR Priority', esc(drPriorityLabel(t))),
+          row('Grain Effect', esc(grainLabel(t))),
+          row('Color Chrome Effect', esc(look(STRENGTH_3, t[0x1048]))),
+          row('Color Chrome FX Blue', esc(look(STRENGTH_3, t[0x104e]))),
+          row('White Balance', esc(look(WHITE_BALANCE, t[0x1002]))),
+          row('WB Shift', esc(whiteBalanceShift(t[0x100a]))),
+          row(
+            'Color Temp',
+            t[0x1005] != null && t[0x1002] === 0xff0 ? esc(t[0x1005] + ' K') : null
+          ),
+          row('Highlight Tone', esc(toneLabel(t[0x1041]))),
+          row('Shadow Tone', esc(toneLabel(t[0x1040]))),
+          row('Color', esc(bwOrAcros ? null : look(SATURATION, satRaw))),
+          row('Sharpness', esc(look(SHARPNESS, t[0x1001]))),
+          row(
+            'Noise Reduction',
+            esc(
+              t[0x100e] != null
+                ? look(NOISE_REDUCTION, t[0x100e])
+                : look(NOISE_REDUCTION_OLD, t[0x100b])
+            )
+          ),
+          row(
+            'Clarity',
+            t[0x100f] != null ? esc((t[0x100f] / 1000 > 0 ? '+' : '') + t[0x100f] / 1000) : null
+          ),
+        ];
+
+        const exposure = [
+          row('ISO', std.ISO != null ? esc(std.ISO) : null),
+          row('Shutter Speed', esc(fmtShutter(std.ExposureTime))),
+          row('Aperture', esc(fmtAperture(std.FNumber))),
+          row('Exposure Comp.', esc(fmtExpComp(std.ExposureCompensation))),
+          row('Focal Length', std.FocalLength != null ? esc(std.FocalLength + ' mm') : null),
+          row(
+            'Focal Length (35mm)',
+            std.FocalLengthIn35mmFormat != null ? esc(std.FocalLengthIn35mmFormat + ' mm') : null
+          ),
+        ];
+
+        let gps = null;
+        if (std.latitude != null && std.longitude != null) {
+          const lat = std.latitude.toFixed(6);
+          const lon = std.longitude.toFixed(6);
+          gps = `<a href="https://www.google.com/maps?q=${lat},${lon}" target="_blank" rel="noopener">${lat}, ${lon}</a>`;
+        }
+
+        const capture = [
+          row('Taken', esc(fmtDate(std.DateTimeOriginal, std.OffsetTimeOriginal))),
+          row('Coordinates', gps),
+          row('Altitude', std.GPSAltitude != null ? esc(std.GPSAltitude.toFixed(0) + ' m') : null),
+        ];
+
+        const camera = [
+          row('Make', esc(std.Make)),
+          row('Model', esc(std.Model)),
+          row('Lens', esc(std.LensModel)),
+          row('Shutter Type', esc(SHUTTER_TYPE_LABEL(t))),
+        ];
+
+        fieldsEl.innerHTML =
+          section('Recipe', recipe) +
+          section('Exposure', exposure) +
+          section('Capture', capture) +
+          section('Camera', camera);
+      }
+
+      const SHUTTER_TYPES = {
+        0: 'Mechanical',
+        1: 'Electronic',
+        2: 'Electronic (long shutter speed)',
+        3: 'Electronic Front Curtain',
+      };
+      function SHUTTER_TYPE_LABEL(t) {
+        return t[0x1050] != null ? SHUTTER_TYPES[t[0x1050]] || null : null;
+      }
+
+      // ---- File handling ----------------------------------------------------
+
+      async function handleFile(file) {
+        errorEl.textContent = '';
+        if (!file) return;
+        try {
+          const buf = await file.arrayBuffer();
+
+          const std = await exifr.parse(buf, {
+            tiff: true,
+            ifd0: true,
+            exif: true,
+            gps: true,
+            makerNote: true,
+            translateValues: true,
+            reviveValues: true,
+            mergeOutput: true,
+          });
+
+          // exifr puts GPS lat/lon at top level when gps is enabled
+          const gpsOut = await exifr.gps(buf).catch(() => null);
+          if (gpsOut) {
+            std.latitude = gpsOut.latitude;
+            std.longitude = gpsOut.longitude;
+          }
+
+          let fuji = null;
+          if (std && std.makerNote) fuji = parseFujiMakerNote(std.makerNote);
+          if (!fuji) fuji = {};
+
+          render(std || {}, fuji, file);
+
+          // preview
+          if (thumbEl.dataset.url) URL.revokeObjectURL(thumbEl.dataset.url);
+          const url = URL.createObjectURL(file);
+          thumbEl.src = url;
+          thumbEl.dataset.url = url;
+          filenameEl.textContent = file.name;
+
+          resultEl.classList.add('show');
+          if (!std || !std.Make) {
+            errorEl.textContent =
+              'No EXIF found. This file may have been stripped of metadata, or it is not a camera original.';
+          } else if (!std.makerNote || Object.keys(fuji).length === 0) {
+            errorEl.textContent =
+              'Read standard EXIF, but no Fujifilm recipe data was found (not a Fujifilm original, or maker notes were stripped).';
+          }
+        } catch (err) {
+          console.error(err);
+          errorEl.textContent = 'Could not read this file: ' + err.message;
+        }
+      }
+
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+      });
+
+      dropEl.addEventListener('click', () => fileInput.click());
+      dropEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          fileInput.click();
+        }
+      });
+
+      ['dragenter', 'dragover'].forEach((ev) =>
+        dropEl.addEventListener(ev, (e) => {
+          e.preventDefault();
+          dropEl.classList.add('over');
+        })
+      );
+      ['dragleave', 'dragend', 'drop'].forEach((ev) =>
+        dropEl.addEventListener(ev, (e) => {
+          e.preventDefault();
+          dropEl.classList.remove('over');
+        })
+      );
+      // allow dropping anywhere on the page
+      window.addEventListener('dragover', (e) => e.preventDefault());
+      window.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        if (f) handleFile(f);
+      });
+
+      window.addEventListener('paste', (e) => {
+        const items = e.clipboardData && e.clipboardData.items;
+        if (!items) return;
+        for (const it of items) {
+          if (it.kind === 'file') {
+            const f = it.getAsFile();
+            if (f) {
+              handleFile(f);
+              break;
+            }
+          }
+        }
+      });
+
+      document.getElementById('reset').addEventListener('click', () => {
+        resultEl.classList.remove('show');
+        errorEl.textContent = '';
+        fileInput.value = '';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    </script>
+  </body>
+</html>
