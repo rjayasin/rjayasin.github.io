@@ -532,6 +532,23 @@ function romanizationNode(t) {
   };
 }
 
+// Language-specific link templates ({{ltc-l}}, {{zh-l}}, {{och-l}}, …) are
+// {{m}}/{{l}} mentions with the language baked into the name; for these CJKV
+// families the second positional is the gloss, not an alternate form
+// ("{{der|en|ltc|-}} {{ltc-l|藝|art, craft}}"). Like romanization templates they
+// often complete a relation template whose own term was hidden with "-".
+const LANGLINK_RE = /^([a-z][a-z0-9-]*)-l$/;
+function langLinkNode(t) {
+  const m = LANGLINK_RE.exec(t.name);
+  if (!m) return null;
+  return {
+    lang: m[1],
+    form: (t.pos[0] || '').replace(/[%^]/g, '').trim(),
+    tr: t.named.tr || '',
+    gloss: t.named.t || t.named.gloss || t.pos[1] || '',
+  };
+}
+
 function compoundParts(t) {
   const lang = t.pos[0];
   const parts = [];
@@ -622,7 +639,11 @@ function buildChain(etymText, root, rootLang) {
     const stop = STOP_RE.exec(para);
     const text = stop ? para.slice(0, stop.index) : para;
     const templates = parseTemplates(text).filter(
-      (t) => CHAIN_REL[t.name] || COMPOUND_NAMES.has(t.name) || ROMANIZATION_RE.test(t.name)
+      (t) =>
+        CHAIN_REL[t.name] ||
+        COMPOUND_NAMES.has(t.name) ||
+        ROMANIZATION_RE.test(t.name) ||
+        LANGLINK_RE.test(t.name)
     );
     if (!templates.length) continue;
     let attach = root; // parent of the next chain node
@@ -639,7 +660,7 @@ function buildChain(etymText, root, rootLang) {
         continue;
       }
       let node;
-      const rom = romanizationNode(t);
+      const rom = romanizationNode(t) || langLinkNode(t);
       if (rom) {
         // A relation template that hid its term with "-" is completed by the
         // romanization template right after it ("borrowed from Japanese 空手"):
@@ -682,6 +703,10 @@ function buildChain(etymText, root, rootLang) {
         (joined ||
           (!hardRel && gap.length <= 30 && !/(from|via|through|of|ultimately|after|<)/i.test(gap)));
       if (last && !sibling) attach = last;
+      // Components spelled "A + B" share one relation to their descendant
+      // ("derived from 藝 + 者"); a bare mention defaults to "from", so let the
+      // second part inherit the relation the first carried.
+      if (sibling && gap.includes('+') && node.rel === 'from' && last.rel) node.rel = last.rel;
       attach.children.push(node);
       last = node;
     }
