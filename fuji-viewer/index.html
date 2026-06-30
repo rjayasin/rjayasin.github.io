@@ -29,6 +29,11 @@
         transition: max-width 0.3s ease;
       }
 
+      /* Give the single photo room to grow into the available width. */
+      body:has(#stage.single) {
+        max-width: 1240px;
+      }
+
       /* Comparing two photos needs room for two large photos plus the table. */
       body:has(#stage.compare) {
         max-width: 1500px;
@@ -91,10 +96,11 @@
         align-items: start;
       }
 
+      /* Photo column flexes to fill the space; the info column stays compact. */
       #stage.single {
         display: grid;
-        gap: 28px;
-        grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+        gap: 32px;
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
       }
 
       /* Comparison is rendered as one full-width grid (see .compare-meta). */
@@ -383,6 +389,19 @@
         font-weight: 600;
         background: color-mix(in srgb, var(--accent) 13%, transparent);
         border-radius: 4px;
+      }
+
+      /* While a file is dragged over the page, the two comparison photos show
+         they can be replaced; the one under the cursor is emphasised. Outline
+         (not border) so nothing reflows. */
+      body.dragging .cm-photo {
+        outline: 2px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+        outline-offset: 3px;
+        border-radius: 12px;
+      }
+
+      body.dragging .cm-photo.over {
+        outline: 3px solid var(--accent);
       }
 
       @media (max-width: 760px) {
@@ -920,14 +939,14 @@
       function compareHTML(a, b, animateSlot) {
         const diffSet = diffSetFor(a.data, b.data);
         const gut = '<div class="cm-gut"></div>';
-        const photoCell = (p, animate) =>
-          `<div class="cm-photo">` +
+        const photoCell = (p, slot, animate) =>
+          `<div class="cm-photo" data-slot="${slot}">` +
           `<img class="thumb-img${animate ? ' animate' : ''}" src="${p.url}" alt="${esc(p.file.name)}" />` +
           `</div>`;
         const parts = [
-          photoCell(a, animateSlot === 0),
+          photoCell(a, 0, animateSlot === 0),
           gut,
-          photoCell(b, animateSlot === 1),
+          photoCell(b, 1, animateSlot === 1),
           `<div class="cm-cap">${captionHTML(a, 0, 'remove')}</div>`,
           gut,
           `<div class="cm-cap">${captionHTML(b, 1, 'remove')}</div>`,
@@ -1095,6 +1114,30 @@
         if (empty) window.scrollTo({ top: 0, behavior: 'smooth' });
       }
 
+      // Swap the photo in one comparison slot for a freshly dropped one.
+      async function replacePhoto(slot, file) {
+        errorEl.textContent = '';
+        let photo;
+        try {
+          photo = await parsePhoto(file);
+        } catch (err) {
+          console.error(err);
+          errorEl.textContent = 'Could not read this file: ' + err.message;
+          return;
+        }
+        if (slots[slot]) URL.revokeObjectURL(slots[slot].url);
+        slots[slot] = photo;
+        layout(slot);
+      }
+
+      // Which comparison photo (if any) a drop landed on. Only meaningful while
+      // comparing — that is the one case where a drop replaces in place.
+      function dropTargetSlot(target) {
+        if (!(slots[0] && slots[1]) || !target || !target.closest) return null;
+        const cell = target.closest('.cm-photo');
+        return cell ? Number(cell.dataset.slot) : null;
+      }
+
       // ---- Events -----------------------------------------------------------
 
       fileInput.addEventListener('change', (e) => {
@@ -1122,12 +1165,37 @@
           dropEl.classList.remove('over');
         })
       );
-      // allow dropping anywhere on the page
-      window.addEventListener('dragover', (e) => e.preventDefault());
+      // Allow dropping anywhere on the page, and flag the drag so existing
+      // comparison photos light up as replace targets.
+      window.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        document.body.classList.add('dragging');
+      });
+      window.addEventListener('dragleave', (e) => {
+        if (e.relatedTarget === null) document.body.classList.remove('dragging');
+      });
       window.addEventListener('drop', (e) => {
         e.preventDefault();
+        document.body.classList.remove('dragging');
         const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-        if (f) addPhoto(f);
+        if (!f) return;
+        const slot = dropTargetSlot(e.target);
+        if (slot != null) replacePhoto(slot, f);
+        else addPhoto(f);
+      });
+
+      // Emphasise the comparison photo currently under the cursor.
+      stageEl.addEventListener('dragenter', (e) => {
+        const cell = e.target.closest && e.target.closest('.cm-photo');
+        if (cell) cell.classList.add('over');
+      });
+      stageEl.addEventListener('dragleave', (e) => {
+        const cell = e.target.closest && e.target.closest('.cm-photo');
+        if (cell && !cell.contains(e.relatedTarget)) cell.classList.remove('over');
+      });
+      stageEl.addEventListener('drop', (e) => {
+        const cell = e.target.closest && e.target.closest('.cm-photo');
+        if (cell) cell.classList.remove('over');
       });
 
       window.addEventListener('paste', (e) => {
