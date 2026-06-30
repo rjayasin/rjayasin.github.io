@@ -182,6 +182,7 @@
       #drop.has-photo .thumb-img,
       .cm-photo .thumb-img {
         display: block;
+        cursor: zoom-in;
       }
 
       .thumb-img.animate {
@@ -320,43 +321,73 @@
         color: var(--muted);
       }
 
-      /* ---- Comparison: each photo sits above its own column of metadata -----
-         The whole thing is one grid so category headers and every attribute row
-         line up exactly across the two photos. Columns are
-         [A name][A value][gutter][B name][B value]. */
+      /* ---- Comparison: each photo sits above its own column of metadata, and
+         each category is a card spanning both photos. The photo row and the
+         cards share the same centre gutter (--cm-gut), so the two photos line
+         up over their respective halves of every card. */
       .compare-meta {
-        display: grid;
-        grid-template-columns: max-content minmax(0, 1fr) 24px max-content minmax(0, 1fr);
-        column-gap: 16px;
-        row-gap: 8px;
-        align-content: start;
-        align-items: baseline;
+        --cm-gut: 26px;
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
       }
 
-      /* Every cell is a pure `span` auto item emitted in row order, so each row
-         fills completely and placement follows the DOM exactly (no backfilling
-         into the empty gutter cells, no definite-line reordering). */
+      .cm-top {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) var(--cm-gut) minmax(0, 1fr);
+        align-items: start;
+      }
+
+      .cm-photo-a,
+      .cm-cap-a {
+        grid-column: 1;
+      }
+
+      .cm-photo-b,
+      .cm-cap-b {
+        grid-column: 3;
+      }
+
+      .cm-photo-a,
+      .cm-photo-b {
+        grid-row: 1;
+      }
+
+      .cm-cap-a,
+      .cm-cap-b {
+        grid-row: 2;
+      }
+
       .cm-photo {
-        grid-column: span 2;
         align-self: start;
-        margin-bottom: 6px;
+        margin-bottom: 8px;
       }
 
       .cm-cap {
-        grid-column: span 2;
-        padding-bottom: 4px;
+        padding-bottom: 2px;
       }
 
       .cm-section {
-        grid-column: span 5;
         font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 0.08em;
         color: var(--accent);
         font-weight: 600;
-        margin-top: 16px;
-        padding-top: 12px;
-        border-top: 1px solid var(--border);
+        margin-bottom: 8px;
+      }
+
+      /* One rounded card per category, holding both photos' rows. Columns are
+         [A name][A value][centre gutter][B name][B value]. */
+      .cm-card {
+        display: grid;
+        grid-template-columns: max-content minmax(0, 1fr) var(--cm-gut) max-content minmax(0, 1fr);
+        column-gap: 16px;
+        row-gap: 8px;
+        align-items: baseline;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px 16px;
       }
 
       /* The metadata name is clearly secondary to its value. */
@@ -406,8 +437,11 @@
 
       @media (max-width: 760px) {
         .compare-meta {
+          --cm-gut: 12px;
+        }
+
+        .cm-card {
           column-gap: 10px;
-          grid-template-columns: max-content minmax(0, 1fr) 10px max-content minmax(0, 1fr);
         }
       }
 
@@ -420,6 +454,47 @@
         padding: 0;
         margin-left: auto;
         text-decoration: underline;
+      }
+
+      /* ---- Lightbox: click any photo to fill the window over a black scrim --- */
+      #lightbox {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: rgba(0, 0, 0, 0.92);
+        cursor: zoom-out;
+        animation: lb-in 0.18s ease both;
+      }
+
+      #lightbox[hidden] {
+        display: none;
+      }
+
+      #lightbox img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        border-radius: 6px;
+        box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+      }
+
+      @keyframes lb-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #lightbox {
+          animation: none;
+        }
       }
     </style>
     <script src="/common.js"></script>
@@ -452,6 +527,8 @@
     <p id="legend" hidden><span class="swatch"></span> Highlighted recipe values differ.</p>
 
     <div id="error"></div>
+
+    <div id="lightbox" hidden><img id="lightbox-img" alt="expanded photo" /></div>
 
     <script>
       Common.initDarkMode();
@@ -773,6 +850,8 @@
       const legendEl = document.getElementById('legend');
       const thumbEl = document.getElementById('thumb');
       const infoAEl = document.getElementById('infoA');
+      const lightboxEl = document.getElementById('lightbox');
+      const lightboxImgEl = document.getElementById('lightbox-img');
 
       function fmtBytes(n) {
         if (n == null) return '';
@@ -932,48 +1011,51 @@
         return captionHTML(photo, slot, 'drop another') + body;
       }
 
-      // Comparison view: each photo sits above its own column of metadata, but
-      // everything is one grid so categories and rows line up exactly across the
-      // two photos. Only differing recipe *values* are highlighted (never the
-      // names). A row is shown when either photo has a value.
+      // Comparison view: the two photos sit side by side above one rounded card
+      // per category. Each card is its own grid ([A name][A value][gutter]
+      // [B name][B value]) so A's and B's rows line up; the photo row shares the
+      // same centre gutter so each photo sits over its half. Only differing
+      // recipe *values* are highlighted (never the names); a row is shown when
+      // either photo has a value.
       function compareHTML(a, b, animateSlot) {
         const diffSet = diffSetFor(a.data, b.data);
-        const gut = '<div class="cm-gut"></div>';
-        const photoCell = (p, slot, animate) =>
-          `<div class="cm-photo" data-slot="${slot}">` +
+        const photoCell = (p, side, slot, animate) =>
+          `<div class="cm-photo cm-photo-${side}" data-slot="${slot}">` +
           `<img class="thumb-img${animate ? ' animate' : ''}" src="${p.url}" alt="${esc(p.file.name)}" />` +
           `</div>`;
-        const parts = [
-          photoCell(a, 0, animateSlot === 0),
-          gut,
-          photoCell(b, 1, animateSlot === 1),
-          `<div class="cm-cap">${captionHTML(a, 0, 'remove')}</div>`,
-          gut,
-          `<div class="cm-cap">${captionHTML(b, 1, 'remove')}</div>`,
-        ];
 
-        a.data.sections.forEach((secA, si) => {
-          const secB = b.data.sections[si];
-          const isRecipe = secA.title === 'Recipe';
-          const rows = secA.rows
-            .map(([label, va], ri) => {
-              const vb = secB.rows[ri][1];
-              if (isEmpty(va) && isEmpty(vb)) return '';
-              const d = isRecipe && diffSet.has(label) ? ' diff' : '';
-              return (
-                `<div class="cm-label">${label}</div>` +
-                `<div class="cm-val${d}">${dashIfEmpty(va)}</div>` +
-                `<div class="cm-gut"></div>` +
-                `<div class="cm-label">${label}</div>` +
-                `<div class="cm-val${d}">${dashIfEmpty(vb)}</div>`
-              );
-            })
-            .join('');
-          if (!rows) return;
-          parts.push(`<div class="cm-section">${secA.title}</div>`, rows);
-        });
+        const top =
+          `<div class="cm-top">` +
+          photoCell(a, 'a', 0, animateSlot === 0) +
+          photoCell(b, 'b', 1, animateSlot === 1) +
+          `<div class="cm-cap cm-cap-a">${captionHTML(a, 0, 'remove')}</div>` +
+          `<div class="cm-cap cm-cap-b">${captionHTML(b, 1, 'remove')}</div>` +
+          `</div>`;
 
-        return `<div class="compare-meta">${parts.join('')}</div>`;
+        const sections = a.data.sections
+          .map((secA, si) => {
+            const secB = b.data.sections[si];
+            const isRecipe = secA.title === 'Recipe';
+            const rows = secA.rows
+              .map(([label, va], ri) => {
+                const vb = secB.rows[ri][1];
+                if (isEmpty(va) && isEmpty(vb)) return '';
+                const d = isRecipe && diffSet.has(label) ? ' diff' : '';
+                return (
+                  `<div class="cm-label">${label}</div>` +
+                  `<div class="cm-val${d}">${dashIfEmpty(va)}</div>` +
+                  `<div class="cm-gut"></div>` +
+                  `<div class="cm-label">${label}</div>` +
+                  `<div class="cm-val${d}">${dashIfEmpty(vb)}</div>`
+                );
+              })
+              .join('');
+            if (!rows) return '';
+            return `<div class="cm-sec"><div class="cm-section">${secA.title}</div><div class="cm-card">${rows}</div></div>`;
+          })
+          .join('');
+
+        return `<div class="compare-meta">${top}${sections}</div>`;
       }
 
       // ---- Layout -----------------------------------------------------------
@@ -1145,11 +1227,17 @@
         fileInput.value = '';
       });
 
-      dropEl.addEventListener('click', () => fileInput.click());
+      // With a photo loaded the dropzone is the single-view photo: clicking it
+      // expands it. Empty, it opens the file picker.
+      function activateDrop() {
+        if (slots[0]) openLightbox(thumbEl.currentSrc || thumbEl.src);
+        else fileInput.click();
+      }
+      dropEl.addEventListener('click', activateDrop);
       dropEl.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          fileInput.click();
+          activateDrop();
         }
       });
 
@@ -1212,10 +1300,33 @@
         }
       });
 
-      // "drop another" / "remove" buttons live inside the info columns.
+      // Inside the comparison view: "remove" buttons and click-to-expand photos.
       stageEl.addEventListener('click', (e) => {
         const btn = e.target.closest('.reset');
-        if (btn) removePhoto(Number(btn.dataset.slot));
+        if (btn) {
+          removePhoto(Number(btn.dataset.slot));
+          return;
+        }
+        const cell = e.target.closest('.cm-photo');
+        if (cell) {
+          const img = cell.querySelector('img');
+          if (img) openLightbox(img.currentSrc || img.src);
+        }
+      });
+
+      // ---- Lightbox: fill the window with the photo; click anywhere to close.
+      function openLightbox(src) {
+        if (!src) return;
+        lightboxImgEl.src = src;
+        lightboxEl.hidden = false;
+      }
+      function closeLightbox() {
+        lightboxEl.hidden = true;
+        lightboxImgEl.removeAttribute('src');
+      }
+      lightboxEl.addEventListener('click', closeLightbox);
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !lightboxEl.hidden) closeLightbox();
       });
     </script>
   </body>
