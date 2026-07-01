@@ -323,6 +323,328 @@
       }
     ]
   },
+  "beggable": {
+    "form": "beggable",
+    "lang": "en",
+    "children": [
+      {
+        "form": "beg",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "beggen",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": [
+              {
+                "form": "*becgian, *bedcian",
+                "lang": "ang",
+                "rel": "derived",
+                "children": [
+                  {
+                    "form": "bedecian",
+                    "lang": "ang",
+                    "rel": "from",
+                    "gloss": "to beg",
+                    "children": [
+                      {
+                        "form": "*bedukōn",
+                        "lang": "gmw-pro",
+                        "rel": "inherited",
+                        "children": [
+                          {
+                            "form": "*bedu",
+                            "lang": "gmw-pro",
+                            "rel": "derived",
+                            "children": [
+                              {
+                                "form": "bead",
+                                "lang": "en",
+                                "rel": "from",
+                                "children": []
+                              },
+                              {
+                                "form": "*bedagō",
+                                "lang": "gmw-pro",
+                                "rel": "derived",
+                                "gloss": "petitioner, requester, beggar",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "-able",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "-able",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": [
+              {
+                "form": "-able",
+                "lang": "fro",
+                "rel": "derived",
+                "children": [
+                  {
+                    "form": "-ābilis",
+                    "lang": "la",
+                    "rel": "derived",
+                    "children": [
+                      {
+                        "form": "-a-",
+                        "lang": "la",
+                        "rel": "from",
+                        "children": []
+                      },
+                      {
+                        "form": "-i-",
+                        "lang": "la",
+                        "rel": "from",
+                        "children": []
+                      },
+                      {
+                        "form": "-bilis",
+                        "lang": "la",
+                        "rel": "from",
+                        "gloss": "capable or worthy of being acted upon",
+                        "children": [
+                          {
+                            "form": "",
+                            "lang": "ine-pro",
+                            "rel": "derived",
+                            "children": []
+                          },
+                          {
+                            "form": "*-dʰli-",
+                            "lang": "ine-pro",
+                            "rel": "from",
+                            "children": [
+                              {
+                                "form": "*-dʰlom",
+                                "lang": "ine-pro",
+                                "rel": "from",
+                                "gloss": "instrumental suffix",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "biology": {
+    "form": "biology",
+    "lang": "en",
+    "children": [
+      {
+        "form": "biologia",
+        "lang": "la",
+        "rel": "learned borrowing",
+        "children": [
+          {
+            "form": "βίος",
+            "lang": "grc",
+            "tr": "bíos",
+            "children": [
+              {
+                "form": "*gʷeyh₃-",
+                "lang": "ine-pro",
+                "rel": "derived",
+                "children": []
+              }
+            ]
+          },
+          {
+            "form": "-logia",
+            "lang": "la",
+            "children": [
+              {
+                "form": "-λογῐ́ᾱ",
+                "lang": "grc",
+                "rel": "borrowed",
+                "tr": "-logĭ́ā",
+                "children": [
+                  {
+                    "form": "λόγος",
+                    "lang": "grc",
+                    "tr": "lógos",
+                    "children": [
+                      {
+                        "form": "*leǵ-",
+                        "lang": "ine-pro",
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "form": "-ῐ́ᾱ",
+                    "lang": "grc",
+                    "tr": "-ĭ́ā",
+                    "children": [
+                      {
+                        "form": "*-íā",
+                        "lang": "grk-pro",
+                        "children": [
+                          {
+                            "form": "*-i-eh₂",
+                            "lang": "ine-pro",
+                            "children": [
+                              {
+                                "form": "*-éh₂",
+                                "lang": "ine-pro",
+                                "children": [
+                                  {
+                                    "form": "*-h₂",
+                                    "lang": "ine-pro",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "breakfast": {
+    "form": "breakfast",
+    "lang": "en",
+    "children": [
+      {
+        "form": "brekefast",
+        "lang": "enm",
+        "rel": "inherited",
+        "children": []
+      },
+      {
+        "form": "brekefaste",
+        "lang": "enm",
+        "rel": "from",
+        "children": [
+          {
+            "form": "fæstenbryċe",
+            "lang": "ang",
+            "rel": "inherited",
+            "children": []
+          }
+        ]
+      },
+      {
+        "form": "break",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "breken",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": [
+              {
+                "form": "brecan",
+                "lang": "ang",
+                "rel": "inherited",
+                "gloss": "to break",
+                "children": [
+                  {
+                    "form": "*brekan",
+                    "lang": "gmw-pro",
+                    "rel": "inherited",
+                    "children": [
+                      {
+                        "form": "*brekaną",
+                        "lang": "gem-pro",
+                        "rel": "inherited",
+                        "gloss": "to break",
+                        "children": [
+                          {
+                            "form": "*bʰreg-",
+                            "lang": "ine-pro",
+                            "rel": "inherited",
+                            "gloss": "to break",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "fast",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "fast",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": []
+          },
+          {
+            "form": "fest",
+            "lang": "enm",
+            "rel": "from",
+            "children": [
+              {
+                "form": "fæst",
+                "lang": "ang",
+                "rel": "inherited",
+                "gloss": "firm, secure",
+                "children": [
+                  {
+                    "form": "*fast",
+                    "lang": "gmw-pro",
+                    "rel": "inherited",
+                    "children": [
+                      {
+                        "form": "*fastuz",
+                        "lang": "gem-pro",
+                        "rel": "inherited",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "burnoose": {
     "form": "burnoose",
     "lang": "en",
@@ -488,6 +810,108 @@
       }
     ]
   },
+  "conflagration": {
+    "form": "conflagration",
+    "lang": "en",
+    "children": [
+      {
+        "form": "",
+        "lang": "",
+        "rel": "borrowed",
+        "children": [
+          {
+            "form": "cōnflagrātiō",
+            "lang": "la",
+            "rel": "derived",
+            "children": [
+              {
+                "form": "cōnflagrō",
+                "lang": "la",
+                "children": [
+                  {
+                    "form": "con-",
+                    "lang": "la",
+                    "children": [
+                      {
+                        "form": "*kom-",
+                        "lang": "itc-pro",
+                        "children": [
+                          {
+                            "form": "*kom",
+                            "lang": "itc-pro",
+                            "children": [
+                              {
+                                "form": "*ḱóm",
+                                "lang": "ine-pro",
+                                "children": [
+                                  {
+                                    "form": "*ḱe",
+                                    "lang": "ine-pro",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "form": "flagrō",
+                    "lang": "la",
+                    "children": [
+                      {
+                        "form": "*flagros",
+                        "lang": "itc-pro",
+                        "rel": "derived",
+                        "children": [
+                          {
+                            "form": "*bʰel-",
+                            "lang": "ine-pro",
+                            "rel": "derived",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "form": "-tiō",
+                "lang": "la",
+                "children": [
+                  {
+                    "form": "*-tiō",
+                    "lang": "itc-pro",
+                    "children": [
+                      {
+                        "form": "*-tiHō",
+                        "lang": "ine-pro",
+                        "children": [
+                          {
+                            "form": "*-tis",
+                            "lang": "ine-pro",
+                            "children": []
+                          },
+                          {
+                            "form": "*-Hō",
+                            "lang": "ine-pro",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "cousinfucking": {
     "form": "cousinfucking",
     "lang": "en",
@@ -628,6 +1052,87 @@
                     ]
                   }
                 ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "democracy": {
+    "form": "democracy",
+    "lang": "en",
+    "children": [
+      {
+        "form": "democratie",
+        "lang": "frm",
+        "rel": "borrowed",
+        "children": [
+          {
+            "form": "dēmocratia",
+            "lang": "la-med",
+            "rel": "derived",
+            "children": [
+              {
+                "form": "δημοκρᾰτῐ́ᾱ",
+                "lang": "grc",
+                "rel": "derived",
+                "tr": "dēmokrătĭ́ā",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "démocratie",
+        "lang": "fr",
+        "rel": "from",
+        "children": []
+      },
+      {
+        "form": "demo-",
+        "lang": "en",
+        "rel": "+",
+        "gloss": "people",
+        "children": [
+          {
+            "form": "δημο-",
+            "lang": "grc",
+            "rel": "derived",
+            "tr": "dēmo-",
+            "children": [
+              {
+                "form": "δῆμος",
+                "lang": "grc",
+                "rel": "from",
+                "gloss": "people",
+                "tr": "dêmos",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "-cracy",
+        "lang": "en",
+        "rel": "+",
+        "gloss": "rule",
+        "children": [
+          {
+            "form": "-κρατία",
+            "lang": "grc",
+            "rel": "borrowed",
+            "tr": "-kratía",
+            "children": [
+              {
+                "form": "κράτος",
+                "lang": "grc",
+                "rel": "from",
+                "gloss": "power",
+                "tr": "krátos",
+                "children": []
               }
             ]
           }
@@ -926,6 +1431,49 @@
       }
     ]
   },
+  "fish": {
+    "form": "fish",
+    "lang": "en",
+    "children": [
+      {
+        "form": "fisch",
+        "lang": "enm",
+        "rel": "inherited",
+        "children": [
+          {
+            "form": "fisċ",
+            "lang": "ang",
+            "rel": "inherited",
+            "gloss": "fish",
+            "children": [
+              {
+                "form": "*fisk",
+                "lang": "gmw-pro",
+                "rel": "inherited",
+                "children": [
+                  {
+                    "form": "*fiskaz",
+                    "lang": "gem-pro",
+                    "rel": "inherited",
+                    "gloss": "fish",
+                    "children": [
+                      {
+                        "form": "*piskós",
+                        "lang": "ine-pro",
+                        "rel": "inherited",
+                        "gloss": "fish",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "jungle": {
     "form": "jungle",
     "lang": "en",
@@ -967,6 +1515,159 @@
                     "lang": "qfa-sub",
                     "rel": "derived",
                     "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "lemon": {
+    "form": "lemon",
+    "lang": "en",
+    "children": [
+      {
+        "form": "lymon",
+        "lang": "enm",
+        "rel": "inherited",
+        "children": [
+          {
+            "form": "lymon",
+            "lang": "fro",
+            "rel": "derived",
+            "gloss": "citrus",
+            "children": [
+              {
+                "form": "لَيْمُون",
+                "lang": "ar",
+                "rel": "derived",
+                "tr": "laymūn",
+                "children": []
+              },
+              {
+                "form": "لِیمُون",
+                "lang": "fa-cls",
+                "rel": "derived",
+                "tr": "līmūn",
+                "children": [
+                  {
+                    "form": "لِیمُو",
+                    "lang": "fa-cls",
+                    "rel": "derived",
+                    "tr": "līmū, līmō",
+                    "children": [
+                      {
+                        "form": "निम्बू",
+                        "lang": "sa",
+                        "rel": "derived",
+                        "gloss": "lime",
+                        "tr": "nimbū",
+                        "children": [
+                          {
+                            "form": "*limaw",
+                            "lang": "poz-pro",
+                            "rel": "derived",
+                            "children": []
+                          },
+                          {
+                            "form": "lime",
+                            "lang": "mun",
+                            "rel": "derived",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "materialness": {
+    "form": "materialness",
+    "lang": "en",
+    "children": [
+      {
+        "form": "material",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "material",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": [
+              {
+                "form": "māteriālis",
+                "lang": "la-lat",
+                "rel": "derived",
+                "children": [
+                  {
+                    "form": "māteria",
+                    "lang": "la",
+                    "rel": "derived",
+                    "gloss": "wood, material, substance",
+                    "children": [
+                      {
+                        "form": "māter",
+                        "lang": "la",
+                        "rel": "from",
+                        "gloss": "mother",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "-ness",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "-nes",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": []
+          },
+          {
+            "form": "-nesse",
+            "lang": "enm",
+            "rel": "from",
+            "children": [
+              {
+                "form": "-nis",
+                "lang": "ang",
+                "rel": "inherited",
+                "children": []
+              },
+              {
+                "form": "-nes",
+                "lang": "ang",
+                "rel": "from",
+                "children": [
+                  {
+                    "form": "*-nassī",
+                    "lang": "gmw-pro",
+                    "rel": "inherited",
+                    "children": [
+                      {
+                        "form": "*-inassuz",
+                        "lang": "gem-pro",
+                        "rel": "inherited",
+                        "children": []
+                      }
+                    ]
                   }
                 ]
               }
@@ -1638,6 +2339,122 @@
       }
     ]
   },
+  "philosophy": {
+    "form": "philosophy",
+    "lang": "en",
+    "children": [
+      {
+        "form": "philosophie",
+        "lang": "enm",
+        "rel": "inherited",
+        "children": [
+          {
+            "form": "philosophie",
+            "lang": "fro",
+            "rel": "derived",
+            "children": []
+          },
+          {
+            "form": "philosophia",
+            "lang": "la",
+            "rel": "derived",
+            "children": [
+              {
+                "form": "φιλοσοφία",
+                "lang": "grc",
+                "rel": "derived",
+                "tr": "philosophía",
+                "children": [
+                  {
+                    "form": "φίλος",
+                    "lang": "grc",
+                    "rel": "from",
+                    "gloss": "loving",
+                    "tr": "phílos",
+                    "children": []
+                  },
+                  {
+                    "form": "σοφία",
+                    "lang": "grc",
+                    "rel": "from",
+                    "gloss": "wisdom",
+                    "tr": "sophía",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "philo-",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "phil-",
+            "lang": "en",
+            "rel": "+",
+            "children": [
+              {
+                "form": "φίλος",
+                "lang": "grc",
+                "rel": "derived",
+                "gloss": "beloved, dear",
+                "tr": "phílos",
+                "children": []
+              },
+              {
+                "form": "φιλέω",
+                "lang": "grc",
+                "rel": "from",
+                "gloss": "to love",
+                "tr": "philéō",
+                "children": []
+              }
+            ]
+          },
+          {
+            "form": "-o-",
+            "lang": "en",
+            "rel": "+",
+            "children": [
+              {
+                "form": "-o-",
+                "lang": "la",
+                "rel": "borrowed",
+                "children": [
+                  {
+                    "form": "-ο-",
+                    "lang": "grc",
+                    "rel": "derived",
+                    "tr": "-o-",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "-sophy",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "σοφία",
+            "lang": "grc",
+            "rel": "derived",
+            "gloss": "knowledge, wisdom",
+            "tr": "sophía",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
   "photograph": {
     "form": "photograph",
     "lang": "en",
@@ -1748,6 +2565,91 @@
       }
     ]
   },
+  "presplit": {
+    "form": "presplit",
+    "lang": "en",
+    "children": [
+      {
+        "form": "pre-",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "pre-",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": [
+              {
+                "form": "prae-",
+                "lang": "la",
+                "rel": "derived",
+                "children": [
+                  {
+                    "form": "prae",
+                    "lang": "la",
+                    "rel": "from",
+                    "gloss": "before",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "split",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "splitten",
+            "lang": "dum",
+            "rel": "borrowed",
+            "gloss": "to split",
+            "children": []
+          },
+          {
+            "form": "splitten",
+            "lang": "gml",
+            "rel": "borrowed",
+            "gloss": "to split",
+            "children": [
+              {
+                "form": "*splittjan",
+                "lang": "gmw-pro",
+                "rel": "derived",
+                "children": [
+                  {
+                    "form": "*splītan",
+                    "lang": "gmw-pro",
+                    "rel": "derived",
+                    "gloss": "to split",
+                    "children": [
+                      {
+                        "form": "*splītaną",
+                        "lang": "gem-pro",
+                        "rel": "derived",
+                        "children": [
+                          {
+                            "form": "*(s)pley-",
+                            "lang": "ine-pro",
+                            "rel": "derived",
+                            "gloss": "to split, splice",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "propone": {
     "form": "propone",
     "lang": "en",
@@ -1763,6 +2665,139 @@
             "lang": "sco",
             "rel": "derived",
             "children": []
+          }
+        ]
+      }
+    ]
+  },
+  "pseudopodic": {
+    "form": "pseudopodic",
+    "lang": "en",
+    "children": [
+      {
+        "form": "pseudopod",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "pseudo",
+            "lang": "en",
+            "rel": "+",
+            "children": [
+              {
+                "form": "",
+                "lang": "enm",
+                "rel": "inherited",
+                "children": [
+                  {
+                    "form": "pseudo-",
+                    "lang": "en",
+                    "rel": "from",
+                    "children": [
+                      {
+                        "form": "ψευδής",
+                        "lang": "grc",
+                        "rel": "derived",
+                        "gloss": "false, lying",
+                        "tr": "pseudḗs",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "form": "pod",
+            "lang": "en",
+            "rel": "+",
+            "children": [
+              {
+                "form": "*pod",
+                "lang": "enm",
+                "rel": "inherited",
+                "children": [
+                  {
+                    "form": "pād",
+                    "lang": "ang",
+                    "rel": "inherited",
+                    "gloss": "an outer garment, covering, coat, cloak",
+                    "children": [
+                      {
+                        "form": "*paidu",
+                        "lang": "gmw-pro",
+                        "rel": "inherited",
+                        "children": [
+                          {
+                            "form": "*paidō",
+                            "lang": "gem-pro",
+                            "rel": "inherited",
+                            "gloss": "coat, smock, shirt",
+                            "children": [
+                              {
+                                "form": "*baiteh₂-",
+                                "lang": "ine-pro",
+                                "rel": "derived",
+                                "gloss": "woolen clothes",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "-ic",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "-ik",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": [
+              {
+                "form": "-ique",
+                "lang": "fro",
+                "rel": "derived",
+                "children": [
+                  {
+                    "form": "-icus",
+                    "lang": "la",
+                    "rel": "derived",
+                    "children": [
+                      {
+                        "form": "*-kos, *-ḱos",
+                        "lang": "ine-pro",
+                        "rel": "derived",
+                        "children": [
+                          {
+                            "form": "*-i-",
+                            "lang": "ine-pro",
+                            "rel": "from",
+                            "children": []
+                          },
+                          {
+                            "form": "*-kos, *-ḱos",
+                            "lang": "ine-pro",
+                            "rel": "from",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
           }
         ]
       }
