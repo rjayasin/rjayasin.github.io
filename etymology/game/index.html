@@ -142,6 +142,12 @@
       button.btn.primary {
         border-color: var(--muted);
       }
+      /* "new game" armed for confirmation: it discards a board with placed cards,
+         so the first click asks again and only a second one starts a fresh game. */
+      button.btn.confirm {
+        border-color: var(--bad, #c0392b);
+        color: var(--bad, #c0392b);
+      }
       /* GitHub sign-in: a quiet icon in the header that brightens on hover and
          while signed in. Signed-in players' discoveries are saved to the pool. */
       #gh-auth {
@@ -1528,6 +1534,19 @@
       submitBtn.addEventListener('click', onSubmit);
       resetBtn.addEventListener('click', onReset);
 
+      // Enter is a shortcut for the submit button. Skip it when a control that
+      // handles Enter itself is focused (the difficulty picker, the buttons, the
+      // sign-in link) so those keep their native behaviour, and only fire when
+      // submit is actually enabled — mirroring a click on the button.
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' || e.repeat || e.isComposing) return;
+        const el = document.activeElement;
+        if (el && el.matches('select, button, a, input, textarea')) return;
+        if (submitBtn.disabled) return;
+        e.preventDefault();
+        onSubmit();
+      });
+
       // ---------- Generating a game ----------
       const GEN_ATTEMPTS = 8;
       const POOL_ATTEMPTS = 6;
@@ -1977,7 +1996,34 @@
         }
       }
 
-      newBtn.addEventListener('click', () => newGame());
+      // A game in progress with cards already placed is easy to wipe out with a
+      // stray "new game" click, so guard it: when the board holds placed cards the
+      // first click only arms the button (label + colour change) and a second
+      // click within a few seconds actually starts fresh. An untouched board (just
+      // the root, everything still in the tray) starts on the first click.
+      let newArmed = false;
+      let newArmTimer = null;
+      function boardHasPlacedCards() {
+        return !!realRoot && boardRoot !== null && pool.length < countAll() - 1;
+      }
+      function disarmNewBtn() {
+        newArmed = false;
+        clearTimeout(newArmTimer);
+        newBtn.textContent = 'new game';
+        newBtn.classList.remove('confirm');
+      }
+      newBtn.addEventListener('click', () => {
+        if (boardHasPlacedCards() && !newArmed) {
+          newArmed = true;
+          newBtn.textContent = 'discard? click again';
+          newBtn.classList.add('confirm');
+          clearTimeout(newArmTimer);
+          newArmTimer = setTimeout(disarmNewBtn, 3000);
+          return;
+        }
+        disarmNewBtn();
+        newGame();
+      });
 
       // Expose a hook so the rendering can be exercised without the network.
       window.__startPuzzleWithTree = startPuzzleWithTree;
