@@ -1163,6 +1163,195 @@
       }
     ]
   },
+  "mucoregulatory": {
+    "form": "mucoregulatory",
+    "lang": "en",
+    "children": [
+      {
+        "form": "muco",
+        "lang": "en",
+        "rel": "+",
+        "children": []
+      },
+      {
+        "form": "regulate",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "regulatus",
+            "lang": "la",
+            "rel": "borrowed",
+            "children": [
+              {
+                "form": "regulō",
+                "lang": "la",
+                "rel": "from",
+                "gloss": "to direct, rule, regulate",
+                "children": [
+                  {
+                    "form": "regula",
+                    "lang": "la",
+                    "rel": "from",
+                    "gloss": "rule",
+                    "children": [
+                      {
+                        "form": "regō",
+                        "lang": "la",
+                        "rel": "from",
+                        "gloss": "to keep straight, direct, govern, rule",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "form": "-ate",
+                "lang": "en",
+                "rel": "from",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "-ory",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "-orie",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": [
+              {
+                "form": "",
+                "lang": "la",
+                "rel": "derived",
+                "children": []
+              },
+              {
+                "form": "-tōrius",
+                "lang": "la",
+                "rel": "from",
+                "children": []
+              }
+            ]
+          },
+          {
+            "form": "-or",
+            "lang": "en",
+            "rel": "+",
+            "children": [
+              {
+                "form": "-our",
+                "lang": "enm",
+                "rel": "inherited",
+                "children": [
+                  {
+                    "form": "-eor",
+                    "lang": "fro",
+                    "rel": "derived",
+                    "children": [
+                      {
+                        "form": "-ātor",
+                        "lang": "la",
+                        "rel": "derived",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "form": "-y",
+            "lang": "en",
+            "rel": "+",
+            "children": [
+              {
+                "form": "-y",
+                "lang": "enm",
+                "rel": "inherited",
+                "children": []
+              },
+              {
+                "form": "-i",
+                "lang": "enm",
+                "rel": "from",
+                "children": [
+                  {
+                    "form": "-iġ",
+                    "lang": "ang",
+                    "rel": "inherited",
+                    "gloss": "-y, -ic",
+                    "children": [
+                      {
+                        "form": "*-g",
+                        "lang": "gmw-pro",
+                        "rel": "inherited",
+                        "children": [
+                          {
+                            "form": "*-īgaz",
+                            "lang": "gem-pro",
+                            "rel": "inherited",
+                            "gloss": "-y, -ic",
+                            "children": [
+                              {
+                                "form": "*-kos",
+                                "lang": "ine-pro",
+                                "rel": "inherited",
+                                "children": []
+                              },
+                              {
+                                "form": "*-ikos",
+                                "lang": "ine-pro",
+                                "rel": "from",
+                                "children": []
+                              },
+                              {
+                                "form": "*-iḱos",
+                                "lang": "ine-pro",
+                                "rel": "from",
+                                "gloss": "-y, -ic",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "muco-",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "mucus",
+            "lang": "la",
+            "rel": "from",
+            "children": []
+          }
+        ]
+      },
+      {
+        "form": "regulatory",
+        "lang": "en",
+        "rel": "+",
+        "children": []
+      }
+    ]
+  },
   "nanobiophysics": {
     "form": "nanobiophysics",
     "lang": "en",
@@ -1415,6 +1604,164 @@
                     "gloss": "-form, -like",
                     "tr": "-eidḗs",
                     "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "rewriter": {
+    "form": "rewriter",
+    "lang": "en",
+    "children": [
+      {
+        "form": "rewrite",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "re-",
+            "lang": "en",
+            "rel": "+",
+            "children": [
+              {
+                "form": "re-",
+                "lang": "enm",
+                "rel": "inherited",
+                "children": [
+                  {
+                    "form": "re-",
+                    "lang": "fro",
+                    "rel": "derived",
+                    "children": [
+                      {
+                        "form": "re-",
+                        "lang": "la",
+                        "rel": "derived",
+                        "children": []
+                      },
+                      {
+                        "form": "red-",
+                        "lang": "la",
+                        "rel": "from",
+                        "gloss": "back; anew; again; against",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "form": "write",
+            "lang": "en",
+            "rel": "+",
+            "children": [
+              {
+                "form": "writen",
+                "lang": "enm",
+                "rel": "inherited",
+                "children": [
+                  {
+                    "form": "wrītan",
+                    "lang": "ang",
+                    "rel": "inherited",
+                    "children": [
+                      {
+                        "form": "*wrītan",
+                        "lang": "gmw-pro",
+                        "rel": "inherited",
+                        "children": [
+                          {
+                            "form": "*wrītaną",
+                            "lang": "gem-pro",
+                            "rel": "inherited",
+                            "gloss": "to carve, write",
+                            "children": [
+                              {
+                                "form": "*wrey-",
+                                "lang": "ine-pro",
+                                "rel": "derived",
+                                "gloss": "to rip, tear",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "-er",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "-ere, -er",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": [
+              {
+                "form": "-ere",
+                "lang": "ang",
+                "rel": "inherited",
+                "children": [
+                  {
+                    "form": "*-ārī",
+                    "lang": "gmw-pro",
+                    "rel": "inherited",
+                    "children": [
+                      {
+                        "form": "*-ārijaz",
+                        "lang": "gem-pro",
+                        "rel": "inherited",
+                        "children": [
+                          {
+                            "form": "-ārius",
+                            "lang": "la",
+                            "rel": "derived",
+                            "children": []
+                          },
+                          {
+                            "form": "*-ārijaz",
+                            "lang": "gem-pro",
+                            "rel": "from",
+                            "children": [
+                              {
+                                "form": "-er",
+                                "lang": "enm",
+                                "rel": "inherited",
+                                "children": [
+                                  {
+                                    "form": "-ier",
+                                    "lang": "fro",
+                                    "rel": "derived",
+                                    "children": [
+                                      {
+                                        "form": "-ārius",
+                                        "lang": "la",
+                                        "rel": "derived",
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
                   }
                 ]
               }
