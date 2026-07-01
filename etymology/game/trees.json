@@ -926,6 +926,56 @@
       }
     ]
   },
+  "jungle": {
+    "form": "jungle",
+    "lang": "en",
+    "children": [
+      {
+        "form": "",
+        "lang": "inc-hnd",
+        "rel": "borrowed",
+        "children": [
+          {
+            "form": "जंगल",
+            "lang": "hi",
+            "rel": "borrowed",
+            "tr": "jaṅgal",
+            "children": []
+          },
+          {
+            "form": "جَن٘گَل",
+            "lang": "ur",
+            "rel": "borrowed",
+            "tr": "jaṅgal",
+            "children": []
+          },
+          {
+            "form": "𑀚𑀁𑀕𑀮",
+            "lang": "pra-sau",
+            "rel": "derived",
+            "tr": "jaṃgala",
+            "children": [
+              {
+                "form": "जङ्गल",
+                "lang": "sa",
+                "rel": "derived",
+                "gloss": "arid or sterile region, desert",
+                "tr": "jaṅgala",
+                "children": [
+                  {
+                    "form": "",
+                    "lang": "qfa-sub",
+                    "rel": "derived",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "metaphrastically": {
     "form": "metaphrastically",
     "lang": "en",
@@ -1169,6 +1219,74 @@
       }
     ]
   },
+  "milk": {
+    "form": "milk",
+    "lang": "en",
+    "children": [
+      {
+        "form": "milk",
+        "lang": "enm",
+        "rel": "inherited",
+        "children": []
+      },
+      {
+        "form": "mylk",
+        "lang": "enm",
+        "rel": "from",
+        "children": []
+      },
+      {
+        "form": "melk",
+        "lang": "enm",
+        "rel": "from",
+        "children": []
+      },
+      {
+        "form": "mulc",
+        "lang": "enm",
+        "rel": "from",
+        "children": [
+          {
+            "form": "meolc",
+            "lang": "ang",
+            "rel": "inherited",
+            "children": []
+          },
+          {
+            "form": "meoluc",
+            "lang": "ang",
+            "rel": "from",
+            "gloss": "milk",
+            "children": [
+              {
+                "form": "*meluk",
+                "lang": "gmw-pro",
+                "rel": "inherited",
+                "gloss": "milk",
+                "children": [
+                  {
+                    "form": "*meluks",
+                    "lang": "gem-pro",
+                    "rel": "inherited",
+                    "gloss": "milk",
+                    "children": [
+                      {
+                        "form": "*h₂melǵ-",
+                        "lang": "ine-pro",
+                        "rel": "derived",
+                        "gloss": "milk, to milk",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "mkhare": {
     "form": "mkhare",
     "lang": "en",
@@ -1180,6 +1298,83 @@
         "gloss": "region",
         "tr": "mxare",
         "children": []
+      }
+    ]
+  },
+  "monohexosyl": {
+    "form": "monohexosyl",
+    "lang": "en",
+    "children": [
+      {
+        "form": "mono-",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "μονο-",
+            "lang": "grc",
+            "rel": "derived",
+            "tr": "mono-",
+            "children": [
+              {
+                "form": "μόνος",
+                "lang": "grc",
+                "rel": "from",
+                "gloss": "alone, only, sole, single",
+                "tr": "mónos",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "hexosyl",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "hexose",
+            "lang": "en",
+            "rel": "+",
+            "children": [
+              {
+                "form": "hex-",
+                "lang": "en",
+                "rel": "+",
+                "children": []
+              },
+              {
+                "form": "-ose",
+                "lang": "en",
+                "rel": "+",
+                "children": []
+              }
+            ]
+          },
+          {
+            "form": "-yl",
+            "lang": "en",
+            "rel": "+",
+            "children": [
+              {
+                "form": "méthylène",
+                "lang": "fr",
+                "rel": "derived",
+                "children": [
+                  {
+                    "form": "ὕλη",
+                    "lang": "grc",
+                    "rel": "derived",
+                    "gloss": "wood, material",
+                    "tr": "húlē",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       }
     ]
   },
@@ -1778,6 +1973,71 @@
                                 ]
                               }
                             ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "snow": {
+    "form": "snow",
+    "lang": "en",
+    "children": [
+      {
+        "form": "snaw",
+        "lang": "enm",
+        "rel": "inherited",
+        "children": []
+      },
+      {
+        "form": "snou",
+        "lang": "enm",
+        "rel": "from",
+        "children": []
+      },
+      {
+        "form": "snow",
+        "lang": "enm",
+        "rel": "from",
+        "gloss": "snow; accumulation of snow; snowfall; snowstorm; whiteness",
+        "children": [
+          {
+            "form": "snāw",
+            "lang": "ang",
+            "rel": "inherited",
+            "gloss": "snow",
+            "children": [
+              {
+                "form": "*snaiw",
+                "lang": "gmw-pro",
+                "rel": "inherited",
+                "gloss": "snow",
+                "children": [
+                  {
+                    "form": "*snaiwaz",
+                    "lang": "gem-pro",
+                    "rel": "inherited",
+                    "gloss": "snow",
+                    "children": [
+                      {
+                        "form": "*snóygʷʰos",
+                        "lang": "ine-pro",
+                        "rel": "inherited",
+                        "gloss": "snow",
+                        "children": [
+                          {
+                            "form": "*sneygʷʰ-",
+                            "lang": "ine-pro",
+                            "rel": "from",
+                            "gloss": "to snow",
+                            "children": []
                           }
                         ]
                       }
