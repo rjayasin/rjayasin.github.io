@@ -1557,6 +1557,11 @@
               if (Array.isArray(data[k]))
                 WORD_POOL[k] = data[k].filter((w) => typeof w === 'string');
             }
+            if (Array.isArray(data.blocklist)) {
+              BLOCKLIST.clear();
+              for (const w of data.blocklist)
+                if (typeof w === 'string') BLOCKLIST.add(w.toLowerCase());
+            }
           }
         } catch (e) {
           /* no pool — newGame falls back to the random hunt, just slower */
@@ -1591,6 +1596,15 @@
         }
       }
 
+      // A denylist of headwords to never surface or file into the pool, whatever
+      // their tree size — words the random hunt turns up that make poor puzzles
+      // (e.g. bare interjections). Loaded from the "blocklist" field of words.json
+      // (see loadWordPool) and matched case-insensitively on the headword.
+      const BLOCKLIST = new Set();
+      function isBlocked(form) {
+        return !!form && BLOCKLIST.has(form.toLowerCase());
+      }
+
       // Words to try from the pool for a given difficulty: the matching bucket
       // first (most likely to land in band), then everything else, shuffled.
       // Already-seen words are dropped so they aren't surfaced again — unless the
@@ -1603,7 +1617,7 @@
             .filter((k) => k !== diff)
             .flatMap((k) => WORD_POOL[k])
         );
-        const all = [...bucket, ...rest];
+        const all = [...bucket, ...rest].filter((w) => !isBlocked(w));
         const unseen = all.filter((w) => !isSeen(w));
         return unseen.length ? unseen : all;
       }
@@ -1657,8 +1671,10 @@
         const minOther = others.length ? Math.min(...others) : 0;
         return (pool[band] || []).length + 1 - minOther > MAX_BAND_SKEW;
       }
+      // Carries the band buckets and the blocklist through the commit cycle so a
+      // discovery commit rewrites words.json without dropping the denylist.
       function normalizePool(obj) {
-        const out = { easy: [], medium: [], hard: [] };
+        const out = { easy: [], medium: [], hard: [], blocklist: [] };
         for (const k of Object.keys(out))
           if (Array.isArray(obj[k])) out[k] = obj[k].filter((w) => typeof w === 'string');
         return out;
@@ -1676,7 +1692,7 @@
       // File a freshly discovered word into its band (locally always; queued
       // for commit too). Only plain single-token headwords are stored.
       function recordDiscovered(word, tree) {
-        if (!word || !/^[\p{L}]+$/u.test(word)) return;
+        if (!word || !/^[\p{L}]+$/u.test(word) || isBlocked(word)) return;
         const band = bandForCount(countNodes(tree));
         if (!band || poolHas(WORD_POOL, word) || pendingContrib.has(word)) return;
         if (wouldUnbalanceBand(WORD_POOL, band)) return; // band already too far ahead
@@ -1753,7 +1769,7 @@
               return; // keep the batch; the finally reschedules past the backoff
             }
             let sha;
-            let current = { easy: [], medium: [], hard: [] };
+            let current = { easy: [], medium: [], hard: [], blocklist: [] };
             if (getR.ok) {
               const f = await getR.json();
               sha = f.sha;
@@ -1834,21 +1850,22 @@
       // Build (or fetch) one tree that fits the difficulty band — no rendering.
       // The curated pool first (reliable, cached), then the random hunt; any
       // random word with a usable tree is filed into the pool on the way.
-      // Returns the best tree found (an exact band fit when possible) or null.
+      // Returns an in-band tree, or null when nothing in band turned up this round.
+      //
+      // The band is enforced strictly on both ends: a tree with more nodes than
+      // band.max is too hard for the difficulty, and one with fewer than band.min
+      // is too easy — surfacing either breaks the difficulty promise (e.g. a
+      // 9+-node "hard" word, or a 4-node "easy" one, offered on medium). So we
+      // only ever return an exact fit; if none is found the caller (the queue, or
+      // the cold path) just tries again rather than settling for the wrong size.
       async function findPuzzleTree(diff) {
         const band = DIFFS[diff];
-        let best = null;
-        let bestDelta = Infinity;
         const consider = (tree) => {
+          if (isBlocked(tree.form)) return null; // denylisted — never surface
           const n = countNodes(tree);
           if (n < 2) return null; // need at least one ancestor to place
-          const delta = n < band.min ? band.min - n : n > band.max ? n - band.max : 0;
-          if (delta === 0) return tree;
-          if (delta < bestDelta) {
-            bestDelta = delta;
-            best = tree;
-          }
-          return null;
+          if (n >= band.min && n <= band.max) return tree; // in band — the only fit
+          return null; // out of band (too big or too small) — reject, don't settle
         };
         for (const word of poolCandidates(diff).slice(0, POOL_ATTEMPTS)) {
           const tree = await cachedBuildTree(word);
@@ -1863,7 +1880,7 @@
           const hit = consider(item.tree);
           if (hit) return hit;
         }
-        return best;
+        return null;
       }
 
       // ---------- Ready queue ----------
