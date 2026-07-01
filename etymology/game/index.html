@@ -1598,7 +1598,10 @@
       const savedTrees = new Map(); // lowercased form -> tree
       async function loadTreeCache() {
         try {
-          const r = await fetch('trees.json');
+          // Revalidate rather than trust the browser cache: the file grows every
+          // few minutes, and a stale (near-empty) copy would starve the
+          // cold-start fallback. A 304 keeps it cheap when nothing changed.
+          const r = await fetch('trees.json', { cache: 'no-cache' });
           if (!r.ok) return;
           const data = await r.json();
           if (data && typeof data === 'object' && !Array.isArray(data)) {
@@ -2171,14 +2174,41 @@
         const band = DIFFS[diff];
         const fits = [];
         for (const tree of savedTrees.values()) {
-          if (isBlocked(tree.form) || isSeen(tree.form)) continue;
+          if (isBlocked(tree.form)) continue;
           const n = countNodes(tree);
           if (n >= band.min && n <= band.max) fits.push(tree);
         }
         if (!fits.length) return null;
-        const fresh = fits.filter((t) => t.form !== lastForm);
-        const pick = fresh.length ? fresh : fits;
+        // Prefer a tree the player hasn't seen, but a fast repeat beats a long
+        // spinner — so fall back to seen ones (just not the very last shown)
+        // rather than returning nothing.
+        const unseen = fits.filter((t) => !isSeen(t.form) && t.form !== lastForm);
+        const notLast = fits.filter((t) => t.form !== lastForm);
+        const pick = unseen.length ? unseen : notLast.length ? notLast : fits;
         return pick[Math.floor(Math.random() * pick.length)];
+      }
+
+      // Second-tier fallback: when nothing in the cache fits the difficulty, take
+      // a word straight from the static list's bucket for this band and build it
+      // (a cache hit is instant; otherwise it's one scrape). Unseen words first,
+      // but all of them are difficulty-appropriate since that's how the list is
+      // bucketed. `guard` aborts if a newer game superseded us mid-build.
+      async function poolWordTree(diff, guard) {
+        const band = DIFFS[diff];
+        const words = (WORD_POOL[diff] || []).filter((w) => !isBlocked(w));
+        const ordered = [
+          ...shuffle(words.filter((w) => !isSeen(w))),
+          ...shuffle(words.filter((w) => isSeen(w))),
+        ];
+        for (const word of ordered.slice(0, POOL_ATTEMPTS)) {
+          const tree = await cachedBuildTree(word);
+          if (guard !== genSeq) return null;
+          if (tree) {
+            const n = countNodes(tree);
+            if (n >= band.min && n <= band.max) return tree;
+          }
+        }
+        return null;
       }
 
       // Cold path: nothing queued yet, so build one with the loading spinner up.
@@ -2201,14 +2231,16 @@
           const timer = new Promise((r) => setTimeout(() => r(TIMEOUT), COLD_FALLBACK_MS));
           let tree = await Promise.race([build, timer]);
           if (my !== genSeq) return;
-          if (tree === TIMEOUT) {
-            // Too slow — show a cached tree of this difficulty if we have one,
-            // otherwise keep waiting for the real build to finish.
-            tree = cachedTreeInBand(diff) || (await build);
-            if (my !== genSeq) return;
-          } else if (!tree) {
-            // Build finished quickly but found nothing — try the cache.
+          if (tree === TIMEOUT || !tree) {
+            // Too slow, or the fresh build came up empty. Fall back in order: a
+            // ready cached tree of this difficulty; then a word taken straight
+            // from the static list and built; and only as a last resort wait out
+            // the original build.
             tree = cachedTreeInBand(diff);
+            if (!tree) tree = await poolWordTree(diff, my);
+            if (my !== genSeq) return;
+            if (!tree) tree = await build;
+            if (my !== genSeq) return;
           }
           if (tree) {
             lastForm = tree.form;
