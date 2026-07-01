@@ -615,6 +615,143 @@
       }
     ]
   },
+  "drunkle": {
+    "form": "drunkle",
+    "lang": "en",
+    "children": [
+      {
+        "form": "drunk",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "drunke",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": []
+          },
+          {
+            "form": "drunken",
+            "lang": "enm",
+            "rel": "from",
+            "children": []
+          },
+          {
+            "form": "ydrunke",
+            "lang": "enm",
+            "rel": "from",
+            "children": []
+          },
+          {
+            "form": "ydrunken",
+            "lang": "enm",
+            "rel": "from",
+            "children": [
+              {
+                "form": "druncen",
+                "lang": "ang",
+                "rel": "inherited",
+                "children": []
+              },
+              {
+                "form": "ġedruncen",
+                "lang": "ang",
+                "rel": "from",
+                "gloss": "drunk",
+                "children": [
+                  {
+                    "form": "*drunkanaz",
+                    "lang": "gem-pro",
+                    "rel": "inherited",
+                    "children": []
+                  },
+                  {
+                    "form": "*gadrunkanaz",
+                    "lang": "gem-pro",
+                    "rel": "from",
+                    "gloss": "drunk; drunken",
+                    "children": [
+                      {
+                        "form": "*drinkaną",
+                        "lang": "gem-pro",
+                        "rel": "derived",
+                        "gloss": "to drink",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "uncle",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "uncle",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": [
+              {
+                "form": "uncle",
+                "lang": "xno",
+                "rel": "derived",
+                "children": []
+              },
+              {
+                "form": "oncle",
+                "lang": "fro",
+                "rel": "derived",
+                "children": [
+                  {
+                    "form": "*aunclum",
+                    "lang": "la-vul",
+                    "rel": "derived",
+                    "children": [
+                      {
+                        "form": "avunculus",
+                        "lang": "la",
+                        "rel": "derived",
+                        "gloss": "maternal uncle",
+                        "children": [
+                          {
+                            "form": "*h₂euh₂-n-tlo-",
+                            "lang": "ine-pro",
+                            "rel": "derived",
+                            "gloss": "little grandfather",
+                            "children": [
+                              {
+                                "form": "*h₂éwh₂ō",
+                                "lang": "ine-pro",
+                                "rel": "from",
+                                "gloss": "grandfather, adult male relative other than one’s father",
+                                "children": []
+                              },
+                              {
+                                "form": "avus",
+                                "lang": "la",
+                                "rel": "from",
+                                "gloss": "grandfather",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "encyclopedia": {
     "form": "encyclopedia",
     "lang": "en",
@@ -809,6 +946,18 @@
             "children": []
           }
         ]
+      }
+    ]
+  },
+  "metronomy": {
+    "form": "metronomy",
+    "lang": "en",
+    "children": [
+      {
+        "form": "metronome",
+        "lang": "en",
+        "rel": "from",
+        "children": []
       }
     ]
   },
@@ -1568,6 +1717,148 @@
                 "gloss": "to cut",
                 "tr": "témnō",
                 "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "unfeasibleness": {
+    "form": "unfeasibleness",
+    "lang": "en",
+    "children": [
+      {
+        "form": "unfeasible",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "un-",
+            "lang": "en",
+            "rel": "+",
+            "children": [
+              {
+                "form": "un-",
+                "lang": "enm",
+                "rel": "inherited",
+                "children": [
+                  {
+                    "form": "un-",
+                    "lang": "ang",
+                    "rel": "inherited",
+                    "children": [
+                      {
+                        "form": "*un-",
+                        "lang": "gmw-pro",
+                        "rel": "inherited",
+                        "children": [
+                          {
+                            "form": "*un-",
+                            "lang": "gem-pro",
+                            "rel": "inherited",
+                            "children": [
+                              {
+                                "form": "*n̥-",
+                                "lang": "ine-pro",
+                                "rel": "inherited",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "form": "feasible",
+            "lang": "en",
+            "rel": "+",
+            "children": [
+              {
+                "form": "fesable",
+                "lang": "xno",
+                "rel": "derived",
+                "children": [
+                  {
+                    "form": "facere",
+                    "lang": "la",
+                    "rel": "derived",
+                    "children": [
+                      {
+                        "form": "fesable, faisable",
+                        "lang": "fro",
+                        "rel": "derived",
+                        "gloss": "doable",
+                        "children": [
+                          {
+                            "form": "fere, faire",
+                            "lang": "fro",
+                            "rel": "from",
+                            "gloss": "to do",
+                            "children": []
+                          },
+                          {
+                            "form": "-able",
+                            "lang": "fro",
+                            "rel": "from",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "-ness",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "-nes",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": []
+          },
+          {
+            "form": "-nesse",
+            "lang": "enm",
+            "rel": "from",
+            "children": [
+              {
+                "form": "-nis",
+                "lang": "ang",
+                "rel": "inherited",
+                "children": []
+              },
+              {
+                "form": "-nes",
+                "lang": "ang",
+                "rel": "from",
+                "children": [
+                  {
+                    "form": "*-nassī",
+                    "lang": "gmw-pro",
+                    "rel": "inherited",
+                    "children": [
+                      {
+                        "form": "*-inassuz",
+                        "lang": "gem-pro",
+                        "rel": "inherited",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }
