@@ -1728,6 +1728,138 @@
       }
     ]
   },
+  "furacious": {
+    "form": "furacious",
+    "lang": "en",
+    "children": [
+      {
+        "form": "fūrāx",
+        "lang": "la",
+        "rel": "derived",
+        "gloss": "thievish",
+        "children": [
+          {
+            "form": "fūr",
+            "lang": "la",
+            "rel": "from",
+            "gloss": "thief",
+            "children": []
+          }
+        ]
+      },
+      {
+        "form": "-acious",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "-acity",
+            "lang": "en",
+            "rel": "+",
+            "children": [
+              {
+                "form": "-acité",
+                "lang": "frm",
+                "rel": "derived",
+                "children": [
+                  {
+                    "form": "-ācitās",
+                    "lang": "la",
+                    "rel": "derived",
+                    "children": [
+                      {
+                        "form": "-āx",
+                        "lang": "la",
+                        "rel": "+",
+                        "children": []
+                      },
+                      {
+                        "form": "-i-",
+                        "lang": "la",
+                        "rel": "+",
+                        "children": []
+                      },
+                      {
+                        "form": "-tās",
+                        "lang": "la",
+                        "rel": "+",
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "form": "-ācea",
+                    "lang": "la",
+                    "rel": "derived",
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "form": "-ity",
+                "lang": "en",
+                "rel": "+",
+                "children": []
+              }
+            ]
+          },
+          {
+            "form": "-ous",
+            "lang": "en",
+            "rel": "+",
+            "children": [
+              {
+                "form": "-ous",
+                "lang": "enm",
+                "rel": "inherited",
+                "children": [
+                  {
+                    "form": "-ous",
+                    "lang": "fro",
+                    "rel": "derived",
+                    "children": []
+                  },
+                  {
+                    "form": "-os",
+                    "lang": "fro",
+                    "rel": "from",
+                    "children": []
+                  },
+                  {
+                    "form": "-us",
+                    "lang": "fro",
+                    "rel": "from",
+                    "children": [
+                      {
+                        "form": "-ōsus",
+                        "lang": "la",
+                        "rel": "derived",
+                        "gloss": "full of",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "form": "-acieux",
+            "lang": "fro",
+            "rel": "derived",
+            "children": [
+              {
+                "form": "-ācitās",
+                "lang": "la",
+                "rel": "derived",
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "huffer": {
     "form": "huffer",
     "lang": "en",
