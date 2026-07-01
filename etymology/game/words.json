@@ -63,6 +63,7 @@
     "sanghi",
     "shampoo",
     "spongiform",
+    "stoup",
     "subindurated",
     "taboo",
     "tambaqui",
@@ -220,5 +221,6 @@
     "window",
     "woman",
     "world"
-  ]
+  ],
+  "blocklist": []
 }
