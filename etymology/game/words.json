@@ -26,6 +26,7 @@
     "elinguid",
     "enamorado",
     "estaminet",
+    "exophyte",
     "fiesta",
     "flative",
     "fornicatory",
@@ -165,6 +166,7 @@
     "dysdifferentiation",
     "dyslamination",
     "encyclopedia",
+    "erabutoxin",
     "etymology",
     "forecount",
     "foxless",
@@ -217,6 +219,5 @@
     "window",
     "woman",
     "world"
-  ],
-  "blocklist": ["oho"]
+  ]
 }
