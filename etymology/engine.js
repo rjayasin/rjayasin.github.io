@@ -726,6 +726,53 @@ function buildChain(etymText, root, rootLang) {
   return buildFromEtymon(etymText, root, rootLang);
 }
 
+// ---------- Rate limiting ----------
+// Wiktionary's API answers with 429 (Too Many Requests) when we fetch too fast.
+// Every request goes through wikiFetch, which (a) serialises them — one at a
+// time with a small gap — so a burst of look-ups can't stampede the API, and
+// (b) on a 429/503 parks all scraping for the Retry-After window instead of
+// retrying, which would only deepen the throttle. While parked, requests
+// short-circuit to null immediately (no network), so callers fail fast and the
+// game falls back to its static word pool / pre-built queue. isRateLimited lets
+// callers skip work they know will be parked. Shared by the viewer and game.
+let rateLimitedUntil = 0;
+let wikiChain = Promise.resolve();
+const WIKI_MIN_GAP = 250; // ms to wait between consecutive requests
+const RATE_LIMIT_FALLBACK = 10000; // backoff when a 429 carries no Retry-After
+
+function isRateLimited() {
+  return Date.now() < rateLimitedUntil;
+}
+function noteRateLimit(res) {
+  const ra = res ? parseInt(res.headers.get('retry-after') || '', 10) : NaN;
+  const waitMs = Number.isFinite(ra) && ra > 0 ? ra * 1000 : RATE_LIMIT_FALLBACK;
+  rateLimitedUntil = Math.max(rateLimitedUntil, Date.now() + waitMs);
+}
+
+// Returns the Response, or null when we're backed off, throttled off, or the
+// request failed/was rate-limited. Never rejects.
+function wikiFetch(url) {
+  if (isRateLimited()) return Promise.resolve(null);
+  const run = wikiChain.then(async () => {
+    if (isRateLimited()) return null; // parked while we waited our turn
+    try {
+      const res = await fetch(url);
+      if (res.status === 429 || res.status === 503) {
+        noteRateLimit(res);
+        return null;
+      }
+      return res;
+    } catch {
+      return null;
+    } finally {
+      // Hold the chain open for a beat so the next request keeps the gap.
+      await new Promise((r) => setTimeout(r, WIKI_MIN_GAP));
+    }
+  });
+  wikiChain = run.catch(() => {}); // keep the chain alive if a link rejects
+  return run;
+}
+
 // ---------- Wiktionary fetch ----------
 const API =
   'https://en.wiktionary.org/w/api.php?action=parse&prop=wikitext&format=json' +
@@ -736,8 +783,8 @@ function fetchWikitext(title) {
   if (!pageCache.has(title)) {
     pageCache.set(
       title,
-      fetch(API + encodeURIComponent(title))
-        .then((r) => (r.ok ? r.json() : null))
+      wikiFetch(API + encodeURIComponent(title))
+        .then((r) => (r && r.ok ? r.json() : null))
         .then((j) => (j && j.parse && j.parse.wikitext) || null)
         .catch(() => null)
     );
@@ -758,8 +805,8 @@ function fetchPageHtml(title) {
   if (!htmlCache.has(title)) {
     htmlCache.set(
       title,
-      fetch(HTML_API + encodeURIComponent(title))
-        .then((r) => (r.ok ? r.json() : null))
+      wikiFetch(HTML_API + encodeURIComponent(title))
+        .then((r) => (r && r.ok ? r.json() : null))
         .then((j) => (j && j.parse && j.parse.text) || null)
         .catch(() => null)
     );
@@ -793,10 +840,11 @@ async function resolveLangNames(codes) {
   const todo = [...new Set(codes)].filter(
     (c) => c && !LANGS[c] && !RESOLVED[c] && !langResolveFailed.has(c)
   );
-  if (!todo.length) return;
+  if (!todo.length || isRateLimited()) return; // leave unresolved; retry later
   const text = todo.map(langNameQuery).join(LANG_SEP);
+  const r = await wikiFetch(LANG_API + encodeURIComponent(text));
+  if (!r) return; // backed off / network hiccup — retry on a later build
   try {
-    const r = await fetch(LANG_API + encodeURIComponent(text));
     if (!r.ok) throw new Error('http');
     const j = await r.json();
     const out = (j && j.expandtemplates && j.expandtemplates.wikitext) || '';
@@ -845,11 +893,12 @@ async function resolveTransliterations(root) {
     const key = n.lang + LANG_SEP + n.form;
     if (!XLIT_CACHE.has(key)) todo.set(key, { lang: n.lang, form: n.form });
   });
-  if (todo.size) {
+  if (todo.size && !isRateLimited()) {
     const entries = [...todo.entries()];
     const text = entries.map(([, q]) => '{{xlit|' + q.lang + '|' + q.form + '}}').join(LANG_SEP);
+    const r = await wikiFetch(LANG_API + encodeURIComponent(text));
+    if (!r) return; // backed off / network hiccup — leave for a later build
     try {
-      const r = await fetch(LANG_API + encodeURIComponent(text));
       if (!r.ok) throw new Error('http');
       const j = await r.json();
       const parts = ((j && j.expandtemplates && j.expandtemplates.wikitext) || '').split(LANG_SEP);
@@ -1045,8 +1094,8 @@ const RANDOM_API =
   '&rnnamespace=0&rnlimit=20&format=json&formatversion=2&origin=*';
 
 function fetchRandomWords() {
-  return fetch(RANDOM_API)
-    .then((r) => (r.ok ? r.json() : null))
+  return wikiFetch(RANDOM_API)
+    .then((r) => (r && r.ok ? r.json() : null))
     .then((j) => ((j && j.query && j.query.random) || []).map((p) => p.title))
     .then((titles) => titles.filter((t) => /^[a-z]+$/.test(t)))
     .catch(() => []);
@@ -1058,8 +1107,10 @@ function fetchRandomWords() {
 // first that does, within a bounded budget.
 async function findRandomTree() {
   for (let batch = 0; batch < 4; batch++) {
+    if (isRateLimited()) return null; // don't hunt while parked — let it lift
     const words = await fetchRandomWords();
     for (const word of words) {
+      if (isRateLimited()) return null; // a 429 mid-batch: stop, don't grind
       const tree = await buildTree(word, 'en');
       if (tree) return { word, tree };
     }

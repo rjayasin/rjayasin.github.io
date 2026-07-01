@@ -1587,6 +1587,29 @@
         }
       }
 
+      // ---------- Persistent tree cache ----------
+      // Building a word's tree scrapes several Wiktionary endpoints, so once a
+      // tree is built we cache the whole thing in trees.json (form → tree) and
+      // read it back here — a cached word then costs one static-file hit and zero
+      // Wiktionary calls. The file fills in as words are played (see recordTree /
+      // the directed migration in discoverAndCommit), never in one bulk sweep.
+      // Loaded with normal HTTP caching (unlike words.json) since trees are large
+      // and effectively immutable; a stale copy just means a word gets rebuilt.
+      const savedTrees = new Map(); // lowercased form -> tree
+      async function loadTreeCache() {
+        try {
+          const r = await fetch('trees.json');
+          if (!r.ok) return;
+          const data = await r.json();
+          if (data && typeof data === 'object' && !Array.isArray(data)) {
+            for (const [k, v] of Object.entries(data))
+              if (v && typeof v === 'object') savedTrees.set(k.toLowerCase(), v);
+          }
+        } catch (e) {
+          /* no cache — words are rebuilt from Wiktionary as before */
+        }
+      }
+
       // ---------- Seen words ----------
       // Every word surfaced to the player — whether they solved it or skipped
       // past it by clicking "new game" — is remembered so it isn't shown again.
@@ -1649,7 +1672,9 @@
       // future visitors get it from the static file instead of re-scraping.
       const REPO = 'rjayasin/rjayasin.github.io';
       const POOL_PATH = 'etymology/game/words.json';
+      const TREES_PATH = 'etymology/game/trees.json';
       const pendingContrib = new Map(); // word -> band, not yet persisted
+      const pendingTrees = new Map(); // lowercased form -> tree, not yet persisted
       let flushTimer = null;
       let flushScheduled = false;
       let flushing = false;
@@ -1708,10 +1733,34 @@
           .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
       }
 
+      // A tree stripped down to the fields worth persisting — the play-time
+      // extras (node ids, the root flag) are dropped so the cached JSON stays
+      // stable and small no matter what happened to the object on the board.
+      function cleanTree(node) {
+        const out = { form: node.form, lang: node.lang };
+        if (node.rel) out.rel = node.rel;
+        if (node.gloss) out.gloss = node.gloss;
+        if (node.tr) out.tr = node.tr;
+        out.children = (node.children || []).map(cleanTree);
+        return out;
+      }
+
+      // Stage a freshly built tree for the persistent cache (and serve it from
+      // memory for the rest of this session). Idempotent per word.
+      function recordTree(word, tree) {
+        if (!word || isBlocked(word)) return;
+        const key = word.toLowerCase();
+        if (savedTrees.has(key) || pendingTrees.has(key)) return;
+        savedTrees.set(key, tree); // available immediately this session
+        pendingTrees.set(key, tree); // committed on the next flush (re-cleaned there)
+        scheduleFlush();
+      }
+
       // File a freshly discovered word into its band (locally always; queued
       // for commit too). Only plain single-token headwords are stored.
       function recordDiscovered(word, tree) {
         if (!word || !/^[\p{L}]+$/u.test(word) || isBlocked(word)) return;
+        recordTree(word, tree); // cache the tree even if the word's already pooled
         const band = bandForCount(countNodes(tree));
         if (!band || poolHas(WORD_POOL, word) || pendingContrib.has(word)) return;
         if (wouldUnbalanceBand(WORD_POOL, band)) return; // band already too far ahead
@@ -1734,13 +1783,18 @@
         return 0;
       }
 
-      // Schedule a single batched commit. Discoveries that land before it fires
-      // just join the batch (this is a no-op while one is already pending or in
-      // flight), so a burst of finds becomes one commit instead of one per word.
+      // Total entries waiting across every commit target.
+      function pendingWork() {
+        return pendingContrib.size + pendingTrees.size;
+      }
+
+      // Schedule a single batched commit. Entries that land before it fires just
+      // join the batch (this is a no-op while one is already pending or in
+      // flight), so a burst becomes one commit per file instead of one per entry.
       // The delay respects the batch window, a minimum gap between commits, and
       // any rate-limit backoff GitHub has asked for.
       function scheduleFlush() {
-        if (flushScheduled || flushing || !Common.GH.isAuthed() || !pendingContrib.size) return;
+        if (flushScheduled || flushing || !Common.GH.isAuthed() || !pendingWork()) return;
         flushScheduled = true;
         const now = Date.now();
         const delay = Math.max(
@@ -1758,47 +1812,19 @@
         );
       }
 
-      // Merge the queued discoveries into the latest words.json and commit. Read
-      // the file fresh first so we extend, rather than clobber, anything added
-      // elsewhere since page load.
-      async function flushContributions() {
-        if (flushing || !Common.GH.isAuthed() || !pendingContrib.size) return;
-        if (Date.now() < backoffUntil) {
-          scheduleFlush(); // still in a rate-limit hold; try again after it lifts
-          return;
-        }
-        flushing = true;
-        const token = Common.GH.getToken();
-        const headers = { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}` };
-        const url = `https://api.github.com/repos/${REPO}/contents/${POOL_PATH}`;
-        try {
-          // Read → merge → write, retrying on 409. A 409 isn't a rate limit: it
-          // means our sha went stale (a concurrent commit, or the API's
-          // read-after-write lag), so we re-read the latest file and rebuild on
-          // top of it. A short, growing pause lets GitHub's replicas catch up.
-          for (let attempt = 0; attempt < 3; attempt++) {
-            const getR = await fetch(url, { headers });
-            if (getR.status === 401) {
-              Common.GH.clearToken();
-              ghAuth.refresh();
-              return;
-            }
-            if (getR.status === 403 || getR.status === 429) {
-              backoffUntil = Date.now() + (rateLimitDelayMs(getR) || DEFAULT_BACKOFF);
-              return; // keep the batch; the finally reschedules past the backoff
-            }
-            let sha;
-            let current = { easy: [], medium: [], hard: [], blocklist: [] };
-            if (getR.ok) {
-              const f = await getR.json();
-              sha = f.sha;
-              try {
-                const parsed = JSON.parse(b64decode(f.content));
-                if (parsed && typeof parsed === 'object') current = normalizePool(parsed);
-              } catch (e) {
-                /* malformed file — rebuild it from our entries */
-              }
-            }
+      // The files we commit back to the repo. Each says how to seed an empty
+      // file, parse the fetched one into a mergeable object, fold this session's
+      // staged entries in (returning how many were actually added), and sync
+      // local state on success. words.json is the banded word list; trees.json is
+      // the cached etymology trees.
+      const COMMIT_TARGETS = [
+        {
+          path: POOL_PATH,
+          pending: pendingContrib,
+          empty: () => ({ easy: [], medium: [], hard: [], blocklist: [] }),
+          parse: (parsed) => normalizePool(parsed),
+          message: (n) => `etymology game: add ${n} discovered word${n > 1 ? 's' : ''}`,
+          merge: (current) => {
             let added = 0;
             for (const [word, band] of pendingContrib) {
               if (poolHas(current, word)) continue;
@@ -1808,42 +1834,136 @@
               (current[band] || (current[band] = [])).push(word);
               added++;
             }
-            if (!added) {
-              pendingContrib.clear(); // already in the file (committed elsewhere)
-              return;
+            if (added) for (const k of Object.keys(current)) current[k] = sortBucket(current[k]);
+            return added;
+          },
+          onSuccess: (current) => {
+            for (const k of Object.keys(WORD_POOL)) WORD_POOL[k] = (current[k] || []).slice();
+          },
+        },
+        {
+          path: TREES_PATH,
+          pending: pendingTrees,
+          empty: () => ({}),
+          parse: (parsed) =>
+            parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {},
+          message: (n) => `etymology game: cache ${n} word tree${n > 1 ? 's' : ''}`,
+          merge: (current) => {
+            let added = 0;
+            for (const [key, tree] of pendingTrees) {
+              if (current[key]) continue; // already cached (committed elsewhere)
+              current[key] = cleanTree(tree); // re-strip any play-time mutation
+              added++;
             }
-            for (const k of Object.keys(current)) current[k] = sortBucket(current[k]);
-            const putR = await fetch(url, {
-              method: 'PUT',
-              headers,
-              body: JSON.stringify({
-                message: `etymology game: add ${added} discovered word${added > 1 ? 's' : ''}`,
-                content: b64encode(JSON.stringify(current, null, 2) + '\n'),
-                sha,
-              }),
-            });
-            if (putR.status === 403 || putR.status === 429) {
-              backoffUntil = Date.now() + (rateLimitDelayMs(putR) || DEFAULT_BACKOFF);
-              return; // rate-limited mid-write; keep the batch, retry after backoff
+            return added;
+          },
+          // Keep keys sorted so the file diffs cleanly as it grows.
+          serialize: (current) =>
+            JSON.stringify(
+              Object.fromEntries(
+                Object.keys(current)
+                  .sort()
+                  .map((k) => [k, current[k]])
+              ),
+              null,
+              2
+            ) + '\n',
+          onSuccess: (current) => {
+            for (const [k, v] of Object.entries(current)) savedTrees.set(k, v);
+          },
+        },
+      ];
+
+      // Read → merge → write one file, retrying on 409. A 409 isn't a rate limit:
+      // it means our sha went stale (a concurrent commit, or read-after-write
+      // lag), so we re-read the latest file and rebuild on top of it; a short,
+      // growing pause lets GitHub's replicas catch up. Returns 'committed' when a
+      // write landed, 'noop' when the batch was already in the file, or 'retry'
+      // when the batch should be kept for later (auth lost, rate-limited, or
+      // conflicts exhausted).
+      async function commitTarget(target, headers) {
+        const url = `https://api.github.com/repos/${REPO}/contents/${target.path}`;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const getR = await fetch(url, { headers });
+          if (getR.status === 401) {
+            Common.GH.clearToken();
+            ghAuth.refresh();
+            return 'retry';
+          }
+          if (getR.status === 403 || getR.status === 429) {
+            backoffUntil = Date.now() + (rateLimitDelayMs(getR) || DEFAULT_BACKOFF);
+            return 'retry';
+          }
+          let sha;
+          let current = target.empty();
+          if (getR.ok) {
+            const f = await getR.json();
+            sha = f.sha;
+            try {
+              current = target.parse(JSON.parse(b64decode(f.content)));
+            } catch (e) {
+              /* malformed file — rebuild it from our entries */
             }
-            if (putR.status === 409) {
-              await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
-              continue; // stale sha — re-read and try again
-            }
-            if (putR.ok) {
-              lastCommitAt = Date.now();
-              pendingContrib.clear();
-              for (const k of Object.keys(WORD_POOL)) WORD_POOL[k] = (current[k] || []).slice();
-            }
-            return; // success, or a non-retryable failure (keep batch, reschedule)
+          }
+          const added = target.merge(current);
+          if (!added) {
+            target.pending.clear(); // already in the file (committed elsewhere)
+            return 'noop';
+          }
+          const body = target.serialize
+            ? target.serialize(current)
+            : JSON.stringify(current, null, 2) + '\n';
+          const putR = await fetch(url, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({ message: target.message(added), content: b64encode(body), sha }),
+          });
+          if (putR.status === 403 || putR.status === 429) {
+            backoffUntil = Date.now() + (rateLimitDelayMs(putR) || DEFAULT_BACKOFF);
+            return 'retry'; // rate-limited mid-write; keep the batch, retry later
+          }
+          if (putR.status === 409) {
+            await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+            continue; // stale sha — re-read and try again
+          }
+          if (putR.ok) {
+            lastCommitAt = Date.now();
+            target.pending.clear();
+            if (target.onSuccess) target.onSuccess(current);
+            return 'committed';
+          }
+          return 'retry'; // non-retryable HTTP error — keep the batch
+        }
+        return 'retry'; // 409 retries exhausted
+      }
+
+      // Flush the batched work, at most one actual commit per pass so we never
+      // fire two writes in quick succession (a shared backoff/flush guard keeps
+      // GitHub happy). A file already up to date is skipped and the next one
+      // tried; the finally reschedules whatever's still pending.
+      async function flushContributions() {
+        if (flushing || !Common.GH.isAuthed() || !pendingWork()) return;
+        if (Date.now() < backoffUntil) {
+          scheduleFlush(); // still in a rate-limit hold; try again after it lifts
+          return;
+        }
+        flushing = true;
+        const token = Common.GH.getToken();
+        const headers = { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}` };
+        try {
+          for (const target of COMMIT_TARGETS) {
+            if (!target.pending.size) continue;
+            if (!Common.GH.isAuthed() || Date.now() < backoffUntil) break;
+            const result = await commitTarget(target, headers);
+            if (result === 'committed' || result === 'retry') break; // one write per pass
           }
         } catch (e) {
           /* network error: keep the queue and retry on the next scheduled flush */
         } finally {
           flushing = false;
           // Fold anything still pending — rate-limited, conflicted, errored, or
-          // discovered mid-flush — into the next batched attempt.
-          if (pendingContrib.size) scheduleFlush();
+          // added mid-flush — into the next batched attempt.
+          if (pendingWork()) scheduleFlush();
         }
       }
 
@@ -1857,12 +1977,24 @@
       }
 
       // Building a word's tree means a Wiktionary fetch; cache by word so the
-      // same pool word isn't re-scraped to refill the queue all session.
+      // same pool word isn't re-scraped to refill the queue all session. Check
+      // the persistent trees.json cache first (no network at all), then the
+      // session memo, and only scrape as a last resort — recording whatever we
+      // build so it lands in the shared cache for next time.
       const treeCache = new Map();
       async function cachedBuildTree(word) {
-        if (treeCache.has(word)) return treeCache.get(word);
+        const key = word.toLowerCase();
+        if (treeCache.has(key)) return treeCache.get(key);
+        const saved = savedTrees.get(key);
+        if (saved) {
+          treeCache.set(key, saved);
+          return saved;
+        }
         const tree = await buildTree(word, 'en');
-        if (tree) treeCache.set(word, tree);
+        if (tree) {
+          treeCache.set(key, tree);
+          recordTree(word, tree); // stage it for the persistent cache
+        }
         return tree;
       }
 
@@ -1887,11 +2019,14 @@
           return null; // out of band (too big or too small) — reject, don't settle
         };
         for (const word of poolCandidates(diff).slice(0, POOL_ATTEMPTS)) {
+          if (isRateLimited()) return null; // parked — serve from the queue instead
           const tree = await cachedBuildTree(word);
           const hit = tree && consider(tree);
           if (hit) return hit;
         }
-        for (let i = 0; i < GEN_ATTEMPTS; i++) {
+        // The random hunt is the heavy scraper; skip it entirely while we're
+        // rate-limited and lean on the curated pool above and the ready queue.
+        for (let i = 0; i < GEN_ATTEMPTS && !isRateLimited(); i++) {
           const item = await findRandomTree();
           if (!item) continue;
           recordDiscovered(item.word, item.tree); // grow the static pool
@@ -1936,17 +2071,38 @@
         }
       }
 
-      // ---------- Background discovery ----------
-      // Every new game also nudges the shared pool forward: a signed-in player
-      // triggers one random-word find, committed back to words.json (debounced).
+      // A pool word we don't yet have a cached tree for — the target of the
+      // directed migration below. Picked at random so concurrent players spread
+      // out across the list rather than all racing the same word.
+      function uncachedPoolWord() {
+        const uncached = Object.keys(DIFFS)
+          .flatMap((k) => WORD_POOL[k] || [])
+          .filter((w) => {
+            const key = w.toLowerCase();
+            return !isBlocked(w) && !savedTrees.has(key) && !pendingTrees.has(key);
+          });
+        return uncached.length ? uncached[Math.floor(Math.random() * uncached.length)] : null;
+      }
+
+      // ---------- Background discovery & migration ----------
+      // Every new game nudges the shared cache forward for a signed-in player.
+      // Priority is the directed migration: build (and thereby cache) one pool
+      // word we haven't stored a tree for yet, so the existing list fills into
+      // trees.json gradually through normal play. Only once the whole list is
+      // cached do we spend the fetch on growing the pool with a fresh discovery.
       // One at a time, so rapid clicks don't pile up Wiktionary fetches.
       let discovering = false;
       async function discoverAndCommit() {
-        if (discovering || !Common.GH.isAuthed()) return;
+        if (discovering || isRateLimited() || !Common.GH.isAuthed()) return;
         discovering = true;
         try {
-          const item = await findRandomTree();
-          if (item) recordDiscovered(item.word, item.tree);
+          const word = uncachedPoolWord();
+          if (word) {
+            await cachedBuildTree(word); // caches the tree as a side effect
+          } else {
+            const item = await findRandomTree();
+            if (item) recordDiscovered(item.word, item.tree);
+          }
         } catch (e) {
           /* ignore — try again on the next new game */
         } finally {
@@ -2038,9 +2194,10 @@
         signedOutTitle: 'Sign in with GitHub to save discovered words to the pool',
       });
 
-      // Load the static pool, then kick off the first game. Finish any OAuth
-      // redirect in parallel and flush anything queued before sign-in returned.
-      loadWordPool().then(newGame);
+      // Load the static pool and tree cache, then kick off the first game.
+      // Finish any OAuth redirect in parallel and flush anything queued before
+      // sign-in returned.
+      Promise.all([loadWordPool(), loadTreeCache()]).then(newGame);
       Common.GH.handleRedirect().then((signedIn) => {
         if (signedIn) ghAuth.refresh();
         scheduleFlush();
