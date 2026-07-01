@@ -323,6 +323,26 @@
       }
     ]
   },
+  "burnoose": {
+    "form": "burnoose",
+    "lang": "en",
+    "children": [
+      {
+        "form": "burnous",
+        "lang": "fr",
+        "rel": "borrowed",
+        "children": [
+          {
+            "form": "بُرْنُس",
+            "lang": "ar",
+            "rel": "derived",
+            "tr": "burnus",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
   "cellist": {
     "form": "cellist",
     "lang": "en",
@@ -1766,6 +1786,52 @@
                 ]
               }
             ]
+          }
+        ]
+      }
+    ]
+  },
+  "stoup": {
+    "form": "stoup",
+    "lang": "en",
+    "children": [
+      {
+        "form": "staup",
+        "lang": "non",
+        "rel": "derived",
+        "children": [
+          {
+            "form": "*staupo-",
+            "lang": "gem-pro",
+            "rel": "derived",
+            "children": [
+              {
+                "form": "stoop",
+                "lang": "en",
+                "rel": "from",
+                "gloss": "a vessel",
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "tambaqui": {
+    "form": "tambaqui",
+    "lang": "en",
+    "children": [
+      {
+        "form": "tambaqui",
+        "lang": "pt-BR",
+        "rel": "borrowed",
+        "children": [
+          {
+            "form": "tambaky",
+            "lang": "tpw",
+            "rel": "derived",
+            "children": []
           }
         ]
       }
