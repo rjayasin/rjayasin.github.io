@@ -1645,7 +1645,7 @@
         const w = word.toLowerCase();
         return Object.values(pool).some((arr) => arr.some((x) => x.toLowerCase() === w));
       }
-      // Keep the four bands roughly even: the random hunt naturally turns up far
+      // Keep the three bands roughly even: the random hunt naturally turns up far
       // more big trees than small ones, so refuse to add to a band that's already
       // this many words longer than the smallest band. (Easy/medium can still
       // grow until they catch up.)
