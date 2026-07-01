@@ -1683,6 +1683,15 @@
       const FLUSH_DELAY = 30000; // gather discoveries this long before committing
       const MIN_COMMIT_INTERVAL = 60000; // and never commit more than once a minute
       const DEFAULT_BACKOFF = 90000; // fallback wait when rate-limited with no hint
+      // Trees pile up fast (roughly one per new game) and every signed-in session
+      // races the same trees.json, so a per-minute commit conflicts (409) with
+      // other writers constantly. Batch them hard instead: only commit once a big
+      // batch has accumulated or we've been sitting on some for a good while.
+      // Fewer, larger writes mean far fewer conflicts, and an uncommitted batch is
+      // cheap to lose — those trees just get re-cached on a later visit.
+      const TREES_BATCH_SIZE = 15; // commit once this many trees are queued…
+      const TREES_MAX_HOLD = 300000; // …or this long after the batch started (5 min)
+      let treesPendingSince = 0;
 
       // GitHub returns/expects file contents as base64; wrap btoa/atob so
       // non-ASCII headwords (e.g. "café") survive the round trip.
@@ -1751,8 +1760,9 @@
         if (!word || isBlocked(word)) return;
         const key = word.toLowerCase();
         if (savedTrees.has(key) || pendingTrees.has(key)) return;
+        if (pendingTrees.size === 0) treesPendingSince = Date.now(); // start the batch clock
         savedTrees.set(key, tree); // available immediately this session
-        pendingTrees.set(key, tree); // committed on the next flush (re-cleaned there)
+        pendingTrees.set(key, tree); // committed once the batch is ready (re-cleaned there)
         scheduleFlush();
       }
 
@@ -1844,6 +1854,11 @@
         {
           path: TREES_PATH,
           pending: pendingTrees,
+          // Hold trees back until a full batch has piled up (or it's been a while)
+          // so we write trees.json rarely and collide with other sessions less.
+          ready: () =>
+            pendingTrees.size >= TREES_BATCH_SIZE ||
+            Date.now() - treesPendingSince >= TREES_MAX_HOLD,
           empty: () => ({}),
           parse: (parsed) =>
             parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {},
@@ -1940,8 +1955,10 @@
       // Flush the batched work, at most one actual commit per pass so we never
       // fire two writes in quick succession (a shared backoff/flush guard keeps
       // GitHub happy). A file already up to date is skipped and the next one
-      // tried; the finally reschedules whatever's still pending.
-      async function flushContributions() {
+      // tried; the finally reschedules whatever's still pending. `force` skips the
+      // batch-ripeness gate — used when the page is closing so a held batch isn't
+      // lost to the 5-minute window.
+      async function flushContributions(force = false) {
         if (flushing || !Common.GH.isAuthed() || !pendingWork()) return;
         if (Date.now() < backoffUntil) {
           scheduleFlush(); // still in a rate-limit hold; try again after it lifts
@@ -1953,6 +1970,7 @@
         try {
           for (const target of COMMIT_TARGETS) {
             if (!target.pending.size) continue;
+            if (!force && target.ready && !target.ready()) continue; // batch not ripe yet
             if (!Common.GH.isAuthed() || Date.now() < backoffUntil) break;
             const result = await commitTarget(target, headers);
             if (result === 'committed' || result === 'retry') break; // one write per pass
@@ -1966,6 +1984,21 @@
           if (pendingWork()) scheduleFlush();
         }
       }
+
+      // When the page is backgrounded or closed, commit whatever's batched right
+      // away rather than letting it sit in the hold window. visibilitychange →
+      // hidden is the reliable hook (it fires on tab switch, minimise, and
+      // navigation while the page is usually still alive); a hard kill mid-request
+      // can still drop a batch, but those trees just get re-cached on a later
+      // visit. Not using sendBeacon/keepalive — the commit needs a GET→PUT with
+      // auth headers and trees.json can exceed keepalive's 64 KB body cap.
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'hidden') return;
+        if (!Common.GH.isAuthed() || !pendingWork()) return;
+        clearTimeout(flushTimer);
+        flushScheduled = false;
+        flushContributions(true); // bypass the batch gate — commit now
+      });
 
       function showBoardStatus(text, spinner) {
         boardEl.classList.remove('empty-hint');
@@ -2130,7 +2163,29 @@
         discoverAndCommit(); // grow the pool in the background
       }
 
+      // A ready-to-play tree already in the persistent cache whose size fits the
+      // difficulty — no network at all. Used as the cold-start fallback so the
+      // first game appears fast even while the real build is still scraping.
+      const COLD_FALLBACK_MS = 5000; // wait this long for a fresh build before falling back
+      function cachedTreeInBand(diff) {
+        const band = DIFFS[diff];
+        const fits = [];
+        for (const tree of savedTrees.values()) {
+          if (isBlocked(tree.form) || isSeen(tree.form)) continue;
+          const n = countNodes(tree);
+          if (n >= band.min && n <= band.max) fits.push(tree);
+        }
+        if (!fits.length) return null;
+        const fresh = fits.filter((t) => t.form !== lastForm);
+        const pick = fresh.length ? fresh : fits;
+        return pick[Math.floor(Math.random() * pick.length)];
+      }
+
       // Cold path: nothing queued yet, so build one with the loading spinner up.
+      // A cold, network-bound load can take many seconds to scrape a tree, so race
+      // the build against a short timer: if it's too slow (and we have a cached
+      // tree of this difficulty), start with the cached one and let the real build
+      // warm the queue in the background.
       async function surfaceBlocking(my, diff) {
         newBtn.disabled = true;
         boardRoot = null;
@@ -2141,8 +2196,20 @@
         setMessage('Finding a word…', '');
         showBoardStatus('', true);
         try {
-          const tree = await findPuzzleTree(diff);
+          const build = findPuzzleTree(diff);
+          const TIMEOUT = Symbol('timeout');
+          const timer = new Promise((r) => setTimeout(() => r(TIMEOUT), COLD_FALLBACK_MS));
+          let tree = await Promise.race([build, timer]);
           if (my !== genSeq) return;
+          if (tree === TIMEOUT) {
+            // Too slow — show a cached tree of this difficulty if we have one,
+            // otherwise keep waiting for the real build to finish.
+            tree = cachedTreeInBand(diff) || (await build);
+            if (my !== genSeq) return;
+          } else if (!tree) {
+            // Build finished quickly but found nothing — try the cache.
+            tree = cachedTreeInBand(diff);
+          }
           if (tree) {
             lastForm = tree.form;
             startPuzzleWithTree(tree);
