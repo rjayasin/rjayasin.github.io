@@ -2218,6 +2218,90 @@
       }
     ]
   },
+  "jadeware": {
+    "form": "jadeware",
+    "lang": "en",
+    "children": [
+      {
+        "form": "jade",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "le jade",
+            "lang": "fr",
+            "rel": "borrowed",
+            "children": [
+              {
+                "form": "l'éjade",
+                "lang": "fr",
+                "rel": "from",
+                "gloss": "jade",
+                "children": [
+                  {
+                    "form": "piedra de ijada",
+                    "lang": "es",
+                    "rel": "derived",
+                    "gloss": "flank stone",
+                    "children": [
+                      {
+                        "form": "*iliata",
+                        "lang": "la-vul",
+                        "rel": "derived",
+                        "children": [
+                          {
+                            "form": "ilia",
+                            "lang": "la",
+                            "rel": "derived",
+                            "gloss": "flank",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "-ware",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "ware",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": [
+              {
+                "form": "waru",
+                "lang": "ang",
+                "rel": "inherited",
+                "children": [
+                  {
+                    "form": "*waru",
+                    "lang": "gmw-pro",
+                    "rel": "inherited",
+                    "children": [
+                      {
+                        "form": "*warō",
+                        "lang": "gem-pro",
+                        "rel": "inherited",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "jungle": {
     "form": "jungle",
     "lang": "en",
@@ -4114,6 +4198,53 @@
                 "form": "-t",
                 "lang": "en",
                 "rel": "from",
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "reindeer": {
+    "form": "reindeer",
+    "lang": "en",
+    "children": [
+      {
+        "form": "reyndere",
+        "lang": "enm",
+        "rel": "inherited",
+        "children": []
+      },
+      {
+        "form": "reynder",
+        "lang": "enm",
+        "rel": "from",
+        "children": []
+      },
+      {
+        "form": "rayne-dere",
+        "lang": "enm",
+        "rel": "from",
+        "children": [
+          {
+            "form": "hreindýri",
+            "lang": "non",
+            "rel": "derived",
+            "gloss": "reindeer",
+            "children": [
+              {
+                "form": "hreinn",
+                "lang": "non",
+                "rel": "from",
+                "gloss": "reindeer",
+                "children": []
+              },
+              {
+                "form": "dýr",
+                "lang": "non",
+                "rel": "from",
+                "gloss": "animal",
                 "children": []
               }
             ]
