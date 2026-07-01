@@ -698,6 +698,77 @@
       }
     ]
   },
+  "bonsai": {
+    "form": "bonsai",
+    "lang": "en",
+    "children": [
+      {
+        "form": "盆栽",
+        "lang": "ja",
+        "rel": "borrowed",
+        "tr": "bonsai",
+        "children": [
+          {
+            "form": "盆",
+            "lang": "ltc",
+            "rel": "derived",
+            "gloss": "bowl",
+            "tr": "bwon",
+            "children": []
+          },
+          {
+            "form": "栽",
+            "lang": "ltc",
+            "rel": "derived",
+            "gloss": "to plant",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  "brachypinacoid": {
+    "form": "brachypinacoid",
+    "lang": "en",
+    "children": [
+      {
+        "form": "brachy-",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "βραχύς",
+            "lang": "grc",
+            "rel": "borrowed",
+            "gloss": "short",
+            "tr": "brakhús",
+            "children": []
+          }
+        ]
+      },
+      {
+        "form": "pinacoid",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "πινάκιον",
+            "lang": "grc",
+            "rel": "derived",
+            "gloss": "slab, tablet",
+            "tr": "pinákion",
+            "children": []
+          },
+          {
+            "form": "-oid",
+            "lang": "en",
+            "rel": "derived",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
   "breakfast": {
     "form": "breakfast",
     "lang": "en",
@@ -823,6 +894,50 @@
             "rel": "derived",
             "tr": "burnus",
             "children": []
+          }
+        ]
+      }
+    ]
+  },
+  "caravan": {
+    "form": "caravan",
+    "lang": "en",
+    "children": [
+      {
+        "form": "caravane",
+        "lang": "frm",
+        "rel": "derived",
+        "children": [
+          {
+            "form": "carvane",
+            "lang": "fro",
+            "rel": "derived",
+            "children": [
+              {
+                "form": "کاروان",
+                "lang": "fa",
+                "rel": "derived",
+                "tr": "kârvân",
+                "children": [
+                  {
+                    "form": "kʾlwʾn'",
+                    "lang": "pal",
+                    "rel": "derived",
+                    "tr": "kārawān",
+                    "children": [
+                      {
+                        "form": "𐎣𐎠𐎼",
+                        "lang": "peo",
+                        "rel": "derived",
+                        "gloss": "people, subjects",
+                        "tr": "k-a-r",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
           }
         ]
       }
@@ -1215,6 +1330,33 @@
                     ]
                   }
                 ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "daisy": {
+    "form": "daisy",
+    "lang": "en",
+    "children": [
+      {
+        "form": "dayesye",
+        "lang": "enm",
+        "rel": "inherited",
+        "children": [
+          {
+            "form": "dæġes ēage",
+            "lang": "ang",
+            "rel": "inherited",
+            "gloss": "daisy",
+            "children": [
+              {
+                "form": "daisy roots",
+                "lang": "en",
+                "rel": "from",
+                "children": []
               }
             ]
           }
@@ -1860,6 +2002,98 @@
       }
     ]
   },
+  "garlic": {
+    "form": "garlic",
+    "lang": "en",
+    "children": [
+      {
+        "form": "garlek",
+        "lang": "enm",
+        "rel": "inherited",
+        "children": []
+      },
+      {
+        "form": "garlik",
+        "lang": "enm",
+        "rel": "from",
+        "children": [
+          {
+            "form": "gārlēac",
+            "lang": "ang",
+            "rel": "inherited",
+            "gloss": "garlic",
+            "children": [
+              {
+                "form": "gār",
+                "lang": "ang",
+                "rel": "from",
+                "children": []
+              },
+              {
+                "form": "lēac",
+                "lang": "ang",
+                "rel": "from",
+                "gloss": "leek",
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "gecko": {
+    "form": "gecko",
+    "lang": "en",
+    "children": [
+      {
+        "form": "gekko",
+        "lang": "nl",
+        "rel": "derived",
+        "children": [
+          {
+            "form": "chacco",
+            "lang": "en",
+            "rel": "from",
+            "children": []
+          },
+          {
+            "form": "jackoa",
+            "lang": "en",
+            "rel": "from",
+            "children": [
+              {
+                "form": "gekok",
+                "lang": "ms",
+                "rel": "derived",
+                "children": []
+              },
+              {
+                "form": "gekoq",
+                "lang": "ms",
+                "rel": "from",
+                "children": []
+              },
+              {
+                "form": "gekop",
+                "lang": "ms",
+                "rel": "from",
+                "children": [
+                  {
+                    "form": "gèh-gòh",
+                    "lang": "ace",
+                    "rel": "derived",
+                    "gloss": "busy",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "huffer": {
     "form": "huffer",
     "lang": "en",
@@ -1954,6 +2188,36 @@
       }
     ]
   },
+  "husband": {
+    "form": "husband",
+    "lang": "en",
+    "children": [
+      {
+        "form": "husbonde",
+        "lang": "enm",
+        "children": [
+          {
+            "form": "hūsbonda",
+            "lang": "ang",
+            "children": [
+              {
+                "form": "*(s)kewH-",
+                "lang": "ine-pro",
+                "rel": "derived",
+                "children": []
+              },
+              {
+                "form": "húsbóndi",
+                "lang": "non",
+                "rel": "calque",
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "jungle": {
     "form": "jungle",
     "lang": "en",
@@ -2001,6 +2265,24 @@
             ]
           }
         ]
+      }
+    ]
+  },
+  "koala": {
+    "form": "koala",
+    "lang": "en",
+    "children": [
+      {
+        "form": "gula",
+        "lang": "xdk",
+        "rel": "borrowed",
+        "children": []
+      },
+      {
+        "form": "gulawany",
+        "lang": "xdk",
+        "rel": "from",
+        "children": []
       }
     ]
   },
@@ -2160,6 +2442,107 @@
                         "lang": "la",
                         "rel": "from",
                         "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "lumberyard": {
+    "form": "lumberyard",
+    "lang": "en",
+    "children": [
+      {
+        "form": "lumber",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "lame",
+            "lang": "en",
+            "rel": "from",
+            "children": []
+          },
+          {
+            "form": "Lumbar",
+            "lang": "en",
+            "rel": "from",
+            "children": [
+              {
+                "form": "Lombard",
+                "lang": "en",
+                "rel": "from",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "yard",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "yerd",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": []
+          },
+          {
+            "form": "yard",
+            "lang": "enm",
+            "rel": "from",
+            "children": []
+          },
+          {
+            "form": "ȝerd",
+            "lang": "enm",
+            "rel": "from",
+            "children": []
+          },
+          {
+            "form": "ȝeard",
+            "lang": "enm",
+            "rel": "from",
+            "children": [
+              {
+                "form": "ġeard",
+                "lang": "ang",
+                "rel": "inherited",
+                "gloss": "yard, garden, fence, enclosure",
+                "children": [
+                  {
+                    "form": "*gard",
+                    "lang": "gmw-pro",
+                    "rel": "inherited",
+                    "children": [
+                      {
+                        "form": "*gardaz",
+                        "lang": "gem-pro",
+                        "rel": "inherited",
+                        "gloss": "enclosure, yard",
+                        "children": [
+                          {
+                            "form": "*gʰórdʰos",
+                            "lang": "ine-pro",
+                            "rel": "inherited",
+                            "children": [
+                              {
+                                "form": "*gʰerdʰ-",
+                                "lang": "ine-pro",
+                                "rel": "derived",
+                                "gloss": "to enclose",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
@@ -2656,6 +3039,25 @@
                 ]
               }
             ]
+          }
+        ]
+      }
+    ]
+  },
+  "moose": {
+    "form": "moose",
+    "lang": "en",
+    "children": [
+      {
+        "form": "",
+        "lang": "alg-eas",
+        "rel": "derived",
+        "children": [
+          {
+            "form": "moos, mws",
+            "lang": "wam",
+            "rel": "derived",
+            "children": []
           }
         ]
       }
@@ -3654,6 +4056,72 @@
       }
     ]
   },
+  "pustuled": {
+    "form": "pustuled",
+    "lang": "en",
+    "children": [
+      {
+        "form": "pustule",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "pustule",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": [
+              {
+                "form": "pustule",
+                "lang": "fro",
+                "rel": "derived",
+                "children": [
+                  {
+                    "form": "pustula",
+                    "lang": "la",
+                    "rel": "derived",
+                    "gloss": "inflamed sore, blister",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "-ed",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "-ede",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": []
+          },
+          {
+            "form": "-ed",
+            "lang": "enm",
+            "rel": "from",
+            "children": [
+              {
+                "form": "-de",
+                "lang": "ang",
+                "rel": "from",
+                "children": []
+              },
+              {
+                "form": "-t",
+                "lang": "en",
+                "rel": "from",
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "rewriter": {
     "form": "rewriter",
     "lang": "en",
@@ -3807,6 +4275,26 @@
                 ]
               }
             ]
+          }
+        ]
+      }
+    ]
+  },
+  "safari": {
+    "form": "safari",
+    "lang": "en",
+    "children": [
+      {
+        "form": "safari",
+        "lang": "sw",
+        "rel": "borrowed",
+        "children": [
+          {
+            "form": "سَفَر",
+            "lang": "ar",
+            "rel": "borrowed",
+            "tr": "safar",
+            "children": []
           }
         ]
       }
@@ -4060,6 +4548,111 @@
       }
     ]
   },
+  "steward": {
+    "form": "steward",
+    "lang": "en",
+    "children": [
+      {
+        "form": "steward",
+        "lang": "enm",
+        "rel": "inherited",
+        "children": []
+      },
+      {
+        "form": "stiward",
+        "lang": "enm",
+        "rel": "from",
+        "children": [
+          {
+            "form": "stiġweard",
+            "lang": "ang",
+            "rel": "inherited",
+            "gloss": "steward, housekeeper, one who has the superintendence of household affairs, guardian",
+            "children": [
+              {
+                "form": "stiġ",
+                "lang": "ang",
+                "rel": "from",
+                "gloss": "a wooden enclosure; house, hall",
+                "children": []
+              },
+              {
+                "form": "weard",
+                "lang": "ang",
+                "rel": "from",
+                "gloss": "ward, guard, guardian, keeper",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "sty",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "sty",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": [
+              {
+                "form": "stī",
+                "lang": "ang",
+                "rel": "inherited",
+                "children": []
+              },
+              {
+                "form": "stiġ",
+                "lang": "ang",
+                "rel": "from",
+                "gloss": "sty, pen, a wooden enclosure; hall",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "ward",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "warde",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": [
+              {
+                "form": "weard",
+                "lang": "ang",
+                "rel": "inherited",
+                "gloss": "keeper, watchman, guard, guardian, protector; lord, king; possessor",
+                "children": [
+                  {
+                    "form": "*warduz",
+                    "lang": "gem-pro",
+                    "rel": "inherited",
+                    "gloss": "guard, keeper",
+                    "children": [
+                      {
+                        "form": "*wer-",
+                        "lang": "ine-pro",
+                        "rel": "derived",
+                        "gloss": "to heed, defend",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "stoup": {
     "form": "stoup",
     "lang": "en",
@@ -4080,6 +4673,66 @@
                 "rel": "from",
                 "gloss": "a vessel",
                 "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "subindurated": {
+    "form": "subindurated",
+    "lang": "en",
+    "children": [
+      {
+        "form": "sub-",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "sub-",
+            "lang": "la",
+            "rel": "derived",
+            "gloss": "under",
+            "children": []
+          }
+        ]
+      },
+      {
+        "form": "indurated",
+        "lang": "en",
+        "rel": "+",
+        "children": []
+      }
+    ]
+  },
+  "taboo": {
+    "form": "taboo",
+    "lang": "en",
+    "children": [
+      {
+        "form": "tapu",
+        "lang": "to",
+        "rel": "borrowed",
+        "gloss": "prohibited, sacred",
+        "children": [
+          {
+            "form": "*tapu",
+            "lang": "poz-pol-pro",
+            "rel": "derived",
+            "children": [
+              {
+                "form": "*tabu",
+                "lang": "poz-oce-pro",
+                "rel": "derived",
+                "children": [
+                  {
+                    "form": "*tambu",
+                    "lang": "pqe-pro",
+                    "rel": "derived",
+                    "children": []
+                  }
+                ]
               }
             ]
           }
@@ -4870,6 +5523,47 @@
                                 "children": []
                               }
                             ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "wolf": {
+    "form": "wolf",
+    "lang": "en",
+    "children": [
+      {
+        "form": "wolf",
+        "lang": "enm",
+        "children": [
+          {
+            "form": "wulf",
+            "lang": "ang",
+            "children": [
+              {
+                "form": "*wulf",
+                "lang": "gmw-pro",
+                "children": [
+                  {
+                    "form": "*wulfaz",
+                    "lang": "gem-pro",
+                    "children": [
+                      {
+                        "form": "*wĺ̥kʷos",
+                        "lang": "ine-pro",
+                        "children": [
+                          {
+                            "form": "*wl̥kʷós",
+                            "lang": "ine-pro",
+                            "children": []
                           }
                         ]
                       }
