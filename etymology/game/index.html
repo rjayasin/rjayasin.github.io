@@ -2156,11 +2156,12 @@
       // stray "new game" click, so guard it: when the board holds placed cards the
       // first click only arms the button (label + colour change) and a second
       // click within a few seconds actually starts fresh. An untouched board (just
-      // the root, everything still in the tray) starts on the first click.
+      // the root, everything still in the tray) — or an already-solved one, which
+      // has no progress left to lose — starts on the first click.
       let newArmed = false;
       let newArmTimer = null;
       function boardHasPlacedCards() {
-        return !!realRoot && boardRoot !== null && pool.length < countAll() - 1;
+        return !solved && !!realRoot && boardRoot !== null && pool.length < countAll() - 1;
       }
       function disarmNewBtn() {
         newArmed = false;
