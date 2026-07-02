@@ -38,6 +38,7 @@
            (not translucent) so overlapping line borders don't double-paint into
            bright specks — matched to rgba(255,255,255,0.5) over #111. */
         --gline: #888888;
+        color-scheme: dark;
       }
       @media (prefers-color-scheme: dark) {
         body:not(.light) {
@@ -50,6 +51,7 @@
           --ok: #7bc47f;
           --bad: #e57373;
           --gline: #888888;
+          color-scheme: dark;
         }
       }
       html,
@@ -63,6 +65,12 @@
         flex-direction: column;
         height: 100vh;
         height: 100dvh;
+        /* Native controls (the difficulty dropdown) and scrollbars follow the
+           page's theme, including the manual "1" toggle — common.css's
+           :root { color-scheme: light dark } only tracks the OS preference,
+           so it goes dark-on-light after a manual flip. The dark blocks
+           above override this with color-scheme: dark. */
+        color-scheme: light;
         /* Make all text unselectable (incl. iOS Safari, which also needs the
            -webkit- prefix and the touch-callout suppression to stop the
            long-press selection/callout menu). Cascades to all descendants. */
@@ -184,7 +192,12 @@
         position: relative;
         padding: 24px 16px 32px;
         display: flex;
-        justify-content: center;
+        /* No justify-content: center — .gtree's min-width: 100% means there is
+           never free space to distribute (it centers its own content), so the
+           declaration did nothing in modern engines. In engines predating the
+           CSS "safe alignment in scroll containers" fix it was worse than
+           nothing: centering an overflowing (hard-mode) tree pushed half of it
+           past the scroll origin, where it couldn't be scrolled to. */
         align-items: flex-start;
       }
       #board.empty-hint::after {
@@ -837,7 +850,10 @@
       // ---------- Building a puzzle from a tree ----------
       function startPuzzleWithTree(tree) {
         markSeen(tree.form); // played or skipped, it won't be offered again
-        realRoot = tree;
+        // Clone before mutating: the given tree is often a shared object (the
+        // ready queue, savedTrees, and treeCache all hand out the same
+        // reference), and play stamps ids and a root flag onto every node.
+        realRoot = cloneTree(tree);
         let id = 0;
         walk(realRoot, (n) => (n.id = id++));
         realRoot.root = true;
@@ -1568,7 +1584,10 @@
 
       async function loadWordPool() {
         try {
-          const r = await fetch('words.json?t=' + Date.now(), { cache: 'no-store' });
+          // Revalidate rather than bust the cache with a unique URL: no-store
+          // plus a timestamp param defeated the CDN cache entirely, so every
+          // visit paid a full origin fetch. A 304 keeps this cheap and fresh.
+          const r = await fetch('words.json', { cache: 'no-cache' });
           if (!r.ok) return;
           const data = await r.json();
           if (data && typeof data === 'object') {
@@ -1593,8 +1612,7 @@
       // read it back here — a cached word then costs one static-file hit and zero
       // Wiktionary calls. The file fills in as words are played (see recordTree /
       // the directed migration in discoverAndCommit), never in one bulk sweep.
-      // Loaded with normal HTTP caching (unlike words.json) since trees are large
-      // and effectively immutable; a stale copy just means a word gets rebuilt.
+      // A stale cached copy is harmless — the word just gets rebuilt.
       const savedTrees = new Map(); // lowercased form -> tree
       async function loadTreeCache() {
         try {
@@ -1683,6 +1701,13 @@
       let flushing = false;
       let lastCommitAt = 0;
       let backoffUntil = 0; // epoch ms; GitHub asked us to hold off until here
+      // Most signed-in visitors aren't collaborators on the repo, so their
+      // commits can never land (the Contents API answers 404/403). Once that's
+      // established — by the up-front permission probe or a failed write —
+      // this flips and the commit machinery stands down for the session,
+      // instead of retrying a hopeless write every minute. Discoveries still
+      // work locally (WORD_POOL / savedTrees); they just aren't persisted.
+      let commitsBlocked = false;
       const FLUSH_DELAY = 30000; // gather discoveries this long before committing
       const MIN_COMMIT_INTERVAL = 60000; // and never commit more than once a minute
       const DEFAULT_BACKOFF = 90000; // fallback wait when rate-limited with no hint
@@ -1763,8 +1788,9 @@
         if (!word || isBlocked(word)) return;
         const key = word.toLowerCase();
         if (savedTrees.has(key) || pendingTrees.has(key)) return;
-        if (pendingTrees.size === 0) treesPendingSince = Date.now(); // start the batch clock
         savedTrees.set(key, tree); // available immediately this session
+        if (commitsBlocked) return; // can't persist — don't stage a batch that never flushes
+        if (pendingTrees.size === 0) treesPendingSince = Date.now(); // start the batch clock
         pendingTrees.set(key, tree); // committed once the batch is ready (re-cleaned there)
         scheduleFlush();
       }
@@ -1778,6 +1804,7 @@
         if (!band || poolHas(WORD_POOL, word) || pendingContrib.has(word)) return;
         if (wouldUnbalanceBand(WORD_POOL, band)) return; // band already too far ahead
         WORD_POOL[band].push(word);
+        if (commitsBlocked) return; // usable this session, but can't be committed
         pendingContrib.set(word, band);
         scheduleFlush();
       }
@@ -1807,7 +1834,8 @@
       // The delay respects the batch window, a minimum gap between commits, and
       // any rate-limit backoff GitHub has asked for.
       function scheduleFlush() {
-        if (flushScheduled || flushing || !Common.GH.isAuthed() || !pendingWork()) return;
+        if (flushScheduled || flushing || commitsBlocked) return;
+        if (!Common.GH.isAuthed() || !pendingWork()) return;
         flushScheduled = true;
         const now = Date.now();
         const delay = Math.max(
@@ -1896,9 +1924,10 @@
       // it means our sha went stale (a concurrent commit, or read-after-write
       // lag), so we re-read the latest file and rebuild on top of it; a short,
       // growing pause lets GitHub's replicas catch up. Returns 'committed' when a
-      // write landed, 'noop' when the batch was already in the file, or 'retry'
+      // write landed, 'noop' when the batch was already in the file, 'retry'
       // when the batch should be kept for later (auth lost, rate-limited, or
-      // conflicts exhausted).
+      // conflicts exhausted), or 'blocked' when the token can't write to the
+      // repo at all — retrying that can never succeed.
       async function commitTarget(target, headers) {
         const url = `https://api.github.com/repos/${REPO}/contents/${target.path}`;
         for (let attempt = 0; attempt < 3; attempt++) {
@@ -1937,9 +1966,17 @@
             body: JSON.stringify({ message: target.message(added), content: b64encode(body), sha }),
           });
           if (putR.status === 403 || putR.status === 429) {
-            backoffUntil = Date.now() + (rateLimitDelayMs(putR) || DEFAULT_BACKOFF);
+            const wait = rateLimitDelayMs(putR);
+            // A 403 carrying no rate-limit signal is permission denial
+            // ("Resource not accessible"), not throttling — don't retry it.
+            if (!wait && putR.status === 403) return 'blocked';
+            backoffUntil = Date.now() + (wait || DEFAULT_BACKOFF);
             return 'retry'; // rate-limited mid-write; keep the batch, retry later
           }
+          // 404: the token has no write access (GitHub hides the endpoint from
+          // non-collaborators rather than answering 403). 422: the request
+          // itself is unprocessable. Neither can succeed on a retry.
+          if (putR.status === 404 || putR.status === 422) return 'blocked';
           if (putR.status === 409) {
             await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
             continue; // stale sha — re-read and try again
@@ -1962,7 +1999,7 @@
       // batch-ripeness gate — used when the page is closing so a held batch isn't
       // lost to the 5-minute window.
       async function flushContributions(force = false) {
-        if (flushing || !Common.GH.isAuthed() || !pendingWork()) return;
+        if (flushing || commitsBlocked || !Common.GH.isAuthed() || !pendingWork()) return;
         if (Date.now() < backoffUntil) {
           scheduleFlush(); // still in a rate-limit hold; try again after it lifts
           return;
@@ -1976,6 +2013,10 @@
             if (!force && target.ready && !target.ready()) continue; // batch not ripe yet
             if (!Common.GH.isAuthed() || Date.now() < backoffUntil) break;
             const result = await commitTarget(target, headers);
+            if (result === 'blocked') {
+              markCommitsBlocked();
+              break;
+            }
             if (result === 'committed' || result === 'retry') break; // one write per pass
           }
         } catch (e) {
@@ -1985,6 +2026,47 @@
           // Fold anything still pending — rate-limited, conflicted, errored, or
           // added mid-flush — into the next batched attempt.
           if (pendingWork()) scheduleFlush();
+        }
+      }
+
+      // The sign-in turned out not to have push access: stand the commit
+      // machinery down for the session. The staged batches are dropped (their
+      // entries keep serving WORD_POOL / savedTrees locally), and the sign-in
+      // button's tooltip says why nothing is being saved.
+      function markCommitsBlocked() {
+        if (commitsBlocked) return;
+        commitsBlocked = true;
+        for (const target of COMMIT_TARGETS) target.pending.clear();
+        clearTimeout(flushTimer);
+        flushScheduled = false;
+        document.getElementById('gh-auth').title =
+          'Signed in, but this account can’t write to the repo — discoveries stay on this device';
+      }
+
+      // Probe push permission once up front rather than letting every batch
+      // fail its PUT: for the typical non-collaborator sign-in this replaces a
+      // once-a-minute failed write loop with a single check. On any doubt
+      // (network error, unexpected shape) leave commits enabled — the PUT path
+      // still catches denial via markCommitsBlocked.
+      async function checkWriteAccess() {
+        if (!Common.GH.isAuthed() || commitsBlocked) return;
+        try {
+          const r = await fetch(`https://api.github.com/repos/${REPO}`, {
+            headers: {
+              Accept: 'application/vnd.github+json',
+              Authorization: `Bearer ${Common.GH.getToken()}`,
+            },
+          });
+          if (r.status === 401) {
+            Common.GH.clearToken();
+            ghAuth.refresh();
+            return;
+          }
+          if (!r.ok) return;
+          const repo = await r.json();
+          if (repo && repo.permissions && !repo.permissions.push) markCommitsBlocked();
+        } catch (e) {
+          /* offline or blocked — let the commit path decide */
         }
       }
 
@@ -2129,7 +2211,9 @@
       // One at a time, so rapid clicks don't pile up Wiktionary fetches.
       let discovering = false;
       async function discoverAndCommit() {
-        if (discovering || isRateLimited() || !Common.GH.isAuthed()) return;
+        // The whole point is feeding the shared cache, so skip it when the
+        // sign-in can't commit — same as when signed out.
+        if (discovering || isRateLimited() || !Common.GH.isAuthed() || commitsBlocked) return;
         discovering = true;
         try {
           const word = uncachedPoolWord();
@@ -2300,6 +2384,7 @@
       Promise.all([loadWordPool(), loadTreeCache()]).then(newGame);
       Common.GH.handleRedirect().then((signedIn) => {
         if (signedIn) ghAuth.refresh();
+        checkWriteAccess(); // covers both a fresh sign-in and a stored token
         scheduleFlush();
       });
     </script>
