@@ -1721,14 +1721,9 @@
       const TREES_MAX_HOLD = 300000; // …or this long after the batch started (5 min)
       let treesPendingSince = 0;
 
-      // GitHub returns/expects file contents as base64; wrap btoa/atob so
-      // non-ASCII headwords (e.g. "café") survive the round trip.
-      function b64encode(str) {
-        return btoa(unescape(encodeURIComponent(str)));
-      }
-      function b64decode(b64) {
-        return decodeURIComponent(escape(atob(b64.replace(/\s/g, ''))));
-      }
+      // GitHub returns/expects file contents as base64; the shared helpers
+      // keep non-ASCII headwords (e.g. "café") intact across the round trip.
+      const { b64encode, b64decode } = Common.GH;
 
       function bandForCount(n) {
         for (const [name, b] of Object.entries(DIFFS)) {

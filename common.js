@@ -342,6 +342,33 @@ window.Common = window.Common || {};
     };
   }
 
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // "MM-DD" within the current year, "YYYY-MM-DD" otherwise (commits/deploys).
+  function fmtDay(iso) {
+    const d = new Date(iso);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return yyyy === new Date().getFullYear() ? `${mm}-${dd}` : `${yyyy}-${mm}-${dd}`;
+  }
+
+  // "3:07pm" local time (commits/deploys).
+  function fmtTime(iso) {
+    const d = new Date(iso);
+    let h = d.getHours();
+    const ampm = h >= 12 ? 'pm' : 'am';
+    h = h % 12 || 12;
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${h}:${min}${ampm}`;
+  }
+
   // Relative "5h ago" timestamp, matching the sitemap "recent" view.
   function relativeWhen(iso, now = Date.now()) {
     const t = new Date(iso).getTime();
@@ -446,6 +473,42 @@ window.Common = window.Common || {};
 
   function ghGetToken() {
     return localStorage.getItem(GH_TOKEN_KEY) || '';
+  }
+
+  // GitHub returns/expects file contents as base64. TextEncoder-based (btoa
+  // alone is Latin-1 only) so non-ASCII content survives the round trip.
+  function ghB64Encode(str) {
+    const bytes = new TextEncoder().encode(str);
+    let bin = '';
+    const CHUNK = 0x8000; // stay under fromCharCode's argument limit
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+    }
+    return btoa(bin);
+  }
+  function ghB64Decode(b64) {
+    const bin = atob(b64.replace(/\s/g, ''));
+    return new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+  }
+
+  // A friendlier line for a GitHub API rate-limit response, with the reset
+  // time when the (CORS-exposed) headers carry it. Returns null for anything
+  // that isn't a rate limit — notably a permissions 403 — so callers can fall
+  // back to their generic error text.
+  function ghRateLimitError(res) {
+    if (res.status !== 403 && res.status !== 429) return null;
+    const ra = parseInt(res.headers.get('retry-after') || '', 10);
+    const exhausted = res.headers.get('x-ratelimit-remaining') === '0';
+    if (res.status === 403 && isNaN(ra) && !exhausted) return null; // permissions, not throttling
+    let mins = null;
+    if (!isNaN(ra)) mins = Math.ceil(ra / 60);
+    else {
+      const reset = parseInt(res.headers.get('x-ratelimit-reset') || '', 10);
+      if (!isNaN(reset)) mins = Math.ceil((reset * 1000 - Date.now()) / 60000);
+    }
+    const when = mins && mins > 0 ? ` — resets in ~${mins}m` : '';
+    const hint = ghIsAuthed() ? '' : '; sign in (top right) for a higher limit';
+    return 'GitHub rate limit hit' + when + hint;
   }
   function ghIsAuthed() {
     return !!ghGetToken();
@@ -557,6 +620,9 @@ window.Common = window.Common || {};
     initTextEditor,
     openSitemap,
     initSitemapShortcut,
+    escHtml,
+    fmtDay,
+    fmtTime,
     GH: {
       getToken: ghGetToken,
       isAuthed: ghIsAuthed,
@@ -564,6 +630,9 @@ window.Common = window.Common || {};
       signIn: ghSignIn,
       handleRedirect: ghHandleRedirect,
       initAuthButton: ghInitAuthButton,
+      b64encode: ghB64Encode,
+      b64decode: ghB64Decode,
+      rateLimitError: ghRateLimitError,
     },
   });
 })();
