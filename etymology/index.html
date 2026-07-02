@@ -1244,6 +1244,36 @@
       const FADE_MS = 180; // keep in sync with #content's opacity transition
       let seq = 0;
 
+      // The game (/etymology/game/) maintains a static cache of pre-built
+      // trees; serve English lookups from it when possible — instant, zero
+      // Wiktionary calls, and it keeps working while the API is rate-limited.
+      const savedTrees = new Map(); // lowercased form -> tree
+      const savedTreesReady = fetch('game/trees.json', { cache: 'no-cache' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data && typeof data === 'object' && !Array.isArray(data)) {
+            for (const [k, v] of Object.entries(data))
+              if (v && typeof v === 'object') savedTrees.set(k.toLowerCase(), v);
+          }
+        })
+        .catch(() => {
+          /* no cache — every word is built from Wiktionary as before */
+        });
+
+      async function cachedOrBuiltTree(form, lang) {
+        if (lang === 'en') {
+          await savedTreesReady; // a local static file — quick, and worth the wait
+          const cached = savedTrees.get(form.toLowerCase());
+          if (cached) {
+            // Cached trees carry bare language codes; fill in any names
+            // missing from LANGS the same way a fresh build would.
+            await resolveLangNames(collectLangs(cached));
+            return cached;
+          }
+        }
+        return buildTree(form, lang);
+      }
+
       function queryFor(form, lang) {
         return encodeURIComponent(lang === 'en' ? form : form + '@' + lang);
       }
@@ -1268,7 +1298,7 @@
         contentEl.style.opacity = '0';
         const fadeOut = new Promise((r) => setTimeout(r, FADE_MS));
         let resolved = false;
-        const treePromise = buildTree(form, lang).then((t) => ((resolved = true), t));
+        const treePromise = cachedOrBuiltTree(form, lang).then((t) => ((resolved = true), t));
         await fadeOut;
         if (my !== seq) return;
         // If the fetch is still outstanding after the fade, show a spinner so

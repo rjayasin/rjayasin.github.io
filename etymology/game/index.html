@@ -38,7 +38,6 @@
            (not translucent) so overlapping line borders don't double-paint into
            bright specks — matched to rgba(255,255,255,0.5) over #111. */
         --gline: #888888;
-        color-scheme: dark;
       }
       @media (prefers-color-scheme: dark) {
         body:not(.light) {
@@ -51,7 +50,6 @@
           --ok: #7bc47f;
           --bad: #e57373;
           --gline: #888888;
-          color-scheme: dark;
         }
       }
       html,
@@ -65,12 +63,6 @@
         flex-direction: column;
         height: 100vh;
         height: 100dvh;
-        /* Native controls (the difficulty dropdown) and scrollbars follow the
-           page's theme, including the manual "1" toggle — common.css's
-           :root { color-scheme: light dark } only tracks the OS preference,
-           so it goes dark-on-light after a manual flip. The dark blocks
-           above override this with color-scheme: dark. */
-        color-scheme: light;
         /* Make all text unselectable (incl. iOS Safari, which also needs the
            -webkit- prefix and the touch-callout suppression to stop the
            long-press selection/callout menu). Cascades to all descendants. */
@@ -1721,14 +1713,9 @@
       const TREES_MAX_HOLD = 300000; // …or this long after the batch started (5 min)
       let treesPendingSince = 0;
 
-      // GitHub returns/expects file contents as base64; wrap btoa/atob so
-      // non-ASCII headwords (e.g. "café") survive the round trip.
-      function b64encode(str) {
-        return btoa(unescape(encodeURIComponent(str)));
-      }
-      function b64decode(b64) {
-        return decodeURIComponent(escape(atob(b64.replace(/\s/g, ''))));
-      }
+      // GitHub returns/expects file contents as base64; the shared helpers
+      // keep non-ASCII headwords (e.g. "café") intact across the round trip.
+      const { b64encode, b64decode } = Common.GH;
 
       function bandForCount(n) {
         for (const [name, b] of Object.entries(DIFFS)) {

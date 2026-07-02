@@ -3,9 +3,6 @@
   padding: 0;
   box-sizing: border-box;
 }
-:root {
-  color-scheme: light dark;
-}
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
@@ -13,6 +10,11 @@ html {
 body {
   background: #ffffff;
   color: #000000;
+  /* Native form controls and scrollbars follow the page's theme, including
+     the manual "1" toggle (body.dark / body.light) — a bare
+     :root { color-scheme: light dark } would track only the OS preference
+     and leave them dark-on-light after a manual flip. */
+  color-scheme: light;
   transition:
     background-color 0.2s ease,
     color 0.2s ease;
@@ -20,11 +22,13 @@ body {
 body.dark {
   background: #111111;
   color: #ffffff;
+  color-scheme: dark;
 }
 @media (prefers-color-scheme: dark) {
   body:not(.light) {
     background: #111111;
     color: #ffffff;
+    color-scheme: dark;
   }
 }
 body.hide-cursor,

@@ -581,7 +581,6 @@
       Common.initSitemapShortcut();
 
       const REPO = 'rjayasin/rjayasin.github.io';
-      const TOKEN_KEY = 'gh_token';
       const PER_PAGE = 50;
       const MAX_PAGES = 10;
       const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -603,51 +602,32 @@
       const toggleSize = document.getElementById('toggle-size');
 
       function getToken() {
-        return localStorage.getItem(TOKEN_KEY) || '';
+        return Common.GH.getToken();
       }
 
-      function refreshAuthBtn() {
-        if (getToken()) {
-          authBtn.classList.add('authed');
-          authBtn.title = 'Logged in to GitHub (click to log out)';
-        } else {
-          authBtn.classList.remove('authed');
-          authBtn.title = 'Log in with GitHub for higher rate limits';
-        }
-      }
-
-      authBtn.addEventListener('click', () => {
-        if (getToken()) {
-          if (confirm('Log out of GitHub?')) {
-            localStorage.removeItem(TOKEN_KEY);
-            location.reload();
-          }
-          return;
-        }
-        const msg =
-          'Paste a GitHub personal access token for higher rate limits.\n\n' +
-          'Create one at https://github.com/settings/tokens\n' +
-          '  • Classic token: scope "public_repo" is enough\n' +
-          '  • Fine-grained: read access to "Actions" + "Metadata"\n\n' +
-          'The token is stored only in this browser (localStorage).';
-        const token = prompt(msg, '');
-        if (token && token.trim()) {
-          localStorage.setItem(TOKEN_KEY, token.trim());
-          location.reload();
-        }
+      // "Sign in with GitHub" for higher API rate limits — the shared OAuth
+      // flow from common.js (the same sign-in /commits/ and /snake/ use),
+      // replacing this page's old paste-a-PAT prompt. Both flows stored their
+      // token under the same localStorage key, so logging out here silently
+      // signed the visitor out of every other page too (and a pasted PAT
+      // clobbered the OAuth token); now the pages simply share one session.
+      // NOTE: the redirect only completes if this page's URL is registered as
+      // a callback on the GitHub App (like /snake/ and /commits/ are).
+      const auth = Common.GH.initAuthButton({
+        buttonEl: authBtn,
+        signedInTitle: 'Signed in to GitHub (click to sign out)',
+        signedOutTitle: 'Sign in with GitHub for higher rate limits',
+        onChange: () => location.reload(),
       });
 
-      refreshAuthBtn();
+      // Completes the OAuth redirect (if any) before runs are fetched, so the
+      // first request already carries the token; resolves at once otherwise.
+      const authReady = Common.GH.handleRedirect();
+      authReady.then((signedIn) => {
+        if (signedIn) auth.refresh();
+      });
 
-      const CURRENT_YEAR = new Date().getFullYear();
-
-      function fmtDay(iso) {
-        const d = new Date(iso);
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        const yyyy = d.getFullYear();
-        return yyyy === CURRENT_YEAR ? `${mm}-${dd}` : `${yyyy}-${mm}-${dd}`;
-      }
+      const { escHtml, fmtDay, fmtTime } = Common;
 
       function fmtDayLong(iso) {
         const d = new Date(iso);
@@ -658,29 +638,12 @@
         });
       }
 
-      function fmtTime(iso) {
-        const d = new Date(iso);
-        let h = d.getHours();
-        const ampm = h >= 12 ? 'pm' : 'am';
-        h = h % 12 || 12;
-        const min = String(d.getMinutes()).padStart(2, '0');
-        return `${h}:${min}${ampm}`;
-      }
-
       function fmtDuration(sec) {
         if (sec == null || !isFinite(sec) || sec < 0) return '—';
         if (sec < 60) return `${sec.toFixed(0)}s`;
         const m = Math.floor(sec / 60);
         const s = Math.round(sec - m * 60);
         return s === 0 ? `${m}m` : `${m}m${String(s).padStart(2, '0')}s`;
-      }
-
-      function escHtml(s) {
-        return s
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;');
       }
 
       function percentile(sorted, p) {
@@ -702,6 +665,7 @@
       const seen = new Set();
 
       async function fetchRuns(page) {
+        await authReady;
         const headers = { Accept: 'application/vnd.github+json' };
         const token = getToken();
         if (token) headers.Authorization = `Bearer ${token}`;
@@ -710,11 +674,11 @@
           `?per_page=${PER_PAGE}&page=${page}`;
         const r = await fetch(url, { headers });
         if (r.status === 401) {
-          localStorage.removeItem(TOKEN_KEY);
-          refreshAuthBtn();
+          Common.GH.clearToken();
+          auth.refresh();
           throw new Error('GitHub token rejected; logged out');
         }
-        if (!r.ok) throw new Error(`GitHub API ${r.status}`);
+        if (!r.ok) throw new Error(Common.GH.rateLimitError(r) || `GitHub API ${r.status}`);
         return r.json();
       }
 
@@ -830,11 +794,11 @@
         const url = `https://api.github.com/repos/${REPO}/git/trees/${sha}?recursive=1`;
         const r = await fetch(url, { headers });
         if (r.status === 401) {
-          localStorage.removeItem(TOKEN_KEY);
-          refreshAuthBtn();
+          Common.GH.clearToken();
+          auth.refresh();
           throw new Error('GitHub token rejected; logged out');
         }
-        if (!r.ok) throw new Error(`GitHub API ${r.status}`);
+        if (!r.ok) throw new Error(Common.GH.rateLimitError(r) || `GitHub API ${r.status}`);
         const data = await r.json();
         let total = 0;
         for (const item of data.tree || []) {

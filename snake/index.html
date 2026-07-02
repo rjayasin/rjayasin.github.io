@@ -797,14 +797,9 @@
         localStorage.setItem(BEST_KEY, String(n));
       }
 
-      // GitHub returns/expects file contents as base64; wrap btoa/atob so
-      // non-ASCII names (GitHub logins are ASCII, but be safe) survive.
-      function b64encode(str) {
-        return btoa(unescape(encodeURIComponent(str)));
-      }
-      function b64decode(b64) {
-        return decodeURIComponent(escape(atob(b64.replace(/\s/g, ''))));
-      }
+      // GitHub returns/expects file contents as base64; the shared helpers
+      // keep non-ASCII names (GitHub logins are ASCII, but be safe) intact.
+      const { b64encode, b64decode } = Common.GH;
 
       function sortScores(list) {
         return list
@@ -821,7 +816,10 @@
 
       async function loadLeaderboard() {
         try {
-          const r = await fetch('scores.json?t=' + Date.now(), { cache: 'no-store' });
+          // Revalidate rather than bust the cache with a unique URL: no-store
+          // plus a timestamp param defeated the CDN cache entirely, so every
+          // visit paid a full origin fetch. A 304 keeps this cheap and fresh.
+          const r = await fetch('scores.json', { cache: 'no-cache' });
           if (r.ok) {
             const data = await r.json();
             if (Array.isArray(data)) leaderboard = sortScores(data);
@@ -842,9 +840,15 @@
         return ghLogin;
       }
 
+      // Whether the last qualifying run failed to publish (no write access,
+      // network trouble, or losing a write race repeatedly) — surfaced on the
+      // scores overlay so the player isn't left believing the score posted.
+      let postFailed = false;
+
       async function postScore(score) {
         if (posting || !Common.GH.isAuthed() || !qualifies(score)) return;
         posting = true;
+        postFailed = false;
         const token = Common.GH.getToken();
         const headers = { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}` };
         const url = `https://api.github.com/repos/${REPO}/contents/${SCORES_PATH}`;
@@ -852,47 +856,67 @@
           const name = await whoami(token);
           // Re-read the file for its sha + latest contents so we merge with,
           // rather than clobber, any score posted elsewhere since page load.
-          const getR = await fetch(url, { headers });
-          if (getR.status === 401) {
-            Common.GH.clearToken();
-            ghAuth.refresh();
-            return;
-          }
-          let sha;
-          let current = [];
-          if (getR.ok) {
-            const f = await getR.json();
-            sha = f.sha;
-            try {
-              const parsed = JSON.parse(b64decode(f.content));
-              if (Array.isArray(parsed)) current = parsed;
-            } catch (e) {
-              /* malformed file — start fresh from our entry */
+          // A 409 on the write means the sha went stale under us (someone else
+          // posted between the read and the write) — re-read and merge again
+          // instead of silently dropping the score.
+          for (let attempt = 0; attempt < 3; attempt++) {
+            const getR = await fetch(url, { headers });
+            if (getR.status === 401) {
+              Common.GH.clearToken();
+              ghAuth.refresh();
+              return;
             }
-          }
-          const entry = { name, score, date: new Date().toISOString().slice(0, 10) };
-          const next = sortScores(current.concat([entry]));
-          // Only commit when this run actually lands in the top MAX_SCORES of the
-          // freshly read board; identity check so a tie with an existing score
-          // still resolves to our own entry. Either way, reflect the latest board.
-          if (!next.includes(entry)) {
-            leaderboard = sortScores(current);
+            let sha;
+            let current = [];
+            if (getR.ok) {
+              const f = await getR.json();
+              sha = f.sha;
+              try {
+                const parsed = JSON.parse(b64decode(f.content));
+                if (Array.isArray(parsed)) current = parsed;
+              } catch (e) {
+                /* malformed file — start fresh from our entry */
+              }
+            }
+            const entry = { name, score, date: new Date().toISOString().slice(0, 10) };
+            const next = sortScores(current.concat([entry]));
+            // Only commit when this run actually lands in the top MAX_SCORES of
+            // the freshly read board; identity check so a tie with an existing
+            // score still resolves to our own entry. Either way, reflect the
+            // latest board.
+            if (!next.includes(entry)) {
+              leaderboard = sortScores(current);
+              return;
+            }
+            const putR = await fetch(url, {
+              method: 'PUT',
+              headers,
+              body: JSON.stringify({
+                message: `snake: high score ${score} by ${name}`,
+                content: b64encode(JSON.stringify(next, null, 2) + '\n'),
+                sha,
+              }),
+            });
+            if (putR.status === 409) {
+              await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+              continue; // stale sha — re-read the board and merge again
+            }
+            // Only show the run on the shared board once the write actually
+            // landed. Claiming it earlier (the old optimistic update) showed a
+            // "posted" score that never published — a signed-in player without
+            // push access always gets a 404 here.
+            if (putR.ok) {
+              leaderboard = next;
+              highlightIndex = next.indexOf(entry);
+            } else {
+              leaderboard = sortScores(current);
+              postFailed = true;
+            }
             return;
           }
-          leaderboard = next;
-          highlightIndex = next.indexOf(entry);
-          const putR = await fetch(url, {
-            method: 'PUT',
-            headers,
-            body: JSON.stringify({
-              message: `snake: high score ${score} by ${name}`,
-              content: b64encode(JSON.stringify(next, null, 2) + '\n'),
-              sha,
-            }),
-          });
-          if (putR.ok) leaderboard = next;
+          postFailed = true; // write race lost three times in a row
         } catch (e) {
-          /* network/permission error: keep the local score, skip publishing */
+          postFailed = true; // network error: keep the local score, skip publishing
         } finally {
           posting = false;
           refreshOverlay();
@@ -900,10 +924,7 @@
       }
 
       function lbEsc(n) {
-        return String(n == null ? '?' : n)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;');
+        return Common.escHtml(n == null ? '?' : n);
       }
 
       function leaderboardHtml() {
@@ -929,6 +950,8 @@
         if (best > 0) html += '<div class="lb-best">your best ' + best + '</div>';
         if (!Common.GH.isAuthed())
           html += '<div class="lb-signin">sign in (top right) to post</div>';
+        else if (postFailed)
+          html += '<div class="lb-signin">couldn’t post your score to the shared board</div>';
         return html + '</div>';
       }
 
