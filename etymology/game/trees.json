@@ -2427,6 +2427,47 @@
       }
     ]
   },
+  "grim": {
+    "form": "grim",
+    "lang": "en",
+    "children": [
+      {
+        "form": "grim",
+        "lang": "enm",
+        "rel": "inherited",
+        "children": [
+          {
+            "form": "grimm",
+            "lang": "ang",
+            "rel": "inherited",
+            "children": [
+              {
+                "form": "*grimm",
+                "lang": "gmw-pro",
+                "rel": "inherited",
+                "children": [
+                  {
+                    "form": "*grimmaz",
+                    "lang": "gem-pro",
+                    "rel": "inherited",
+                    "children": [
+                      {
+                        "form": "*gʰrem-",
+                        "lang": "ine-pro",
+                        "rel": "derived",
+                        "gloss": "to resound, thunder, grumble, roar",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "huffer": {
     "form": "huffer",
     "lang": "en",
@@ -3860,6 +3901,49 @@
       }
     ]
   },
+  "night": {
+    "form": "night",
+    "lang": "en",
+    "children": [
+      {
+        "form": "nighte,night,nyght,niȝt,naht",
+        "lang": "enm",
+        "rel": "inherited",
+        "children": [
+          {
+            "form": "niht",
+            "lang": "ang",
+            "rel": "inherited",
+            "children": [
+              {
+                "form": "*naht",
+                "lang": "gmw-pro",
+                "rel": "inherited",
+                "gloss": "night",
+                "children": [
+                  {
+                    "form": "*nahts",
+                    "lang": "gem-pro",
+                    "rel": "inherited",
+                    "gloss": "night",
+                    "children": [
+                      {
+                        "form": "*nókʷts",
+                        "lang": "ine-pro",
+                        "rel": "inherited",
+                        "gloss": "night",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "oho": {
     "form": "oho",
     "lang": "en",
@@ -4170,6 +4254,32 @@
             ]
           }
         ]
+      }
+    ]
+  },
+  "postmatriculation": {
+    "form": "postmatriculation",
+    "lang": "en",
+    "children": [
+      {
+        "form": "post-",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "post",
+            "lang": "la",
+            "rel": "derived",
+            "gloss": "after, behind",
+            "children": []
+          }
+        ]
+      },
+      {
+        "form": "matriculation",
+        "lang": "en",
+        "rel": "+",
+        "children": []
       }
     ]
   },
