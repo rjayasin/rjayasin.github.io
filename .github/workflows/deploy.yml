@@ -23,7 +23,7 @@ jobs:
     outputs:
       changed: ${{ steps.dates.outputs.changed }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: actions/setup-node@v6
