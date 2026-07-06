@@ -1993,6 +1993,64 @@
       }
     ]
   },
+  "erabutoxin": {
+    "form": "erabutoxin",
+    "lang": "en",
+    "children": [
+      {
+        "form": "{{l|ja|erabu||{{vern|black-banded sea krait}} ({{taxlink|Laticauda semifasciata|species}})}}",
+        "lang": "en",
+        "rel": "+",
+        "children": []
+      },
+      {
+        "form": "toxin",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "toxicum",
+            "lang": "la",
+            "rel": "derived",
+            "children": []
+          },
+          {
+            "form": "toxi",
+            "lang": "en",
+            "rel": "+",
+            "children": []
+          },
+          {
+            "form": "in",
+            "lang": "en",
+            "rel": "+",
+            "children": [
+              {
+                "form": "in",
+                "lang": "enm",
+                "rel": "inherited",
+                "children": [
+                  {
+                    "form": "in",
+                    "lang": "ang",
+                    "rel": "inherited",
+                    "children": [
+                      {
+                        "form": "*in",
+                        "lang": "gem-pro",
+                        "rel": "inherited",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "estaminet": {
     "form": "estaminet",
     "lang": "en",
@@ -2596,6 +2654,41 @@
                         "lang": "ine-pro",
                         "rel": "derived",
                         "gloss": "to resound, thunder, grumble, roar",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "heart": {
+    "form": "heart",
+    "lang": "en",
+    "children": [
+      {
+        "form": "herte",
+        "lang": "enm",
+        "children": [
+          {
+            "form": "heorte",
+            "lang": "ang",
+            "children": [
+              {
+                "form": "*hertā",
+                "lang": "gmw-pro",
+                "children": [
+                  {
+                    "form": "*hertô",
+                    "lang": "gem-pro",
+                    "children": [
+                      {
+                        "form": "*ḱérd",
+                        "lang": "ine-pro",
                         "children": []
                       }
                     ]
@@ -3491,6 +3584,61 @@
                         "form": "*-inassuz",
                         "lang": "gem-pro",
                         "rel": "inherited",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "melikdom": {
+    "form": "melikdom",
+    "lang": "en",
+    "children": [
+      {
+        "form": "melik",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "մելիք",
+            "lang": "hy",
+            "rel": "borrowed",
+            "tr": "melikʻ",
+            "children": []
+          }
+        ]
+      },
+      {
+        "form": "-dom",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "-dom",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": [
+              {
+                "form": "-dōm",
+                "lang": "ang",
+                "rel": "inherited",
+                "gloss": "-dom: state, condition, power, authority, property, right, office, quality",
+                "children": [
+                  {
+                    "form": "*-dōm",
+                    "lang": "gmw-pro",
+                    "rel": "inherited",
+                    "children": [
+                      {
+                        "form": "*-dōmaz",
+                        "lang": "gem-pro",
+                        "rel": "derived",
                         "children": []
                       }
                     ]
@@ -7138,6 +7286,98 @@
                             "children": []
                           }
                         ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "vestimentary": {
+    "form": "vestimentary",
+    "lang": "en",
+    "children": [
+      {
+        "form": "vestiment",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "vestment",
+            "lang": "en",
+            "rel": "from",
+            "children": [
+              {
+                "form": "vestīmentum",
+                "lang": "la",
+                "rel": "derived",
+                "children": [
+                  {
+                    "form": "vestiō",
+                    "lang": "la",
+                    "rel": "from",
+                    "gloss": "to clothe",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "-ary",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "-arie",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": [
+              {
+                "form": "",
+                "lang": "la",
+                "rel": "derived",
+                "children": []
+              },
+              {
+                "form": "",
+                "lang": "fr",
+                "rel": "derived",
+                "children": [
+                  {
+                    "form": "-ārius",
+                    "lang": "la",
+                    "rel": "from",
+                    "children": []
+                  },
+                  {
+                    "form": "-aire",
+                    "lang": "fr",
+                    "rel": "from",
+                    "children": [
+                      {
+                        "form": "-āris",
+                        "lang": "la",
+                        "rel": "from",
+                        "children": []
+                      },
+                      {
+                        "form": "exemplary",
+                        "lang": "en",
+                        "rel": "from",
+                        "children": []
+                      },
+                      {
+                        "form": "lapidary",
+                        "lang": "en",
+                        "rel": "from",
+                        "children": []
                       }
                     ]
                   }
