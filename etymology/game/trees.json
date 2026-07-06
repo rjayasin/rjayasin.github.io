@@ -963,6 +963,49 @@
       }
     ]
   },
+  "broughten": {
+    "form": "broughten",
+    "lang": "en",
+    "children": [
+      {
+        "form": "brought",
+        "lang": "en",
+        "rel": "+",
+        "children": []
+      },
+      {
+        "form": "-en",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "-n",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": []
+          },
+          {
+            "form": "-en",
+            "lang": "enm",
+            "rel": "from",
+            "children": []
+          }
+        ]
+      },
+      {
+        "form": "gotten",
+        "lang": "en",
+        "rel": "from",
+        "children": []
+      },
+      {
+        "form": "shotten",
+        "lang": "en",
+        "rel": "from",
+        "children": []
+      }
+    ]
+  },
   "burnoose": {
     "form": "burnoose",
     "lang": "en",
@@ -2713,6 +2756,47 @@
       }
     ]
   },
+  "guitar": {
+    "form": "guitar",
+    "lang": "en",
+    "children": [
+      {
+        "form": "guitarra",
+        "lang": "es",
+        "rel": "borrowed",
+        "children": [
+          {
+            "form": "guitarra",
+            "lang": "osp",
+            "children": [
+              {
+                "form": "قِيثَارَة",
+                "lang": "ar",
+                "rel": "borrowed",
+                "tr": "qīṯāra",
+                "children": [
+                  {
+                    "form": "קיתרא",
+                    "lang": "arc",
+                    "rel": "borrowed",
+                    "children": [
+                      {
+                        "form": "κῐθᾰ́ρᾱ",
+                        "lang": "grc",
+                        "rel": "borrowed",
+                        "tr": "kĭthắrā",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "heart": {
     "form": "heart",
     "lang": "en",
@@ -4361,6 +4445,57 @@
       }
     ]
   },
+  "musth": {
+    "form": "musth",
+    "lang": "en",
+    "children": [
+      {
+        "form": "",
+        "lang": "inc-hnd",
+        "rel": "borrowed",
+        "children": [
+          {
+            "form": "मस्त",
+            "lang": "hi",
+            "rel": "borrowed",
+            "tr": "mast",
+            "children": []
+          },
+          {
+            "form": "مَسْت",
+            "lang": "ur",
+            "rel": "borrowed",
+            "gloss": "drunk, intoxicated; lustful",
+            "tr": "mast",
+            "children": []
+          },
+          {
+            "form": "مَسْت",
+            "lang": "hi-mid",
+            "rel": "borrowed",
+            "tr": "mst",
+            "children": []
+          },
+          {
+            "form": "مَسْت",
+            "lang": "fa-cls",
+            "rel": "borrowed",
+            "gloss": "(adjective) drunk, intoxicated; (literary) in rut; of an elephant: in musth; (noun) drunkard",
+            "tr": "mast",
+            "children": [
+              {
+                "form": "*meh₂d-",
+                "lang": "ine-pro",
+                "rel": "derived",
+                "gloss": "to be wet; to become wet",
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "nanobiophysics": {
     "form": "nanobiophysics",
     "lang": "en",
@@ -4648,6 +4783,160 @@
         "lang": "en",
         "rel": "from",
         "children": []
+      }
+    ]
+  },
+  "overcutting": {
+    "form": "overcutting",
+    "lang": "en",
+    "children": [
+      {
+        "form": "over-",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "over-",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": [
+              {
+                "form": "ofer-",
+                "lang": "ang",
+                "rel": "inherited",
+                "children": [
+                  {
+                    "form": "*uber",
+                    "lang": "gem-pro",
+                    "rel": "inherited",
+                    "children": [
+                      {
+                        "form": "*upér",
+                        "lang": "ine-pro",
+                        "rel": "inherited",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "cutting",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "cut",
+            "lang": "en",
+            "rel": "+",
+            "children": [
+              {
+                "form": "cutten",
+                "lang": "enm",
+                "rel": "inherited",
+                "children": [
+                  {
+                    "form": "",
+                    "lang": "gmq",
+                    "rel": "derived",
+                    "children": [
+                      {
+                        "form": "*kytja",
+                        "lang": "non",
+                        "rel": "derived",
+                        "children": []
+                      },
+                      {
+                        "form": "*kutta",
+                        "lang": "non",
+                        "rel": "from",
+                        "children": [
+                          {
+                            "form": "*kutjaną",
+                            "lang": "gem-pro",
+                            "rel": "derived",
+                            "children": []
+                          },
+                          {
+                            "form": "*kuttaną",
+                            "lang": "gem-pro",
+                            "rel": "from",
+                            "gloss": "to cut",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "form": "-ing",
+            "lang": "en",
+            "rel": "+",
+            "children": [
+              {
+                "form": "-ing",
+                "lang": "enm",
+                "rel": "inherited",
+                "children": []
+              },
+              {
+                "form": "-yng",
+                "lang": "enm",
+                "rel": "from",
+                "children": []
+              },
+              {
+                "form": "-ynge",
+                "lang": "enm",
+                "rel": "from",
+                "children": [
+                  {
+                    "form": "-ing",
+                    "lang": "ang",
+                    "rel": "inherited",
+                    "children": []
+                  },
+                  {
+                    "form": "-ung",
+                    "lang": "ang",
+                    "rel": "from",
+                    "gloss": "-ing",
+                    "children": [
+                      {
+                        "form": "*-ingu",
+                        "lang": "gmw-pro",
+                        "rel": "inherited",
+                        "children": []
+                      },
+                      {
+                        "form": "*-ungu",
+                        "lang": "gmw-pro",
+                        "rel": "from",
+                        "children": [
+                          {
+                            "form": "*-ingō, *-ungō",
+                            "lang": "gem-pro",
+                            "rel": "inherited",
+                            "gloss": "-ing",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       }
     ]
   },
@@ -7655,6 +7944,59 @@
             ]
           }
         ]
+      }
+    ]
+  },
+  "unspurred": {
+    "form": "unspurred",
+    "lang": "en",
+    "children": [
+      {
+        "form": "un-",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "un-",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": [
+              {
+                "form": "un-",
+                "lang": "ang",
+                "rel": "inherited",
+                "children": [
+                  {
+                    "form": "*un-",
+                    "lang": "gmw-pro",
+                    "rel": "inherited",
+                    "children": [
+                      {
+                        "form": "*un-",
+                        "lang": "gem-pro",
+                        "rel": "inherited",
+                        "children": [
+                          {
+                            "form": "*n̥-",
+                            "lang": "ine-pro",
+                            "rel": "inherited",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "spurred",
+        "lang": "en",
+        "rel": "+",
+        "children": []
       }
     ]
   },
