@@ -2209,8 +2209,14 @@
             const tree = await findPuzzleTree(diff);
             if (diff !== difficultyEl.value) break; // difficulty changed mid-build
             if (!tree) break; // nothing found this round; stop to avoid a hot loop
-            // Prefer variety: skip a repeat of the last shown or an already-queued word.
-            if (tree.form === lastForm || readyQueue.some((t) => t.form === tree.form)) continue;
+            // Skip a repeat of the last shown, an already-queued word, or one
+            // that's since been marked seen.
+            if (
+              tree.form === lastForm ||
+              isSeen(tree.form) ||
+              readyQueue.some((t) => t.form === tree.form)
+            )
+              continue;
             readyQueue.push(tree);
           }
         } finally {
@@ -2248,8 +2254,17 @@
           readyQueue = [];
           queueDiff = diff;
         }
-        if (readyQueue.length) {
-          const tree = readyQueue.shift();
+        // Skip queued puzzles whose word has since been shown (a word can be
+        // queued while a concurrent build of it is still about to mark it seen).
+        let tree = null;
+        while (readyQueue.length) {
+          const t = readyQueue.shift();
+          if (!isSeen(t.form)) {
+            tree = t;
+            break;
+          }
+        }
+        if (tree) {
           lastForm = tree.form;
           startPuzzleWithTree(tree); // instant — no network on the click path
         } else {
