@@ -4520,6 +4520,14 @@
       "copyright": "Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font.git)",
       "resolved": true
     },
+    "Geist Pixel": {
+      "family": "Geist Pixel",
+      "slug": "geistpixel",
+      "licenseCode": "OFL",
+      "designer": "Andrés Briganti, Evil Rabbit, Guillermo Rauch",
+      "copyright": "Copyright 2026 The Geist Project Authors (https://github.com/vercel/geist-font)",
+      "resolved": true
+    },
     "Gelasio": {
       "family": "Gelasio",
       "slug": "gelasio",
@@ -7910,6 +7918,14 @@
       "licenseCode": "OFL",
       "designer": "Robert Leuschke",
       "copyright": "Copyright 2011 The MonteCarlo Project Authors (https://github.com/googlefonts/monte-carlo)",
+      "resolved": true
+    },
+    "Montenegrin Gothic One": {
+      "family": "Montenegrin Gothic One",
+      "slug": "montenegringothicone",
+      "licenseCode": "OFL",
+      "designer": "Žarko Banović",
+      "copyright": "Copyright 2014 The Montenegrin Gothic One Project Authors (https://github.com/MagicformDesign/montenegrin-gothic-one)",
       "resolved": true
     },
     "Montez": {
@@ -15342,6 +15358,22 @@
       "licenseCode": "OFL",
       "designer": "Tanukizamurai",
       "copyright": "Copyright 2020 The Yusei Magic Project Authors (https://github.com/tanukifont/YuseiMagic)",
+      "resolved": true
+    },
+    "Yuyu": {
+      "family": "Yuyu",
+      "slug": "yuyu",
+      "licenseCode": "OFL",
+      "designer": "Julia García López",
+      "copyright": "Copyright 2026 The Yuyu Font Project Authors (https://github.com/JuliaGarciaLopez/Yuyu-Font)",
+      "resolved": true
+    },
+    "Yuyu Short": {
+      "family": "Yuyu Short",
+      "slug": "yuyushort",
+      "licenseCode": "OFL",
+      "designer": "Julia García López",
+      "copyright": "Copyright 2026 The Yuyu Font Project Authors (https://github.com/JuliaGarciaLopez/Yuyu-Font)",
       "resolved": true
     },
     "ZCOOL KuaiLe": {

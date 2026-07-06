@@ -575,6 +575,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Gayathri | OFL | SMC, Binoy Dominic | Copyright 2019 The Gayathri Project Authors (https://gitlab.com/smc/fonts/gayathri) |
 | Geist | OFL | Andrés Briganti, Mateo Zaragoza, Guillermo Rauch, Evil Rabbit, José Rago, Facundo Santana | Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font) |
 | Geist Mono | OFL | Andrés Briganti, Mateo Zaragoza, Guillermo Rauch, Evil Rabbit, José Rago, Facundo Santana | Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font.git) |
+| Geist Pixel | OFL | Andrés Briganti, Evil Rabbit, Guillermo Rauch | Copyright 2026 The Geist Project Authors (https://github.com/vercel/geist-font) |
 | Gelasio | OFL | Eben Sorkin | Copyright 2022 The Gelasio Project Authors (https://github.com/SorkinType/Gelasio) |
 | Gemunu Libre | OFL | Mooniak | Copyright 2021 The Gemunu Libre Project Authors (https://github.com/mooniak/gemunu-libre-font/) |
 | Genos | OFL | Robert Leuschke | Copyright 2011 The Genos Project Authors (https://github.com/googlefonts/genos) |
@@ -1001,6 +1002,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Montaga | OFL | Alejandra Rodriguez | Copyright (c) 2011, Alejandra Rodriguez (ale_guez@yahoo.com.ar http://twitter.com/ale_guez), with Reserved Font Name "Montaga" |
 | Montagu Slab | OFL | Florian Karsten | Copyright 2021 The Montagu Slab Project Authors (https://github.com/floriankarsten/montagu-slab) |
 | MonteCarlo | OFL | Robert Leuschke | Copyright 2011 The MonteCarlo Project Authors (https://github.com/googlefonts/monte-carlo) |
+| Montenegrin Gothic One | OFL | Žarko Banović | Copyright 2014 The Montenegrin Gothic One Project Authors (https://github.com/MagicformDesign/montenegrin-gothic-one) |
 | Montez | APACHE2 | Astigmatic | Copyright (c) 2011 by Brian J. Bonislawsky DBA Astigmatic (AOETI). All rights reserved. Available under the Apache 2.0 licence. http://www.apache.org/licenses/LICENSE-2.0.html |
 | Montserrat | OFL | Julieta Ulanovsky, Sol Matas, Juan Pablo del Peral, Jacques Le Bailly | Copyright 2011 The Montserrat Project Authors (https://github.com/JulietaUla/Montserrat) |
 | Montserrat Alternates | OFL | Julieta Ulanovsky, Sol Matas, Juan Pablo del Peral, Jacques Le Bailly | Copyright 2011 The Montserrat Project Authors (https://github.com/JulietaUla/Montserrat) |
@@ -1930,6 +1932,8 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Yuji Mai | OFL | Kinuta Font Factory | Copyright 2021 The Yuji Project Authors (https://github.com/Kinutafontfactory/Yuji) |
 | Yuji Syuku | OFL | Kinuta Font Factory | Copyright 2021 The Yuji Project Authors (https://github.com/Kinutafontfactory/Yuji) |
 | Yusei Magic | OFL | Tanukizamurai | Copyright 2020 The Yusei Magic Project Authors (https://github.com/tanukifont/YuseiMagic) |
+| Yuyu | OFL | Julia García López | Copyright 2026 The Yuyu Font Project Authors (https://github.com/JuliaGarciaLopez/Yuyu-Font) |
+| Yuyu Short | OFL | Julia García López | Copyright 2026 The Yuyu Font Project Authors (https://github.com/JuliaGarciaLopez/Yuyu-Font) |
 | Zain | OFL | Boutros Fonts | Copyright 2024 The Zain Project Authors (https://github.com/googlefonts/zain) |
 | Zalando Sans | OFL | Jakob Ekelund, KH Type, Zalando | Copyright 2025 The Zalando Sans Project Authors (https://github.com/zalando/sans) |
 | Zalando Sans Expanded | OFL | Jakob Ekelund, KH Type, Zalando | Copyright 2025 The Zalando Sans Expanded Project Authors (https://github.com/zalando/sans) |
