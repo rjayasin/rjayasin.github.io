@@ -12,9 +12,13 @@ permissions:
   pages: write
   id-token: write
 
+# Let an in-flight deployment finish rather than cancelling it: cancelling the
+# workflow mid-deploy leaves GitHub's Pages backend still processing that
+# deployment, and the next run then collides with it ("Deployment failed, try
+# again later"). Queueing instead (the newest queued run wins) avoids the clash.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -42,6 +46,12 @@ jobs:
             echo "sitemap/dates.json updated"
           fi
       - uses: actions/configure-pages@v6
+      # The whole repo root is the site, but the artifact shouldn't carry the
+      # git metadata — with fetch-depth: 0 that's the entire history. Drop it
+      # from the runner checkout before packaging (affects only this ephemeral
+      # copy, not the repo).
+      - name: Trim git metadata from the Pages artifact
+        run: rm -rf .git
       - uses: actions/upload-pages-artifact@v5
         with:
           path: .
