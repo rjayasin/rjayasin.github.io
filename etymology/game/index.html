@@ -156,33 +156,6 @@
         border-color: var(--bad, #c0392b);
         color: var(--bad, #c0392b);
       }
-      /* GitHub sign-in: a quiet icon in the header that brightens on hover and
-         while signed in. Signed-in players' discoveries are saved to the pool. */
-      #gh-auth {
-        width: 22px;
-        height: 22px;
-        padding: 0;
-        border: none;
-        background: none;
-        cursor: pointer;
-        color: var(--muted);
-        opacity: 0.65;
-        transition:
-          opacity 0.15s,
-          color 0.15s;
-      }
-      #gh-auth:hover,
-      #gh-auth.authed {
-        opacity: 1;
-        color: inherit;
-      }
-      #gh-auth svg {
-        width: 100%;
-        height: 100%;
-        display: block;
-        fill: currentColor;
-      }
-
       /* --- Board (the tree viewer) --- */
       #board {
         flex: 1;
@@ -619,10 +592,10 @@
 
       @media (max-width: 700px) {
         /* Pack the header onto one line: shrink the logo, label, picker, and
-           buttons and tighten the gaps so the title, difficulty, new game, and
-           the GitHub icon all sit on a single row. The row never wraps; the
-           controls hold their size and the logo absorbs any squeeze (ellipsis)
-           on the narrowest phones rather than bumping a control to a new row. */
+           buttons and tighten the gaps so the title, difficulty, and new game
+           all sit on a single row. The row never wraps; the controls hold their
+           size and the logo absorbs any squeeze (ellipsis) on the narrowest
+           phones rather than bumping a control to a new row. */
         #gheader {
           gap: 7px;
           padding: 8px 10px;
@@ -641,8 +614,7 @@
           margin-right: 0;
         }
         .ctl,
-        #new-btn,
-        #gh-auth {
+        #new-btn {
           flex: none;
         }
         .ctl {
@@ -660,10 +632,6 @@
         }
         select#difficulty {
           padding-left: 6px;
-        }
-        #gh-auth {
-          width: 20px;
-          height: 20px;
         }
         .gcard {
           max-width: 140px;
@@ -717,19 +685,6 @@
         </select>
       </span>
       <button id="new-btn" class="btn">new game</button>
-      <button
-        id="gh-auth"
-        type="button"
-        aria-label="Sign in with GitHub"
-        title="Sign in with GitHub to save discovered words to the pool"
-      >
-        <svg viewBox="0 0 16 16" aria-hidden="true">
-          <path
-            fill-rule="evenodd"
-            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
-          />
-        </svg>
-      </button>
     </header>
 
     <div id="board"><div class="board-status">press “new game” to start</div></div>
@@ -1775,37 +1730,12 @@
         return unseen.length ? unseen : all;
       }
 
-      // ---------- Growing the pool ----------
+      // ---------- Growing the pool (local session only) ----------
       // The random-word hunt is the only thing that scrapes Wiktionary at play
-      // time. Whatever it turns up with a usable tree is filed into its band so
-      // the rest of the session can reuse it, and — for a signed-in player —
-      // its word is queued into manifest.json's "pending" list via the GitHub
-      // Contents API. The scheduled etymology-pool workflow later rebuilds the
-      // tree itself and promotes the word into the pool and a chunk, so a
-      // play-time commit is only ever a few word strings in a small file —
-      // never a tree-store rewrite.
-      const REPO = 'rjayasin/rjayasin.github.io';
-      const MANIFEST_PATH = 'etymology/game/manifest.json';
-      const pendingContrib = new Map(); // word -> band, not yet persisted
-      let flushTimer = null;
-      let flushScheduled = false;
-      let flushing = false;
-      let lastCommitAt = 0;
-      let backoffUntil = 0; // epoch ms; GitHub asked us to hold off until here
-      // Most signed-in visitors aren't collaborators on the repo, so their
-      // commits can never land (the Contents API answers 404/403). Once that's
-      // established — by the up-front permission probe or a failed write —
-      // this flips and the commit machinery stands down for the session,
-      // instead of retrying a hopeless write every minute. Discoveries still
-      // work locally (WORD_POOL / savedTrees); they just aren't persisted.
-      let commitsBlocked = false;
-      const FLUSH_DELAY = 30000; // gather discoveries this long before committing
-      const MIN_COMMIT_INTERVAL = 60000; // and never commit more than once a minute
-      const DEFAULT_BACKOFF = 90000; // fallback wait when rate-limited with no hint
-
-      // GitHub returns/expects file contents as base64; the shared helpers
-      // keep non-ASCII headwords (e.g. "café") intact across the round trip.
-      const { b64encode, b64decode } = Common.GH;
+      // time; whatever it turns up with a usable tree is filed into its band so
+      // the rest of the session can reuse it. Nothing is committed from the
+      // client — the scheduled etymology-pool workflow is the sole writer of the
+      // shared word bank (it runs its own discovery and promotion).
 
       function bandForCount(n) {
         for (const [name, b] of Object.entries(DIFFS)) {
@@ -1817,37 +1747,6 @@
         const w = word.toLowerCase();
         return Object.values(pool).some((arr) => arr.some((x) => x.toLowerCase() === w));
       }
-      // Carries every manifest field through the commit cycle so queuing a
-      // discovery rewrites manifest.json without touching the pool, the chunk
-      // shape, or the blocklist — those belong to the scheduled workflow.
-      function normalizeManifest(obj) {
-        const out = {
-          chunkSize: 50,
-          chunks: {},
-          words: { easy: [], medium: [], hard: [] },
-          pending: [],
-          blocklist: [],
-        };
-        if (!obj || typeof obj !== 'object') return out;
-        if (typeof obj.chunkSize === 'number') out.chunkSize = obj.chunkSize;
-        if (obj.chunks && typeof obj.chunks === 'object' && !Array.isArray(obj.chunks))
-          out.chunks = obj.chunks;
-        for (const k of Object.keys(out.words))
-          if (obj.words && Array.isArray(obj.words[k]))
-            out.words[k] = obj.words[k].filter((w) => typeof w === 'string');
-        for (const k of ['pending', 'blocklist'])
-          if (Array.isArray(obj[k])) out[k] = obj[k].filter((w) => typeof w === 'string');
-        return out;
-      }
-      function sortBucket(arr) {
-        const seen = new Set();
-        return arr
-          .filter((w) => {
-            const k = w.toLowerCase();
-            return seen.has(k) ? false : seen.add(k);
-          })
-          .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-      }
 
       // Keep a freshly built tree for the rest of this session. Trees are
       // never committed from the client — the scheduled workflow rebuilds a
@@ -1858,261 +1757,17 @@
         if (!savedTrees.has(key)) savedTrees.set(key, tree);
       }
 
-      // File a freshly discovered word into its band (locally always; queued
-      // for the pending list too). Only plain single-token headwords are kept.
-      // Band balance and caps are the workflow's problem, not the client's.
+      // File a freshly discovered word into its band for the rest of this
+      // session. Discovery is local-only now: the scheduled etymology-pool
+      // workflow is the sole writer of the shared word bank. Only plain
+      // single-token headwords are kept; caps and band balance are its job.
       function recordDiscovered(word, tree) {
         if (!word || !/^[\p{L}]+$/u.test(word) || isBlocked(word)) return;
         recordTree(word, tree); // usable this session even if the word's already pooled
         const band = bandForCount(countNodes(tree));
-        if (!band || poolHas(WORD_POOL, word) || pendingContrib.has(word)) return;
+        if (!band || poolHas(WORD_POOL, word)) return;
         WORD_POOL[band].push(word); // playable for the rest of this session
-        if (commitsBlocked) return; // usable this session, but can't be queued
-        pendingContrib.set(word, band);
-        scheduleFlush();
       }
-
-      // How long GitHub wants us to wait, read from a 403/429 response: the
-      // Retry-After header (secondary/abuse limits) or, when the primary quota
-      // is spent, X-RateLimit-Reset. Both are CORS-exposed by the API. Returns
-      // 0 when the response carries no rate-limit signal.
-      function rateLimitDelayMs(res) {
-        const ra = parseInt(res.headers.get('retry-after') || '', 10);
-        if (!isNaN(ra)) return ra * 1000;
-        if (res.headers.get('x-ratelimit-remaining') === '0') {
-          const reset = parseInt(res.headers.get('x-ratelimit-reset') || '', 10);
-          if (!isNaN(reset)) return reset * 1000 - Date.now();
-        }
-        return 0;
-      }
-
-      // Total entries waiting across every commit target.
-      function pendingWork() {
-        return pendingContrib.size;
-      }
-
-      // Schedule a single batched commit. Entries that land before it fires just
-      // join the batch (this is a no-op while one is already pending or in
-      // flight), so a burst becomes one commit per file instead of one per entry.
-      // The delay respects the batch window, a minimum gap between commits, and
-      // any rate-limit backoff GitHub has asked for.
-      function scheduleFlush() {
-        if (flushScheduled || flushing || commitsBlocked) return;
-        if (!Common.GH.isAuthed() || !pendingWork()) return;
-        flushScheduled = true;
-        const now = Date.now();
-        const delay = Math.max(
-          FLUSH_DELAY,
-          backoffUntil - now,
-          lastCommitAt + MIN_COMMIT_INTERVAL - now
-        );
-        clearTimeout(flushTimer);
-        flushTimer = setTimeout(
-          () => {
-            flushScheduled = false;
-            flushContributions();
-          },
-          Math.max(0, delay)
-        );
-      }
-
-      // The files we commit back to the repo. Each says how to seed an empty
-      // file, parse the fetched one into a mergeable object, and fold this
-      // session's staged entries in (returning how many were actually added).
-      // The only target is manifest.json's pending list: a queued word is a
-      // few bytes, so commits stay small however the tree store grows.
-      const COMMIT_TARGETS = [
-        {
-          path: MANIFEST_PATH,
-          pending: pendingContrib,
-          empty: () => normalizeManifest(null),
-          parse: (parsed) => normalizeManifest(parsed),
-          message: (n) => `etymology game: queue ${n} discovered word${n > 1 ? 's' : ''}`,
-          merge: (current) => {
-            const have = new Set(
-              [
-                ...current.pending,
-                ...current.blocklist,
-                ...Object.keys(current.words).flatMap((k) => current.words[k]),
-              ].map((w) => w.toLowerCase())
-            );
-            let added = 0;
-            for (const word of pendingContrib.keys()) {
-              if (have.has(word.toLowerCase())) continue;
-              current.pending.push(word);
-              have.add(word.toLowerCase());
-              added++;
-            }
-            if (added) current.pending = sortBucket(current.pending);
-            return added;
-          },
-          // Nothing to sync back on success: the queued words already live in
-          // this session's WORD_POOL, and the shared pool only changes when
-          // the scheduled workflow promotes them.
-        },
-      ];
-
-      // Read → merge → write one file, retrying on 409. A 409 isn't a rate limit:
-      // it means our sha went stale (a concurrent commit, or read-after-write
-      // lag), so we re-read the latest file and rebuild on top of it; a short,
-      // growing pause lets GitHub's replicas catch up. Returns 'committed' when a
-      // write landed, 'noop' when the batch was already in the file, 'retry'
-      // when the batch should be kept for later (auth lost, rate-limited, or
-      // conflicts exhausted), or 'blocked' when the token can't write to the
-      // repo at all — retrying that can never succeed.
-      async function commitTarget(target, headers) {
-        const url = `https://api.github.com/repos/${REPO}/contents/${target.path}`;
-        for (let attempt = 0; attempt < 3; attempt++) {
-          const getR = await fetch(url, { headers });
-          if (getR.status === 401) {
-            Common.GH.clearToken();
-            ghAuth.refresh();
-            return 'retry';
-          }
-          if (getR.status === 403 || getR.status === 429) {
-            backoffUntil = Date.now() + (rateLimitDelayMs(getR) || DEFAULT_BACKOFF);
-            return 'retry';
-          }
-          let sha;
-          let current = target.empty();
-          if (getR.ok) {
-            const f = await getR.json();
-            sha = f.sha;
-            try {
-              current = target.parse(JSON.parse(b64decode(f.content)));
-            } catch (e) {
-              /* malformed file — rebuild it from our entries */
-            }
-          }
-          const added = target.merge(current);
-          if (!added) {
-            target.pending.clear(); // already in the file (committed elsewhere)
-            return 'noop';
-          }
-          const body = target.serialize
-            ? target.serialize(current)
-            : JSON.stringify(current, null, 2) + '\n';
-          const putR = await fetch(url, {
-            method: 'PUT',
-            headers,
-            body: JSON.stringify({ message: target.message(added), content: b64encode(body), sha }),
-          });
-          if (putR.status === 403 || putR.status === 429) {
-            const wait = rateLimitDelayMs(putR);
-            // A 403 carrying no rate-limit signal is permission denial
-            // ("Resource not accessible"), not throttling — don't retry it.
-            if (!wait && putR.status === 403) return 'blocked';
-            backoffUntil = Date.now() + (wait || DEFAULT_BACKOFF);
-            return 'retry'; // rate-limited mid-write; keep the batch, retry later
-          }
-          // 404: the token has no write access (GitHub hides the endpoint from
-          // non-collaborators rather than answering 403). 422: the request
-          // itself is unprocessable. Neither can succeed on a retry.
-          if (putR.status === 404 || putR.status === 422) return 'blocked';
-          if (putR.status === 409) {
-            await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
-            continue; // stale sha — re-read and try again
-          }
-          if (putR.ok) {
-            lastCommitAt = Date.now();
-            target.pending.clear();
-            if (target.onSuccess) target.onSuccess(current);
-            return 'committed';
-          }
-          return 'retry'; // non-retryable HTTP error — keep the batch
-        }
-        return 'retry'; // 409 retries exhausted
-      }
-
-      // Flush the batched work, at most one actual commit per pass so we never
-      // fire two writes in quick succession (a shared backoff/flush guard keeps
-      // GitHub happy). A file already up to date is skipped and the next one
-      // tried; the finally reschedules whatever's still pending.
-      async function flushContributions() {
-        if (flushing || commitsBlocked || !Common.GH.isAuthed() || !pendingWork()) return;
-        if (Date.now() < backoffUntil) {
-          scheduleFlush(); // still in a rate-limit hold; try again after it lifts
-          return;
-        }
-        flushing = true;
-        const token = Common.GH.getToken();
-        const headers = { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}` };
-        try {
-          for (const target of COMMIT_TARGETS) {
-            if (!target.pending.size) continue;
-            if (!Common.GH.isAuthed() || Date.now() < backoffUntil) break;
-            const result = await commitTarget(target, headers);
-            if (result === 'blocked') {
-              markCommitsBlocked();
-              break;
-            }
-            if (result === 'committed' || result === 'retry') break; // one write per pass
-          }
-        } catch (e) {
-          /* network error: keep the queue and retry on the next scheduled flush */
-        } finally {
-          flushing = false;
-          // Fold anything still pending — rate-limited, conflicted, errored, or
-          // added mid-flush — into the next batched attempt.
-          if (pendingWork()) scheduleFlush();
-        }
-      }
-
-      // The sign-in turned out not to have push access: stand the commit
-      // machinery down for the session. The staged batches are dropped (their
-      // entries keep serving WORD_POOL / savedTrees locally), and the sign-in
-      // button's tooltip says why nothing is being saved.
-      function markCommitsBlocked() {
-        if (commitsBlocked) return;
-        commitsBlocked = true;
-        for (const target of COMMIT_TARGETS) target.pending.clear();
-        clearTimeout(flushTimer);
-        flushScheduled = false;
-        document.getElementById('gh-auth').title =
-          'Signed in, but this account can’t write to the repo — discoveries stay on this device';
-      }
-
-      // Probe push permission once up front rather than letting every batch
-      // fail its PUT: for the typical non-collaborator sign-in this replaces a
-      // once-a-minute failed write loop with a single check. On any doubt
-      // (network error, unexpected shape) leave commits enabled — the PUT path
-      // still catches denial via markCommitsBlocked.
-      async function checkWriteAccess() {
-        if (!Common.GH.isAuthed() || commitsBlocked) return;
-        try {
-          const r = await fetch(`https://api.github.com/repos/${REPO}`, {
-            headers: {
-              Accept: 'application/vnd.github+json',
-              Authorization: `Bearer ${Common.GH.getToken()}`,
-            },
-          });
-          if (r.status === 401) {
-            Common.GH.clearToken();
-            ghAuth.refresh();
-            return;
-          }
-          if (!r.ok) return;
-          const repo = await r.json();
-          if (repo && repo.permissions && !repo.permissions.push) markCommitsBlocked();
-        } catch (e) {
-          /* offline or blocked — let the commit path decide */
-        }
-      }
-
-      // When the page is backgrounded or closed, commit whatever's queued right
-      // away rather than letting it sit in the flush window. visibilitychange →
-      // hidden is the reliable hook (it fires on tab switch, minimise, and
-      // navigation while the page is usually still alive); a hard kill
-      // mid-request can still drop a batch, but a lost discovery just gets
-      // re-found by some later session. Not using sendBeacon/keepalive — the
-      // commit needs a GET→PUT round trip with auth headers.
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState !== 'hidden') return;
-        if (!Common.GH.isAuthed() || !pendingWork()) return;
-        clearTimeout(flushTimer);
-        flushScheduled = false;
-        flushContributions(); // skip the flush delay — commit now
-      });
 
       function showBoardStatus(text, spinner) {
         boardEl.classList.remove('empty-hint');
@@ -2224,27 +1879,6 @@
         }
       }
 
-      // ---------- Background discovery ----------
-      // Every new game nudges the shared pool forward for a signed-in player:
-      // one random-hunt build, whose discovery is queued into the manifest's
-      // pending list for the scheduled workflow to promote. One at a time, so
-      // rapid clicks don't pile up Wiktionary fetches.
-      let discovering = false;
-      async function discoverAndCommit() {
-        // The whole point is feeding the shared pool, so skip it when the
-        // sign-in can't commit — same as when signed out.
-        if (discovering || isRateLimited() || !Common.GH.isAuthed() || commitsBlocked) return;
-        discovering = true;
-        try {
-          const item = await findRandomTree();
-          if (item) recordDiscovered(item.word, item.tree);
-        } catch (e) {
-          /* ignore — try again on the next new game */
-        } finally {
-          discovering = false;
-        }
-      }
-
       // ---------- New game ----------
       let genSeq = 0;
       function newGame() {
@@ -2271,7 +1905,6 @@
           surfaceBlocking(my, diff); // cold start (first game / just switched bands)
         }
         fillQueue(diff); // refill for the next click
-        discoverAndCommit(); // grow the pool in the background
       }
 
       // A ready-to-play tree already in the persistent cache whose size fits the
@@ -2392,25 +2025,9 @@
       // Expose a hook so the rendering can be exercised without the network.
       window.__startPuzzleWithTree = startPuzzleWithTree;
 
-      // ---------- GitHub sign-in (optional) ----------
-      // The game is fully playable signed out. Signing in only lets the words
-      // the background random hunt discovers be queued into manifest.json's
-      // pending list so the shared pool grows for everyone.
-      const ghAuth = Common.GH.initAuthButton({
-        buttonEl: document.getElementById('gh-auth'),
-        signedInTitle: 'Signed in — new words you find are saved to the pool (click to sign out)',
-        signedOutTitle: 'Sign in with GitHub to save discovered words to the pool',
-      });
-
       // Load the word pool and tree store (local mirror first, network only as
-      // needed), then kick off the first game. Finish any OAuth redirect in
-      // parallel and flush anything queued before sign-in returned.
+      // needed), then kick off the first game.
       loadTreeStore().then(newGame);
-      Common.GH.handleRedirect().then((signedIn) => {
-        if (signedIn) ghAuth.refresh();
-        checkWriteAccess(); // covers both a fresh sign-in and a stored token
-        scheduleFlush();
-      });
     </script>
   </body>
 </html>
