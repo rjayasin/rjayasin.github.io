@@ -264,6 +264,25 @@
       }
     ]
   },
+  "banket": {
+    "form": "banket",
+    "lang": "en",
+    "children": [
+      {
+        "form": "banket",
+        "lang": "nl",
+        "rel": "borrowed",
+        "children": [
+          {
+            "form": "banket",
+            "lang": "dum",
+            "rel": "inherited",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
   "barehandedly": {
     "form": "barehandedly",
     "lang": "en",
@@ -2094,6 +2113,91 @@
             "lang": "la",
             "rel": "from",
             "children": []
+          }
+        ]
+      }
+    ]
+  },
+  "foxless": {
+    "form": "foxless",
+    "lang": "en",
+    "children": [
+      {
+        "form": "fox",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "fox",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": [
+              {
+                "form": "fox",
+                "lang": "ang",
+                "rel": "inherited",
+                "gloss": "fox",
+                "children": [
+                  {
+                    "form": "*fuhs",
+                    "lang": "gmw-pro",
+                    "rel": "inherited",
+                    "children": [
+                      {
+                        "form": "*fuhsaz",
+                        "lang": "gem-pro",
+                        "rel": "inherited",
+                        "gloss": "fox",
+                        "children": [
+                          {
+                            "form": "*púḱsos",
+                            "lang": "ine-pro",
+                            "rel": "inherited",
+                            "gloss": "the tailed one",
+                            "children": [
+                              {
+                                "form": "*puḱ-",
+                                "lang": "ine-pro",
+                                "rel": "from",
+                                "gloss": "tail",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "-less",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "-les",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": []
+          },
+          {
+            "form": "-leas",
+            "lang": "enm",
+            "rel": "from",
+            "children": [
+              {
+                "form": "-lēas",
+                "lang": "ang",
+                "rel": "inherited",
+                "gloss": "-less",
+                "children": []
+              }
+            ]
           }
         ]
       }
@@ -4012,6 +4116,26 @@
       }
     ]
   },
+  "pizza": {
+    "form": "pizza",
+    "lang": "en",
+    "children": [
+      {
+        "form": "pizza",
+        "lang": "nap",
+        "rel": "borrowed",
+        "children": [
+          {
+            "form": "πίτα",
+            "lang": "grc",
+            "rel": "borrowed",
+            "tr": "píta",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
   "plaza": {
     "form": "plaza",
     "lang": "en",
@@ -5194,6 +5318,53 @@
       }
     ]
   },
+  "symphony": {
+    "form": "symphony",
+    "lang": "en",
+    "children": [
+      {
+        "form": "symphonye",
+        "lang": "enm",
+        "children": [
+          {
+            "form": "simphonie",
+            "lang": "fro",
+            "rel": "derived",
+            "children": [
+              {
+                "form": "symphōnia",
+                "lang": "la",
+                "rel": "derived",
+                "children": [
+                  {
+                    "form": "σῠμφωνῐ́ᾱ",
+                    "lang": "grc",
+                    "rel": "derived",
+                    "tr": "sŭmphōnĭ́ā",
+                    "children": [
+                      {
+                        "form": "*ḱe",
+                        "lang": "ine-pro",
+                        "rel": "derived",
+                        "tr": "sún",
+                        "children": []
+                      },
+                      {
+                        "form": "σῠν-",
+                        "lang": "grc",
+                        "tr": "sŭn-",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "taboo": {
     "form": "taboo",
     "lang": "en",
@@ -5244,6 +5415,31 @@
             "children": []
           }
         ]
+      }
+    ]
+  },
+  "theonomy": {
+    "form": "theonomy",
+    "lang": "en",
+    "children": [
+      {
+        "form": "theo",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "theoretical",
+            "lang": "en",
+            "rel": "from",
+            "children": []
+          }
+        ]
+      },
+      {
+        "form": "nomy",
+        "lang": "en",
+        "rel": "+",
+        "children": []
       }
     ]
   },
