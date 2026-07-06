@@ -698,6 +698,52 @@
       }
     ]
   },
+  "boggy": {
+    "form": "boggy",
+    "lang": "en",
+    "children": [
+      {
+        "form": "bog",
+        "lang": "en",
+        "children": []
+      },
+      {
+        "form": "-y",
+        "lang": "en",
+        "children": [
+          {
+            "form": "-y",
+            "lang": "enm",
+            "children": [
+              {
+                "form": "-iġ",
+                "lang": "ang",
+                "children": [
+                  {
+                    "form": "*-g",
+                    "lang": "gmw-pro",
+                    "children": [
+                      {
+                        "form": "*-gaz",
+                        "lang": "gem-pro",
+                        "children": [
+                          {
+                            "form": "*-kos",
+                            "lang": "ine-pro",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "bonsai": {
     "form": "bonsai",
     "lang": "en",
@@ -1085,6 +1131,24 @@
             ]
           }
         ]
+      }
+    ]
+  },
+  "cheilitis": {
+    "form": "cheilitis",
+    "lang": "en",
+    "children": [
+      {
+        "form": "cheilo",
+        "lang": "en",
+        "rel": "+",
+        "children": []
+      },
+      {
+        "form": "itis",
+        "lang": "en",
+        "rel": "+",
+        "children": []
       }
     ]
   },
@@ -3494,6 +3558,36 @@
             ]
           }
         ]
+      }
+    ]
+  },
+  "oho": {
+    "form": "oho",
+    "lang": "en",
+    "children": [
+      {
+        "form": "o ho",
+        "lang": "enm",
+        "rel": "inherited",
+        "children": []
+      },
+      {
+        "form": "o, ho",
+        "lang": "enm",
+        "rel": "from",
+        "children": []
+      },
+      {
+        "form": "o",
+        "lang": "en",
+        "rel": "from",
+        "children": []
+      },
+      {
+        "form": "ho",
+        "lang": "en",
+        "rel": "from",
+        "children": []
       }
     ]
   },
