@@ -2732,6 +2732,60 @@
       }
     ]
   },
+  "hypothesis": {
+    "form": "hypothesis",
+    "lang": "en",
+    "children": [
+      {
+        "form": "hypothese",
+        "lang": "frm",
+        "rel": "borrowed",
+        "children": [
+          {
+            "form": "hypothesis",
+            "lang": "la-lat",
+            "rel": "derived",
+            "children": [
+              {
+                "form": "ὑπόθεσις",
+                "lang": "grc",
+                "rel": "derived",
+                "gloss": "base, basis of an argument, supposition",
+                "tr": "hupóthesis",
+                "children": [
+                  {
+                    "form": "ὑποτίθημι",
+                    "lang": "grc",
+                    "rel": "from",
+                    "gloss": "to set before, suggest",
+                    "tr": "hupotíthēmi",
+                    "children": [
+                      {
+                        "form": "ὑπό",
+                        "lang": "grc",
+                        "rel": "from",
+                        "gloss": "below",
+                        "tr": "hupó",
+                        "children": []
+                      },
+                      {
+                        "form": "τίθημι",
+                        "lang": "grc",
+                        "rel": "from",
+                        "gloss": "to put, place",
+                        "tr": "títhēmi",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "jadeware": {
     "form": "jadeware",
     "lang": "en",
@@ -3078,6 +3132,73 @@
                             "lang": "mun",
                             "rel": "derived",
                             "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "liberalize": {
+    "form": "liberalize",
+    "lang": "en",
+    "children": [
+      {
+        "form": "liberal",
+        "lang": "en",
+        "children": []
+      },
+      {
+        "form": "-ize",
+        "lang": "en",
+        "children": [
+          {
+            "form": "-isen",
+            "lang": "enm",
+            "children": [
+              {
+                "form": "-iser",
+                "lang": "frm",
+                "rel": "borrowed",
+                "children": [
+                  {
+                    "form": "-izō",
+                    "lang": "la",
+                    "rel": "derived",
+                    "children": [
+                      {
+                        "form": "-ῐ́ζω",
+                        "lang": "grc",
+                        "rel": "borrowed",
+                        "tr": "-ĭ́zō",
+                        "children": [
+                          {
+                            "form": "*-íďďō",
+                            "lang": "grk-pro",
+                            "children": [
+                              {
+                                "form": "*-idyéti",
+                                "lang": "ine-pro",
+                                "children": [
+                                  {
+                                    "form": "*-id-",
+                                    "lang": "ine-pro",
+                                    "children": []
+                                  },
+                                  {
+                                    "form": "*-yéti",
+                                    "lang": "ine-pro",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
