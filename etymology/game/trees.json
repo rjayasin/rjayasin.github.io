@@ -5604,6 +5604,26 @@
       }
     ]
   },
+  "potato": {
+    "form": "potato",
+    "lang": "en",
+    "children": [
+      {
+        "form": "patata",
+        "lang": "es",
+        "rel": "borrowed",
+        "children": [
+          {
+            "form": "batata",
+            "lang": "tnq",
+            "rel": "derived",
+            "gloss": "sweet potato",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
   "presplit": {
     "form": "presplit",
     "lang": "en",
