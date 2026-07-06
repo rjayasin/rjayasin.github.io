@@ -1577,6 +1577,53 @@
       }
     ]
   },
+  "daughter": {
+    "form": "daughter",
+    "lang": "en",
+    "children": [
+      {
+        "form": "doghter",
+        "lang": "enm",
+        "rel": "inherited",
+        "children": []
+      },
+      {
+        "form": "doughter",
+        "lang": "enm",
+        "rel": "from",
+        "children": [
+          {
+            "form": "dohtor",
+            "lang": "ang",
+            "rel": "inherited",
+            "gloss": "daughter",
+            "children": [
+              {
+                "form": "*dohter",
+                "lang": "gmw-pro",
+                "rel": "inherited",
+                "children": [
+                  {
+                    "form": "*duhtēr",
+                    "lang": "gem-pro",
+                    "rel": "inherited",
+                    "children": [
+                      {
+                        "form": "*dʰugh₂tḗr",
+                        "lang": "ine-pro",
+                        "rel": "inherited",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "democracy": {
     "form": "democracy",
     "lang": "en",
@@ -4475,6 +4522,62 @@
       }
     ]
   },
+  "neurohistology": {
+    "form": "neurohistology",
+    "lang": "en",
+    "children": [
+      {
+        "form": "neuro-",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "νευρο-",
+            "lang": "grc",
+            "rel": "derived",
+            "tr": "neuro-",
+            "children": [
+              {
+                "form": "νεῦρον",
+                "lang": "grc",
+                "rel": "from",
+                "gloss": "sinew, tendon, cord",
+                "tr": "neûron",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "histology",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "histo",
+            "lang": "en",
+            "rel": "+",
+            "children": []
+          },
+          {
+            "form": "logy",
+            "lang": "en",
+            "rel": "+",
+            "children": [
+              {
+                "form": "log",
+                "lang": "nl",
+                "rel": "derived",
+                "gloss": "heavy, dull",
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "night": {
     "form": "night",
     "lang": "en",
@@ -5317,6 +5420,60 @@
       }
     ]
   },
+  "pseudobasifixed": {
+    "form": "pseudobasifixed",
+    "lang": "en",
+    "children": [
+      {
+        "form": "pseudo-",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "pseudo-",
+            "lang": "enm",
+            "rel": "inherited",
+            "children": [
+              {
+                "form": "ψευδής",
+                "lang": "grc",
+                "rel": "derived",
+                "gloss": "false, lying",
+                "tr": "pseudḗs",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "form": "basifixed",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "basi-",
+            "lang": "en",
+            "rel": "+",
+            "children": [
+              {
+                "form": "basis",
+                "lang": "la",
+                "rel": "derived",
+                "children": []
+              }
+            ]
+          },
+          {
+            "form": "fixed",
+            "lang": "en",
+            "rel": "+",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
   "pseudoimpartial": {
     "form": "pseudoimpartial",
     "lang": "en",
@@ -5900,6 +6057,111 @@
       }
     ]
   },
+  "robot": {
+    "form": "robot",
+    "lang": "en",
+    "children": [
+      {
+        "form": "robot",
+        "lang": "cs",
+        "rel": "borrowed",
+        "children": [
+          {
+            "form": "robota",
+            "lang": "cs",
+            "children": [
+              {
+                "form": "robota",
+                "lang": "zlw-ocs",
+                "children": [
+                  {
+                    "form": "*orbota",
+                    "lang": "sla-pro",
+                    "children": [
+                      {
+                        "form": "*orbiti",
+                        "lang": "sla-pro",
+                        "children": [
+                          {
+                            "form": "*orbъ",
+                            "lang": "sla-pro",
+                            "children": [
+                              {
+                                "form": "*árbas",
+                                "lang": "ine-bsl-pro",
+                                "children": [
+                                  {
+                                    "form": "*h₃órbʰos",
+                                    "lang": "ine-pro",
+                                    "children": [
+                                      {
+                                        "form": "*h₃erbʰ-",
+                                        "lang": "ine-pro",
+                                        "children": []
+                                      },
+                                      {
+                                        "form": "*-os",
+                                        "lang": "ine-pro",
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "form": "*-iti",
+                            "lang": "sla-pro",
+                            "children": [
+                              {
+                                "form": "*-éitei",
+                                "lang": "ine-bsl-pro",
+                                "children": [
+                                  {
+                                    "form": "*-éyeti",
+                                    "lang": "ine-pro",
+                                    "children": [
+                                      {
+                                        "form": "*-yeti",
+                                        "lang": "ine-pro",
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "form": "*-ota",
+                        "lang": "sla-pro",
+                        "children": [
+                          {
+                            "form": "*-atā́ˀ",
+                            "lang": "ine-bsl-pro",
+                            "children": [
+                              {
+                                "form": "*-otéh₂",
+                                "lang": "ine-pro",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "safari": {
     "form": "safari",
     "lang": "en",
@@ -6146,6 +6408,49 @@
                         "children": []
                       }
                     ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "shtiebel": {
+    "form": "shtiebel",
+    "lang": "en",
+    "children": [
+      {
+        "form": "שטיבל",
+        "lang": "yi",
+        "rel": "borrowed",
+        "gloss": "small room/house, informal synagogue",
+        "tr": "shtibl",
+        "children": [
+          {
+            "form": "שטוב",
+            "lang": "yi",
+            "rel": "from",
+            "tr": "shtub",
+            "children": []
+          },
+          {
+            "form": "־ל",
+            "lang": "yi",
+            "rel": "from",
+            "tr": "-l",
+            "children": [
+              {
+                "form": "stuba",
+                "lang": "goh",
+                "rel": "derived",
+                "children": [
+                  {
+                    "form": "*stubu",
+                    "lang": "gmw-pro",
+                    "rel": "derived",
+                    "children": []
                   }
                 ]
               }
@@ -6847,6 +7152,62 @@
                 "gloss": "to cut",
                 "tr": "témnō",
                 "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "tongue": {
+    "form": "tongue",
+    "lang": "en",
+    "children": [
+      {
+        "form": "tongue",
+        "lang": "enm",
+        "rel": "inherited",
+        "children": [
+          {
+            "form": "tong(e)",
+            "lang": "enm",
+            "rel": "from",
+            "children": []
+          },
+          {
+            "form": "tung(e)",
+            "lang": "enm",
+            "rel": "from",
+            "children": [
+              {
+                "form": "tunge",
+                "lang": "ang",
+                "rel": "inherited",
+                "children": [
+                  {
+                    "form": "*tungā",
+                    "lang": "gmw-pro",
+                    "rel": "inherited",
+                    "gloss": "tongue",
+                    "children": [
+                      {
+                        "form": "*tungǭ",
+                        "lang": "gem-pro",
+                        "rel": "inherited",
+                        "gloss": "tongue",
+                        "children": [
+                          {
+                            "form": "*dn̥ǵʰwéh₂s",
+                            "lang": "ine-pro",
+                            "rel": "inherited",
+                            "gloss": "tongue",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }
