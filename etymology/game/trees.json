@@ -989,6 +989,34 @@
       }
     ]
   },
+  "cargo": {
+    "form": "cargo",
+    "lang": "en",
+    "children": [
+      {
+        "form": "cargo",
+        "lang": "es",
+        "rel": "borrowed",
+        "gloss": "load, burden",
+        "children": [
+          {
+            "form": "cargar",
+            "lang": "es",
+            "rel": "from",
+            "gloss": "to load",
+            "children": [
+              {
+                "form": "carricō",
+                "lang": "la-lat",
+                "rel": "derived",
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "cellist": {
     "form": "cellist",
     "lang": "en",
@@ -1849,6 +1877,34 @@
       }
     ]
   },
+  "estaminet": {
+    "form": "estaminet",
+    "lang": "en",
+    "children": [
+      {
+        "form": "estaminet",
+        "lang": "fr",
+        "rel": "borrowed",
+        "children": [
+          {
+            "form": "estaminé",
+            "lang": "wa",
+            "rel": "borrowed",
+            "gloss": "a small café",
+            "children": [
+              {
+                "form": "stamon",
+                "lang": "wa",
+                "rel": "from",
+                "gloss": "a post to which cows are tied next to a manger",
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "fish": {
     "form": "fish",
     "lang": "en",
@@ -1978,6 +2034,25 @@
                 ]
               }
             ]
+          }
+        ]
+      }
+    ]
+  },
+  "fornicatory": {
+    "form": "fornicatory",
+    "lang": "en",
+    "children": [
+      {
+        "form": "fornicātōrius",
+        "lang": "la",
+        "rel": "borrowed",
+        "children": [
+          {
+            "form": "fornicātor",
+            "lang": "la",
+            "rel": "from",
+            "children": []
           }
         ]
       }
@@ -2460,6 +2535,36 @@
                 ]
               }
             ]
+          }
+        ]
+      }
+    ]
+  },
+  "kimono": {
+    "form": "kimono",
+    "lang": "en",
+    "children": [
+      {
+        "form": "着物",
+        "lang": "ja",
+        "rel": "borrowed",
+        "gloss": "clothing",
+        "tr": "きもの",
+        "children": [
+          {
+            "form": "着",
+            "lang": "ja",
+            "rel": "from",
+            "gloss": "wearing",
+            "children": []
+          },
+          {
+            "form": "物",
+            "lang": "ja",
+            "rel": "from",
+            "gloss": "thing",
+            "tr": "もの",
+            "children": []
           }
         ]
       }
