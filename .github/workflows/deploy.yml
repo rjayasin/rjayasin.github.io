@@ -12,9 +12,10 @@ permissions:
   pages: write
   id-token: write
 
+# Queue deploys; cancelling mid-deploy collides with the in-flight one.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -42,6 +43,9 @@ jobs:
             echo "sitemap/dates.json updated"
           fi
       - uses: actions/configure-pages@v6
+      # Keep the full git history out of the published artifact.
+      - name: Trim git metadata from the Pages artifact
+        run: rm -rf .git
       - uses: actions/upload-pages-artifact@v5
         with:
           path: .
