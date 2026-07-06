@@ -100,6 +100,25 @@
       }
     ]
   },
+  "adminish": {
+    "form": "adminish",
+    "lang": "en",
+    "children": [
+      {
+        "form": "amenusen",
+        "lang": "enm",
+        "rel": "inherited",
+        "children": [
+          {
+            "form": "amenuisier",
+            "lang": "fro",
+            "rel": "derived",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
   "armywear": {
     "form": "armywear",
     "lang": "en",
@@ -1036,6 +1055,34 @@
       }
     ]
   },
+  "casino": {
+    "form": "casino",
+    "lang": "en",
+    "children": [
+      {
+        "form": "casino",
+        "lang": "it",
+        "rel": "derived",
+        "children": [
+          {
+            "form": "casa",
+            "lang": "it",
+            "rel": "from",
+            "gloss": "house",
+            "children": [
+              {
+                "form": "casa",
+                "lang": "la",
+                "rel": "derived",
+                "gloss": "cottage, hut",
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "cellist": {
     "form": "cellist",
     "lang": "en",
@@ -1196,6 +1243,33 @@
         "lang": "en",
         "rel": "+",
         "children": []
+      }
+    ]
+  },
+  "commendatory": {
+    "form": "commendatory",
+    "lang": "en",
+    "children": [
+      {
+        "form": "commend",
+        "lang": "en",
+        "children": []
+      },
+      {
+        "form": "-atory",
+        "lang": "en",
+        "children": [
+          {
+            "form": "-ate",
+            "lang": "en",
+            "children": []
+          },
+          {
+            "form": "-ory",
+            "lang": "en",
+            "children": []
+          }
+        ]
       }
     ]
   },
@@ -2008,6 +2082,26 @@
       }
     ]
   },
+  "flative": {
+    "form": "flative",
+    "lang": "en",
+    "children": [
+      {
+        "form": "flātīvus",
+        "lang": "la",
+        "rel": "derived",
+        "children": [
+          {
+            "form": "flō",
+            "lang": "la",
+            "rel": "from",
+            "gloss": "to blow",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
   "forecount": {
     "form": "forecount",
     "lang": "en",
@@ -2418,6 +2512,52 @@
                     "rel": "derived",
                     "gloss": "busy",
                     "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "goose": {
+    "form": "goose",
+    "lang": "en",
+    "children": [
+      {
+        "form": "goos",
+        "lang": "enm",
+        "rel": "inherited",
+        "children": []
+      },
+      {
+        "form": "gos",
+        "lang": "enm",
+        "rel": "from",
+        "children": [
+          {
+            "form": "gōs",
+            "lang": "ang",
+            "rel": "inherited",
+            "children": [
+              {
+                "form": "*gans",
+                "lang": "gmw-pro",
+                "rel": "inherited",
+                "children": [
+                  {
+                    "form": "*gans",
+                    "lang": "gem-pro",
+                    "rel": "inherited",
+                    "children": [
+                      {
+                        "form": "*ǵʰh₂éns",
+                        "lang": "ine-pro",
+                        "rel": "inherited",
+                        "children": []
+                      }
+                    ]
                   }
                 ]
               }
@@ -4991,6 +5131,27 @@
       }
     ]
   },
+  "salsa": {
+    "form": "salsa",
+    "lang": "en",
+    "children": [
+      {
+        "form": "salsa",
+        "lang": "es",
+        "rel": "borrowed",
+        "gloss": "sauce",
+        "children": [
+          {
+            "form": "salsus",
+            "lang": "la",
+            "rel": "derived",
+            "gloss": "salted",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
   "sanghi": {
     "form": "sanghi",
     "lang": "en",
@@ -6109,6 +6270,52 @@
                             "form": "-icus",
                             "lang": "la",
                             "rel": "derived",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "water": {
+    "form": "water",
+    "lang": "en",
+    "children": [
+      {
+        "form": "water",
+        "lang": "enm",
+        "children": [
+          {
+            "form": "wæter",
+            "lang": "ang",
+            "children": [
+              {
+                "form": "*watar",
+                "lang": "gmw-pro",
+                "children": [
+                  {
+                    "form": "*watōr",
+                    "lang": "gem-pro",
+                    "children": [
+                      {
+                        "form": "*wódr̥",
+                        "lang": "ine-pro",
+                        "children": [
+                          {
+                            "form": "*wed-",
+                            "lang": "ine-pro",
+                            "children": []
+                          },
+                          {
+                            "form": "*-r̥",
+                            "lang": "ine-pro",
                             "children": []
                           }
                         ]
