@@ -44,7 +44,6 @@
     "moose",
     "mosquito",
     "multimorph",
-    "oho",
     "paracymbium",
     "patio",
     "penguin",
@@ -226,5 +225,7 @@
     "woman",
     "world"
   ],
-  "blocklist": []
+  "blocklist": [
+    "oho"
+  ]
 }
