@@ -6,3 +6,8 @@ fonts.js
 words.txt
 sitemap/dates.json
 fonts/.licenses-cache.json
+# The etymology game's word bank is machine-written (by the game client and
+# scripts/etymology-pool.js) as plain JSON.stringify output; keep prettier
+# from reshaping what those writers produce.
+etymology/game/manifest.json
+etymology/game/trees/

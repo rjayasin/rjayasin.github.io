@@ -1569,66 +1569,155 @@
 
       // A curated pool of English headwords that reliably have an etymology
       // tree on Wiktionary, bucketed by the size of that tree. Drawing from
-      // here on launch resolves a puzzle in a fetch or two instead of the
-      // random-word hunt (which discards most draws for having no etymology),
-      // and keeps us from hammering Wiktionary on every game.
+      // here on launch resolves a puzzle instantly instead of the random-word
+      // hunt (which discards most draws for having no etymology), and keeps
+      // us from hammering Wiktionary on every game.
       //
-      // The list is the static file words.json, loaded once at launch. The
-      // random-word hunt is still the source of new entries: any word it turns
-      // up with a usable tree is filed into its band here, and a signed-in
-      // player's discoveries are committed back to words.json so the pool grows
-      // over time (see the "growing the pool" section). The node-count band
-      // still validates each pick at runtime, so a mis-bucketed entry is just
-      // skipped — the buckets only bias which words we try first.
+      // The pool and its trees live in the static files manifest.json and
+      // trees/<band>-<n>.json (see the tree store below). Every pooled word
+      // has its tree cached in a chunk — the scheduled etymology-pool
+      // workflow (scripts/etymology-pool.js) enforces that — so playing a
+      // pool word costs no Wiktionary calls at all. The random hunt is still
+      // the source of new entries: a signed-in player's discoveries are
+      // queued into the manifest's "pending" list (see "growing the pool")
+      // and the workflow promotes them, so the pool grows over time. The
+      // node-count band still validates each pick at runtime, so a
+      // mis-bucketed entry is just skipped.
       const WORD_POOL = { easy: [], medium: [], hard: [] };
 
-      async function loadWordPool() {
+      // ---------- Persistent tree store ----------
+      // manifest.json: the banded word list, blocklist, pending queue, and
+      // the tree count of each chunk file. trees/<band>-<n>.json: minified
+      // {form: tree} chunks, append-only — a chunk that has reached the
+      // manifest's chunkSize never changes again. The manifest and every
+      // chunk are mirrored into localStorage, so a repeat visit starts
+      // entirely from local data (zero network before the first game) and
+      // then revalidates in the background, refetching only chunks whose
+      // tree count grew. A first visit blocks only on the manifest plus one
+      // chunk of the current difficulty; the rest streams in behind the
+      // first game.
+      const savedTrees = new Map(); // lowercased form -> tree
+      const LS_MANIFEST = 'etymology-game-manifest';
+      const LS_TREES = 'etymology-game-trees';
+      const chunkName = (band, i) => `${band}-${String(i).padStart(3, '0')}`;
+
+      function readStored(key) {
+        try {
+          return JSON.parse(localStorage.getItem(key) || 'null');
+        } catch (e) {
+          return null;
+        }
+      }
+      function writeStored(key, value) {
+        try {
+          localStorage.setItem(key, JSON.stringify(value));
+        } catch (e) {
+          /* storage full/unavailable — the network copy still serves this session */
+        }
+      }
+
+      function applyManifest(m) {
+        for (const k of Object.keys(WORD_POOL))
+          WORD_POOL[k] = ((m.words && m.words[k]) || []).filter((w) => typeof w === 'string');
+        BLOCKLIST.clear();
+        for (const w of m.blocklist || [])
+          if (typeof w === 'string') BLOCKLIST.add(w.toLowerCase());
+      }
+      // Feed one chunk's trees into savedTrees; returns how many it held.
+      function applyChunk(data) {
+        if (!data || typeof data !== 'object' || Array.isArray(data)) return 0;
+        let n = 0;
+        for (const [k, v] of Object.entries(data)) {
+          if (v && typeof v === 'object') {
+            savedTrees.set(k.toLowerCase(), v);
+            n++;
+          }
+        }
+        return n;
+      }
+
+      async function fetchManifest() {
         try {
           // Revalidate rather than bust the cache with a unique URL: no-store
           // plus a timestamp param defeated the CDN cache entirely, so every
           // visit paid a full origin fetch. A 304 keeps this cheap and fresh.
-          const r = await fetch('words.json', { cache: 'no-cache' });
-          if (!r.ok) return;
-          const data = await r.json();
-          if (data && typeof data === 'object') {
-            for (const k of Object.keys(WORD_POOL)) {
-              if (Array.isArray(data[k]))
-                WORD_POOL[k] = data[k].filter((w) => typeof w === 'string');
-            }
-            if (Array.isArray(data.blocklist)) {
-              BLOCKLIST.clear();
-              for (const w of data.blocklist)
-                if (typeof w === 'string') BLOCKLIST.add(w.toLowerCase());
-            }
-          }
+          const r = await fetch('manifest.json', { cache: 'no-cache' });
+          if (!r.ok) return null;
+          const m = await r.json();
+          return m && typeof m === 'object' && m.chunks && m.words ? m : null;
         } catch (e) {
-          /* no pool — newGame falls back to the random hunt, just slower */
+          return null;
+        }
+      }
+      async function fetchChunk(band, i) {
+        try {
+          const r = await fetch(`trees/${chunkName(band, i)}.json`, { cache: 'no-cache' });
+          if (!r.ok) return null;
+          const d = await r.json();
+          return d && typeof d === 'object' && !Array.isArray(d) ? d : null;
+        } catch (e) {
+          return null;
         }
       }
 
-      // ---------- Persistent tree cache ----------
-      // Building a word's tree scrapes several Wiktionary endpoints, so once a
-      // tree is built we cache the whole thing in trees.json (form → tree) and
-      // read it back here — a cached word then costs one static-file hit and zero
-      // Wiktionary calls. The file fills in as words are played (see recordTree /
-      // the directed migration in discoverAndCommit), never in one bulk sweep.
-      // A stale cached copy is harmless — the word just gets rebuilt.
-      const savedTrees = new Map(); // lowercased form -> tree
-      async function loadTreeCache() {
-        try {
-          // Revalidate rather than trust the browser cache: the file grows every
-          // few minutes, and a stale (near-empty) copy would starve the
-          // cold-start fallback. A 304 keeps it cheap when nothing changed.
-          const r = await fetch('trees.json', { cache: 'no-cache' });
-          if (!r.ok) return;
-          const data = await r.json();
-          if (data && typeof data === 'object' && !Array.isArray(data)) {
-            for (const [k, v] of Object.entries(data))
-              if (v && typeof v === 'object') savedTrees.set(k.toLowerCase(), v);
-          }
-        } catch (e) {
-          /* no cache — words are rebuilt from Wiktionary as before */
+      // Fetch every chunk whose local copy is missing or shorter than the
+      // manifest says. Only the open (last) chunk of a band ever grows, so a
+      // matching count means an identical file — full chunks are fetched
+      // exactly once, ever.
+      async function pullChunks(m, haveCounts) {
+        const jobs = [];
+        for (const [band, counts] of Object.entries(m.chunks || {})) {
+          counts.forEach((count, i) => {
+            if ((((haveCounts || {})[band] || [])[i] || 0) >= count) return;
+            jobs.push(
+              fetchChunk(band, i).then((d) => {
+                if (!d) return;
+                applyChunk(d);
+                writeStored(`${LS_TREES}:${chunkName(band, i)}`, d);
+              })
+            );
+          });
         }
+        await Promise.all(jobs);
+      }
+
+      async function loadTreeStore() {
+        const stored = readStored(LS_MANIFEST);
+        if (stored && stored.chunks && stored.words) {
+          // Repeat visit: everything local, no network before the first game.
+          applyManifest(stored);
+          const haveCounts = {};
+          for (const [band, counts] of Object.entries(stored.chunks)) {
+            haveCounts[band] = counts.map((_, i) =>
+              applyChunk(readStored(`${LS_TREES}:${chunkName(band, i)}`))
+            );
+          }
+          // Background revalidation; new trees land mid-session and are
+          // picked up as the ready queue refills.
+          fetchManifest().then((m) => {
+            if (!m) return;
+            applyManifest(m);
+            writeStored(LS_MANIFEST, m);
+            pullChunks(m, haveCounts);
+          });
+          return;
+        }
+        // First visit: the critical path is the manifest plus one chunk of
+        // the current difficulty; everything else streams in behind the game.
+        const m = await fetchManifest();
+        if (!m) return; // no store — newGame falls back to the random hunt
+        applyManifest(m);
+        writeStored(LS_MANIFEST, m);
+        const band = difficultyEl.value;
+        const haveCounts = {};
+        if ((m.chunks[band] || []).length) {
+          const d = await fetchChunk(band, 0);
+          if (d) {
+            writeStored(`${LS_TREES}:${chunkName(band, 0)}`, d);
+            haveCounts[band] = [applyChunk(d)];
+          }
+        }
+        pullChunks(m, haveCounts); // not awaited — fills in behind the first game
       }
 
       // ---------- Seen words ----------
@@ -1661,8 +1750,9 @@
 
       // A denylist of headwords to never surface or file into the pool, whatever
       // their tree size — words the random hunt turns up that make poor puzzles
-      // (e.g. bare interjections). Loaded from the "blocklist" field of words.json
-      // (see loadWordPool) and matched case-insensitively on the headword.
+      // (e.g. bare interjections). Loaded from the "blocklist" field of
+      // manifest.json (see applyManifest) and matched case-insensitively on the
+      // headword.
       const BLOCKLIST = new Set();
       function isBlocked(form) {
         return !!form && BLOCKLIST.has(form.toLowerCase());
@@ -1689,13 +1779,14 @@
       // The random-word hunt is the only thing that scrapes Wiktionary at play
       // time. Whatever it turns up with a usable tree is filed into its band so
       // the rest of the session can reuse it, and — for a signed-in player —
-      // batched and committed back to words.json via the GitHub Contents API so
-      // future visitors get it from the static file instead of re-scraping.
+      // its word is queued into manifest.json's "pending" list via the GitHub
+      // Contents API. The scheduled etymology-pool workflow later rebuilds the
+      // tree itself and promotes the word into the pool and a chunk, so a
+      // play-time commit is only ever a few word strings in a small file —
+      // never a tree-store rewrite.
       const REPO = 'rjayasin/rjayasin.github.io';
-      const POOL_PATH = 'etymology/game/words.json';
-      const TREES_PATH = 'etymology/game/trees.json';
+      const MANIFEST_PATH = 'etymology/game/manifest.json';
       const pendingContrib = new Map(); // word -> band, not yet persisted
-      const pendingTrees = new Map(); // lowercased form -> tree, not yet persisted
       let flushTimer = null;
       let flushScheduled = false;
       let flushing = false;
@@ -1711,15 +1802,6 @@
       const FLUSH_DELAY = 30000; // gather discoveries this long before committing
       const MIN_COMMIT_INTERVAL = 60000; // and never commit more than once a minute
       const DEFAULT_BACKOFF = 90000; // fallback wait when rate-limited with no hint
-      // Trees pile up fast (roughly one per new game) and every signed-in session
-      // races the same trees.json, so a per-minute commit conflicts (409) with
-      // other writers constantly. Batch them hard instead: only commit once a big
-      // batch has accumulated or we've been sitting on some for a good while.
-      // Fewer, larger writes mean far fewer conflicts, and an uncommitted batch is
-      // cheap to lose — those trees just get re-cached on a later visit.
-      const TREES_BATCH_SIZE = 15; // commit once this many trees are queued…
-      const TREES_MAX_HOLD = 300000; // …or this long after the batch started (5 min)
-      let treesPendingSince = 0;
 
       // GitHub returns/expects file contents as base64; the shared helpers
       // keep non-ASCII headwords (e.g. "café") intact across the round trip.
@@ -1735,23 +1817,25 @@
         const w = word.toLowerCase();
         return Object.values(pool).some((arr) => arr.some((x) => x.toLowerCase() === w));
       }
-      // Keep the three bands roughly even: the random hunt naturally turns up far
-      // more big trees than small ones, so refuse to add to a band that's already
-      // this many words longer than the smallest band. (Easy/medium can still
-      // grow until they catch up.)
-      const MAX_BAND_SKEW = 5;
-      function wouldUnbalanceBand(pool, band) {
-        const others = Object.keys(DIFFS)
-          .filter((k) => k !== band)
-          .map((k) => (pool[k] || []).length);
-        const minOther = others.length ? Math.min(...others) : 0;
-        return (pool[band] || []).length + 1 - minOther > MAX_BAND_SKEW;
-      }
-      // Carries the band buckets and the blocklist through the commit cycle so a
-      // discovery commit rewrites words.json without dropping the denylist.
-      function normalizePool(obj) {
-        const out = { easy: [], medium: [], hard: [], blocklist: [] };
-        for (const k of Object.keys(out))
+      // Carries every manifest field through the commit cycle so queuing a
+      // discovery rewrites manifest.json without touching the pool, the chunk
+      // shape, or the blocklist — those belong to the scheduled workflow.
+      function normalizeManifest(obj) {
+        const out = {
+          chunkSize: 50,
+          chunks: {},
+          words: { easy: [], medium: [], hard: [] },
+          pending: [],
+          blocklist: [],
+        };
+        if (!obj || typeof obj !== 'object') return out;
+        if (typeof obj.chunkSize === 'number') out.chunkSize = obj.chunkSize;
+        if (obj.chunks && typeof obj.chunks === 'object' && !Array.isArray(obj.chunks))
+          out.chunks = obj.chunks;
+        for (const k of Object.keys(out.words))
+          if (obj.words && Array.isArray(obj.words[k]))
+            out.words[k] = obj.words[k].filter((w) => typeof w === 'string');
+        for (const k of ['pending', 'blocklist'])
           if (Array.isArray(obj[k])) out[k] = obj[k].filter((w) => typeof w === 'string');
         return out;
       }
@@ -1765,41 +1849,25 @@
           .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
       }
 
-      // A tree stripped down to the fields worth persisting — the play-time
-      // extras (node ids, the root flag) are dropped so the cached JSON stays
-      // stable and small no matter what happened to the object on the board.
-      function cleanTree(node) {
-        const out = { form: node.form, lang: node.lang };
-        if (node.rel) out.rel = node.rel;
-        if (node.gloss) out.gloss = node.gloss;
-        if (node.tr) out.tr = node.tr;
-        out.children = (node.children || []).map(cleanTree);
-        return out;
-      }
-
-      // Stage a freshly built tree for the persistent cache (and serve it from
-      // memory for the rest of this session). Idempotent per word.
+      // Keep a freshly built tree for the rest of this session. Trees are
+      // never committed from the client — the scheduled workflow rebuilds a
+      // queued word's tree itself — so this is purely a session memo.
       function recordTree(word, tree) {
         if (!word || isBlocked(word)) return;
         const key = word.toLowerCase();
-        if (savedTrees.has(key) || pendingTrees.has(key)) return;
-        savedTrees.set(key, tree); // available immediately this session
-        if (commitsBlocked) return; // can't persist — don't stage a batch that never flushes
-        if (pendingTrees.size === 0) treesPendingSince = Date.now(); // start the batch clock
-        pendingTrees.set(key, tree); // committed once the batch is ready (re-cleaned there)
-        scheduleFlush();
+        if (!savedTrees.has(key)) savedTrees.set(key, tree);
       }
 
       // File a freshly discovered word into its band (locally always; queued
-      // for commit too). Only plain single-token headwords are stored.
+      // for the pending list too). Only plain single-token headwords are kept.
+      // Band balance and caps are the workflow's problem, not the client's.
       function recordDiscovered(word, tree) {
         if (!word || !/^[\p{L}]+$/u.test(word) || isBlocked(word)) return;
-        recordTree(word, tree); // cache the tree even if the word's already pooled
+        recordTree(word, tree); // usable this session even if the word's already pooled
         const band = bandForCount(countNodes(tree));
         if (!band || poolHas(WORD_POOL, word) || pendingContrib.has(word)) return;
-        if (wouldUnbalanceBand(WORD_POOL, band)) return; // band already too far ahead
-        WORD_POOL[band].push(word);
-        if (commitsBlocked) return; // usable this session, but can't be committed
+        WORD_POOL[band].push(word); // playable for the rest of this session
+        if (commitsBlocked) return; // usable this session, but can't be queued
         pendingContrib.set(word, band);
         scheduleFlush();
       }
@@ -1820,7 +1888,7 @@
 
       // Total entries waiting across every commit target.
       function pendingWork() {
-        return pendingContrib.size + pendingTrees.size;
+        return pendingContrib.size;
       }
 
       // Schedule a single batched commit. Entries that land before it fires just
@@ -1849,69 +1917,38 @@
       }
 
       // The files we commit back to the repo. Each says how to seed an empty
-      // file, parse the fetched one into a mergeable object, fold this session's
-      // staged entries in (returning how many were actually added), and sync
-      // local state on success. words.json is the banded word list; trees.json is
-      // the cached etymology trees.
+      // file, parse the fetched one into a mergeable object, and fold this
+      // session's staged entries in (returning how many were actually added).
+      // The only target is manifest.json's pending list: a queued word is a
+      // few bytes, so commits stay small however the tree store grows.
       const COMMIT_TARGETS = [
         {
-          path: POOL_PATH,
+          path: MANIFEST_PATH,
           pending: pendingContrib,
-          empty: () => ({ easy: [], medium: [], hard: [], blocklist: [] }),
-          parse: (parsed) => normalizePool(parsed),
-          message: (n) => `etymology game: add ${n} discovered word${n > 1 ? 's' : ''}`,
+          empty: () => normalizeManifest(null),
+          parse: (parsed) => normalizeManifest(parsed),
+          message: (n) => `etymology game: queue ${n} discovered word${n > 1 ? 's' : ''}`,
           merge: (current) => {
+            const have = new Set(
+              [
+                ...current.pending,
+                ...current.blocklist,
+                ...Object.keys(current.words).flatMap((k) => current.words[k]),
+              ].map((w) => w.toLowerCase())
+            );
             let added = 0;
-            for (const [word, band] of pendingContrib) {
-              if (poolHas(current, word)) continue;
-              // Re-check balance against the freshly read file: another player may
-              // have grown this band since we queued the word.
-              if (wouldUnbalanceBand(current, band)) continue;
-              (current[band] || (current[band] = [])).push(word);
+            for (const word of pendingContrib.keys()) {
+              if (have.has(word.toLowerCase())) continue;
+              current.pending.push(word);
+              have.add(word.toLowerCase());
               added++;
             }
-            if (added) for (const k of Object.keys(current)) current[k] = sortBucket(current[k]);
+            if (added) current.pending = sortBucket(current.pending);
             return added;
           },
-          onSuccess: (current) => {
-            for (const k of Object.keys(WORD_POOL)) WORD_POOL[k] = (current[k] || []).slice();
-          },
-        },
-        {
-          path: TREES_PATH,
-          pending: pendingTrees,
-          // Hold trees back until a full batch has piled up (or it's been a while)
-          // so we write trees.json rarely and collide with other sessions less.
-          ready: () =>
-            pendingTrees.size >= TREES_BATCH_SIZE ||
-            Date.now() - treesPendingSince >= TREES_MAX_HOLD,
-          empty: () => ({}),
-          parse: (parsed) =>
-            parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {},
-          message: (n) => `etymology game: cache ${n} word tree${n > 1 ? 's' : ''}`,
-          merge: (current) => {
-            let added = 0;
-            for (const [key, tree] of pendingTrees) {
-              if (current[key]) continue; // already cached (committed elsewhere)
-              current[key] = cleanTree(tree); // re-strip any play-time mutation
-              added++;
-            }
-            return added;
-          },
-          // Keep keys sorted so the file diffs cleanly as it grows.
-          serialize: (current) =>
-            JSON.stringify(
-              Object.fromEntries(
-                Object.keys(current)
-                  .sort()
-                  .map((k) => [k, current[k]])
-              ),
-              null,
-              2
-            ) + '\n',
-          onSuccess: (current) => {
-            for (const [k, v] of Object.entries(current)) savedTrees.set(k, v);
-          },
+          // Nothing to sync back on success: the queued words already live in
+          // this session's WORD_POOL, and the shared pool only changes when
+          // the scheduled workflow promotes them.
         },
       ];
 
@@ -1990,10 +2027,8 @@
       // Flush the batched work, at most one actual commit per pass so we never
       // fire two writes in quick succession (a shared backoff/flush guard keeps
       // GitHub happy). A file already up to date is skipped and the next one
-      // tried; the finally reschedules whatever's still pending. `force` skips the
-      // batch-ripeness gate — used when the page is closing so a held batch isn't
-      // lost to the 5-minute window.
-      async function flushContributions(force = false) {
+      // tried; the finally reschedules whatever's still pending.
+      async function flushContributions() {
         if (flushing || commitsBlocked || !Common.GH.isAuthed() || !pendingWork()) return;
         if (Date.now() < backoffUntil) {
           scheduleFlush(); // still in a rate-limit hold; try again after it lifts
@@ -2005,7 +2040,6 @@
         try {
           for (const target of COMMIT_TARGETS) {
             if (!target.pending.size) continue;
-            if (!force && target.ready && !target.ready()) continue; // batch not ripe yet
             if (!Common.GH.isAuthed() || Date.now() < backoffUntil) break;
             const result = await commitTarget(target, headers);
             if (result === 'blocked') {
@@ -2065,19 +2099,19 @@
         }
       }
 
-      // When the page is backgrounded or closed, commit whatever's batched right
-      // away rather than letting it sit in the hold window. visibilitychange →
+      // When the page is backgrounded or closed, commit whatever's queued right
+      // away rather than letting it sit in the flush window. visibilitychange →
       // hidden is the reliable hook (it fires on tab switch, minimise, and
-      // navigation while the page is usually still alive); a hard kill mid-request
-      // can still drop a batch, but those trees just get re-cached on a later
-      // visit. Not using sendBeacon/keepalive — the commit needs a GET→PUT with
-      // auth headers and trees.json can exceed keepalive's 64 KB body cap.
+      // navigation while the page is usually still alive); a hard kill
+      // mid-request can still drop a batch, but a lost discovery just gets
+      // re-found by some later session. Not using sendBeacon/keepalive — the
+      // commit needs a GET→PUT round trip with auth headers.
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState !== 'hidden') return;
         if (!Common.GH.isAuthed() || !pendingWork()) return;
         clearTimeout(flushTimer);
         flushScheduled = false;
-        flushContributions(true); // bypass the batch gate — commit now
+        flushContributions(); // skip the flush delay — commit now
       });
 
       function showBoardStatus(text, spinner) {
@@ -2091,9 +2125,9 @@
 
       // Building a word's tree means a Wiktionary fetch; cache by word so the
       // same pool word isn't re-scraped to refill the queue all session. Check
-      // the persistent trees.json cache first (no network at all), then the
-      // session memo, and only scrape as a last resort — recording whatever we
-      // build so it lands in the shared cache for next time.
+      // the persistent tree store first (no network at all), then the session
+      // memo, and only scrape as a last resort — keeping whatever we build for
+      // the rest of the session.
       const treeCache = new Map();
       async function cachedBuildTree(word) {
         const key = word.toLowerCase();
@@ -2106,7 +2140,7 @@
         const tree = await buildTree(word, 'en');
         if (tree) {
           treeCache.set(key, tree);
-          recordTree(word, tree); // stage it for the persistent cache
+          recordTree(word, tree); // keep it for the rest of the session
         }
         return tree;
       }
@@ -2184,40 +2218,20 @@
         }
       }
 
-      // A pool word we don't yet have a cached tree for — the target of the
-      // directed migration below. Picked at random so concurrent players spread
-      // out across the list rather than all racing the same word.
-      function uncachedPoolWord() {
-        const uncached = Object.keys(DIFFS)
-          .flatMap((k) => WORD_POOL[k] || [])
-          .filter((w) => {
-            const key = w.toLowerCase();
-            return !isBlocked(w) && !savedTrees.has(key) && !pendingTrees.has(key);
-          });
-        return uncached.length ? uncached[Math.floor(Math.random() * uncached.length)] : null;
-      }
-
-      // ---------- Background discovery & migration ----------
-      // Every new game nudges the shared cache forward for a signed-in player.
-      // Priority is the directed migration: build (and thereby cache) one pool
-      // word we haven't stored a tree for yet, so the existing list fills into
-      // trees.json gradually through normal play. Only once the whole list is
-      // cached do we spend the fetch on growing the pool with a fresh discovery.
-      // One at a time, so rapid clicks don't pile up Wiktionary fetches.
+      // ---------- Background discovery ----------
+      // Every new game nudges the shared pool forward for a signed-in player:
+      // one random-hunt build, whose discovery is queued into the manifest's
+      // pending list for the scheduled workflow to promote. One at a time, so
+      // rapid clicks don't pile up Wiktionary fetches.
       let discovering = false;
       async function discoverAndCommit() {
-        // The whole point is feeding the shared cache, so skip it when the
+        // The whole point is feeding the shared pool, so skip it when the
         // sign-in can't commit — same as when signed out.
         if (discovering || isRateLimited() || !Common.GH.isAuthed() || commitsBlocked) return;
         discovering = true;
         try {
-          const word = uncachedPoolWord();
-          if (word) {
-            await cachedBuildTree(word); // caches the tree as a side effect
-          } else {
-            const item = await findRandomTree();
-            if (item) recordDiscovered(item.word, item.tree);
-          }
+          const item = await findRandomTree();
+          if (item) recordDiscovered(item.word, item.tree);
         } catch (e) {
           /* ignore — try again on the next new game */
         } finally {
@@ -2365,18 +2379,18 @@
 
       // ---------- GitHub sign-in (optional) ----------
       // The game is fully playable signed out. Signing in only lets the words
-      // the background random hunt discovers be committed back to words.json so
-      // the shared pool grows for everyone.
+      // the background random hunt discovers be queued into manifest.json's
+      // pending list so the shared pool grows for everyone.
       const ghAuth = Common.GH.initAuthButton({
         buttonEl: document.getElementById('gh-auth'),
         signedInTitle: 'Signed in — new words you find are saved to the pool (click to sign out)',
         signedOutTitle: 'Sign in with GitHub to save discovered words to the pool',
       });
 
-      // Load the static pool and tree cache, then kick off the first game.
-      // Finish any OAuth redirect in parallel and flush anything queued before
-      // sign-in returned.
-      Promise.all([loadWordPool(), loadTreeCache()]).then(newGame);
+      // Load the word pool and tree store (local mirror first, network only as
+      // needed), then kick off the first game. Finish any OAuth redirect in
+      // parallel and flush anything queued before sign-in returned.
+      loadTreeStore().then(newGame);
       Common.GH.handleRedirect().then((signedIn) => {
         if (signedIn) ghAuth.refresh();
         checkWriteAccess(); // covers both a fresh sign-in and a stored token

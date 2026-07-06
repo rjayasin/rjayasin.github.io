@@ -1101,15 +1101,64 @@ function fetchRandomWords() {
     .catch(() => []);
 }
 
+// Raw wikitext for a whole draw of titles in one query call, instead of one
+// parse request per title. The response size cap means content for some
+// pages can arrive only on a `continue` follow-up; a couple of those still
+// beats twenty parse calls. Fetched text also seeds pageCache, so a
+// follow-up buildTree for a title skips its own wikitext fetch.
+const BATCH_API =
+  'https://en.wiktionary.org/w/api.php?action=query&prop=revisions&rvprop=content' +
+  '&rvslots=main&format=json&formatversion=2&origin=*&titles=';
+
+async function fetchWikitextBatch(titles) {
+  const out = new Map();
+  let cont = '';
+  for (let hop = 0; hop < 3 && titles.length; hop++) {
+    const r = await wikiFetch(BATCH_API + encodeURIComponent(titles.join('|')) + cont);
+    if (!r || !r.ok) break;
+    let j;
+    try {
+      j = await r.json();
+    } catch (e) {
+      break;
+    }
+    for (const p of (j && j.query && j.query.pages) || []) {
+      const rev = p.revisions && p.revisions[0];
+      const text = rev && rev.slots && rev.slots.main && rev.slots.main.content;
+      if (typeof text !== 'string') continue;
+      out.set(p.title, text);
+      if (!pageCache.has(p.title)) pageCache.set(p.title, Promise.resolve(text));
+    }
+    if (!j.continue) break;
+    cont = Object.entries(j.continue)
+      .map(([k, v]) => '&' + k + '=' + encodeURIComponent(v))
+      .join('');
+  }
+  return out;
+}
+
+// The same test the wikitext parser will apply: an ==English== section with
+// an Etymology heading. Screening a draw on already-fetched text costs
+// nothing, and only survivors are worth per-word build requests.
+function hasEnglishEtymology(wikitext) {
+  const section = extractLangSection(wikitext, 'English');
+  return !!(section && extractEtymology(section));
+}
+
 // Draw words until one has a documented history, returning its built
 // tree. Most random entries have no parseable English etymology (other
-// languages, missing sections), so draw fresh batches and trace the
-// first that does, within a bounded budget.
+// languages, missing sections), so draw fresh batches, prescreen each
+// draw's wikitext in one batched call, and trace the first title that
+// can actually yield a tree, within a bounded budget.
 async function findRandomTree() {
   for (let batch = 0; batch < 4; batch++) {
     if (isRateLimited()) return null; // don't hunt while parked — let it lift
     const words = await fetchRandomWords();
+    if (!words.length) continue;
+    const texts = await fetchWikitextBatch(words);
     for (const word of words) {
+      const text = texts.get(word);
+      if (!text || !hasEnglishEtymology(text)) continue; // can't have a tree
       if (isRateLimited()) return null; // a 429 mid-batch: stop, don't grind
       const tree = await buildTree(word, 'en');
       if (tree) return { word, tree };

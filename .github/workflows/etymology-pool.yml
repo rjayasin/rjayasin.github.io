@@ -1,0 +1,56 @@
+name: Etymology pool update
+
+# Grows the etymology game's word bank on a schedule instead of from play
+# sessions: promotes player-queued words from manifest.json's pending list
+# (building each one's tree), discovers a few new words while the difficulty
+# bands are below their cap, and lands everything as at most one commit per
+# run. See scripts/etymology-pool.js for the store layout and budgets.
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  actions: write # to dispatch the Pages deploy after pushing
+
+concurrency:
+  group: etymology-pool
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      # linkedom supplies the DOMParser that engine.js's etytree mirror needs
+      # under Node; everything else in the engine is plain fetch + parsing.
+      - name: Install linkedom
+        run: npm install --no-save --no-package-lock linkedom
+      - name: Update the pool
+        run: node scripts/etymology-pool.js
+      - name: Commit and push
+        id: commit
+        run: |
+          git add etymology/game
+          if git diff --cached --quiet; then
+            echo 'Nothing to update.'
+            echo 'pushed=false' >> "$GITHUB_OUTPUT"
+          else
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m "${POOL_MSG:-etymology game: scheduled pool update}"
+            git push
+            echo 'pushed=true' >> "$GITHUB_OUTPUT"
+          fi
+      # A GITHUB_TOKEN push doesn't fire the push-triggered deploy workflow,
+      # so kick it explicitly when something landed.
+      - name: Deploy the site
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run deploy.yml --ref main --repo "$GITHUB_REPOSITORY"
