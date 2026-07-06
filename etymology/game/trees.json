@@ -1702,6 +1702,29 @@
       }
     ]
   },
+  "dvornik": {
+    "form": "dvornik",
+    "lang": "en",
+    "children": [
+      {
+        "form": "дворник",
+        "lang": "ru",
+        "rel": "borrowed",
+        "gloss": "concierge; one who takes care of the pavement and yard in front of a house",
+        "tr": "dvornik",
+        "children": [
+          {
+            "form": "двор",
+            "lang": "ru",
+            "rel": "from",
+            "gloss": "courtyard",
+            "tr": "dvor",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
   "dynamo": {
     "form": "dynamo",
     "lang": "en",
@@ -1902,6 +1925,24 @@
             ]
           }
         ]
+      }
+    ]
+  },
+  "exophyte": {
+    "form": "exophyte",
+    "lang": "en",
+    "children": [
+      {
+        "form": "exo",
+        "lang": "en",
+        "rel": "+",
+        "children": []
+      },
+      {
+        "form": "phyte",
+        "lang": "en",
+        "rel": "+",
+        "children": []
       }
     ]
   },
