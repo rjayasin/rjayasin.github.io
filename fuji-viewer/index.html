@@ -216,6 +216,12 @@
         gap: 7px;
       }
 
+      /* The id selector's display would otherwise override the `hidden`
+         attribute, leaving the tip visible on page load. */
+      #legend[hidden] {
+        display: none;
+      }
+
       #legend .swatch {
         display: inline-block;
         width: 11px;
