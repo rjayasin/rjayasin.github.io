@@ -2896,6 +2896,57 @@
       }
     ]
   },
+  "kiosk": {
+    "form": "kiosk",
+    "lang": "en",
+    "children": [
+      {
+        "form": "kiosque",
+        "lang": "en",
+        "rel": "from",
+        "children": [
+          {
+            "form": "kiosque",
+            "lang": "fr",
+            "rel": "borrowed",
+            "children": [
+              {
+                "form": "chiosco",
+                "lang": "it",
+                "rel": "derived",
+                "children": [
+                  {
+                    "form": "كوشك",
+                    "lang": "ota",
+                    "rel": "derived",
+                    "tr": "köşk",
+                    "children": [
+                      {
+                        "form": "کوشْک",
+                        "lang": "fa-cls",
+                        "rel": "derived",
+                        "gloss": "palace, portico",
+                        "tr": "kōšk",
+                        "children": [
+                          {
+                            "form": "kwšk'",
+                            "lang": "pal",
+                            "rel": "derived",
+                            "tr": "kōšk",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "koala": {
     "form": "koala",
     "lang": "en",
@@ -6153,6 +6204,57 @@
             "lang": "tpw",
             "rel": "derived",
             "children": []
+          }
+        ]
+      }
+    ]
+  },
+  "telephone": {
+    "form": "telephone",
+    "lang": "en",
+    "children": [
+      {
+        "form": "tele-",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "τῆλε",
+            "lang": "grc",
+            "rel": "derived",
+            "gloss": "at a distance, far off, far away, far from",
+            "tr": "têle",
+            "children": []
+          }
+        ]
+      },
+      {
+        "form": "-phone",
+        "lang": "en",
+        "rel": "+",
+        "children": [
+          {
+            "form": "φωνή",
+            "lang": "grc",
+            "rel": "derived",
+            "gloss": "sound, voice, speech, language",
+            "tr": "phōnḗ",
+            "children": [
+              {
+                "form": "*bʰoh₂neh₂",
+                "lang": "ine-pro",
+                "rel": "derived",
+                "children": [
+                  {
+                    "form": "*bʰeh₂-",
+                    "lang": "ine-pro",
+                    "rel": "from",
+                    "gloss": "to speak",
+                    "children": []
+                  }
+                ]
+              }
+            ]
           }
         ]
       }
