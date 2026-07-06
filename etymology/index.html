@@ -1244,20 +1244,36 @@
       const FADE_MS = 180; // keep in sync with #content's opacity transition
       let seq = 0;
 
-      // The game (/etymology/game/) maintains a static cache of pre-built
-      // trees; serve English lookups from it when possible — instant, zero
+      // The game (/etymology/game/) maintains a static store of pre-built
+      // trees — a manifest listing per-band chunk files under game/trees/ —
+      // and serves English lookups from it when possible: instant, zero
       // Wiktionary calls, and it keeps working while the API is rate-limited.
       const savedTrees = new Map(); // lowercased form -> tree
-      const savedTreesReady = fetch('game/trees.json', { cache: 'no-cache' })
+      const savedTreesReady = fetch('game/manifest.json', { cache: 'no-cache' })
         .then((r) => (r.ok ? r.json() : null))
-        .then((data) => {
-          if (data && typeof data === 'object' && !Array.isArray(data)) {
-            for (const [k, v] of Object.entries(data))
-              if (v && typeof v === 'object') savedTrees.set(k.toLowerCase(), v);
+        .then((m) => {
+          if (!m || typeof m !== 'object' || !m.chunks) return;
+          const jobs = [];
+          for (const [band, counts] of Object.entries(m.chunks)) {
+            counts.forEach((_, i) => {
+              const name = `${band}-${String(i).padStart(3, '0')}`;
+              jobs.push(
+                fetch(`game/trees/${name}.json`, { cache: 'no-cache' })
+                  .then((r) => (r.ok ? r.json() : null))
+                  .then((data) => {
+                    if (data && typeof data === 'object' && !Array.isArray(data)) {
+                      for (const [k, v] of Object.entries(data))
+                        if (v && typeof v === 'object') savedTrees.set(k.toLowerCase(), v);
+                    }
+                  })
+                  .catch(() => {})
+              );
+            });
           }
+          return Promise.all(jobs);
         })
         .catch(() => {
-          /* no cache — every word is built from Wiktionary as before */
+          /* no store — every word is built from Wiktionary as before */
         });
 
       async function cachedOrBuiltTree(form, lang) {
