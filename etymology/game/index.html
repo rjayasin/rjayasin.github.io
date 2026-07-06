@@ -2209,10 +2209,8 @@
             const tree = await findPuzzleTree(diff);
             if (diff !== difficultyEl.value) break; // difficulty changed mid-build
             if (!tree) break; // nothing found this round; stop to avoid a hot loop
-            // Prefer variety: skip a repeat of the last shown, an already-queued
-            // word, or one that's since been marked seen (it may have become
-            // seen after findPuzzleTree selected it — e.g. a concurrent cold
-            // build showed that same word while this fill was in flight).
+            // Skip a repeat of the last shown, an already-queued word, or one
+            // that's since been marked seen.
             if (
               tree.form === lastForm ||
               isSeen(tree.form) ||
@@ -2256,12 +2254,8 @@
           readyQueue = [];
           queueDiff = diff;
         }
-        // Serve the first queued puzzle whose word hasn't been shown yet.
-        // A tree is only marked seen when it's actually displayed, so a word can
-        // land in the queue while a concurrent cold build (or an earlier click)
-        // is still about to show that same word — leaving a now-seen entry in
-        // the queue. Popping without this check would re-show it. isSeen is the
-        // authoritative gate at display time, so drop any seen entries here.
+        // Skip queued puzzles whose word has since been shown (a word can be
+        // queued while a concurrent build of it is still about to mark it seen).
         let tree = null;
         while (readyQueue.length) {
           const t = readyQueue.shift();
