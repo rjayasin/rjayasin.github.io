@@ -1401,6 +1401,34 @@
       }
     ]
   },
+  "dachshund": {
+    "form": "dachshund",
+    "lang": "en",
+    "children": [
+      {
+        "form": "Dachshund",
+        "lang": "de",
+        "rel": "borrowed",
+        "gloss": "badger dog",
+        "children": [
+          {
+            "form": "Dachs",
+            "lang": "de",
+            "rel": "+",
+            "gloss": "badger",
+            "children": []
+          },
+          {
+            "form": "Hund",
+            "lang": "de",
+            "rel": "+",
+            "gloss": "dog",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
   "daisy": {
     "form": "daisy",
     "lang": "en",
@@ -1641,6 +1669,27 @@
                 ]
               }
             ]
+          }
+        ]
+      }
+    ]
+  },
+  "dynamo": {
+    "form": "dynamo",
+    "lang": "en",
+    "children": [
+      {
+        "form": "dynamo-electric machine",
+        "lang": "en",
+        "rel": "from",
+        "children": [
+          {
+            "form": "δύναμις",
+            "lang": "grc",
+            "rel": "derived",
+            "gloss": "power",
+            "tr": "dúnamis",
+            "children": []
           }
         ]
       }
@@ -3817,6 +3866,43 @@
       }
     ]
   },
+  "plaza": {
+    "form": "plaza",
+    "lang": "en",
+    "children": [
+      {
+        "form": "plaza",
+        "lang": "es",
+        "rel": "borrowed",
+        "gloss": "town-square or central place of gathering",
+        "children": [
+          {
+            "form": "platea",
+            "lang": "la",
+            "rel": "derived",
+            "children": [
+              {
+                "form": "πλατεῖα",
+                "lang": "grc",
+                "rel": "derived",
+                "tr": "plateîa",
+                "children": [
+                  {
+                    "form": "πλατεῖα ὁδός",
+                    "lang": "grc",
+                    "rel": "from",
+                    "gloss": "broad way",
+                    "tr": "plateîa hodós",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "presplit": {
     "form": "presplit",
     "lang": "en",
@@ -4520,6 +4606,37 @@
             "rel": "borrowed",
             "tr": "safar",
             "children": []
+          }
+        ]
+      }
+    ]
+  },
+  "sanghi": {
+    "form": "sanghi",
+    "lang": "en",
+    "children": [
+      {
+        "form": "संघी",
+        "lang": "hi",
+        "rel": "borrowed",
+        "tr": "saṅghī",
+        "children": [
+          {
+            "form": "संघ",
+            "lang": "hi",
+            "rel": "derived",
+            "gloss": "association, union",
+            "tr": "saṅgh",
+            "children": [
+              {
+                "form": "राष्ट्रीय स्वयंसेवक संघ",
+                "lang": "hi",
+                "rel": "from",
+                "gloss": "{{w|Rashtriya Swayamsevak Sangh}}",
+                "tr": "rāṣṭrīya svayansevak saṅgh",
+                "children": []
+              }
+            ]
           }
         ]
       }
