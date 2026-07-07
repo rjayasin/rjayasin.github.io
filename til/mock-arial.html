@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ruvan / til</title>
+    <link rel="icon" id="favicon" />
+    <link rel="stylesheet" href="/common.css" />
+    <style>
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 15px;
+        line-height: 1.6;
+        padding: 48px 32px;
+        max-width: 720px;
+      }
+      a,
+      h1 {
+        transition:
+          background-color 0.2s ease,
+          color 0.2s ease,
+          border-color 0.2s ease;
+      }
+      header {
+        margin-bottom: 15px;
+      }
+      header a {
+        color: #000;
+        text-decoration: none;
+      }
+      header a:hover {
+        text-decoration: underline;
+      }
+      h1 {
+        font-size: 15px;
+        font-weight: normal;
+        letter-spacing: 0.05em;
+      }
+      .subtitle {
+        color: #888;
+        margin-top: 4px;
+      }
+      #list-view ul {
+        list-style: none;
+        margin-top: 18px;
+      }
+      #filter-line {
+        color: #888;
+        margin-top: 18px;
+      }
+      #filter-line + ul {
+        margin-top: 4px;
+      }
+      #list-view li {
+        padding: 2px 0;
+      }
+      #list-view .bullet {
+        color: #888;
+        user-select: none;
+      }
+      .sep {
+        color: #888;
+      }
+      a.tag {
+        color: #888;
+        text-decoration: none;
+      }
+      a.tag:hover {
+        text-decoration: underline;
+      }
+      #list-view .when {
+        color: #888;
+      }
+      #list-view a:not(.tag) {
+        color: #000;
+        text-decoration: none;
+      }
+      #list-view a:hover {
+        text-decoration: underline;
+      }
+      .meta {
+        color: #888;
+        margin-bottom: 14px;
+      }
+      .meta a {
+        color: #888;
+        text-decoration: none;
+      }
+      .meta a:hover {
+        text-decoration: underline;
+      }
+      #post h1 {
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: 0;
+        margin-bottom: 12px;
+      }
+      #post h2,
+      #post h3,
+      #post h4 {
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0;
+        margin: 18px 0 6px;
+      }
+      #post p {
+        margin: 10px 0;
+      }
+      #post ul,
+      #post ol {
+        margin: 10px 0;
+        padding-left: 22px;
+      }
+      #post li {
+        padding: 1px 0;
+      }
+      #post a {
+        color: #000;
+      }
+      #post pre,
+      #post code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.9em;
+      }
+      #post pre {
+        background: #f5f5f5;
+        padding: 10px 12px;
+        overflow-x: auto;
+        margin: 10px 0;
+      }
+      #post code {
+        background: #f5f5f5;
+        padding: 1px 4px;
+      }
+      #post pre code {
+        background: none;
+        padding: 0;
+      }
+      #post blockquote {
+        border-left: 2px solid #ccc;
+        padding-left: 10px;
+        color: #666;
+        margin: 10px 0;
+      }
+      #post hr {
+        border: none;
+        border-top: 1px solid #ccc;
+        margin: 16px 0;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      @media (max-width: 640px) {
+        body {
+          font-size: 15px;
+          padding: 32px 20px;
+        }
+        h1 {
+          font-size: 15px;
+        }
+        #post h1 {
+          font-size: 18px;
+        }
+        #post h2,
+        #post h3,
+        #post h4 {
+          font-size: 15px;
+        }
+      }
+      body.dark header a,
+      body.dark #list-view a:not(.tag),
+      body.dark #post a {
+        color: #fff;
+      }
+      body.dark #post pre,
+      body.dark #post code {
+        background: #1d1d1d;
+      }
+      body.dark #post blockquote {
+        border-color: #444;
+        color: #aaa;
+      }
+      body.dark #post hr {
+        border-top-color: #444;
+      }
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) header a,
+        body:not(.light) #list-view a:not(.tag),
+        body:not(.light) #post a {
+          color: #fff;
+        }
+        body:not(.light) #post pre,
+        body:not(.light) #post code {
+          background: #1d1d1d;
+        }
+        body:not(.light) #post blockquote {
+          border-color: #444;
+          color: #aaa;
+        }
+        body:not(.light) #post hr {
+          border-top-color: #444;
+        }
+      }
+    </style>
+    <script src="/common.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">Ruvan</a> / <a href="#">til</a></h1>
+      <p class="subtitle" id="subtitle">Things I've learned · mock: Arial</p>
+    </header>
+    <div id="list-view"></div>
+    <div id="post-view" hidden>
+      <p class="meta" id="post-meta"></p>
+      <article id="post"></article>
+    </div>
+    <script>
+      Common.paintFavicon({ glyph: '💡', fontSize: 48, transparent: true, dy: 5 });
+      Common.initDarkMode();
+      Common.initSitemapShortcut();
+
+      // One entry per markdown file in this folder (flat, no subfolders).
+      // Keep entries ordered by date added, oldest at the top and newest at
+      // the bottom (same convention as the sitemap).
+      const TILS = [
+        {
+          slug: 'duti-default-apps',
+          title: 'Set default apps from the command line with duti',
+          tags: ['macos', 'cli'],
+          added: '2026-07-06',
+        },
+      ];
+
+      const REPO_BLOB = 'https://github.com/rjayasin/rjayasin.github.io/blob/main/til/';
+
+      const listView = document.getElementById('list-view');
+      const postView = document.getElementById('post-view');
+      const postMeta = document.getElementById('post-meta');
+      const post = document.getElementById('post');
+
+      // --- minimal markdown renderer (headings, fenced code, inline code,
+      // links, bold/italic, lists, blockquotes, hr, paragraphs) ---
+
+      function renderInline(text) {
+        return text
+          .split(/(`[^`]+`)/)
+          .map((chunk) => {
+            if (chunk.length > 2 && chunk.startsWith('`') && chunk.endsWith('`')) {
+              return '<code>' + Common.escHtml(chunk.slice(1, -1)) + '</code>';
+            }
+            let s = Common.escHtml(chunk);
+            s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, label, url) => {
+              if (!/^(https?:\/\/|\/|#|\.)/.test(url)) return m;
+              const ext = /^https?:\/\//.test(url) ? ' target="_blank" rel="noopener"' : '';
+              return '<a href="' + url + '"' + ext + '>' + label + '</a>';
+            });
+            s = s.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+            s = s.replace(/\*([^*]+)\*/g, '<i>$1</i>');
+            return s;
+          })
+          .join('');
+      }
+
+      function renderMarkdown(src) {
+        const lines = src.replace(/\r\n/g, '\n').split('\n');
+        const html = [];
+        let para = [];
+        let list = null;
+        let quote = [];
+        const flushPara = () => {
+          if (para.length) {
+            html.push('<p>' + renderInline(para.join(' ')) + '</p>');
+            para = [];
+          }
+        };
+        const flushList = () => {
+          if (list) {
+            html.push(
+              '<' +
+                list.type +
+                '>' +
+                list.items.map((it) => '<li>' + renderInline(it) + '</li>').join('') +
+                '</' +
+                list.type +
+                '>'
+            );
+            list = null;
+          }
+        };
+        const flushQuote = () => {
+          if (quote.length) {
+            html.push('<blockquote><p>' + renderInline(quote.join(' ')) + '</p></blockquote>');
+            quote = [];
+          }
+        };
+        const flushAll = () => {
+          flushPara();
+          flushList();
+          flushQuote();
+        };
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          if (/^```/.test(line)) {
+            flushAll();
+            const buf = [];
+            i++;
+            while (i < lines.length && !/^```/.test(lines[i])) buf.push(lines[i++]);
+            html.push('<pre><code>' + Common.escHtml(buf.join('\n')) + '</code></pre>');
+            continue;
+          }
+          const heading = line.match(/^(#{1,4})\s+(.*)$/);
+          if (heading) {
+            flushAll();
+            const level = heading[1].length;
+            html.push('<h' + level + '>' + renderInline(heading[2]) + '</h' + level + '>');
+            continue;
+          }
+          if (/^(---|\*\*\*)\s*$/.test(line)) {
+            flushAll();
+            html.push('<hr />');
+            continue;
+          }
+          const item = line.match(/^([-*]|\d+\.)\s+(.*)$/);
+          if (item) {
+            flushPara();
+            flushQuote();
+            const type = /^\d/.test(item[1]) ? 'ol' : 'ul';
+            if (!list || list.type !== type) {
+              flushList();
+              list = { type, items: [] };
+            }
+            list.items.push(item[2]);
+            continue;
+          }
+          const quoted = line.match(/^>\s?(.*)$/);
+          if (quoted) {
+            flushPara();
+            flushList();
+            quote.push(quoted[1]);
+            continue;
+          }
+          if (/^\s*$/.test(line)) {
+            flushAll();
+            continue;
+          }
+          flushQuote();
+          para.push(line.trim());
+        }
+        flushAll();
+        return html.join('\n');
+      }
+
+      // --- views ---
+
+      function sep() {
+        const s = document.createElement('span');
+        s.className = 'sep';
+        s.textContent = ' · ';
+        return s;
+      }
+
+      function tagLink(tag) {
+        const a = document.createElement('a');
+        a.className = 'tag';
+        a.href = '#tag:' + tag;
+        a.textContent = tag;
+        return a;
+      }
+
+      function tagsSpan(tags) {
+        const span = document.createElement('span');
+        span.className = 'tags';
+        (tags || []).forEach((tag, idx) => {
+          if (idx) span.append(' ');
+          span.appendChild(tagLink(tag));
+        });
+        return span;
+      }
+
+      function buildList(tag) {
+        const items = tag ? TILS.filter((t) => (t.tags || []).includes(tag)) : TILS;
+        const frag = document.createDocumentFragment();
+        if (tag) {
+          const p = document.createElement('p');
+          p.id = 'filter-line';
+          p.append('tag: ' + tag + ' · ');
+          const all = document.createElement('a');
+          all.href = '#';
+          all.textContent = 'all';
+          p.appendChild(all);
+          frag.appendChild(p);
+        }
+        const ul = document.createElement('ul');
+        for (const til of items) {
+          const li = document.createElement('li');
+          const bullet = document.createElement('span');
+          bullet.className = 'bullet';
+          bullet.textContent = '• ';
+          li.appendChild(bullet);
+          const a = document.createElement('a');
+          a.href = '#' + til.slug;
+          a.textContent = til.title;
+          li.appendChild(a);
+          if (til.tags && til.tags.length) {
+            li.appendChild(sep());
+            li.appendChild(tagsSpan(til.tags));
+          }
+          li.appendChild(sep());
+          const when = document.createElement('span');
+          when.className = 'when';
+          when.textContent = til.added;
+          li.appendChild(when);
+          ul.appendChild(li);
+        }
+        frag.appendChild(ul);
+        listView.replaceChildren(frag);
+      }
+
+      const mdCache = new Map();
+      function fetchMarkdown(slug) {
+        if (!mdCache.has(slug)) {
+          mdCache.set(
+            slug,
+            fetch(slug + '.md').then((r) => {
+              if (!r.ok) throw new Error(r.status + ' fetching ' + slug + '.md');
+              return r.text();
+            })
+          );
+        }
+        return mdCache.get(slug);
+      }
+
+      function showList(tag) {
+        document.title = tag ? 'Ruvan / til / tag:' + tag : 'Ruvan / til';
+        buildList(tag);
+        postView.hidden = true;
+        listView.hidden = false;
+      }
+
+      async function showPost(til) {
+        document.title = 'Ruvan / til / ' + til.slug;
+        listView.hidden = true;
+        postView.hidden = false;
+        postMeta.replaceChildren();
+        postMeta.append(til.added + ' · ');
+        for (const tag of til.tags || []) {
+          postMeta.appendChild(tagLink(tag));
+          postMeta.append(' · ');
+        }
+        const src = document.createElement('a');
+        src.href = REPO_BLOB + til.slug + '.md';
+        src.target = '_blank';
+        src.rel = 'noopener';
+        src.textContent = 'source';
+        postMeta.append(src);
+        post.textContent = 'loading…';
+        try {
+          const md = await fetchMarkdown(til.slug);
+          // Bail if the user navigated away while the fetch was in flight.
+          if (location.hash.replace(/^#\/?/, '') !== til.slug) return;
+          post.innerHTML = renderMarkdown(md);
+        } catch (e) {
+          post.textContent = 'failed to load: ' + e.message;
+        }
+      }
+
+      function route() {
+        const hash = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
+        if (hash.startsWith('tag:')) {
+          showList(hash.slice(4));
+        } else {
+          const til = TILS.find((t) => t.slug === hash);
+          if (til) showPost(til);
+          else showList();
+        }
+        window.scrollTo(0, 0);
+      }
+
+      window.addEventListener('hashchange', route);
+      route();
+    </script>
+  </body>
+</html>

@@ -38,6 +38,10 @@
 
 - [`mirror`](https://rjayasin.github.io/mirror/)
 
+`notes`
+
+- [`til`](https://rjayasin.github.io/til/)
+
 `site`
 
 - [`/`](https://rjayasin.github.io/)
