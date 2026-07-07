@@ -7,6 +7,10 @@
 - [`deploys`](https://rjayasin.github.io/deploys/)
 - [`fuji-viewer`](https://rjayasin.github.io/fuji-viewer/)
 
+`writing`
+
+- [`til`](https://rjayasin.github.io/til/)
+
 `words`
 
 - [`across`](https://rjayasin.github.io/across/)
@@ -37,10 +41,6 @@
 `experiments`
 
 - [`mirror`](https://rjayasin.github.io/mirror/)
-
-`notes`
-
-- [`til`](https://rjayasin.github.io/til/)
 
 `site`
 
