@@ -6,6 +6,7 @@
 - [`dodgers-notifier`](https://rjayasin.github.io/dodgers-notifier/)
 - [`deploys`](https://rjayasin.github.io/deploys/)
 - [`fuji-viewer`](https://rjayasin.github.io/fuji-viewer/)
+- [`gif-helper`](https://rjayasin.github.io/gif-helper/)
 
 `writing`
 
