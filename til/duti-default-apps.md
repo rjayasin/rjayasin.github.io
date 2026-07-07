@@ -34,5 +34,4 @@ com.microsoft.VSCode
 
 ## Notes
 
-- Instead of an extension you can target a UTI directly: `duti -s com.microsoft.VSCode net.daringfireball.markdown all`. Find a file's UTI with `mdls -name kMDItemContentType <file>`.
 - duti can also apply a whole settings file of `bundle_id  ext/UTI  role` lines (`duti ~/.config/duti/settings`), which makes it easy to keep all your file associations in dotfiles and reapply them on a new machine.
