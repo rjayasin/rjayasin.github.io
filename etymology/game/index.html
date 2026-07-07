@@ -590,6 +590,86 @@
         }
       }
 
+      /* --- Daily challenge progress (in the header, replacing the difficulty
+         picker while daily mode is on) --- */
+      #daily-progress {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+      #daily-progress[hidden] {
+        display: none;
+      }
+      .dstep {
+        color: var(--faint);
+        white-space: nowrap;
+      }
+      .dstep.cur {
+        color: inherit;
+      }
+      .dstep.done {
+        color: var(--ok);
+      }
+      .dstep.over {
+        color: var(--bad);
+      }
+
+      /* --- Stats overlay --- */
+      #stats-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 300;
+        background: rgba(0, 0, 0, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #stats-overlay[hidden] {
+        display: none;
+      }
+      #stats-card {
+        position: relative;
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 18px 22px 16px;
+        min-width: 280px;
+        max-width: 90vw;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        /* UI chrome, not game text — match the header controls, not the cards */
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+      }
+      #stats-card h2 {
+        font-size: 14px;
+        font-weight: normal;
+        letter-spacing: 0.08em;
+        text-align: center;
+        margin: 0 0 12px;
+      }
+      #stats-close {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        padding: 2px 8px;
+      }
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 28px;
+        font-size: 12px;
+        padding: 4px 0;
+      }
+      .stat-row .stat-label {
+        color: var(--muted);
+      }
+
       @media (max-width: 700px) {
         /* Pack the header onto one line: shrink the logo, label, picker, and
            buttons and tighten the gaps so the title, difficulty, and new game
@@ -624,6 +704,12 @@
           font-size: 9px;
           letter-spacing: 0.02em;
           margin-right: 3px;
+        }
+        /* The select's own text names its band, so the "difficulty" label is
+           redundant here — dropping it hands its width back to the logo now
+           that the daily and stats buttons share the row. */
+        #diff-ctl .ctl-label {
+          display: none;
         }
         select#difficulty,
         button.btn {
@@ -676,7 +762,7 @@
   <body>
     <header id="gheader">
       <div id="gtitle"><a href="/etymology/">etymology</a> <span class="sub">· game</span></div>
-      <span class="ctl">
+      <span class="ctl" id="diff-ctl">
         <span class="ctl-label">difficulty</span>
         <select id="difficulty" class="ctl" title="Bigger trees → harder">
           <option value="easy">easy 3–5</option>
@@ -684,6 +770,15 @@
           <option value="hard">hard 9+</option>
         </select>
       </span>
+      <span id="daily-progress" class="ctl" hidden></span>
+      <button
+        id="daily-btn"
+        class="btn"
+        title="One easy, one medium, one hard — same for everyone, every day"
+      >
+        daily
+      </button>
+      <button id="stats-btn" class="btn" title="Your play stats">stats</button>
       <button id="new-btn" class="btn">new game</button>
     </header>
 
@@ -701,6 +796,14 @@
       </div>
       <div id="pool"></div>
     </section>
+
+    <div id="stats-overlay" hidden>
+      <div id="stats-card">
+        <h2>Stats</h2>
+        <div id="stats-rows"></div>
+        <button id="stats-close" class="btn" title="Close">✕</button>
+      </div>
+    </div>
 
     <script>
       Common.paintFaviconR();
@@ -740,6 +843,12 @@
       const submitBtn = document.getElementById('submit-btn');
       const resetBtn = document.getElementById('reset-btn');
       const newBtn = document.getElementById('new-btn');
+      const diffCtl = document.getElementById('diff-ctl');
+      const dailyBtn = document.getElementById('daily-btn');
+      const dailyProgressEl = document.getElementById('daily-progress');
+      const statsBtn = document.getElementById('stats-btn');
+      const statsOverlay = document.getElementById('stats-overlay');
+      const statsRows = document.getElementById('stats-rows');
       const DEFAULT_MSG = msgEl.textContent;
       // Once the player has dragged a node out, they know the rules — hide the
       // instruction hint for good, and remember that across games and visits.
@@ -759,6 +868,14 @@
       let pool = [];
       let solved = false; // the puzzle has been solved at least once
       let won = false; // the board currently matches the answer (drives the green)
+      let gameSubmits = 0; // pre-solve submits this puzzle (stats + the daily par)
+      // The verdicts from the last wrong submit: node id -> { edge, mark }.
+      // `edge` is the content edge (nodeKey child > nodeKey parent) the node
+      // was judged under, so a mark follows the card across re-renders and
+      // only shows while the card still sits under the same parent — moved
+      // cards go back to neutral, everything else keeps its red/green and the
+      // player doesn't have to memorize the marking before rearranging.
+      const feedback = new Map();
 
       const SEP = '␟'; // unit separator, won't appear in a form/gloss
 
@@ -823,6 +940,11 @@
         });
         shuffle(pool);
         solved = false;
+        gameSubmits = 0;
+        feedback.clear();
+        // A superseded cold build's finally-block skips re-enabling the button
+        // (it checks genSeq), so make sure a game that did start unlocks it.
+        newBtn.disabled = false;
         setMessage(DEFAULT_MSG, '');
         render();
       }
@@ -953,6 +1075,7 @@
         gtree.className = 'gtree';
         gtree.appendChild(liEl(tree));
         boardEl.appendChild(gtree);
+        applyFeedback(tree);
       }
 
       // Re-render the board but ease the change in: FLIP each surviving card
@@ -1109,6 +1232,7 @@
           'hint-off',
           (hintDismissed || placedAny) && !solved && !msgEl.classList.contains('bad')
         );
+        updateDailyUI();
       }
       function countAll() {
         return realRoot ? countNodes(realRoot) : 0;
@@ -1177,7 +1301,7 @@
           poolGhost: false, // is a ghost gap currently rendered in the pool?
           boardPreviewing: false, // is the board showing a drop preview (vs. resting)?
         };
-        clearFeedback();
+        clearBadMessage();
         render();
         // Freeze the board's resting layout now (before any ghost preview
         // reflows it) and hit-test against this snapshot for the whole drag.
@@ -1422,36 +1546,55 @@
       }
 
       // ---------- Feedback / checking ----------
-      function clearFeedback() {
-        for (const c of boardEl.querySelectorAll('.wrong, .correct')) {
-          c.classList.remove('wrong', 'correct');
-        }
+      // A pickup only resets the failed-submit message line; the red/green
+      // marks themselves persist (see applyFeedback) so the player doesn't
+      // have to memorize which cards were right before rearranging.
+      function clearBadMessage() {
         if (!solved && msgEl.classList.contains('bad')) setMessage(DEFAULT_MSG, '');
       }
 
-      // Mark every placed card that sits under the wrong descendant, judged by
-      // content so identical-looking pieces are accepted in either slot.
+      // Judge every placed card against the answer — right or wrong descendant,
+      // by content so identical-looking pieces are accepted in either slot —
+      // and record the verdicts in `feedback` before painting them on.
       function markMistakes() {
+        feedback.clear();
         const want = new Map();
         walk(realRoot, (n, p) => {
           if (!p) return;
           const k = nodeKey(n) + '>' + nodeKey(p);
           want.set(k, (want.get(k) || 0) + 1);
         });
-        const byId = new Map();
-        for (const c of boardEl.querySelectorAll('.gcard')) byId.set(Number(c.dataset.id), c);
         walk(boardRoot, (n, p) => {
           if (!p) return;
           const k = nodeKey(n) + '>' + nodeKey(p);
           const left = want.get(k) || 0;
-          const el = byId.get(n.id);
-          if (!el) return;
           if (left > 0) {
             want.set(k, left - 1);
-            el.classList.add('correct');
+            feedback.set(n.id, { edge: k, mark: 'correct' });
           } else {
-            el.classList.add('wrong');
+            feedback.set(n.id, { edge: k, mark: 'wrong' });
           }
+        });
+        applyFeedback(boardRoot);
+      }
+
+      // Paint the recorded verdicts onto whichever tree was just rendered (the
+      // live board or a mid-drag preview): a node shows its mark only while it
+      // still sits under the parent it was judged against, so a moved card
+      // reads as neutral and cards whose context someone reshuffles around
+      // them (a splice above, a lifted ancestor) drop theirs too. Entries are
+      // kept, not deleted, on a mismatch — drag previews render transient
+      // trees, and a card eased back to its judged spot gets its mark back.
+      function applyFeedback(tree) {
+        if (won || !feedback.size) return;
+        const byId = new Map();
+        for (const c of boardEl.querySelectorAll('.gcard')) byId.set(Number(c.dataset.id), c);
+        walk(tree, (n, p) => {
+          if (!p || n.ghost) return;
+          const f = feedback.get(n.id);
+          if (!f || f.edge !== nodeKey(n) + '>' + nodeKey(p)) return;
+          const el = byId.get(n.id);
+          if (el) el.classList.add(f.mark);
         });
       }
 
@@ -1473,6 +1616,25 @@
         wikt.title = 'Etymology on Wiktionary';
         const span = document.createElement('span');
         span.append('✓ Solved! The word was ', link, ' · ', wikt, '.');
+        if (daily && dailyBand) {
+          if (daily.done) {
+            span.append(
+              daily.failed
+                ? ' Daily finished — over par somewhere, so no streak credit today.'
+                : ' Daily complete! Streak: ' + currentStreak() + ' 🔥'
+            );
+          } else {
+            span.append(
+              ' Daily ' +
+                dailyBand +
+                ': ' +
+                daily.submits[dailyBand] +
+                '/' +
+                daily.par[dailyBand] +
+                ' submits.'
+            );
+          }
+        }
         return span;
       }
 
@@ -1481,17 +1643,42 @@
         // when the tree has been broken out of the winning shape), so a matching
         // board re-confirms and a wrong one gets its mistakes marked again.
         if (!boardRoot || pool.length) return;
+        // Only pre-solve submits count toward stats and the daily par; the
+        // post-solve rearrange-and-recheck loop is free.
+        const firstSolve = !solved;
+        const dailyLive = !!(daily && dailyBand && !daily.solved[dailyBand]);
+        if (firstSolve) {
+          gameSubmits++;
+          if (dailyLive) {
+            daily.submits[dailyBand]++;
+            saveDaily();
+          }
+        }
         if (signature(boardRoot) === realSig) {
+          if (firstSolve) {
+            recordSolve(dailyLive ? dailyBand : difficultyEl.value);
+            if (dailyLive) dailyStageSolved();
+          }
           solved = true;
+          feedback.clear(); // stale verdicts have nothing to add to a solved board
           render(); // reveals the root, sweeps every card green, sets the solved msg
         } else {
           markMistakes();
-          setMessage('Not quite — the red cards feed the wrong word. Keep rearranging.', 'bad');
+          let text = 'Not quite — the red cards feed the wrong word. Keep rearranging.';
+          if (dailyLive) {
+            const used = daily.submits[dailyBand];
+            const par = daily.par[dailyBand];
+            if (used === par) text += ' That was the last in-par submit.';
+            else if (used > par) text += ' Over par — no streak credit today.';
+            updateDailyUI(); // tick the submit counter in the pips
+          }
+          setMessage(text, 'bad');
         }
       }
 
       function onReset() {
         if (!realRoot) return;
+        feedback.clear();
         pool = [];
         walk(realRoot, (n) => {
           if (n !== realRoot) pool.push(piece(n));
@@ -1539,6 +1726,10 @@
       // node-count band still validates each pick at runtime, so a
       // mis-bucketed entry is just skipped.
       const WORD_POOL = { easy: [], medium: [], hard: [] };
+      // The manifest's word lists as shipped, untouched by the session's
+      // random-hunt discoveries (those also land in WORD_POOL). The daily
+      // challenge draws from these so every player deals from the same deck.
+      const MANIFEST_WORDS = { easy: [], medium: [], hard: [] };
 
       // ---------- Persistent tree store ----------
       // manifest.json: the banded word list, blocklist, pending queue, and
@@ -1552,6 +1743,11 @@
       // chunk of the current difficulty; the rest streams in behind the
       // first game.
       const savedTrees = new Map(); // lowercased form -> tree
+      // First-visit chunk streaming (see loadTreeStore): free play only blocks
+      // on its own band's first chunk, but the daily challenge spans all three
+      // bands, so it awaits this before building — otherwise an easy/hard
+      // stage started ahead of its chunk would fall back to scraping.
+      let chunksReady = Promise.resolve();
       const LS_MANIFEST = 'etymology-game-manifest';
       const LS_TREES = 'etymology-game-trees';
       const chunkName = (band, i) => `${band}-${String(i).padStart(3, '0')}`;
@@ -1572,8 +1768,10 @@
       }
 
       function applyManifest(m) {
-        for (const k of Object.keys(WORD_POOL))
+        for (const k of Object.keys(WORD_POOL)) {
           WORD_POOL[k] = ((m.words && m.words[k]) || []).filter((w) => typeof w === 'string');
+          MANIFEST_WORDS[k] = WORD_POOL[k].slice();
+        }
         BLOCKLIST.clear();
         for (const w of m.blocklist || [])
           if (typeof w === 'string') BLOCKLIST.add(w.toLowerCase());
@@ -1672,7 +1870,7 @@
             haveCounts[band] = [applyChunk(d)];
           }
         }
-        pullChunks(m, haveCounts); // not awaited — fills in behind the first game
+        chunksReady = pullChunks(m, haveCounts); // not awaited — fills in behind the first game
       }
 
       // ---------- Seen words ----------
@@ -2010,6 +2208,12 @@
         newBtn.classList.remove('confirm');
       }
       newBtn.addEventListener('click', () => {
+        if (daily) {
+          // In daily mode the button is only visible between stages, labelled
+          // "next puzzle" — no skipping, no confirm needed (the stage is solved).
+          startDailyStage();
+          return;
+        }
         if (boardHasPlacedCards() && !newArmed) {
           newArmed = true;
           newBtn.textContent = 'discard? click again';
@@ -2022,12 +2226,378 @@
         newGame();
       });
 
+      // ---------- Stats ----------
+      // All-time play stats in localStorage: solves per band, perfect
+      // (first-submit) solves, and the daily-challenge record. The streak is
+      // stored as (streak, lastDaily) and only counts as current while
+      // lastDaily is today or yesterday — miss (or fail) a day and the next
+      // completion starts over at 1.
+      const STATS_KEY = 'etymology-game-stats';
+      const stats = (() => {
+        const s = readStored(STATS_KEY) || {};
+        return {
+          solves: Object.assign({ easy: 0, medium: 0, hard: 0 }, s.solves),
+          perfect: s.perfect || 0,
+          dailies: s.dailies || 0,
+          streak: s.streak || 0,
+          bestStreak: s.bestStreak || 0,
+          lastDaily: s.lastDaily || '', // date of the last qualified daily
+        };
+      })();
+      function saveStats() {
+        writeStored(STATS_KEY, stats);
+      }
+      function currentStreak() {
+        const alive = stats.lastDaily === todayStr() || stats.lastDaily === yesterdayStr();
+        return alive ? stats.streak : 0;
+      }
+      function recordSolve(diff) {
+        if (stats.solves[diff] == null) stats.solves[diff] = 0;
+        stats.solves[diff]++;
+        if (gameSubmits === 1) stats.perfect++;
+        saveStats();
+      }
+      // All three stages solved at or under par: bank today and extend (or
+      // restart) the streak.
+      function awardDaily() {
+        if (stats.lastDaily === todayStr()) return; // already banked today
+        stats.streak = stats.lastDaily === yesterdayStr() ? stats.streak + 1 : 1;
+        stats.bestStreak = Math.max(stats.bestStreak, stats.streak);
+        stats.lastDaily = todayStr();
+        stats.dailies++;
+        saveStats();
+      }
+
+      function statRow(label, value, title) {
+        const row = document.createElement('div');
+        row.className = 'stat-row';
+        if (title) row.title = title;
+        const l = document.createElement('span');
+        l.className = 'stat-label';
+        l.textContent = label;
+        const v = document.createElement('span');
+        v.textContent = value;
+        row.append(l, v);
+        return row;
+      }
+      function openStats() {
+        statsRows.innerHTML = '';
+        const total = DAILY_ORDER.reduce((s, k) => s + (stats.solves[k] || 0), 0);
+        statsRows.append(
+          statRow(
+            'Daily streak',
+            String(currentStreak()),
+            'consecutive days of daily challenges completed within par'
+          ),
+          statRow('Best streak', String(stats.bestStreak)),
+          statRow('Dailies completed', String(stats.dailies)),
+          statRow(
+            'Puzzles solved',
+            total +
+              ' (e ' +
+              (stats.solves.easy || 0) +
+              ' · m ' +
+              (stats.solves.medium || 0) +
+              ' · h ' +
+              (stats.solves.hard || 0) +
+              ')'
+          ),
+          statRow('Perfect solves', String(stats.perfect), 'solved on the first submit')
+        );
+        statsOverlay.hidden = false;
+      }
+      statsBtn.addEventListener('click', openStats);
+      document.getElementById('stats-close').addEventListener('click', () => {
+        statsOverlay.hidden = true;
+      });
+      statsOverlay.addEventListener('click', (e) => {
+        if (e.target === statsOverlay) statsOverlay.hidden = true;
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !statsOverlay.hidden) statsOverlay.hidden = true;
+      });
+
+      // ---------- Daily challenge ----------
+      // One fixed puzzle per band per local day, played easy → medium → hard
+      // and the same for every player: words are drawn from the manifest's
+      // alphabetised buckets with a date-seeded hash. Each puzzle has a par —
+      // the submit budget that still counts as a daily solve — and going over
+      // on any stage lets the day finish but banks no streak. State persists
+      // per-day in localStorage, so reloading can't reroll words or reset the
+      // submit count (the board arrangement itself isn't kept — a reload
+      // restarts the current stage's board, submits intact).
+      const DAILY_KEY = 'etymology-game-daily';
+      const DAILY_ORDER = ['easy', 'medium', 'hard'];
+      let daily = null; // today's persisted state while in daily mode (null = free play)
+      let dailyBand = null; // band of the stage being played right now
+
+      function localDateStr(d) {
+        return (
+          d.getFullYear() +
+          '-' +
+          String(d.getMonth() + 1).padStart(2, '0') +
+          '-' +
+          String(d.getDate()).padStart(2, '0')
+        );
+      }
+      function todayStr() {
+        return localDateStr(new Date());
+      }
+      function yesterdayStr() {
+        const d = new Date();
+        d.setDate(d.getDate() - 1);
+        return localDateStr(d);
+      }
+      // FNV-1a — seeds the date → word draw.
+      function hashStr(s) {
+        let h = 2166136261;
+        for (let i = 0; i < s.length; i++) {
+          h ^= s.charCodeAt(i);
+          h = Math.imul(h, 16777619);
+        }
+        return h >>> 0;
+      }
+
+      function freshDaily() {
+        return {
+          date: todayStr(),
+          words: {}, // band -> the day's word, pinned once found
+          par: {}, // band -> submit budget, pinned with the word
+          submits: { easy: 0, medium: 0, hard: 0 },
+          solved: { easy: false, medium: false, hard: false },
+          done: false, // all three stages solved
+          failed: false, // some stage went over par — no streak today
+        };
+      }
+      function loadDailyState() {
+        const d = readStored(DAILY_KEY);
+        const fresh = freshDaily();
+        if (!d || d.date !== fresh.date) return fresh;
+        return {
+          date: fresh.date,
+          words: Object.assign({}, d.words),
+          par: Object.assign({}, d.par),
+          submits: Object.assign(fresh.submits, d.submits),
+          solved: Object.assign(fresh.solved, d.solved),
+          done: !!d.done,
+          failed: !!d.failed,
+        };
+      }
+      function saveDaily() {
+        if (daily) writeStored(DAILY_KEY, daily);
+      }
+      // First unsolved stage (index into DAILY_ORDER); -1 once all are solved.
+      function dailyStage() {
+        return DAILY_ORDER.findIndex((b) => !daily.solved[b]);
+      }
+      // Par: one submit per two pieces, minimum two. Easy trees (2–4 pieces)
+      // get 2; medium 3–4; hard 4 and up, scaling with the tree — each wrong
+      // submit marks the misplaced cards, so the budget is roughly "fix a
+      // couple of pieces per retry" rather than demanding a near-perfect first
+      // attempt on the big boards.
+      function parFor(tree) {
+        return Math.max(2, Math.ceil((countNodes(tree) - 1) / 2));
+      }
+      // The day's word for a band. `offset` walks forward deterministically
+      // when a pick can't be used (tree missing or mis-bucketed), so every
+      // player lands on the same puzzle even across skips.
+      function dailyWordFor(band, offset) {
+        const words = MANIFEST_WORDS[band].filter((w) => !isBlocked(w)).sort();
+        if (!words.length) return null;
+        return words[(hashStr(todayStr() + ':' + band) + offset) % words.length];
+      }
+
+      // Start (or resume, after a reload / re-entry) the first unsolved stage.
+      async function startDailyStage() {
+        const stage = dailyStage();
+        if (stage === -1) return;
+        const band = DAILY_ORDER[stage];
+        const my = ++genSeq; // a mode switch supersedes this build, and vice versa
+        dailyBand = band;
+        submitBtn.disabled = resetBtn.disabled = true;
+        showBoardStatus('', true);
+        setMessage('Daily ' + band + ' — loading…', '');
+        updateDailyUI();
+        await chunksReady; // all bands' trees local before building (first visit)
+        if (my !== genSeq || !daily) return;
+        let tree = daily.words[band] ? await cachedBuildTree(daily.words[band]) : null;
+        if (my !== genSeq || !daily) return;
+        const lim = DIFFS[band];
+        for (let off = 0; !tree && off < 40; off++) {
+          const word = dailyWordFor(band, off);
+          if (!word) break;
+          const t = await cachedBuildTree(word);
+          if (my !== genSeq || !daily) return;
+          const n = t ? countNodes(t) : 0;
+          if (t && n >= lim.min && n <= lim.max) {
+            daily.words[band] = word;
+            tree = t;
+          }
+        }
+        if (!tree) {
+          showBoardStatus('couldn’t load today’s ' + band + ' puzzle — try again later', false);
+          return;
+        }
+        // Recompute rather than pin: parFor is deterministic for the word, so
+        // this is normally a no-op, but it lets a formula change reach a day
+        // already stored in localStorage instead of waiting for tomorrow.
+        daily.par[band] = parFor(tree);
+        saveDaily();
+        startPuzzleWithTree(tree);
+      }
+
+      // The active stage was just solved for the first time.
+      function dailyStageSolved() {
+        daily.solved[dailyBand] = true;
+        if (daily.submits[dailyBand] > daily.par[dailyBand]) daily.failed = true;
+        if (dailyStage() === -1) {
+          daily.done = true;
+          if (!daily.failed) awardDaily();
+        }
+        saveDaily();
+      }
+
+      // Entering daily mode when today's challenge is already finished: no
+      // board to play, just the summary.
+      function showDailyDone() {
+        genSeq++; // cancel any in-flight build so it can't repaint the board
+        boardRoot = null;
+        realRoot = null;
+        pool = [];
+        solved = false;
+        dailyBand = null;
+        submitBtn.disabled = resetBtn.disabled = true;
+        poolEl.innerHTML = '';
+        showBoardStatus('daily challenge complete — come back tomorrow', false);
+        setMessage(
+          daily.failed
+            ? 'Daily finished, but over par — no streak credit. Free play awaits!'
+            : '✓ Daily complete! Streak: ' + currentStreak() + '.',
+          daily.failed ? '' : 'ok'
+        );
+        updateDailyUI();
+      }
+
+      // Sync the header to the mode: swap the difficulty picker for the
+      // progress pips in daily mode, relabel the mode button, and show the
+      // next-puzzle button only between solved stages.
+      function updateDailyUI() {
+        const inDaily = !!daily;
+        if (!dailyArmed) dailyBtn.textContent = inDaily ? 'free play' : 'daily';
+        diffCtl.hidden = inDaily;
+        dailyProgressEl.hidden = !inDaily;
+        if (!inDaily) {
+          newBtn.hidden = false;
+          return;
+        }
+        const betweenStages = solved && !daily.done && dailyStage() !== -1;
+        newBtn.hidden = !betweenStages;
+        if (betweenStages) newBtn.textContent = 'next puzzle';
+        dailyProgressEl.innerHTML = '';
+        const label = document.createElement('span');
+        label.className = 'ctl-label';
+        label.textContent = 'daily';
+        dailyProgressEl.appendChild(label);
+        for (const band of DAILY_ORDER) {
+          const s = document.createElement('span');
+          s.className = 'dstep';
+          const letter = band[0].toUpperCase();
+          if (daily.solved[band]) {
+            const over = daily.submits[band] > daily.par[band];
+            s.classList.add(over ? 'over' : 'done');
+            s.textContent = letter + '✓';
+            s.title =
+              band +
+              ': solved in ' +
+              daily.submits[band] +
+              ' of ' +
+              daily.par[band] +
+              ' submits' +
+              (over ? ' (over par)' : '');
+          } else if (band === dailyBand) {
+            s.classList.add(daily.submits[band] > (daily.par[band] || Infinity) ? 'over' : 'cur');
+            s.textContent = letter + ' ' + daily.submits[band] + '/' + (daily.par[band] || '?');
+            s.title = band + ': submits used / par';
+          } else {
+            s.textContent = letter;
+            s.title = band + ': not started';
+          }
+          dailyProgressEl.appendChild(s);
+        }
+      }
+
+      async function enterDaily() {
+        daily = loadDailyState();
+        saveDaily();
+        dailyBand = null;
+        disarmNewBtn();
+        updateDailyUI();
+        if (daily.done) {
+          showDailyDone();
+          return;
+        }
+        genSeq++; // supersede any free-play build in flight
+        boardRoot = null;
+        realRoot = null;
+        pool = [];
+        solved = false;
+        submitBtn.disabled = resetBtn.disabled = true;
+        poolEl.innerHTML = '';
+        showBoardStatus('', true);
+        setMessage('Loading the daily challenge…', '');
+        await storeReady;
+        if (!daily) return; // bailed back to free play while the store loaded
+        startDailyStage();
+      }
+      function exitDaily() {
+        daily = null;
+        dailyBand = null;
+        disarmNewBtn();
+        updateDailyUI();
+        newGame();
+      }
+
+      // Same stray-click guard as "new game": switching modes discards a board
+      // with placed cards, so the first click arms and the second acts.
+      let dailyArmed = false;
+      let dailyArmTimer = null;
+      function disarmDailyBtn() {
+        dailyArmed = false;
+        clearTimeout(dailyArmTimer);
+        dailyBtn.classList.remove('confirm');
+        dailyBtn.textContent = daily ? 'free play' : 'daily';
+      }
+      dailyBtn.addEventListener('click', () => {
+        if (boardHasPlacedCards() && !dailyArmed) {
+          dailyArmed = true;
+          dailyBtn.textContent = 'discard? click again';
+          dailyBtn.classList.add('confirm');
+          clearTimeout(dailyArmTimer);
+          dailyArmTimer = setTimeout(disarmDailyBtn, 3000);
+          return;
+        }
+        disarmDailyBtn();
+        if (daily) exitDaily();
+        else enterDaily();
+      });
+
       // Expose a hook so the rendering can be exercised without the network.
       window.__startPuzzleWithTree = startPuzzleWithTree;
 
       // Load the word pool and tree store (local mirror first, network only as
-      // needed), then kick off the first game.
-      loadTreeStore().then(newGame);
+      // needed), then kick off the first game. A daily challenge with real
+      // progress (a submit or a solved stage) left unfinished earlier today
+      // resumes instead of dropping the player back into free play.
+      const storeReady = loadTreeStore();
+      const storedDaily = readStored(DAILY_KEY);
+      const resumeDaily =
+        storedDaily &&
+        storedDaily.date === todayStr() &&
+        !storedDaily.done &&
+        (Object.values(storedDaily.solved || {}).some(Boolean) ||
+          Object.values(storedDaily.submits || {}).some((n) => n > 0));
+      if (resumeDaily) enterDaily();
+      else storeReady.then(newGame);
     </script>
   </body>
 </html>
