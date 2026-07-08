@@ -1,3 +1,8 @@
+---
+added: 2026-07-01
+tags: [youtube, cli, yt-dlp, ffmpeg, gifs]
+---
+
 # Create gifs from youtube videos with yt-dlp and ffmpeg
 
 I wanted to send a ~2 second clip from a YouTube video as a gif in iMessage. The pipeline that worked: `yt-dlp` downloads just the section you want, `ffmpeg` does a two-pass palette encode, and `gifsicle` shrinks the result.

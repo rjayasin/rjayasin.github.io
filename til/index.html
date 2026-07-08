@@ -53,6 +53,7 @@
       }
       #list-view li {
         padding: 2px 0;
+        white-space: nowrap;
       }
       #list-view .bullet {
         color: #888;
@@ -154,6 +155,9 @@
         body {
           padding: 32px 20px;
         }
+        #list-view li {
+          white-space: normal;
+        }
       }
       body.dark header a,
       body.dark #list-view a:not(.tag),
@@ -195,7 +199,7 @@
   <body>
     <header>
       <h1><a href="/">Ruvan</a> / <a href="#">til</a></h1>
-      <p class="subtitle" id="subtitle">Things I've learned</p>
+      <p class="subtitle" id="subtitle">Today I learned</p>
     </header>
     <div id="list-view"></div>
     <div id="post-view" hidden>
@@ -207,23 +211,11 @@
       Common.initDarkMode();
       Common.initSitemapShortcut();
 
-      // One entry per markdown file in this folder (flat, no subfolders).
-      // Keep entries ordered by date added, oldest at the top and newest at
-      // the bottom (same convention as the sitemap).
-      const TILS = [
-        {
-          slug: 'create-gifs-from-youtube',
-          title: 'Create gifs from youtube videos with yt-dlp and ffmpeg',
-          tags: ['youtube', 'cli', 'yt-dlp', 'ffmpeg', 'gifs'],
-          added: '2026-07-01',
-        },
-        {
-          slug: 'duti-default-apps',
-          title: 'Set default apps from the command line with duti',
-          tags: ['macos', 'cli'],
-          added: '2026-07-06',
-        },
-      ];
+      // Entries are loaded at runtime from tils.json, which the deploy workflow
+      // (and `make til`) generate from each til/*.md file's frontmatter. The
+      // markdown files are the single source of truth; this list starts empty
+      // and is filled in once the fetch below resolves.
+      let TILS = [];
 
       const REPO_BLOB = 'https://github.com/rjayasin/rjayasin.github.io/blob/main/til/';
 
@@ -372,7 +364,9 @@
       }
 
       function buildList(tag) {
-        const items = tag ? TILS.filter((t) => (t.tags || []).includes(tag)) : TILS;
+        const items = (tag ? TILS.filter((t) => (t.tags || []).includes(tag)) : TILS.slice()).sort(
+          (a, b) => b.added.localeCompare(a.added)
+        );
         const frag = document.createDocumentFragment();
         if (tag) {
           const p = document.createElement('p');
@@ -452,7 +446,9 @@
           const md = await fetchMarkdown(til.slug);
           // Bail if the user navigated away while the fetch was in flight.
           if (location.hash.replace(/^#\/?/, '') !== til.slug) return;
-          post.innerHTML = renderMarkdown(md);
+          // Strip the leading frontmatter block (metadata lives in tils.json).
+          const body = md.replace(/^---\n[\s\S]*?\n---\n?/, '');
+          post.innerHTML = renderMarkdown(body);
         } catch (e) {
           post.textContent = 'failed to load: ' + e.message;
         }
@@ -471,7 +467,22 @@
       }
 
       window.addEventListener('hashchange', route);
-      route();
+
+      // Load the generated index, then route. tils.json is produced by the
+      // deploy workflow (and `make til` locally); if it's missing, say so
+      // rather than silently showing an empty page.
+      fetch('tils.json')
+        .then((r) => {
+          if (!r.ok) throw new Error(r.status + ' fetching tils.json');
+          return r.json();
+        })
+        .then((data) => {
+          TILS = data;
+          route();
+        })
+        .catch((e) => {
+          listView.textContent = 'failed to load index: ' + e.message;
+        });
     </script>
   </body>
 </html>

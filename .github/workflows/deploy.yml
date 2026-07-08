@@ -42,6 +42,10 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
             echo "sitemap/dates.json updated"
           fi
+      # Generate the TIL index from til/*.md frontmatter into the artifact.
+      # Not committed to git — regenerated fresh on every deploy.
+      - name: Build TIL index
+        run: node scripts/build-til-index.js
       - uses: actions/configure-pages@v6
       # Keep the full git history out of the published artifact.
       - name: Trim git metadata from the Pages artifact

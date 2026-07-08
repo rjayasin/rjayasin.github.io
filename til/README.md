@@ -5,31 +5,38 @@ Short "today I learned" notes, rendered at
 
 ## How it works
 
-- Every TIL is one markdown file in this folder — flat, no subfolders.
-- `index.html` is both the list page and the post renderer. There is no build
-  step: it fetches the markdown file named by the URL hash and renders it
-  client-side (`/til/#<slug>` loads `til/<slug>.md`).
-- The page only shows entries listed in the `TILS` array at the top of the
-  `<script>` in `index.html` — a markdown file alone is not enough.
+- Every TIL is one markdown file in this folder — flat, no subfolders. Each
+  file starts with a small frontmatter block (`added`, `tags`) followed by an
+  `# <Title>` heading.
+- `index.html` is both the list page and the post renderer. It fetches the
+  markdown file named by the URL hash and renders it client-side
+  (`/til/#<slug>` loads `til/<slug>.md`, with the frontmatter stripped).
+- The list is data-driven by `tils.json`, which
+  `scripts/build-til-index.js` generates from every `til/*.md` file's
+  frontmatter (title comes from the `#` heading). It is **not committed**
+  (see `.gitignore`): the deploy workflow regenerates it into the published
+  artifact, and `make til` writes it locally for previewing. So the markdown
+  files are the single source of truth — no array to keep in sync.
 - Clicking a tag filters the list (`/til/#tag:<tag>`).
 
 ## Adding a TIL
 
 1. Create `til/<slug>.md`. Use a short kebab-case slug (e.g.
-   `duti-default-apps`). The file must start with an `# <Title>` heading.
-2. Append an entry to the bottom of the `TILS` array in `index.html` —
-   entries are ordered by date added, oldest at the top, newest at the
-   bottom:
+   `duti-default-apps`). Start the file with frontmatter, then the `# <Title>`
+   heading:
 
-   ```js
-   {
-     slug: 'my-new-til',           // filename without .md
-     title: 'Exactly the h1 text', // shown in the list
-     tags: ['macos', 'cli'],       // lowercase; reuse existing tags when possible
-     added: 'YYYY-MM-DD',          // today's date
-   },
+   ```markdown
+   ---
+   added: 2026-07-10 # the day you learned it (not necessarily the commit date)
+   tags: [macos, cli] # lowercase; reuse existing tags when possible
+   ---
+
+   # Exactly the h1 text shown in the list
    ```
 
+2. Commit the `.md`. That's all the index needs — the deploy workflow
+   regenerates `tils.json` on every build. To preview locally, run `make til`
+   (or the page shows "failed to load index").
 3. From the repo root, run `make format` and `make check`. Before committing,
    also run `make sitemap` (repo-wide convention; the `/til/` entry's date
    comes from this folder's git history).
