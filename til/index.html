@@ -53,14 +53,16 @@
       }
       #list-view li {
         padding: 2px 0;
-        white-space: nowrap;
+        display: flex;
+        gap: 10px;
       }
-      #list-view .bullet {
-        color: #888;
-        user-select: none;
+      #list-view .entry {
+        white-space: nowrap;
+        min-width: 0;
       }
       .sep {
         color: #888;
+        margin: 0 11px;
       }
       a.tag {
         color: #888;
@@ -71,6 +73,8 @@
       }
       #list-view .when {
         color: #888;
+        flex: 0 0 auto;
+        width: 5.5em;
       }
       #list-view a:not(.tag) {
         color: #000;
@@ -155,7 +159,7 @@
         body {
           padding: 32px 20px;
         }
-        #list-view li {
+        #list-view .entry {
           white-space: normal;
         }
       }
@@ -341,7 +345,7 @@
       function sep() {
         const s = document.createElement('span');
         s.className = 'sep';
-        s.textContent = ' · ';
+        s.textContent = '•';
         return s;
       }
 
@@ -381,23 +385,21 @@
         const ul = document.createElement('ul');
         for (const til of items) {
           const li = document.createElement('li');
-          const bullet = document.createElement('span');
-          bullet.className = 'bullet';
-          bullet.textContent = '• ';
-          li.appendChild(bullet);
-          const a = document.createElement('a');
-          a.href = '#' + til.slug;
-          a.textContent = til.title;
-          li.appendChild(a);
-          if (til.tags && til.tags.length) {
-            li.appendChild(sep());
-            li.appendChild(tagsSpan(til.tags));
-          }
-          li.appendChild(sep());
           const when = document.createElement('span');
           when.className = 'when';
           when.textContent = til.added;
           li.appendChild(when);
+          const entry = document.createElement('span');
+          entry.className = 'entry';
+          const a = document.createElement('a');
+          a.href = '#' + til.slug;
+          a.textContent = til.title;
+          entry.appendChild(a);
+          if (til.tags && til.tags.length) {
+            entry.appendChild(sep());
+            entry.appendChild(tagsSpan(til.tags));
+          }
+          li.appendChild(entry);
           ul.appendChild(li);
         }
         frag.appendChild(ul);
