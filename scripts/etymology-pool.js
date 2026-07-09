@@ -51,6 +51,20 @@ const MAX_BUILDS = Number(process.env.POOL_MAX_BUILDS || 30);
 const MAX_NEW_WORDS = Number(process.env.POOL_MAX_NEW_WORDS || 8);
 
 const OFFLINE = process.argv.includes('--offline');
+// Resolve + bake language names but skip the tree-build phase. Lets a one-off
+// run backfill names without promotes/discoveries competing for the rate limit.
+const BAKE_ONLY = process.argv.includes('--bake-only');
+// Language-name lookups per Wiktionary request. Each code expands to a ~200-char
+// template, so keep batches small enough that the GET URL stays well under the
+// ~8 KB servers accept — one giant batch is silently rejected and resolves none.
+const RESOLVE_BATCH = 15;
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Timestamped logging so a workflow run's phases — and any rate-limit stalls —
+// are easy to follow. Prefix is seconds since the script started.
+const startedAt = Date.now();
+const log = (msg) => console.log(`[${((Date.now() - startedAt) / 1000).toFixed(1)}s] ${msg}`);
 
 // ---------- Small helpers shared with the game ----------
 
@@ -70,8 +84,12 @@ let nameForLang = (code) => code;
 // LANGS table — the tree files carry the names, no separate lookup to maintain.
 function cleanTree(node) {
   const out = { form: node.form, lang: node.lang };
-  const name = nameForLang(node.lang);
-  if (name && name !== node.lang) out.name = name;
+  // Prefer a freshly resolved name (picks up corrections), but never strip a
+  // name already baked in just because this run can't resolve the code — an
+  // offline run or a transient Wiktionary failure shouldn't un-bake good names.
+  const resolved = nameForLang(node.lang);
+  const name = resolved !== node.lang ? resolved : node.name;
+  if (name) out.name = name;
   if (node.rel) out.rel = node.rel;
   if (node.gloss) out.gloss = node.gloss;
   if (node.tr) out.tr = node.tr;
@@ -295,6 +313,13 @@ function admitWord(state, name, rawTree, { checkSkew }) {
 async function promotePending(state, engine, budget) {
   let promoted = 0;
   const queue = state.pending.slice();
+  if (!queue.length) {
+    log('promote: no pending words queued');
+    return 0;
+  }
+  log(
+    `promote: ${queue.length} pending word${queue.length > 1 ? 's' : ''} queued (budget ${budget.left})`
+  );
   for (const name of queue) {
     if (budget.left <= 0 || engine.isRateLimited()) break;
     budget.left--;
@@ -306,8 +331,12 @@ async function promotePending(state, engine, budget) {
     }
     const reason = admitWord(state, name, tree, { checkSkew: false });
     dropPending(state, name, reason); // added or rejected — either way it's resolved
-    if (!reason) promoted++;
+    if (!reason) {
+      promoted++;
+      log(`  promoted "${name}" (${countNodes(cleanTree(tree))} nodes)`);
+    }
   }
+  log(`promote: added ${promoted}, ${budget.left} build budget left`);
   return promoted;
 }
 
@@ -323,15 +352,23 @@ function dropPending(state, name, reason) {
 // Phase 2: grow the pool with fresh discoveries while any band has room.
 async function discoverWords(state, engine, budget) {
   let added = 0;
+  if (Object.keys(BANDS).every((b) => poolSize(state, b) >= BAND_CAP)) {
+    log('discover: every band at cap, skipping');
+    return 0;
+  }
+  log(`discover: hunting up to ${MAX_NEW_WORDS} new words (budget ${budget.left})`);
   while (added < MAX_NEW_WORDS && budget.left > 0 && !engine.isRateLimited()) {
     if (Object.keys(BANDS).every((b) => poolSize(state, b) >= BAND_CAP)) break;
     budget.left--;
     const item = await engine.findRandomTree();
     if (!item) continue;
     const reason = admitWord(state, item.word, item.tree, { checkSkew: true });
-    if (!reason) added++;
-    else console.log(`  discovery "${item.word}": ${reason}`);
+    if (!reason) {
+      added++;
+      log(`  discovered "${item.word}" (${countNodes(cleanTree(item.tree))} nodes)`);
+    } else console.log(`  discovery "${item.word}": ${reason}`);
   }
+  log(`discover: added ${added}, ${budget.left} build budget left`);
   return added;
 }
 
@@ -339,11 +376,19 @@ async function discoverWords(state, engine, budget) {
 
 function writeState(state) {
   if (!fs.existsSync(TREES_DIR)) fs.mkdirSync(TREES_DIR, { recursive: true });
+  if (!state.dirtyChunks.size && !state.dirtyManifest) {
+    log('write: nothing changed, no files written');
+    return;
+  }
   for (const id of state.dirtyChunks) {
     const [band, i] = id.split('/');
     // Minified: chunks are prettier-ignored, and the wire cost is what counts.
     fs.writeFileSync(chunkFile(band, Number(i)), JSON.stringify(state.chunks[band][i]) + '\n');
   }
+  log(
+    `write: ${state.dirtyChunks.size} chunk file${state.dirtyChunks.size === 1 ? '' : 's'}` +
+      `${state.dirtyManifest ? ' + manifest' : ''}`
+  );
   if (state.dirtyManifest) {
     const manifest = {
       chunkSize: CHUNK_SIZE,
@@ -375,20 +420,49 @@ function collectPoolLangs(state) {
   return codes;
 }
 
+// Resolve the display names for every pool code the engine doesn't already know
+// offline, filling the engine's cache so cleanTree can bake them in. Run this
+// BEFORE the tree-build phase: builds burn through the Wiktionary rate limit, and
+// once the engine is parked resolveLangNames bails, leaving the codes bare. The
+// lookups are chunked so no single request grows an over-long URL, and a parked
+// engine is waited out between chunks rather than skipped.
+async function resolvePoolLangs(state, engine) {
+  const total = collectPoolLangs(state).size;
+  const missing = [...collectPoolLangs(state)].filter((c) => c && engine.langName(c) === c);
+  if (!missing.length) {
+    log(`language names: all ${total} pool codes already known, nothing to resolve`);
+    return;
+  }
+  const batches = Math.ceil(missing.length / RESOLVE_BATCH);
+  log(
+    `language names: ${missing.length}/${total} codes need resolving, ` +
+      `in ${batches} batch${batches > 1 ? 'es' : ''} of up to ${RESOLVE_BATCH}`
+  );
+  for (let i = 0; i < missing.length; i += RESOLVE_BATCH) {
+    // Bounded wait: let a rate-limit window lift so the batch actually fetches.
+    for (let waited = 0; engine.isRateLimited() && waited < 60000; waited += 1000) {
+      if (waited === 0) log('  rate-limited — waiting for the window to lift...');
+      await sleep(1000);
+    }
+    const batch = missing.slice(i, i + RESOLVE_BATCH);
+    await engine.resolveLangNames(batch);
+    const got = batch.filter((c) => engine.langName(c) !== c);
+    log(`  batch ${i / RESOLVE_BATCH + 1}/${batches}: resolved ${got.length}/${batch.length}`);
+  }
+  const still = missing.filter((c) => engine.langName(c) === c);
+  log(
+    `language names: resolved ${missing.length - still.length}/${missing.length}` +
+      (still.length ? `; unresolved: ${still.join(', ')}` : '')
+  );
+}
+
 // Bake language names into every cached tree so the static game never renders a
 // bare code. New trees get names at build time via cleanTree; this backfills the
-// ones already stored (a one-time rewrite of existing chunks). Names come from
-// the same source of truth the explorer uses — LANGS for codes known offline,
-// Wiktionary's {{langname}} + families module for the rest — so there's no
-// separate table to hand-maintain as new codes enter the pool. Only chunks that
-// actually change are marked dirty, and a changed chunk bumps the manifest rev
-// so clients holding a full (count-unchanged) chunk refetch it.
-async function bakeNames(state, engine, canFetch) {
-  // Make sure every code resolves before re-cleaning: LANGS covers most, one
-  // batched lookup fills the rest when online.
-  const missing = [...collectPoolLangs(state)].filter((c) => c && engine.langName(c) === c);
-  if (missing.length && canFetch) await engine.resolveLangNames(missing);
-
+// ones already stored (a one-time rewrite of existing chunks) using names already
+// resolved into the engine's cache by resolvePoolLangs and the tree builds. Only
+// chunks that actually change are marked dirty, and a changed chunk bumps the
+// manifest rev so clients holding a full (count-unchanged) chunk refetch it.
+function bakeNames(state) {
   let baked = 0;
   for (const band of Object.keys(BANDS)) {
     state.chunks[band].forEach((chunk, i) => {
@@ -407,16 +481,24 @@ async function bakeNames(state, engine, canFetch) {
   if (baked) {
     state.rev++;
     state.dirtyManifest = true;
-    console.log(`baked language names into ${baked} tree${baked > 1 ? 's' : ''}`);
+    log(`baking: updated ${baked} tree${baked > 1 ? 's' : ''} (manifest rev -> ${state.rev})`);
+  } else {
+    log('baking: all trees already carry current names, no changes');
   }
   return baked;
 }
 
 async function main() {
+  const mode = OFFLINE ? 'offline' : BAKE_ONLY ? 'bake-only' : 'full';
+  log(`etymology pool update starting (mode: ${mode})`);
   const hadManifest = fs.existsSync(MANIFEST_PATH);
   const engine = loadEngine();
   nameForLang = engine.langName; // cleanTree bakes names in from here on
   const state = loadState();
+  const startTotal = Object.keys(BANDS)
+    .map((b) => `${b} ${poolSize(state, b)}`)
+    .join(', ');
+  log(`loaded pool: ${startTotal}; pending ${state.pending.length}; rev ${state.rev}`);
   let promoted = 0;
   let discovered = 0;
   let online = false;
@@ -424,22 +506,31 @@ async function main() {
   if (!OFFLINE) {
     politeFetch();
     online = await wiktionaryReachable();
+    log(`Wiktionary reachable: ${online ? 'yes' : 'no'}`);
     if (online) {
-      const budget = { left: MAX_BUILDS };
-      promoted = await promotePending(state, engine, budget);
-      discovered = await discoverWords(state, engine, budget);
+      // Names first, while the rate-limit budget is untouched, then builds.
+      await resolvePoolLangs(state, engine);
+      if (BAKE_ONLY) {
+        log('bake-only: skipping promote/discover phases');
+      } else {
+        const budget = { left: MAX_BUILDS };
+        promoted = await promotePending(state, engine, budget);
+        discovered = await discoverWords(state, engine, budget);
+      }
     } else {
-      console.log('Wiktionary unreachable — skipping tree builds this run');
+      log('Wiktionary unreachable — skipping name resolution and tree builds this run');
     }
+  } else {
+    log('offline: skipping network phases, baking with names known offline');
   }
 
-  const baked = await bakeNames(state, engine, online);
+  const baked = bakeNames(state);
   writeState(state);
 
   const total = Object.keys(BANDS)
     .map((b) => `${b} ${poolSize(state, b)}`)
     .join(', ');
-  console.log(`pool: ${total}; pending: ${state.pending.length}`);
+  log(`done: pool ${total}; pending ${state.pending.length}; rev ${state.rev}`);
 
   // Hand the workflow a commit message describing what actually changed.
   const parts = [];
