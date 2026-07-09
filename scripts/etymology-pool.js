@@ -51,6 +51,15 @@ const MAX_BUILDS = Number(process.env.POOL_MAX_BUILDS || 30);
 const MAX_NEW_WORDS = Number(process.env.POOL_MAX_NEW_WORDS || 8);
 
 const OFFLINE = process.argv.includes('--offline');
+// Resolve + bake language names but skip the tree-build phase. Lets a one-off
+// run backfill names without promotes/discoveries competing for the rate limit.
+const BAKE_ONLY = process.argv.includes('--bake-only');
+// Language-name lookups per Wiktionary request. Each code expands to a ~200-char
+// template, so keep batches small enough that the GET URL stays well under the
+// ~8 KB servers accept — one giant batch is silently rejected and resolves none.
+const RESOLVE_BATCH = 15;
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ---------- Small helpers shared with the game ----------
 
@@ -70,8 +79,12 @@ let nameForLang = (code) => code;
 // LANGS table — the tree files carry the names, no separate lookup to maintain.
 function cleanTree(node) {
   const out = { form: node.form, lang: node.lang };
-  const name = nameForLang(node.lang);
-  if (name && name !== node.lang) out.name = name;
+  // Prefer a freshly resolved name (picks up corrections), but never strip a
+  // name already baked in just because this run can't resolve the code — an
+  // offline run or a transient Wiktionary failure shouldn't un-bake good names.
+  const resolved = nameForLang(node.lang);
+  const name = resolved !== node.lang ? resolved : node.name;
+  if (name) out.name = name;
   if (node.rel) out.rel = node.rel;
   if (node.gloss) out.gloss = node.gloss;
   if (node.tr) out.tr = node.tr;
@@ -375,20 +388,35 @@ function collectPoolLangs(state) {
   return codes;
 }
 
+// Resolve the display names for every pool code the engine doesn't already know
+// offline, filling the engine's cache so cleanTree can bake them in. Run this
+// BEFORE the tree-build phase: builds burn through the Wiktionary rate limit, and
+// once the engine is parked resolveLangNames bails, leaving the codes bare. The
+// lookups are chunked so no single request grows an over-long URL, and a parked
+// engine is waited out between chunks rather than skipped.
+async function resolvePoolLangs(state, engine) {
+  const missing = [...collectPoolLangs(state)].filter((c) => c && engine.langName(c) === c);
+  for (let i = 0; i < missing.length; i += RESOLVE_BATCH) {
+    // Bounded wait: let a rate-limit window lift so the batch actually fetches.
+    for (let waited = 0; engine.isRateLimited() && waited < 60000; waited += 1000) {
+      await sleep(1000);
+    }
+    await engine.resolveLangNames(missing.slice(i, i + RESOLVE_BATCH));
+  }
+  const still = missing.filter((c) => engine.langName(c) === c);
+  console.log(
+    `resolved ${missing.length - still.length}/${missing.length} missing language names` +
+      (still.length ? ` (unresolved: ${still.join(', ')})` : '')
+  );
+}
+
 // Bake language names into every cached tree so the static game never renders a
 // bare code. New trees get names at build time via cleanTree; this backfills the
-// ones already stored (a one-time rewrite of existing chunks). Names come from
-// the same source of truth the explorer uses — LANGS for codes known offline,
-// Wiktionary's {{langname}} + families module for the rest — so there's no
-// separate table to hand-maintain as new codes enter the pool. Only chunks that
-// actually change are marked dirty, and a changed chunk bumps the manifest rev
-// so clients holding a full (count-unchanged) chunk refetch it.
-async function bakeNames(state, engine, canFetch) {
-  // Make sure every code resolves before re-cleaning: LANGS covers most, one
-  // batched lookup fills the rest when online.
-  const missing = [...collectPoolLangs(state)].filter((c) => c && engine.langName(c) === c);
-  if (missing.length && canFetch) await engine.resolveLangNames(missing);
-
+// ones already stored (a one-time rewrite of existing chunks) using names already
+// resolved into the engine's cache by resolvePoolLangs and the tree builds. Only
+// chunks that actually change are marked dirty, and a changed chunk bumps the
+// manifest rev so clients holding a full (count-unchanged) chunk refetch it.
+function bakeNames(state) {
   let baked = 0;
   for (const band of Object.keys(BANDS)) {
     state.chunks[band].forEach((chunk, i) => {
@@ -425,15 +453,19 @@ async function main() {
     politeFetch();
     online = await wiktionaryReachable();
     if (online) {
-      const budget = { left: MAX_BUILDS };
-      promoted = await promotePending(state, engine, budget);
-      discovered = await discoverWords(state, engine, budget);
+      // Names first, while the rate-limit budget is untouched, then builds.
+      await resolvePoolLangs(state, engine);
+      if (!BAKE_ONLY) {
+        const budget = { left: MAX_BUILDS };
+        promoted = await promotePending(state, engine, budget);
+        discovered = await discoverWords(state, engine, budget);
+      }
     } else {
       console.log('Wiktionary unreachable — skipping tree builds this run');
     }
   }
 
-  const baked = await bakeNames(state, engine, online);
+  const baked = bakeNames(state);
   writeState(state);
 
   const total = Object.keys(BANDS)

@@ -9,7 +9,12 @@ name: Etymology pool update
 on:
   schedule:
     - cron: '17 3 * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      bake_only:
+        description: 'Only resolve + bake language names (skip promotes/discoveries)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -32,7 +37,7 @@ jobs:
       - name: Install linkedom
         run: npm install --no-save --no-package-lock linkedom
       - name: Update the pool
-        run: node scripts/etymology-pool.js
+        run: node scripts/etymology-pool.js ${{ inputs.bake_only && '--bake-only' || '' }}
       - name: Commit and push
         id: commit
         run: |
