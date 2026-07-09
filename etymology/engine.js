@@ -202,6 +202,7 @@ const LANGS = {
   gn: 'Guaraní',
   ay: 'Aymara',
   tnq: 'Taíno',
+  arw: 'Lokono',
   awd: 'Arawakan',
   'sai-car-pro': 'Proto-Cariban',
   chr: 'Cherokee',
