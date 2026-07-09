@@ -1,24 +1,24 @@
 {
   "chunkSize": 50,
-  "rev": 3,
+  "rev": 4,
   "chunks": {
     "easy": [
       50,
       50,
       50,
-      37
+      47
     ],
     "medium": [
       50,
       50,
       50,
-      30
+      37
     ],
     "hard": [
       50,
       50,
       50,
-      29
+      41
     ]
   },
   "words": {
@@ -188,7 +188,17 @@
       "tundra",
       "turban",
       "turquoise",
-      "tycoon"
+      "tycoon",
+      "vendetta",
+      "veranda",
+      "victorious",
+      "vista",
+      "volcano",
+      "walrus",
+      "Wednesday",
+      "wife",
+      "wigwam",
+      "winter"
     ],
     "medium": [
       "acorn",
@@ -357,8 +367,15 @@
       "typhoon",
       "tyrant",
       "umbrella",
+      "unswerving",
+      "vampire",
+      "waffle",
+      "waltz",
       "water",
-      "wolf"
+      "wheel",
+      "wolf",
+      "word",
+      "yacht"
     ],
     "hard": [
       "alchemy",
@@ -493,41 +510,23 @@
       "troll",
       "trustworthy",
       "twilight",
+      "upcoming",
+      "utopia",
+      "vanilla",
+      "vodka",
+      "wanderlust",
       "wayside",
+      "weekender",
+      "weird",
+      "whiskey",
+      "widow",
+      "window",
+      "witch",
+      "woman",
       "world"
     ]
   },
   "pending": [
-    "unswerving",
-    "upcoming",
-    "utopia",
-    "vampire",
-    "vanilla",
-    "vendetta",
-    "veranda",
-    "victorious",
-    "vista",
-    "vodka",
-    "volcano",
-    "waffle",
-    "walrus",
-    "waltz",
-    "wanderlust",
-    "wasabi",
-    "Wednesday",
-    "weekender",
-    "weird",
-    "wheel",
-    "whiskey",
-    "widow",
-    "wife",
-    "wigwam",
-    "window",
-    "winter",
-    "witch",
-    "woman",
-    "word",
-    "yacht",
     "yarn",
     "yesterday",
     "yodel",
