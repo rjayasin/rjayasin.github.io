@@ -1750,6 +1750,7 @@
       let chunksReady = Promise.resolve();
       const LS_MANIFEST = 'etymology-game-manifest';
       const LS_TREES = 'etymology-game-trees';
+      const LS_LANGS = 'etymology-game-langs';
       const chunkName = (band, i) => `${band}-${String(i).padStart(3, '0')}`;
 
       function readStored(key) {
@@ -1871,6 +1872,36 @@
           }
         }
         chunksReady = pullChunks(m, haveCounts); // not awaited — fills in behind the first game
+      }
+
+      // Language display names are baked at build time into langs.json (see
+      // scripts/etymology-pool.js) so a code missing from the engine's LANGS
+      // table still renders its full name here, where — unlike the explorer —
+      // we never resolve against Wiktionary.
+      async function refreshLangs() {
+        try {
+          const r = await fetch('langs.json', { cache: 'no-cache' });
+          if (!r.ok) return;
+          const d = await r.json();
+          if (d && typeof d === 'object' && !Array.isArray(d)) {
+            registerLangNames(d);
+            writeStored(LS_LANGS, d);
+          }
+        } catch (e) {
+          /* offline: cached names + the engine's static LANGS still apply */
+        }
+      }
+      // Repeat visits seed from the local copy (instant, no network before the
+      // first game) and revalidate in the background; the first visit awaits the
+      // fetch so labels are right on the first render. Mirrors loadTreeStore.
+      async function loadLangs() {
+        const cached = readStored(LS_LANGS);
+        if (cached) {
+          registerLangNames(cached);
+          refreshLangs();
+          return;
+        }
+        await refreshLangs();
       }
 
       // ---------- Seen words ----------
@@ -2588,7 +2619,7 @@
       // needed), then kick off the first game. A daily challenge with real
       // progress (a submit or a solved stage) left unfinished earlier today
       // resumes instead of dropping the player back into free play.
-      const storeReady = loadTreeStore();
+      const storeReady = Promise.all([loadTreeStore(), loadLangs()]);
       const storedDaily = readStored(DAILY_KEY);
       const resumeDaily =
         storedDaily &&

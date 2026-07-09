@@ -32,6 +32,7 @@ const path = require('path');
 const GAME_DIR = path.join(__dirname, '..', 'etymology', 'game');
 const TREES_DIR = path.join(GAME_DIR, 'trees');
 const MANIFEST_PATH = path.join(GAME_DIR, 'manifest.json');
+const LANGS_PATH = path.join(GAME_DIR, 'langs.json');
 const LEGACY_WORDS = path.join(GAME_DIR, 'words.json');
 const LEGACY_TREES = path.join(GAME_DIR, 'trees.json');
 const ENGINE_PATH = path.join(__dirname, '..', 'etymology', 'engine.js');
@@ -214,11 +215,20 @@ function wouldUnbalance(state, band) {
 // building byte-identical trees.
 
 function loadEngine() {
-  const { DOMParser } = require('linkedom');
+  // linkedom is only needed by buildTree's etytree mirror. Name resolution
+  // (langName/resolveLangNames, used by syncLangs) touches no DOM, so tolerate
+  // its absence with a stub — an --offline run that only syncs langs.json then
+  // works without the dependency installed.
+  let DOMParser;
+  try {
+    ({ DOMParser } = require('linkedom'));
+  } catch {
+    DOMParser = function () {};
+  }
   const src = fs.readFileSync(ENGINE_PATH, 'utf8');
   const factory = new Function(
     'DOMParser',
-    `${src}\nreturn { buildTree, findRandomTree, isRateLimited };`
+    `${src}\nreturn { buildTree, findRandomTree, isRateLimited, langName, resolveLangNames };`
   );
   return factory(DOMParser);
 }
@@ -339,16 +349,63 @@ function writeState(state) {
   }
 }
 
+// ---------- Language names ----------
+// The game renders pre-built static trees and, unlike the explorer, never hits
+// Wiktionary at play time — so a language code missing from engine.js's LANGS
+// table would surface as a bare code (OMR, DRA, ...). langs.json fixes that: a
+// baked {code: name} map the game seeds into its display cache. Names come from
+// the same source of truth the explorer uses (LANGS for codes known offline,
+// Wiktionary's {{langname}} + families module for the rest, via the engine), so
+// the map self-heals as new codes enter the pool without hand-editing a table.
+function collectPoolLangs(state) {
+  const codes = new Set();
+  const walk = (n) => {
+    if (n.lang) codes.add(n.lang);
+    (n.children || []).forEach(walk);
+  };
+  for (const band of Object.keys(BANDS)) {
+    for (const chunk of state.chunks[band]) for (const tree of Object.values(chunk)) walk(tree);
+  }
+  return codes;
+}
+
+async function syncLangs(state, engine, canFetch) {
+  const cache = fs.existsSync(LANGS_PATH) ? readJson(LANGS_PATH) : {};
+  const codes = [...collectPoolLangs(state)].filter(Boolean).sort();
+  // Reuse already-cached names and resolve the rest from LANGS with no network.
+  const resolved = (c) => (engine.langName(c) !== c ? engine.langName(c) : '');
+  const names = {};
+  for (const c of codes) {
+    const name = cache[c] || resolved(c);
+    if (name) names[c] = name;
+  }
+  // One batched Wiktionary lookup covers whatever LANGS didn't know, when online.
+  const missing = codes.filter((c) => !names[c]);
+  if (missing.length && canFetch) {
+    await engine.resolveLangNames(missing);
+    for (const c of missing) if (resolved(c)) names[c] = resolved(c);
+  }
+  // codes is sorted, so insertion order gives a stable, minimal diff.
+  const out = JSON.stringify(names, null, 2) + '\n';
+  const prev = fs.existsSync(LANGS_PATH) ? fs.readFileSync(LANGS_PATH, 'utf8') : '';
+  if (out !== prev) {
+    fs.writeFileSync(LANGS_PATH, out);
+    console.log(`langs.json: ${Object.keys(names).length} language names`);
+  }
+}
+
 async function main() {
   const hadManifest = fs.existsSync(MANIFEST_PATH);
   const state = loadState();
+  const engine = loadEngine();
   let promoted = 0;
   let discovered = 0;
+  let online = false;
 
   if (!OFFLINE) {
     politeFetch();
-    if (await wiktionaryReachable()) {
-      const engine = loadEngine();
+    online = await wiktionaryReachable();
+    if (online) {
       const budget = { left: MAX_BUILDS };
       promoted = await promotePending(state, engine, budget);
       discovered = await discoverWords(state, engine, budget);
@@ -357,6 +414,7 @@ async function main() {
     }
   }
 
+  await syncLangs(state, engine, online);
   writeState(state);
 
   const total = Object.keys(BANDS)

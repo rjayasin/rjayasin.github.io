@@ -10,4 +10,5 @@ fonts/.licenses-cache.json
 # scripts/etymology-pool.js) as plain JSON.stringify output; keep prettier
 # from reshaping what those writers produce.
 etymology/game/manifest.json
+etymology/game/langs.json
 etymology/game/trees/

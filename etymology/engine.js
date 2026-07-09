@@ -265,6 +265,12 @@ const langResolveFailed = new Set();
 function langName(code) {
   return LANGS[code] || RESOLVED[code] || code;
 }
+// Seed the display cache with code→name pairs resolved elsewhere — e.g. the
+// game feeding in its build-time langs.json so static play never has to fall
+// back to a bare code for a language missing from LANGS.
+function registerLangNames(map) {
+  if (map) for (const [code, name] of Object.entries(map)) if (name) RESOLVED[code] = name;
+}
 function sectionName(code) {
   return SECTION_OVERRIDES[code] || LANGS[code] || null;
 }
