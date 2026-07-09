@@ -58,10 +58,20 @@ function countNodes(n) {
   return 1 + n.children.reduce((s, c) => s + countNodes(c), 0);
 }
 
+// Resolves a language code to its display name; wired to the engine's langName
+// in main() so cleanTree can bake names in. Identity until then (offline
+// legacy migration falls back to the raw code, which the game handles too).
+let nameForLang = (code) => code;
+
 // A tree stripped down to the fields worth persisting (same as the game's
-// cleanTree): play-time extras are dropped so the cached JSON stays small.
+// cleanTree): play-time extras are dropped so the cached JSON stays small. The
+// language name is baked in from the engine's resolver so the static game never
+// has to fall back to a bare code for a language missing from engine.js's
+// LANGS table — the tree files carry the names, no separate lookup to maintain.
 function cleanTree(node) {
   const out = { form: node.form, lang: node.lang };
+  const name = nameForLang(node.lang);
+  if (name && name !== node.lang) out.name = name;
   if (node.rel) out.rel = node.rel;
   if (node.gloss) out.gloss = node.gloss;
   if (node.tr) out.tr = node.tr;
@@ -112,6 +122,7 @@ function emptyState() {
     chunks: { easy: [], medium: [], hard: [] },
     pending: [],
     blocklist: [],
+    rev: 0, // bumped when chunk contents change in place, to bust client caches
     keys: new Set(),
     dirtyChunks: new Set(), // "band/i" of chunk files needing a rewrite
     dirtyManifest: false,
@@ -124,6 +135,7 @@ function loadState() {
   const state = emptyState();
   state.pending = Array.isArray(m.pending) ? m.pending.filter(isPlainWord) : [];
   state.blocklist = Array.isArray(m.blocklist) ? m.blocklist : [];
+  state.rev = Number(m.rev) || 0;
   for (const band of Object.keys(BANDS)) {
     state.words[band] = Array.isArray(m.words && m.words[band]) ? m.words[band].slice() : [];
     const counts = (m.chunks && m.chunks[band]) || [];
@@ -214,11 +226,20 @@ function wouldUnbalance(state, band) {
 // building byte-identical trees.
 
 function loadEngine() {
-  const { DOMParser } = require('linkedom');
+  // linkedom is only needed by buildTree's etytree mirror. Name resolution
+  // (langName/resolveLangNames, used to bake names into trees) touches no DOM,
+  // so tolerate its absence with a stub — an --offline run that only rebakes
+  // existing chunks then works without the dependency installed.
+  let DOMParser;
+  try {
+    ({ DOMParser } = require('linkedom'));
+  } catch {
+    DOMParser = function () {};
+  }
   const src = fs.readFileSync(ENGINE_PATH, 'utf8');
   const factory = new Function(
     'DOMParser',
-    `${src}\nreturn { buildTree, findRandomTree, isRateLimited };`
+    `${src}\nreturn { buildTree, findRandomTree, isRateLimited, langName, resolveLangNames };`
   );
   return factory(DOMParser);
 }
@@ -326,6 +347,7 @@ function writeState(state) {
   if (state.dirtyManifest) {
     const manifest = {
       chunkSize: CHUNK_SIZE,
+      rev: state.rev,
       chunks: {},
       words: {},
       pending: sortWords(state.pending),
@@ -339,16 +361,70 @@ function writeState(state) {
   }
 }
 
+// ---------- Language names ----------
+// Every distinct language code used anywhere in the pool.
+function collectPoolLangs(state) {
+  const codes = new Set();
+  const walk = (n) => {
+    if (n.lang) codes.add(n.lang);
+    (n.children || []).forEach(walk);
+  };
+  for (const band of Object.keys(BANDS)) {
+    for (const chunk of state.chunks[band]) for (const tree of Object.values(chunk)) walk(tree);
+  }
+  return codes;
+}
+
+// Bake language names into every cached tree so the static game never renders a
+// bare code. New trees get names at build time via cleanTree; this backfills the
+// ones already stored (a one-time rewrite of existing chunks). Names come from
+// the same source of truth the explorer uses — LANGS for codes known offline,
+// Wiktionary's {{langname}} + families module for the rest — so there's no
+// separate table to hand-maintain as new codes enter the pool. Only chunks that
+// actually change are marked dirty, and a changed chunk bumps the manifest rev
+// so clients holding a full (count-unchanged) chunk refetch it.
+async function bakeNames(state, engine, canFetch) {
+  // Make sure every code resolves before re-cleaning: LANGS covers most, one
+  // batched lookup fills the rest when online.
+  const missing = [...collectPoolLangs(state)].filter((c) => c && engine.langName(c) === c);
+  if (missing.length && canFetch) await engine.resolveLangNames(missing);
+
+  let baked = 0;
+  for (const band of Object.keys(BANDS)) {
+    state.chunks[band].forEach((chunk, i) => {
+      let changed = false;
+      for (const key of Object.keys(chunk)) {
+        const next = cleanTree(chunk[key]);
+        if (JSON.stringify(next) !== JSON.stringify(chunk[key])) {
+          chunk[key] = next;
+          changed = true;
+          baked++;
+        }
+      }
+      if (changed) state.dirtyChunks.add(`${band}/${i}`);
+    });
+  }
+  if (baked) {
+    state.rev++;
+    state.dirtyManifest = true;
+    console.log(`baked language names into ${baked} tree${baked > 1 ? 's' : ''}`);
+  }
+  return baked;
+}
+
 async function main() {
   const hadManifest = fs.existsSync(MANIFEST_PATH);
+  const engine = loadEngine();
+  nameForLang = engine.langName; // cleanTree bakes names in from here on
   const state = loadState();
   let promoted = 0;
   let discovered = 0;
+  let online = false;
 
   if (!OFFLINE) {
     politeFetch();
-    if (await wiktionaryReachable()) {
-      const engine = loadEngine();
+    online = await wiktionaryReachable();
+    if (online) {
       const budget = { left: MAX_BUILDS };
       promoted = await promotePending(state, engine, budget);
       discovered = await discoverWords(state, engine, budget);
@@ -357,6 +433,7 @@ async function main() {
     }
   }
 
+  const baked = await bakeNames(state, engine, online);
   writeState(state);
 
   const total = Object.keys(BANDS)
@@ -369,6 +446,7 @@ async function main() {
   if (!hadManifest) parts.push('migrate to chunked tree store');
   if (promoted) parts.push(`promote ${promoted} pending word${promoted > 1 ? 's' : ''}`);
   if (discovered) parts.push(`add ${discovered} new word${discovered > 1 ? 's' : ''}`);
+  if (baked) parts.push(`bake language names into ${baked} tree${baked > 1 ? 's' : ''}`);
   if (parts.length && process.env.GITHUB_ENV) {
     fs.appendFileSync(process.env.GITHUB_ENV, `POOL_MSG=etymology game: ${parts.join(', ')}\n`);
   }

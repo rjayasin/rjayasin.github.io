@@ -911,6 +911,7 @@
           id: n.id,
           form: n.form,
           lang: n.lang,
+          name: n.name,
           rel: n.rel,
           gloss: n.gloss,
           tr: n.tr,
@@ -1023,7 +1024,9 @@
 
         const lang = document.createElement('div');
         lang.className = 'lang';
-        lang.textContent = langName(n.lang);
+        // Pool trees carry the language name baked in by the pool builder;
+        // fall back to the engine's lookup for trees scraped live at play time.
+        lang.textContent = n.name || langName(n.lang);
         div.appendChild(lang);
 
         const form = document.createElement('div');
@@ -1846,12 +1849,15 @@
             );
           }
           // Background revalidation; new trees land mid-session and are
-          // picked up as the ready queue refills.
+          // picked up as the ready queue refills. A bumped manifest rev means
+          // existing chunks were rewritten in place (e.g. language names baked
+          // in) without their counts changing, so drop the count gate and
+          // refetch every chunk that run.
           fetchManifest().then((m) => {
             if (!m) return;
             applyManifest(m);
             writeStored(LS_MANIFEST, m);
-            pullChunks(m, haveCounts);
+            pullChunks(m, m.rev !== stored.rev ? {} : haveCounts);
           });
           return;
         }
