@@ -1,24 +1,24 @@
 {
   "chunkSize": 50,
-  "rev": 2,
+  "rev": 3,
   "chunks": {
     "easy": [
       50,
       50,
       50,
-      26
+      37
     ],
     "medium": [
       50,
       50,
       50,
-      19
+      30
     ],
     "hard": [
       50,
       50,
       50,
-      21
+      29
     ]
   },
   "words": {
@@ -177,7 +177,18 @@
       "talent",
       "tariff",
       "tattoo",
-      "tawdry"
+      "tawdry",
+      "tempo",
+      "thug",
+      "tofu",
+      "tomato",
+      "toucan",
+      "tsunami",
+      "tulip",
+      "tundra",
+      "turban",
+      "turquoise",
+      "tycoon"
     ],
     "medium": [
       "acorn",
@@ -334,7 +345,18 @@
       "symphony",
       "syrup",
       "telephone",
+      "thermometer",
+      "tiger",
+      "tobacco",
       "tongue",
+      "tooth",
+      "tornado",
+      "tragedy",
+      "tree",
+      "trophy",
+      "typhoon",
+      "tyrant",
+      "umbrella",
       "water",
       "wolf"
     ],
@@ -462,42 +484,20 @@
       "sympathy",
       "tantalize",
       "technology",
+      "telehealth",
+      "telescope",
+      "theory",
       "three",
+      "thunder",
+      "trek",
+      "troll",
+      "trustworthy",
+      "twilight",
       "wayside",
       "world"
     ]
   },
   "pending": [
-    "telehealth",
-    "telescope",
-    "tempo",
-    "theory",
-    "thermometer",
-    "thug",
-    "thunder",
-    "tiger",
-    "tobacco",
-    "tofu",
-    "tomato",
-    "tooth",
-    "tornado",
-    "toucan",
-    "tragedy",
-    "tree",
-    "trek",
-    "troll",
-    "trophy",
-    "trustworthy",
-    "tsunami",
-    "tulip",
-    "tundra",
-    "turban",
-    "turquoise",
-    "twilight",
-    "tycoon",
-    "typhoon",
-    "tyrant",
-    "umbrella",
     "unswerving",
     "upcoming",
     "utopia",
