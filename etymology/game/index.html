@@ -1251,7 +1251,21 @@
       }
 
       // ---------- Drag & drop (pointer based: mouse + touch) ----------
-      let dragging = null; // { p, clone, grabDX, grabDY, lastKey, layout }
+      let dragging = null; // { p, clone, home, grabDX, grabDY, lastKey, layout }
+      // A press that hasn't travelled DRAG_START_DIST yet. Nothing has been
+      // lifted, so a click or an aborted touch leaves the board untouched.
+      let pending = null; // { id, fromBoard, startX, startY, rect, threshold }
+
+      // A press only becomes a drag once the pointer has travelled this far
+      // (px). Grabbing used to detach the node the instant the pointer went
+      // down, which reshuffled the tree under a bare click. Touch gets more
+      // slack: fingertips wobble a few px even on a deliberate tap.
+      const DRAG_START_DIST = { mouse: 5, pen: 5, touch: 9 };
+      // While a board-grabbed piece stays within this radius (px) of the grab
+      // point it is still "at home": the board previews it in its original
+      // spot and releasing restores that spot exactly. Only travelling beyond
+      // commits the drag to seeking a new target.
+      const HOME_RADIUS = 36;
 
       function pointerCard(e) {
         const el = e.target.closest && e.target.closest('.gcard');
@@ -1264,18 +1278,61 @@
       function onPointerDown(e) {
         // The tree stays re-organizeable after a solve (cards keep their
         // won-green outline), so only block while another drag is in flight.
-        if (dragging || (e.button != null && e.button !== 0)) return;
+        if (dragging || pending || (e.button != null && e.button !== 0)) return;
         const card = pointerCard(e);
         if (!card) return;
-        const id = Number(card.dataset.id);
         if (card.classList.contains('root')) return; // the answer card stays put
 
-        let p;
-        if (boardEl.contains(card)) {
+        // Don't lift anything yet: the press only becomes a grab once the
+        // pointer has clearly moved (see onPointerMove). Until then the board
+        // stays exactly as it is, so a click can't reshuffle placed cards.
+        pending = {
+          id: Number(card.dataset.id),
+          fromBoard: boardEl.contains(card),
+          startX: e.clientX,
+          startY: e.clientY,
+          rect: card.getBoundingClientRect(),
+          threshold: DRAG_START_DIST[e.pointerType] || DRAG_START_DIST.mouse,
+        };
+        window.addEventListener('pointermove', onPointerMove, { passive: false });
+        window.addEventListener('pointerup', onPointerUp);
+        window.addEventListener('pointercancel', onPointerUp);
+        e.preventDefault();
+      }
+
+      // The press has travelled far enough to count as a drag: lift the piece
+      // (out of the board or the pool), hand a clone to the pointer, and start
+      // previewing drop targets.
+      function startDrag(x, y) {
+        const { id, fromBoard, startX, startY, rect } = pending;
+        pending = null;
+        let p = null;
+        let home = null;
+        if (fromBoard) {
+          // Remember exactly where the piece sits — its descendant, its slot,
+          // and how many of its own ancestors detach will lift into that slot
+          // — plus a ghosted snapshot of the un-detached tree. While the
+          // pointer stays within HOME_RADIUS the board previews that
+          // snapshot, and a drop there restores the spot precisely.
+          const parent = findParent(boardRoot, id);
+          const node = parent && parent.children.find((c) => c.id === id);
+          if (!node) return;
+          const homeTree = cloneTree(boardRoot);
+          walk(homeTree, (n) => {
+            if (n.id === id) n.ghost = true;
+          });
+          home = {
+            tree: homeTree,
+            x: startX,
+            y: startY,
+            parentId: parent.id,
+            index: parent.children.indexOf(node),
+            kids: node.children.length,
+          };
           p = detach(boardRoot, id);
         } else {
           const i = pool.findIndex((x) => x.id === id);
-          p = pool.splice(i, 1)[0];
+          if (i !== -1) p = pool.splice(i, 1)[0];
         }
         if (!p) return;
         won = false; // any pickup breaks the solved arrangement — drop the strokes
@@ -1287,7 +1344,6 @@
           } catch (_) {}
         }
 
-        const rect = card.getBoundingClientRect();
         const clone = cardEl(p);
         clone.id = 'drag-clone';
         clone.style.width = rect.width + 'px';
@@ -1296,8 +1352,9 @@
         dragging = {
           p,
           clone,
-          grabDX: e.clientX - (rect.left + rect.width / 2),
-          grabDY: e.clientY - (rect.top + rect.height / 2),
+          home,
+          grabDX: startX - (rect.left + rect.width / 2),
+          grabDY: startY - (rect.top + rect.height / 2),
           lastKey: undefined,
           lastTarget: null, // the target the preview currently shows (for hysteresis)
           poolIndex: -1, // gap index the pool preview currently shows (-1 = none)
@@ -1314,14 +1371,19 @@
         // the preview reflow no longer feeds back into the drop target.
         dragging.layout = snapshotBoardCards();
         dragging.poolLayout = snapshotPoolCards();
+        if (home) {
+          // First frame of a board grab: paint the home preview *statically*
+          // (before the .dragging class arms the connector fade), so the only
+          // visible change at pickup is the grabbed card turning ghost — the
+          // detached layout render() just produced is never painted, and
+          // nothing reflows until the player commits to a direction.
+          renderBoard(home.tree);
+          dragging.boardPreviewing = true;
+          dragging.lastKey = 'home';
+        }
         boardEl.classList.add('dragging'); // enable the preview transitions
-        moveClone(e.clientX, e.clientY);
-        updatePreview(e.clientX, e.clientY);
-
-        window.addEventListener('pointermove', onPointerMove, { passive: false });
-        window.addEventListener('pointerup', onPointerUp);
-        window.addEventListener('pointercancel', onPointerUp);
-        e.preventDefault();
+        moveClone(x, y);
+        if (!home) updatePreview(x, y);
       }
 
       function moveClone(x, y) {
@@ -1337,6 +1399,13 @@
       let moveRAF = 0;
       let lastPointer = { x: 0, y: 0 };
       function onPointerMove(e) {
+        if (pending) {
+          e.preventDefault();
+          const travelled = Math.hypot(e.clientX - pending.startX, e.clientY - pending.startY);
+          if (travelled < pending.threshold) return;
+          startDrag(e.clientX, e.clientY); // lifts the piece and draws the first preview
+          return;
+        }
         if (!dragging) return;
         e.preventDefault();
         lastPointer.x = e.clientX;
@@ -1477,6 +1546,26 @@
       // Redraw the board with a ghost of the dragged card slotted in at the
       // current target, so the player sees the arrows form before dropping.
       function updatePreview(x, y) {
+        // Within the grab radius a board-grabbed piece is still "at home":
+        // preview it in its original spot (the pre-detach snapshot) instead of
+        // guessing a target from geometry, so grabbing a placed card doesn't
+        // reshuffle anything until the player commits to a direction. Wander
+        // out and back and home re-engages — dropping then restores the spot.
+        const home = dragging.home;
+        if (home && Math.hypot(x - home.x, y - home.y) < HOME_RADIUS) {
+          poolEl.classList.remove('drop-active');
+          dragging.lastTarget = null;
+          dragging.poolIndex = -1;
+          if (dragging.lastKey === 'home') return;
+          dragging.lastKey = 'home';
+          if (dragging.poolGhost) {
+            renderPool();
+            dragging.poolGhost = false;
+          }
+          renderBoardAnimated(home.tree);
+          dragging.boardPreviewing = true;
+          return;
+        }
         const target = dropTarget(x, y, dragging.lastTarget);
         const overPool = target === null && pointInPool(x, y);
         poolEl.classList.toggle('drop-active', overPool);
@@ -1522,30 +1611,44 @@
       }
 
       function onPointerUp(e) {
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('pointercancel', onPointerUp);
+        pending = null; // a press that never travelled — the board was never touched
         if (!dragging) return;
         if (moveRAF) {
           cancelAnimationFrame(moveRAF);
           moveRAF = 0;
         }
-        window.removeEventListener('pointermove', onPointerMove);
-        window.removeEventListener('pointerup', onPointerUp);
-        window.removeEventListener('pointercancel', onPointerUp);
-        const { p, clone } = dragging;
+        const { p, clone, home } = dragging;
         clone.remove();
+        // Released still within the grab radius: the piece never left home,
+        // so put it back exactly — same descendant, same slot, its own
+        // ancestors re-attached (matching the home preview on screen).
+        const inHome = home && Math.hypot(e.clientX - home.x, e.clientY - home.y) < HOME_RADIUS;
         // Drop where the preview is showing — same hysteresis as the last move.
-        const target = dropTarget(e.clientX, e.clientY, dragging.lastTarget);
+        const target = inHome ? null : dropTarget(e.clientX, e.clientY, dragging.lastTarget);
         // No board target → back to the pool, at the gap the preview showed
         // (so a piece can be reordered, not just appended to the end).
         const poolIdx =
-          !target && pointInPool(e.clientX, e.clientY)
+          !inHome && !target && pointInPool(e.clientX, e.clientY)
             ? poolDropIndex(e.clientX, e.clientY, dragging.poolIndex)
             : pool.length;
         dragging = null;
         poolEl.classList.remove('drop-active');
         boardEl.classList.remove('dragging');
-        if (target) applyTarget(boardRoot, p, target);
+        if (inHome) reattach(boardRoot, p, home);
+        else if (target) applyTarget(boardRoot, p, target);
         else pool.splice(poolIdx, 0, p);
         render();
+      }
+
+      // Undo a detach: splice out the lifted ancestors (detach left them
+      // contiguous at the piece's old index), hand them back as the piece's
+      // children, and seat the piece itself in that slot.
+      function reattach(root, p, home) {
+        const parent = findNode(root, home.parentId);
+        p.children = parent.children.splice(home.index, home.kids, p);
       }
 
       // ---------- Feedback / checking ----------
