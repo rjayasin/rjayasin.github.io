@@ -26,10 +26,33 @@ function checkJs(file) {
 }
 
 function checkJson(file) {
+  let data;
   try {
-    JSON.parse(fs.readFileSync(file, 'utf8'));
+    data = JSON.parse(fs.readFileSync(file, 'utf8'));
   } catch (e) {
     report(file, 0, e.message);
+    return;
+  }
+  if (/etymology\/game\/trees\/[^/]+\.json$/.test(file.replace(/\\/g, '/'))) {
+    checkTreeChunk(file, data);
+  }
+}
+
+// The etymology game renders language names straight off its cached trees —
+// there is no code→name lookup at play time — so every node that names a
+// language must carry its display name baked in (the pool script does this;
+// see cleanTree in etymology-pool.js). A bare code here would show up
+// verbatim on a player's card.
+function checkTreeChunk(file, data) {
+  for (const [word, tree] of Object.entries(data)) {
+    (function walk(n) {
+      if (n && typeof n === 'object') {
+        if (n.lang && !n.name) {
+          report(file, 0, `"${word}": node has language code "${n.lang}" but no baked name`);
+        }
+        (n.children || []).forEach(walk);
+      }
+    })(tree);
   }
 }
 

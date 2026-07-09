@@ -291,6 +291,17 @@ async function wiktionaryReachable() {
   }
 }
 
+// Language codes a cleaned tree would still render bare (a lang with no
+// baked display name).
+function unresolvedLangs(tree) {
+  const missing = new Set();
+  (function walk(n) {
+    if (n.lang && !n.name) missing.add(n.lang);
+    (n.children || []).forEach(walk);
+  })(tree);
+  return [...missing];
+}
+
 // Add one built tree to the store under all the game's rules. Returns a
 // short reason string when rejected, null when added.
 function admitWord(state, name, rawTree, { checkSkew }) {
@@ -300,6 +311,12 @@ function admitWord(state, name, rawTree, { checkSkew }) {
   if (!isPlainWord(finalName)) return 'not a plain word';
   if (state.keys.has(key)) return 'already cached';
   if (state.blocklist.some((w) => w.toLowerCase() === key)) return 'blocklisted';
+  // Invariant: a cached tree carries a display name on every node, so the
+  // game never renders a bare code. A build that raced the rate limit can
+  // leave codes unresolved (how "jungle" once shipped showing QFA-SUB /
+  // PRA-SAU) — refuse it here and let a later run admit it fully named.
+  const bare = unresolvedLangs(tree);
+  if (bare.length) return `unresolved language name: ${bare.join(', ')}`;
   const band = bandFor(countNodes(tree));
   if (!band) return 'tree size fits no band';
   if (poolSize(state, band) >= BAND_CAP) return `${band} band at cap`;
@@ -330,6 +347,13 @@ async function promotePending(state, engine, budget) {
       continue;
     }
     const reason = admitWord(state, name, tree, { checkSkew: false });
+    if (reason && reason.startsWith('unresolved language name')) {
+      // Wiktionary can name these codes; this run just couldn't resolve them
+      // (usually a rate-limit park). Keep the word queued for a later run
+      // rather than dropping it or caching a tree with bare codes.
+      console.log(`  pending "${name}": kept queued — ${reason}`);
+      continue;
+    }
     dropPending(state, name, reason); // added or rejected — either way it's resolved
     if (!reason) {
       promoted++;

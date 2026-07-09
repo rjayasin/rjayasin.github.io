@@ -929,6 +929,16 @@
         realRoot = cloneTree(tree);
         let id = 0;
         walk(realRoot, (n) => (n.id = id++));
+        // Cached pool trees ship with their language names baked in (the pool
+        // workflow enforces it); trees scraped live at play time — and stale
+        // pre-baking localStorage chunks — don't. Stamp names here, once, so
+        // the cards below read only n.name and a code the engine can't
+        // resolve shows nothing rather than leaking a raw "QFA-SUB".
+        walk(realRoot, (n) => {
+          if (n.name) return;
+          const name = langName(n.lang);
+          if (name !== n.lang) n.name = name;
+        });
         realRoot.root = true;
         realSig = signature(realRoot);
 
@@ -1024,9 +1034,10 @@
 
         const lang = document.createElement('div');
         lang.className = 'lang';
-        // Pool trees carry the language name baked in by the pool builder;
-        // fall back to the engine's lookup for trees scraped live at play time.
-        lang.textContent = n.name || langName(n.lang);
+        // Only ever a baked display name (pool trees ship with one; scraped
+        // trees get theirs stamped in startPuzzleWithTree). Never fall back
+        // to n.lang: a raw language code must not appear on a card.
+        lang.textContent = n.name || '';
         div.appendChild(lang);
 
         const form = document.createElement('div');
