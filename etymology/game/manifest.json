@@ -1,24 +1,24 @@
 {
   "chunkSize": 50,
-  "rev": 1,
+  "rev": 2,
   "chunks": {
     "easy": [
       50,
       50,
       50,
-      18
+      26
     ],
     "medium": [
       50,
       50,
       50,
-      6
+      19
     ],
     "hard": [
       50,
       50,
       50,
-      13
+      21
     ]
   },
   "words": {
@@ -169,7 +169,15 @@
       "slalom",
       "sofa",
       "soprano",
-      "taboo"
+      "spook",
+      "studio",
+      "sushi",
+      "symbol",
+      "taboo",
+      "talent",
+      "tariff",
+      "tattoo",
+      "tawdry"
     ],
     "medium": [
       "acorn",
@@ -311,7 +319,20 @@
       "smuggle",
       "sorrow",
       "soul",
+      "spider",
+      "spinach",
+      "stadium",
+      "stomach",
+      "stone",
+      "storm",
+      "sudoku",
+      "sultan",
+      "summer",
+      "sun",
+      "supplant",
+      "sword",
       "symphony",
+      "syrup",
       "telephone",
       "tongue",
       "water",
@@ -432,43 +453,21 @@
       "sister",
       "slogan",
       "snow",
+      "sphinx",
+      "stanza",
+      "star",
       "steward",
+      "sugar",
+      "swearing",
+      "sympathy",
+      "tantalize",
+      "technology",
       "three",
       "wayside",
       "world"
     ]
   },
   "pending": [
-    "souvenir",
-    "sphinx",
-    "spider",
-    "spinach",
-    "spook",
-    "stadium",
-    "stanza",
-    "star",
-    "stomach",
-    "stone",
-    "storm",
-    "studio",
-    "sudoku",
-    "sugar",
-    "sultan",
-    "summer",
-    "sun",
-    "supplant",
-    "sushi",
-    "swearing",
-    "sword",
-    "symbol",
-    "sympathy",
-    "syrup",
-    "talent",
-    "tantalize",
-    "tariff",
-    "tattoo",
-    "tawdry",
-    "technology",
     "telehealth",
     "telescope",
     "tempo",
