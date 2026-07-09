@@ -465,8 +465,36 @@ function topLevelEq(s) {
   return -1;
 }
 
+// Templates whose first positional param is a language code, so their display
+// text is the second ({{m|tnq|tabago}}, {{lang|ar|طباق}}, {{cog|fr|...}}).
+const LANG_FIRST_NAMES = new Set(['lang', 'cog', 'cognate', 'ncog', 'noncog', 'nc']);
+
+// Render one nested template (its inner "name|param|param" text) to the
+// display text it would show: {{taxlink|Dittrichia viscosa|species}} →
+// "Dittrichia viscosa", {{w|Article|shown}} → "shown", {{m|tnq|tabago}} →
+// "tabago". Unknown templates fall back to their first positional param.
+function renderNestedTemplate(inner) {
+  const parts = splitTop(inner);
+  const name = (parts.shift() || '').trim().toLowerCase();
+  const pos = parts.filter((p) => topLevelEq(p) === -1).map((p) => p.trim());
+  if (MENTION_NAMES.has(name) || LANG_FIRST_NAMES.has(name)) {
+    // A hidden term ("{{cog|la-lat|-}}") renders as just the language name.
+    return pos[1] && pos[1] !== '-' ? pos[1] : langName(pos[0] || '');
+  }
+  if (name === 'w' || name === 'pedia') return pos[1] || pos[0] || '';
+  return pos[0] || '';
+}
+
 function cleanText(s) {
-  return (s || '')
+  s = s || '';
+  // Glosses can nest templates ("t={{taxlink|Dittrichia viscosa|species}}");
+  // resolve them innermost-first so raw wikitext never leaks into the tree.
+  let prev;
+  do {
+    prev = s;
+    s = s.replace(/\{\{([^{}]*)\}\}/g, (_, inner) => renderNestedTemplate(inner));
+  } while (s !== prev);
+  return s
     .replace(/\[\[[^\]|]*\|([^\]]*)\]\]/g, '$1')
     .replace(/\[\[([^\]]*)\]\]/g, '$1')
     .replace(/'{2,}/g, '')
@@ -726,6 +754,18 @@ function buildChain(etymText, root, rootLang) {
       // "from", so let the later part inherit the relation the first carried.
       if (sibling && /[+/]/.test(gap) && node.rel === 'from' && last.rel) node.rel = last.rel;
       if (gap.includes('(') && !gap.includes(')') && last) parenResume = last;
+      // A bare language reference ({{der|en|tnq|-}}) elaborated later in the
+      // sentence by a concrete word in that language ("… such as
+      // {{m|tnq|tabago}}") is one ancestor spelled out in two steps, not two:
+      // fill in the placeholder instead of adding a same-language twin.
+      const blank = node.form && attach.children.find((c) => c.lang === node.lang && !c.form);
+      if (blank) {
+        blank.form = node.form;
+        if (!blank.gloss) blank.gloss = node.gloss;
+        if (!blank.tr) blank.tr = node.tr;
+        last = blank;
+        continue;
+      }
       attach.children.push(node);
       last = node;
     }
