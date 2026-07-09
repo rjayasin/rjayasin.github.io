@@ -911,6 +911,7 @@
           id: n.id,
           form: n.form,
           lang: n.lang,
+          name: n.name,
           rel: n.rel,
           gloss: n.gloss,
           tr: n.tr,
@@ -1023,7 +1024,9 @@
 
         const lang = document.createElement('div');
         lang.className = 'lang';
-        lang.textContent = langName(n.lang);
+        // Pool trees carry the language name baked in by the pool builder;
+        // fall back to the engine's lookup for trees scraped live at play time.
+        lang.textContent = n.name || langName(n.lang);
         div.appendChild(lang);
 
         const form = document.createElement('div');
@@ -1750,7 +1753,6 @@
       let chunksReady = Promise.resolve();
       const LS_MANIFEST = 'etymology-game-manifest';
       const LS_TREES = 'etymology-game-trees';
-      const LS_LANGS = 'etymology-game-langs';
       const chunkName = (band, i) => `${band}-${String(i).padStart(3, '0')}`;
 
       function readStored(key) {
@@ -1847,12 +1849,15 @@
             );
           }
           // Background revalidation; new trees land mid-session and are
-          // picked up as the ready queue refills.
+          // picked up as the ready queue refills. A bumped manifest rev means
+          // existing chunks were rewritten in place (e.g. language names baked
+          // in) without their counts changing, so drop the count gate and
+          // refetch every chunk that run.
           fetchManifest().then((m) => {
             if (!m) return;
             applyManifest(m);
             writeStored(LS_MANIFEST, m);
-            pullChunks(m, haveCounts);
+            pullChunks(m, m.rev !== stored.rev ? {} : haveCounts);
           });
           return;
         }
@@ -1872,36 +1877,6 @@
           }
         }
         chunksReady = pullChunks(m, haveCounts); // not awaited — fills in behind the first game
-      }
-
-      // Language display names are baked at build time into langs.json (see
-      // scripts/etymology-pool.js) so a code missing from the engine's LANGS
-      // table still renders its full name here, where — unlike the explorer —
-      // we never resolve against Wiktionary.
-      async function refreshLangs() {
-        try {
-          const r = await fetch('langs.json', { cache: 'no-cache' });
-          if (!r.ok) return;
-          const d = await r.json();
-          if (d && typeof d === 'object' && !Array.isArray(d)) {
-            registerLangNames(d);
-            writeStored(LS_LANGS, d);
-          }
-        } catch (e) {
-          /* offline: cached names + the engine's static LANGS still apply */
-        }
-      }
-      // Repeat visits seed from the local copy (instant, no network before the
-      // first game) and revalidate in the background; the first visit awaits the
-      // fetch so labels are right on the first render. Mirrors loadTreeStore.
-      async function loadLangs() {
-        const cached = readStored(LS_LANGS);
-        if (cached) {
-          registerLangNames(cached);
-          refreshLangs();
-          return;
-        }
-        await refreshLangs();
       }
 
       // ---------- Seen words ----------
@@ -2619,7 +2594,7 @@
       // needed), then kick off the first game. A daily challenge with real
       // progress (a submit or a solved stage) left unfinished earlier today
       // resumes instead of dropping the player back into free play.
-      const storeReady = Promise.all([loadTreeStore(), loadLangs()]);
+      const storeReady = loadTreeStore();
       const storedDaily = readStored(DAILY_KEY);
       const resumeDaily =
         storedDaily &&

@@ -32,7 +32,6 @@ const path = require('path');
 const GAME_DIR = path.join(__dirname, '..', 'etymology', 'game');
 const TREES_DIR = path.join(GAME_DIR, 'trees');
 const MANIFEST_PATH = path.join(GAME_DIR, 'manifest.json');
-const LANGS_PATH = path.join(GAME_DIR, 'langs.json');
 const LEGACY_WORDS = path.join(GAME_DIR, 'words.json');
 const LEGACY_TREES = path.join(GAME_DIR, 'trees.json');
 const ENGINE_PATH = path.join(__dirname, '..', 'etymology', 'engine.js');
@@ -59,10 +58,20 @@ function countNodes(n) {
   return 1 + n.children.reduce((s, c) => s + countNodes(c), 0);
 }
 
+// Resolves a language code to its display name; wired to the engine's langName
+// in main() so cleanTree can bake names in. Identity until then (offline
+// legacy migration falls back to the raw code, which the game handles too).
+let nameForLang = (code) => code;
+
 // A tree stripped down to the fields worth persisting (same as the game's
-// cleanTree): play-time extras are dropped so the cached JSON stays small.
+// cleanTree): play-time extras are dropped so the cached JSON stays small. The
+// language name is baked in from the engine's resolver so the static game never
+// has to fall back to a bare code for a language missing from engine.js's
+// LANGS table — the tree files carry the names, no separate lookup to maintain.
 function cleanTree(node) {
   const out = { form: node.form, lang: node.lang };
+  const name = nameForLang(node.lang);
+  if (name && name !== node.lang) out.name = name;
   if (node.rel) out.rel = node.rel;
   if (node.gloss) out.gloss = node.gloss;
   if (node.tr) out.tr = node.tr;
@@ -113,6 +122,7 @@ function emptyState() {
     chunks: { easy: [], medium: [], hard: [] },
     pending: [],
     blocklist: [],
+    rev: 0, // bumped when chunk contents change in place, to bust client caches
     keys: new Set(),
     dirtyChunks: new Set(), // "band/i" of chunk files needing a rewrite
     dirtyManifest: false,
@@ -125,6 +135,7 @@ function loadState() {
   const state = emptyState();
   state.pending = Array.isArray(m.pending) ? m.pending.filter(isPlainWord) : [];
   state.blocklist = Array.isArray(m.blocklist) ? m.blocklist : [];
+  state.rev = Number(m.rev) || 0;
   for (const band of Object.keys(BANDS)) {
     state.words[band] = Array.isArray(m.words && m.words[band]) ? m.words[band].slice() : [];
     const counts = (m.chunks && m.chunks[band]) || [];
@@ -216,9 +227,9 @@ function wouldUnbalance(state, band) {
 
 function loadEngine() {
   // linkedom is only needed by buildTree's etytree mirror. Name resolution
-  // (langName/resolveLangNames, used by syncLangs) touches no DOM, so tolerate
-  // its absence with a stub — an --offline run that only syncs langs.json then
-  // works without the dependency installed.
+  // (langName/resolveLangNames, used to bake names into trees) touches no DOM,
+  // so tolerate its absence with a stub — an --offline run that only rebakes
+  // existing chunks then works without the dependency installed.
   let DOMParser;
   try {
     ({ DOMParser } = require('linkedom'));
@@ -336,6 +347,7 @@ function writeState(state) {
   if (state.dirtyManifest) {
     const manifest = {
       chunkSize: CHUNK_SIZE,
+      rev: state.rev,
       chunks: {},
       words: {},
       pending: sortWords(state.pending),
@@ -350,13 +362,7 @@ function writeState(state) {
 }
 
 // ---------- Language names ----------
-// The game renders pre-built static trees and, unlike the explorer, never hits
-// Wiktionary at play time — so a language code missing from engine.js's LANGS
-// table would surface as a bare code (OMR, DRA, ...). langs.json fixes that: a
-// baked {code: name} map the game seeds into its display cache. Names come from
-// the same source of truth the explorer uses (LANGS for codes known offline,
-// Wiktionary's {{langname}} + families module for the rest, via the engine), so
-// the map self-heals as new codes enter the pool without hand-editing a table.
+// Every distinct language code used anywhere in the pool.
 function collectPoolLangs(state) {
   const codes = new Set();
   const walk = (n) => {
@@ -369,35 +375,48 @@ function collectPoolLangs(state) {
   return codes;
 }
 
-async function syncLangs(state, engine, canFetch) {
-  const cache = fs.existsSync(LANGS_PATH) ? readJson(LANGS_PATH) : {};
-  const codes = [...collectPoolLangs(state)].filter(Boolean).sort();
-  // Reuse already-cached names and resolve the rest from LANGS with no network.
-  const resolved = (c) => (engine.langName(c) !== c ? engine.langName(c) : '');
-  const names = {};
-  for (const c of codes) {
-    const name = cache[c] || resolved(c);
-    if (name) names[c] = name;
+// Bake language names into every cached tree so the static game never renders a
+// bare code. New trees get names at build time via cleanTree; this backfills the
+// ones already stored (a one-time rewrite of existing chunks). Names come from
+// the same source of truth the explorer uses — LANGS for codes known offline,
+// Wiktionary's {{langname}} + families module for the rest — so there's no
+// separate table to hand-maintain as new codes enter the pool. Only chunks that
+// actually change are marked dirty, and a changed chunk bumps the manifest rev
+// so clients holding a full (count-unchanged) chunk refetch it.
+async function bakeNames(state, engine, canFetch) {
+  // Make sure every code resolves before re-cleaning: LANGS covers most, one
+  // batched lookup fills the rest when online.
+  const missing = [...collectPoolLangs(state)].filter((c) => c && engine.langName(c) === c);
+  if (missing.length && canFetch) await engine.resolveLangNames(missing);
+
+  let baked = 0;
+  for (const band of Object.keys(BANDS)) {
+    state.chunks[band].forEach((chunk, i) => {
+      let changed = false;
+      for (const key of Object.keys(chunk)) {
+        const next = cleanTree(chunk[key]);
+        if (JSON.stringify(next) !== JSON.stringify(chunk[key])) {
+          chunk[key] = next;
+          changed = true;
+          baked++;
+        }
+      }
+      if (changed) state.dirtyChunks.add(`${band}/${i}`);
+    });
   }
-  // One batched Wiktionary lookup covers whatever LANGS didn't know, when online.
-  const missing = codes.filter((c) => !names[c]);
-  if (missing.length && canFetch) {
-    await engine.resolveLangNames(missing);
-    for (const c of missing) if (resolved(c)) names[c] = resolved(c);
+  if (baked) {
+    state.rev++;
+    state.dirtyManifest = true;
+    console.log(`baked language names into ${baked} tree${baked > 1 ? 's' : ''}`);
   }
-  // codes is sorted, so insertion order gives a stable, minimal diff.
-  const out = JSON.stringify(names, null, 2) + '\n';
-  const prev = fs.existsSync(LANGS_PATH) ? fs.readFileSync(LANGS_PATH, 'utf8') : '';
-  if (out !== prev) {
-    fs.writeFileSync(LANGS_PATH, out);
-    console.log(`langs.json: ${Object.keys(names).length} language names`);
-  }
+  return baked;
 }
 
 async function main() {
   const hadManifest = fs.existsSync(MANIFEST_PATH);
-  const state = loadState();
   const engine = loadEngine();
+  nameForLang = engine.langName; // cleanTree bakes names in from here on
+  const state = loadState();
   let promoted = 0;
   let discovered = 0;
   let online = false;
@@ -414,7 +433,7 @@ async function main() {
     }
   }
 
-  await syncLangs(state, engine, online);
+  const baked = await bakeNames(state, engine, online);
   writeState(state);
 
   const total = Object.keys(BANDS)
@@ -427,6 +446,7 @@ async function main() {
   if (!hadManifest) parts.push('migrate to chunked tree store');
   if (promoted) parts.push(`promote ${promoted} pending word${promoted > 1 ? 's' : ''}`);
   if (discovered) parts.push(`add ${discovered} new word${discovered > 1 ? 's' : ''}`);
+  if (baked) parts.push(`bake language names into ${baked} tree${baked > 1 ? 's' : ''}`);
   if (parts.length && process.env.GITHUB_ENV) {
     fs.appendFileSync(process.env.GITHUB_ENV, `POOL_MSG=etymology game: ${parts.join(', ')}\n`);
   }
