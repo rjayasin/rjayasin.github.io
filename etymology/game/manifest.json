@@ -1,24 +1,24 @@
 {
   "chunkSize": 50,
-  "rev": 5,
+  "rev": 6,
   "chunks": {
     "easy": [
       50,
       50,
       50,
-      47
+      49
     ],
     "medium": [
       50,
       50,
       50,
-      37
+      41
     ],
     "hard": [
       50,
       50,
       50,
-      41
+      50
     ]
   },
   "words": {
@@ -199,7 +199,9 @@
       "Wednesday",
       "wife",
       "wigwam",
-      "winter"
+      "winter",
+      "yogurt",
+      "zenith"
     ],
     "medium": [
       "acorn",
@@ -375,7 +377,11 @@
       "wheel",
       "wolf",
       "word",
-      "yacht"
+      "yacht",
+      "yarn",
+      "yoga",
+      "zero",
+      "zodiac"
     ],
     "hard": [
       "alchemy",
@@ -406,6 +412,7 @@
       "chess",
       "chortle",
       "clue",
+      "coheiress",
       "conflagration",
       "cookie",
       "corded",
@@ -414,6 +421,8 @@
       "deer",
       "defragment",
       "democracy",
+      "dermoskeletal",
+      "desilicification",
       "dialogue",
       "disqualify",
       "dollar",
@@ -424,6 +433,7 @@
       "elephant",
       "encyclopedia",
       "energy",
+      "entangledly",
       "epidemic",
       "eponymously",
       "etymology",
@@ -434,6 +444,7 @@
       "gospel",
       "gossip",
       "grammar",
+      "groundtrack",
       "guesstimate",
       "history",
       "horizon",
@@ -449,6 +460,7 @@
       "leopard",
       "liberalize",
       "lilac",
+      "literatisation",
       "lord",
       "lumberyard",
       "mango",
@@ -472,6 +484,7 @@
       "paradise",
       "philosophy",
       "photograph",
+      "photoperiodical",
       "photosynthesis",
       "pretzel",
       "punch",
@@ -509,6 +522,7 @@
       "troll",
       "trustworthy",
       "twilight",
+      "undetrimental",
       "upcoming",
       "utopia",
       "vanilla",
@@ -522,20 +536,12 @@
       "window",
       "witch",
       "woman",
-      "world"
+      "world",
+      "zebra"
     ]
   },
   "pending": [
-    "yarn",
-    "yesterday",
-    "yodel",
-    "yoga",
-    "yogurt",
-    "zebra",
-    "zenith",
-    "zero",
-    "zodiac",
-    "zombie"
+    "yesterday"
   ],
   "blocklist": [
     "addressible",
