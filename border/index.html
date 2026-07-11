@@ -18,21 +18,13 @@
         user-select: none;
         position: relative;
       }
-      #border-svg {
+      #border-canvas {
         position: fixed;
         inset: 0;
         width: 100%;
         height: 100%;
         pointer-events: none;
         display: block;
-      }
-      #border-svg text {
-        fill: currentColor;
-        dominant-baseline: alphabetic;
-        /* Firefox snaps textPath glyphs to the pixel grid by default, which
-         turns the smooth sub-pixel startOffset updates into visible jitter.
-         geometricPrecision keeps glyph positions on the float values we set. */
-        text-rendering: geometricPrecision;
       }
       #hint {
         position: fixed;
@@ -103,14 +95,7 @@
     <script src="/common.js"></script>
   </head>
   <body>
-    <svg id="border-svg" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <path id="border-path" fill="none"></path>
-      </defs>
-      <text>
-        <textPath id="border-text" href="#border-path" startOffset="0"></textPath>
-      </text>
-    </svg>
+    <canvas id="border-canvas"></canvas>
     <div id="hint">
       <span id="hint-inner"
         ><span style="white-space: nowrap"
@@ -156,12 +141,22 @@
       let currentFont = null;
       let fallbackItems = [FALLBACK];
 
-      const pathEl = document.getElementById('border-path');
-      const textEl = document.querySelector('#border-svg text');
-      const textPathEl = document.getElementById('border-text');
+      const canvas = document.getElementById('border-canvas');
+      const ctx = canvas.getContext('2d');
 
-      let pathLen = 0;
-      let unitLen = 0;
+      // One closed loop around the viewport, drawn glyph by glyph. SVG textPath
+      // can't wrap around a closed path — its start point is a hard seam whose
+      // clipping behaviour differs between engines — so instead we compute each
+      // character's position along the loop ourselves, modulo the perimeter.
+      // Wrap-around is then just arithmetic: no seam can exist anywhere, in any
+      // browser. The corners are quarter-circle arcs rather than sharp 90°
+      // turns, so a glyph crossing a corner rotates gradually through it
+      // instead of snapping from one edge's orientation to the other's.
+      let segments = []; // ordered loop pieces, each with start/len/at(t)
+      let perimeter = 0;
+      let glyphs = []; // one copy of the text: { ch, mid } midpoints along the loop
+      let period = 0; // loop-length of one copy; copies * period === perimeter
+      let copies = 1;
       let offset = 0;
 
       function unitText() {
@@ -172,139 +167,184 @@
 
       // `renderSize` is the font size we actually paint at: the user's chosen
       // size is a target, but we nudge it so a whole number of text copies wraps
-      // the border exactly (see rebuild). No letter-spacing is ever applied.
+      // the border exactly (see rebuild).
       let renderSize = fontSize;
-      function applyFont(size) {
-        textEl.style.letterSpacing = '0px';
-        textEl.style.fontSize = size + 'px';
-        textEl.style.fontFamily = currentFont ? `'${currentFont}', serif` : '';
+      function fontString(size) {
+        const family = currentFont
+          ? `'${currentFont}', serif`
+          : getComputedStyle(document.body).fontFamily;
+        return `${size}px ${family}`;
       }
 
-      // Height of 'Mqgy' (ascenders + descenders) at a given size, used to inset
-      // the path so the glyphs sit between the path and the screen edge.
+      // Per-character advances at a given size. Characters are painted one at a
+      // time, so per-character measurement is exactly what gets drawn.
+      function measureAdvances(chars, size) {
+        ctx.font = fontString(size);
+        const adv = [];
+        let total = 0;
+        for (const ch of chars) {
+          const w = ctx.measureText(ch).width;
+          adv.push(w);
+          total += w;
+        }
+        return { adv, total };
+      }
+
+      // Height of ascenders + descenders at a given size, used to inset the
+      // loop so the glyphs sit between the baseline and the screen edge.
       function textHeightAt(size) {
-        const probe = document.createElement('span');
-        probe.style.cssText =
-          'position:absolute;visibility:hidden;white-space:nowrap;line-height:1;';
-        probe.style.fontSize = size + 'px';
-        probe.style.fontFamily = currentFont ? `'${currentFont}', serif` : '';
-        probe.textContent = 'Mqgy';
-        document.body.appendChild(probe);
-        const h = probe.offsetHeight;
-        document.body.removeChild(probe);
-        return h;
+        ctx.font = fontString(size);
+        const m = ctx.measureText('Mqgy');
+        const asc = m.fontBoundingBoxAscent ?? m.actualBoundingBoxAscent ?? size * 0.8;
+        const desc = m.fontBoundingBoxDescent ?? m.actualBoundingBoxDescent ?? size * 0.25;
+        return asc + desc;
+      }
+
+      // Rounded rectangle, traversed from the middle of the bottom edge going
+      // left, then up the left side, right across the top, and down the right
+      // side — so glyphs sit upright on the top edge and their ascenders always
+      // point at the nearest screen edge. Corner radius scales with the font so
+      // a few characters span each arc.
+      function buildLoop(W, H, inset, size) {
+        const x0 = inset;
+        const y0 = inset;
+        const x1 = W - inset;
+        const y1 = H - inset;
+        const r = Math.max(0, Math.min(2.5 * size, (x1 - x0) / 2 - 1, (y1 - y0) / 2 - 1));
+        const cx = W / 2;
+        const HPI = Math.PI / 2;
+        segments = [];
+        const straight = (px, py, dx, dy, len) => {
+          if (len <= 0) return;
+          const a = Math.atan2(dy, dx);
+          segments.push({ len, at: (t) => ({ x: px + dx * t, y: py + dy * t, a }) });
+        };
+        // Quarter arc from angle a0, always sweeping +90° (our traversal turns
+        // the same way at every corner). Tangent leads the radius by 90°.
+        const corner = (ax, ay, a0) => {
+          if (r <= 0) return;
+          segments.push({
+            len: r * HPI,
+            at: (t) => {
+              const ang = a0 + t / r;
+              return { x: ax + r * Math.cos(ang), y: ay + r * Math.sin(ang), a: ang + HPI };
+            },
+          });
+        };
+        straight(cx, y1, -1, 0, cx - (x0 + r)); // bottom: centre -> bottom-left
+        corner(x0 + r, y1 - r, HPI); // bottom-left
+        straight(x0, y1 - r, 0, -1, y1 - y0 - 2 * r); // left side, upward
+        corner(x0 + r, y0 + r, Math.PI); // top-left
+        straight(x0 + r, y0, 1, 0, x1 - x0 - 2 * r); // top, rightward
+        corner(x1 - r, y0 + r, -HPI); // top-right
+        straight(x1, y0 + r, 0, 1, y1 - y0 - 2 * r); // right side, downward
+        corner(x1 - r, y1 - r, 0); // bottom-right
+        straight(x1 - r, y1, -1, 0, x1 - r - cx); // bottom: bottom-right -> centre
+        let acc = 0;
+        for (const s of segments) {
+          s.start = acc;
+          acc += s.len;
+        }
+        perimeter = acc;
+      }
+
+      function pointAt(d) {
+        let t = d % perimeter;
+        if (t < 0) t += perimeter;
+        let seg = segments[segments.length - 1];
+        for (const s of segments) {
+          if (t < s.start + s.len) {
+            seg = s;
+            break;
+          }
+        }
+        return seg.at(Math.min(t - seg.start, seg.len));
+      }
+
+      function resizeCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.round(window.innerWidth * dpr);
+        canvas.height = Math.round(window.innerHeight * dpr);
       }
 
       function rebuild() {
-        const text = unitText();
         const W = window.innerWidth;
         const H = window.innerHeight;
-
+        resizeCanvas();
+        const text = unitText();
         if (!text) {
-          applyFont(fontSize);
-          pathEl.removeAttribute('d');
-          textPathEl.textContent = '';
-          unitLen = 0;
+          glyphs = [];
+          period = 0;
           return;
         }
+        const chars = [...text];
 
-        // CW rectangle whose start/end seam sits at the MIDDLE of the bottom
-        // edge rather than on a corner. A textPath does not wrap around: glyphs
-        // before offset 0 or past pathLen are clipped, so the start point is
-        // always a seam where the text can't continue across. Keeping that seam
-        // mid-edge (not on a corner) lets the text round all four corners
-        // smoothly; making the perimeter an exact whole number of text copies
-        // (below) then closes the loop onto itself so the seam vanishes too.
-        //
-        // Winding stays clockwise so the text keeps sitting on the outer side:
-        // bottom-middle -> bottom-left -> top-left -> top-right -> bottom-right
-        // -> (close) back to bottom-middle. `inset` and `scale` are read fresh on
-        // each call; `scale` resizes the rectangle about its centre so the
-        // perimeter can be fine-tuned by a sub-pixel amount.
-        let inset = 0;
-        const buildPath = (scale) => {
-          const rw = (W - 2 * inset) * scale;
-          const rh = (H - 2 * inset) * scale;
-          const x0 = (W - rw) / 2;
-          const x1 = (W + rw) / 2;
-          const y0 = (H - rh) / 2;
-          const y1 = (H + rh) / 2;
-          const d = `M ${W / 2} ${y1} L ${x0} ${y1} L ${x0} ${y0} L ${x1} ${y0} L ${x1} ${y1} Z`;
-          pathEl.setAttribute('d', d);
-          return pathEl.getTotalLength();
-        };
-
-        // Marginal width one extra copy adds at the current font: the true
-        // repeat period, including the kerning where one copy meets the next.
-        const measurePeriod = () => {
-          textPathEl.textContent = text;
-          const one = textPathEl.getComputedTextLength();
-          textPathEl.textContent = text + text;
-          const two = textPathEl.getComputedTextLength();
-          return two - one;
-        };
-
-        // Fit the text by FONT SIZE, not by letter-spacing. A whole number of
-        // copies must span the perimeter for the loop to close with no seam at
-        // the bottom-centre. letter-spacing on a path is honoured inconsistently
-        // across engines — iOS Safari, for instance, ignores it — so stretching
-        // that way leaves the loop open there. Scaling the font changes the
-        // glyphs themselves, which every engine measures and paints identically,
-        // so what we compute is exactly what gets drawn, on every browser.
-        //
-        // The period grows ~linearly with size, so solve for the size whose
-        // `copies` periods fill the perimeter, re-measuring a few times because
-        // the inset (hence the perimeter) shifts slightly as the size changes.
+        // Fit the text by font size: solve for the size at which a whole number
+        // of copies spans the perimeter. The total width grows ~linearly with
+        // size, so a few iterations converge; re-measure each time because the
+        // inset (hence the perimeter) shifts slightly as the size changes.
         let size = fontSize;
-        let copies = 1;
-        let period = 0;
+        let total = 0;
         for (let i = 0; i < 6; i++) {
-          applyFont(size);
-          inset = Math.ceil(textHeightAt(size) * 0.95);
-          const perimeter = buildPath(1);
-          period = measurePeriod();
-          if (period <= 0) return;
-          copies = Math.max(1, Math.round(perimeter / period));
-          const next = size * (perimeter / copies / period);
+          total = measureAdvances(chars, size).total;
+          if (total <= 0) return;
+          buildLoop(W, H, Math.ceil(textHeightAt(size) * 0.95), size);
+          copies = Math.max(1, Math.round(perimeter / total));
+          const next = size * (perimeter / copies / total);
           const settled = Math.abs(next - size) < 0.02;
           size = Math.max(4, next);
           if (settled) break;
         }
         renderSize = size;
 
-        // Settle at the solved size and read the final geometry.
-        applyFont(renderSize);
-        inset = Math.ceil(textHeightAt(renderSize) * 0.95);
-        const basePerimeter = buildPath(1);
-        period = measurePeriod();
-        if (period <= 0) return;
-        copies = Math.max(1, Math.round(basePerimeter / period));
+        // Settle at the solved size, then absorb the last sub-pixel residue by
+        // scaling every advance so `copies` copies tile the perimeter EXACTLY.
+        // The stretch is a fraction of a percent — invisible — and it makes the
+        // wrap-around join between the last copy and the first identical to
+        // every other copy-to-copy join.
+        const m = measureAdvances(chars, renderSize);
+        if (m.total <= 0) return;
+        buildLoop(W, H, Math.ceil(textHeightAt(renderSize) * 0.95), renderSize);
+        copies = Math.max(1, Math.round(perimeter / m.total));
+        const k = perimeter / (copies * m.total);
+        glyphs = [];
+        let cum = 0;
+        for (let i = 0; i < chars.length; i++) {
+          const w = m.adv[i] * k;
+          glyphs.push({ ch: chars[i], mid: cum + w / 2 });
+          cum += w;
+        }
+        period = cum;
+      }
 
-        // Close the last sub-pixel gap (font sizes are quantised) from the
-        // geometry side: nudge the rectangle so the perimeter is EXACTLY
-        // `copies` periods. This rescale is far below a pixel and invisible, and
-        // it relies only on geometry and plain-text metrics — no path-specific
-        // text features — so the loop closes identically on every engine.
-        pathLen = buildPath((copies * period) / basePerimeter);
-
-        // Scroll the loop by exactly one period; the perimeter is now an exact
-        // whole number of copies, so every scroll position keeps it seamless.
-        unitLen = period;
-
-        // Render enough whole copies that the visible window is always covered
-        // as the loop scrolls by up to one period.
-        textPathEl.textContent = text.repeat(copies + 2);
+      function draw() {
+        const dpr = window.devicePixelRatio || 1;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (!glyphs.length || perimeter <= 0) return;
+        ctx.font = fontString(renderSize);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle = getComputedStyle(document.body).color;
+        for (let c = 0; c < copies; c++) {
+          const base = c * period - offset;
+          for (const g of glyphs) {
+            if (g.ch === ' ') continue;
+            const p = pointAt(base + g.mid);
+            const cos = Math.cos(p.a);
+            const sin = Math.sin(p.a);
+            ctx.setTransform(dpr * cos, dpr * sin, -dpr * sin, dpr * cos, dpr * p.x, dpr * p.y);
+            ctx.fillText(g.ch, 0, 0);
+          }
+        }
       }
 
       let lastT = performance.now();
       function tick(now) {
         const dt = Math.min(0.1, (now - lastT) / 1000);
         lastT = now;
-        if (unitLen > 0) {
-          offset += SPEED * dt;
-          const startOff = -(((offset % unitLen) + unitLen) % unitLen);
-          textPathEl.setAttribute('startOffset', startOff);
-        }
+        if (perimeter > 0) offset = (offset + SPEED * dt) % perimeter;
+        draw();
         requestAnimationFrame(tick);
       }
 
