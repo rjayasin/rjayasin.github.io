@@ -73,17 +73,43 @@
       body.dark #hint .hint-btn:hover {
         color: #ccc;
       }
-      #hint-zone {
+      #help {
         position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: 60px;
-        z-index: 2;
-        pointer-events: none;
+        top: 10px;
+        right: 12px;
+        width: 24px;
+        height: 24px;
+        line-height: 22px;
+        text-align: center;
+        border: 1px solid #888;
+        border-radius: 50%;
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        font-size: 13px;
+        color: #888;
+        background: #ffffff;
+        opacity: 0.75;
+        cursor: pointer;
+        user-select: none;
+        z-index: 3;
       }
-      #hint.hidden ~ #hint-zone {
-        pointer-events: auto;
+      body.dark #help {
+        background: #111111;
+      }
+      #help:hover {
+        color: #333;
+        border-color: #333;
+        opacity: 1;
+      }
+      body.dark #help:hover {
+        color: #ccc;
+        border-color: #ccc;
       }
     </style>
     <script src="/common.js"></script>
@@ -107,7 +133,7 @@
         ></span
       >
     </div>
-    <div id="hint-zone"></div>
+    <div id="help">?</div>
     <script>
       Common.paintFaviconR();
       Common.initDarkMode();
@@ -899,15 +925,12 @@
         clearTimeout(hintTimer);
         hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 2500);
       }
-      window.addEventListener('pointermove', (e) => {
-        if (e.clientY >= window.innerHeight - 60) showHint();
+      // The ? button in the top-right corner brings the hint bar back up,
+      // leaving the whole bottom of the screen free for flipper presses.
+      document.getElementById('help').addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        showHint();
       });
-      // While the hint is hidden, the zone overlay catches pointerdowns in the
-      // bottom band before they reach the canvas, so a tap there reveals the
-      // hint instead of working a flipper. Once the hint is up, the CSS flips
-      // the zone back to pointer-events:none and flipping works again.
-      document.getElementById('hint-zone').addEventListener('pointerdown', showHint);
-
       document.getElementById('hb-reset').addEventListener('click', () => {
         reset();
         showHint();
