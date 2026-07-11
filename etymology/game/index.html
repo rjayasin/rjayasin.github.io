@@ -793,6 +793,9 @@
         >
         <button id="reset-btn" class="btn" disabled>reset</button>
         <button id="submit-btn" class="btn primary" disabled>submit</button>
+        <button id="share-btn" class="btn" hidden title="Share today’s result — no spoilers">
+          share
+        </button>
       </div>
       <div id="pool"></div>
     </section>
@@ -846,6 +849,7 @@
       const diffCtl = document.getElementById('diff-ctl');
       const dailyBtn = document.getElementById('daily-btn');
       const dailyProgressEl = document.getElementById('daily-progress');
+      const shareBtn = document.getElementById('share-btn');
       const statsBtn = document.getElementById('stats-btn');
       const statsOverlay = document.getElementById('stats-overlay');
       const statsRows = document.getElementById('stats-rows');
@@ -2606,6 +2610,9 @@
         if (!dailyArmed) dailyBtn.textContent = inDaily ? 'free play' : 'daily';
         diffCtl.hidden = inDaily;
         dailyProgressEl.hidden = !inDaily;
+        // Sharing only exists for a finished daily: the result is fixed, and
+        // the summary never spoils the words, so it's safe to show for good.
+        shareBtn.hidden = !inDaily || !daily.done;
         if (!inDaily) {
           newBtn.hidden = false;
           return;
@@ -2645,6 +2652,75 @@
           dailyProgressEl.appendChild(s);
         }
       }
+
+      // ---------- Sharing (Wordle-style) ----------
+      // A spoiler-free summary of today's finished daily: one square per
+      // pre-solve submit in each band — 🟩 the solving submit, ⬜ a miss
+      // still within par, 🟥 a miss past par — plus the streak. The words
+      // themselves are never included, so it can't spoil anyone's game.
+      const DAILY_EPOCH = '2026-07-06'; // the first daily challenge = daily #1
+      function dailyNumber(dateStr) {
+        // Both parsed as local midnights; rounding absorbs any DST unevenness.
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const [ey, em, ed] = DAILY_EPOCH.split('-').map(Number);
+        return Math.round((new Date(y, m - 1, d) - new Date(ey, em - 1, ed)) / 864e5) + 1;
+      }
+      function dailyShareText() {
+        const lines = ['Etymology Daily #' + dailyNumber(daily.date) + ' — ' + daily.date];
+        for (const band of DAILY_ORDER) {
+          const used = daily.submits[band];
+          const par = daily.par[band] || 0;
+          let squares = '';
+          for (let i = 1; i <= used; i++) {
+            if (i === used && daily.solved[band]) squares += '🟩';
+            else squares += i > par ? '🟥' : '⬜';
+          }
+          lines.push(band[0].toUpperCase() + ' ' + squares + ' ' + used + '/' + par);
+        }
+        lines.push(daily.failed ? 'Over par — no streak.' : 'Streak: ' + currentStreak() + ' 🔥');
+        lines.push(location.origin + location.pathname);
+        return lines.join('\n');
+      }
+
+      // Hand the summary to the native share sheet where there is one
+      // (mobile), otherwise copy it to the clipboard and flash the button.
+      let shareResetTimer = 0;
+      async function shareDaily() {
+        if (!daily || !daily.done) return;
+        const text = dailyShareText();
+        if (navigator.share) {
+          try {
+            await navigator.share({ text });
+            return;
+          } catch (e) {
+            if (e.name === 'AbortError') return; // sheet dismissed — not a failure
+            // share unavailable after all (e.g. desktop refusal) — fall through
+          }
+        }
+        let copied = false;
+        try {
+          await navigator.clipboard.writeText(text);
+          copied = true;
+        } catch (e) {
+          // clipboard API unavailable (insecure context, permissions) — legacy path
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          try {
+            copied = document.execCommand('copy');
+          } catch (e2) {}
+          ta.remove();
+        }
+        shareBtn.textContent = copied ? 'copied!' : 'copy failed';
+        clearTimeout(shareResetTimer);
+        shareResetTimer = setTimeout(() => {
+          shareBtn.textContent = 'share';
+        }, 1500);
+      }
+      shareBtn.addEventListener('click', shareDaily);
 
       async function enterDaily() {
         daily = loadDailyState();
