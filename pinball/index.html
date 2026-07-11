@@ -1,0 +1,928 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Ruvan / pinball</title>
+    <link rel="icon" id="favicon" />
+    <link rel="stylesheet" href="/common.css" />
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      #game {
+        position: fixed;
+        inset: 0;
+        display: block;
+        touch-action: none;
+        cursor: pointer;
+      }
+      #hint {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 12px;
+        text-align: center;
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        font-size: 12px;
+        color: #888;
+        opacity: 1;
+        transition: opacity 0.4s ease;
+        user-select: none;
+        z-index: 3;
+        pointer-events: none;
+      }
+      #hint-inner {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 6px;
+        background: #ffffff;
+      }
+      body.dark #hint-inner {
+        background: #111111;
+      }
+      #hint.hidden {
+        opacity: 0;
+      }
+      #hint.hidden .hint-btn {
+        pointer-events: none;
+      }
+      #hint .hint-btn {
+        cursor: pointer;
+        pointer-events: auto;
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        text-underline-offset: 2px;
+      }
+      #hint .hint-btn:hover {
+        color: #333;
+      }
+      body.dark #hint .hint-btn:hover {
+        color: #ccc;
+      }
+      #hint-zone {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 60px;
+        z-index: 2;
+        pointer-events: none;
+      }
+      #hint.hidden ~ #hint-zone {
+        pointer-events: auto;
+      }
+    </style>
+    <script src="/common.js"></script>
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div id="hint">
+      <span id="hint-inner"
+        ><span style="white-space: nowrap">tap bottom left/right to flip</span> &nbsp;·&nbsp;
+        <span style="white-space: nowrap">tap up top for another ball</span> &nbsp;·&nbsp;
+        <span style="white-space: nowrap"><span class="hint-btn" id="hb-reset">r reset</span></span>
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-dark"
+            >1 <span class="hb-dark-label">dark</span></span
+          ></span
+        >
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-sitemap">s sitemap</span></span
+        ></span
+      >
+    </div>
+    <div id="hint-zone"></div>
+    <script>
+      Common.paintFaviconR();
+      Common.initDarkMode();
+
+      const MONO =
+        'ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace';
+
+      // The ball is always something round: color dots, sport balls, moons,
+      // and plenty of the yellow circular faces.
+      const BALL_EMOJIS = [
+        '😀',
+        '😃',
+        '😄',
+        '😁',
+        '😆',
+        '😅',
+        '🙂',
+        '🙃',
+        '😉',
+        '😊',
+        '😇',
+        '🥰',
+        '😍',
+        '🤩',
+        '😋',
+        '😜',
+        '🤪',
+        '😝',
+        '🤗',
+        '🤭',
+        '🤔',
+        '😐',
+        '😶',
+        '😏',
+        '🙄',
+        '😬',
+        '😴',
+        '😲',
+        '😳',
+        '🥺',
+        '😢',
+        '😭',
+        '😤',
+        '😠',
+        '🤯',
+        '😎',
+        '🤓',
+        '🧐',
+        '🥴',
+        '🥶',
+        '🥵',
+        '😷',
+        '🤠',
+        '🥳',
+        '😈',
+        '🔴',
+        '🟠',
+        '🟡',
+        '🟢',
+        '🔵',
+        '🟣',
+        '🟤',
+        '⚫',
+        '⚪',
+        '⚽',
+        '🏀',
+        '🏐',
+        '⚾',
+        '🥎',
+        '🎾',
+        '🎱',
+        '🌕',
+        '🌑',
+        '🌍',
+        '🌎',
+        '🌏',
+        '🌝',
+        '🌚',
+        '🪩',
+        '🧿',
+        '🍊',
+        '🥥',
+        '💿',
+        '📀',
+        '🔮',
+        '🪙',
+      ];
+      function pickBallEmoji() {
+        return BALL_EMOJIS[Math.floor(Math.random() * BALL_EMOJIS.length)];
+      }
+
+      // Targets are little ASCII shapes and blobs; each non-space character
+      // is a cell that can be knocked loose.
+      const SHAPES = [
+        // hollow ring
+        ['  oOOOo  ', ' OOo oOO ', 'oO     Oo', 'OO     OO', 'oO     Oo', ' OOo oOO ', '  oOOOo  '],
+        // diamond
+        ['   #   ', '  ###  ', ' ##### ', '#######', ' ##### ', '  ###  ', '   #   '],
+        // splat blob
+        ['   %%  %   ', '  %%%%%%%  ', ' %%%%%%%%% ', '%%%%%%%%%%%', ' %%%%%%%%  ', '   %%%%    '],
+        // asterisk burst
+        [
+          '*   *   *',
+          ' *  *  * ',
+          '  * * *  ',
+          '   ***   ',
+          '*********',
+          '   ***   ',
+          '  * * *  ',
+          ' *  *  * ',
+          '*   *   *',
+        ],
+        // amoeba
+        ['   &&&&    ', '  &&&&&&&  ', ' &&&&&&&&& ', '&&&&&&&&   ', ' &&&&&&&&& ', '   &&&&&&  '],
+        // mountain
+        ['    ^    ', '   ^^^   ', '  ^^=^^  ', ' ^^===^^ ', '^^=====^^', '========='],
+        // hexagon
+        ['  @@@@@  ', ' @@@@@@@ ', '@@@@@@@@@', '@@@@@@@@@', ' @@@@@@@ ', '  @@@@@  '],
+      ];
+
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d');
+
+      let W = 0,
+        H = 0,
+        dpr = 1;
+      let ballR, targetFont, cellW, cellH, flipFont, flipCharW;
+
+      let balls = [];
+      let targets = [];
+      let particles = [];
+      let pops = [];
+      let score = 0;
+      let respawnAt = 0;
+
+      // --- physics constants ---
+      const GRAVITY = 1500; // px/s^2
+      const WALL_REST = 0.72;
+      const FUNNEL_REST = 0.45;
+      const FLIP_REST = 0.45;
+      const BUMPER_REST = 0.9;
+      const BUMPER_KICK = 620; // min outgoing normal speed off a target
+      const MAX_SPEED = 2400;
+      const MAX_BALLS = 4;
+      const HIT_COOLDOWN = 90; // ms between scoring hits on one target
+      const POP_FRACTION = 0.45; // target explodes below this alive ratio
+      const RESPAWN_MS = 2600;
+
+      // Flipper angles are measured from horizontal; y grows downward so the
+      // rest position droops toward the drain and "up" swings above it.
+      const REST_ANGLE = 0.5;
+      const UP_ANGLE = -0.62;
+      const FLIP_UP_SPEED = 18; // rad/s
+      const FLIP_DOWN_SPEED = 9;
+
+      // side: -1 = left flipper, 1 = right (mirrored geometry).
+      const flippers = [
+        { side: -1, px: 0, py: 0, len: 0, thick: 0, angle: REST_ANGLE, av: 0, pressed: false },
+        { side: 1, px: 0, py: 0, len: 0, thick: 0, angle: REST_ANGLE, av: 0, pressed: false },
+      ];
+      let funnelTopY = 0;
+
+      function isDark() {
+        if (document.body.classList.contains('dark')) return true;
+        if (document.body.classList.contains('light')) return false;
+        return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      }
+      function inkColor() {
+        return isDark() ? '#f0f0f0' : '#111111';
+      }
+
+      function layout() {
+        const minDim = Math.min(W, H);
+        ballR = Math.max(11, Math.min(20, Math.round(minDim / 40)));
+        targetFont = Math.max(10, Math.min(18, Math.round(minDim / 48)));
+        ctx.font = targetFont + 'px ' + MONO;
+        cellW = ctx.measureText('M').width * 1.1;
+        cellH = targetFont * 1.05;
+        flipFont = Math.max(14, Math.min(24, Math.round(minDim / 34)));
+        ctx.font = flipFont + 'px ' + MONO;
+        flipCharW = ctx.measureText('M').width;
+
+        const len = Math.max(80, Math.min(170, minDim * 0.17));
+        const tipGapHalf = len * 0.36; // half the drain width between tips
+        const pivotY = H - 24 - Math.sin(REST_ANGLE) * len;
+        const pivotDx = tipGapHalf + Math.cos(REST_ANGLE) * len;
+        for (const f of flippers) {
+          f.len = len;
+          f.thick = flipFont * 0.42;
+          f.px = W / 2 + f.side * pivotDx;
+          f.py = pivotY;
+        }
+        funnelTopY = pivotY - len * 1.6;
+      }
+
+      // --- targets ---
+      function makeTarget(cx, cy) {
+        const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+        const rows = shape.length;
+        const cells = [];
+        let maxR = 0;
+        for (let r = 0; r < rows; r++) {
+          const line = shape[r];
+          for (let c = 0; c < line.length; c++) {
+            const ch = line[c];
+            if (ch === ' ') continue;
+            const dx = (c - (line.length - 1) / 2) * cellW;
+            const dy = (r - (rows - 1) / 2) * cellH;
+            cells.push({ dx, dy, ch, alive: true });
+            maxR = Math.max(maxR, Math.hypot(dx, dy));
+          }
+        }
+        return {
+          cx,
+          cy,
+          cells,
+          total: cells.length,
+          alive: cells.length,
+          r: maxR + cellH * 0.6,
+          hitR: maxR * 0.85 || cellH,
+          lastHit: 0,
+          flashT: 0,
+          dead: false,
+          respawnAt: 0,
+        };
+      }
+
+      function randomTargetPos(selfR, skip) {
+        const yMin = 70 + selfR;
+        const yMax = Math.max(yMin + 1, H * 0.52 - selfR);
+        const xMin = selfR + 16;
+        const xMax = Math.max(xMin + 1, W - selfR - 16);
+        let best = null;
+        for (let i = 0; i < 60; i++) {
+          const x = xMin + Math.random() * (xMax - xMin);
+          const y = yMin + Math.random() * (yMax - yMin);
+          let ok = true;
+          for (const t of targets) {
+            if (t === skip || t.dead) continue;
+            if (Math.hypot(t.cx - x, t.cy - y) < (t.r + selfR) * 0.9 + 24) {
+              ok = false;
+              break;
+            }
+          }
+          best = { x, y };
+          if (ok) return best;
+        }
+        return best;
+      }
+
+      function buildTargets() {
+        targets = [];
+        const count = Math.max(3, Math.min(7, Math.round((W * H) / 230000)));
+        for (let i = 0; i < count; i++) {
+          const probe = makeTarget(0, 0);
+          const pos = randomTargetPos(probe.r, null);
+          probe.cx = pos.x;
+          probe.cy = pos.y;
+          targets.push(probe);
+        }
+      }
+
+      function respawnTarget(t) {
+        const fresh = makeTarget(0, 0);
+        const pos = randomTargetPos(fresh.r, t);
+        fresh.cx = pos.x;
+        fresh.cy = pos.y;
+        Object.assign(t, fresh);
+      }
+
+      // --- balls, particles, score pops ---
+      function spawnBall(x) {
+        if (balls.length >= MAX_BALLS) return;
+        balls.push({
+          x: x != null ? x : W * (0.2 + Math.random() * 0.6),
+          y: -ballR * 2,
+          vx: (Math.random() - 0.5) * 240,
+          vy: 0,
+          r: ballR,
+          ch: pickBallEmoji(),
+          angle: 0,
+          av: 0,
+        });
+      }
+
+      function spawnParticle(x, y, ch, vx, vy) {
+        if (particles.length > 350) particles.shift();
+        particles.push({
+          x,
+          y,
+          vx,
+          vy,
+          ch,
+          angle: 0,
+          av: (Math.random() - 0.5) * 12,
+          life: 1,
+        });
+      }
+
+      function addPop(x, y, text) {
+        pops.push({ x, y, text, life: 1 });
+      }
+
+      function knockCells(t, n, now) {
+        const aliveCells = t.cells.filter((c) => c.alive);
+        for (let i = 0; i < n && aliveCells.length; i++) {
+          const idx = Math.floor(Math.random() * aliveCells.length);
+          const cell = aliveCells.splice(idx, 1)[0];
+          cell.alive = false;
+          t.alive--;
+          const dir = Math.atan2(cell.dy, cell.dx) + (Math.random() - 0.5) * 1.2;
+          const sp = 140 + Math.random() * 260;
+          spawnParticle(
+            t.cx + cell.dx,
+            t.cy + cell.dy,
+            cell.ch,
+            Math.cos(dir) * sp,
+            Math.sin(dir) * sp - 80
+          );
+        }
+        if (t.alive / t.total <= POP_FRACTION) {
+          for (const cell of t.cells) {
+            if (!cell.alive) continue;
+            cell.alive = false;
+            const dir = Math.atan2(cell.dy, cell.dx) + (Math.random() - 0.5) * 0.8;
+            const sp = 220 + Math.random() * 340;
+            spawnParticle(
+              t.cx + cell.dx,
+              t.cy + cell.dy,
+              cell.ch,
+              Math.cos(dir) * sp,
+              Math.sin(dir) * sp - 120
+            );
+          }
+          t.alive = 0;
+          t.dead = true;
+          t.respawnAt = now + RESPAWN_MS;
+          score += 500;
+          addPop(t.cx, t.cy, '+500');
+        }
+      }
+
+      // --- collision helpers ---
+      function clampSpeed(b) {
+        const sp = Math.hypot(b.vx, b.vy);
+        if (sp > MAX_SPEED) {
+          const k = MAX_SPEED / sp;
+          b.vx *= k;
+          b.vy *= k;
+        }
+      }
+
+      function collideSegment(b, x1, y1, x2, y2, rest, thick) {
+        const dx = x2 - x1,
+          dy = y2 - y1;
+        const L2 = dx * dx + dy * dy || 0.0001;
+        let t = ((b.x - x1) * dx + (b.y - y1) * dy) / L2;
+        t = Math.max(0, Math.min(1, t));
+        const px = x1 + t * dx,
+          py = y1 + t * dy;
+        let nx = b.x - px,
+          ny = b.y - py;
+        const d = Math.hypot(nx, ny) || 0.0001;
+        const minD = b.r + thick;
+        if (d >= minD) return false;
+        nx /= d;
+        ny /= d;
+        b.x = px + nx * minD;
+        b.y = py + ny * minD;
+        const vn = b.vx * nx + b.vy * ny;
+        if (vn < 0) {
+          b.vx -= (1 + rest) * vn * nx;
+          b.vy -= (1 + rest) * vn * ny;
+        }
+        return true;
+      }
+
+      function collideFlipper(b, f) {
+        const c = Math.cos(f.angle),
+          s = Math.sin(f.angle);
+        const tipX = f.px - f.side * c * f.len;
+        const tipY = f.py + s * f.len;
+        const dx = tipX - f.px,
+          dy = tipY - f.py;
+        const L2 = dx * dx + dy * dy || 0.0001;
+        let t = ((b.x - f.px) * dx + (b.y - f.py) * dy) / L2;
+        t = Math.max(0, Math.min(1, t));
+        const px = f.px + t * dx,
+          py = f.py + t * dy;
+        let nx = b.x - px,
+          ny = b.y - py;
+        const d = Math.hypot(nx, ny) || 0.0001;
+        const minD = b.r + f.thick;
+        if (d >= minD) return;
+        nx /= d;
+        ny /= d;
+        b.x = px + nx * minD;
+        b.y = py + ny * minD;
+        // Surface velocity at the contact point from the flipper's swing:
+        // for the left flipper P(a) = pivot + len*t*(cos a, sin a), so
+        // dP/da = len*t*(-sin a, cos a); the right side mirrors the x term.
+        const ux = f.side < 0 ? -s : s;
+        const uy = c;
+        const sv = f.av * f.len * t;
+        const rvx = b.vx - ux * sv;
+        const rvy = b.vy - uy * sv;
+        const vn = rvx * nx + rvy * ny;
+        if (vn < 0) {
+          b.vx -= (1 + FLIP_REST) * vn * nx;
+          b.vy -= (1 + FLIP_REST) * vn * ny;
+          const vt = rvx * -ny + rvy * nx;
+          b.av = Math.max(-16, Math.min(16, b.av - (vt / b.r) * 0.25));
+        }
+        clampSpeed(b);
+      }
+
+      function collideTarget(b, t, now) {
+        if (t.dead) return;
+        let nx = b.x - t.cx,
+          ny = b.y - t.cy;
+        const d = Math.hypot(nx, ny) || 0.0001;
+        const minD = b.r + t.hitR;
+        if (d >= minD) return;
+        nx /= d;
+        ny /= d;
+        b.x = t.cx + nx * minD;
+        b.y = t.cy + ny * minD;
+        const vn = b.vx * nx + b.vy * ny;
+        if (vn < 0) {
+          b.vx -= (1 + BUMPER_REST) * vn * nx;
+          b.vy -= (1 + BUMPER_REST) * vn * ny;
+        }
+        // Bumper kick: guarantee a lively outgoing speed away from center.
+        const out = b.vx * nx + b.vy * ny;
+        if (out < BUMPER_KICK) {
+          b.vx += (BUMPER_KICK - out) * nx;
+          b.vy += (BUMPER_KICK - out) * ny;
+        }
+        b.av = Math.max(-16, Math.min(16, b.av + (Math.random() - 0.5) * 10));
+        clampSpeed(b);
+        if (now - t.lastHit > HIT_COOLDOWN) {
+          t.lastHit = now;
+          t.flashT = now + 140;
+          score += 100;
+          addPop(b.x, b.y, '+100');
+          knockCells(t, 2, now);
+        }
+      }
+
+      // --- simulation ---
+      function step(dt, now) {
+        for (const f of flippers) {
+          const target = f.pressed ? UP_ANGLE : REST_ANGLE;
+          const prev = f.angle;
+          if (f.angle > target) {
+            f.angle = Math.max(target, f.angle - FLIP_UP_SPEED * dt);
+          } else if (f.angle < target) {
+            f.angle = Math.min(target, f.angle + FLIP_DOWN_SPEED * dt);
+          }
+          f.av = (f.angle - prev) / dt;
+        }
+
+        const lf = flippers[0],
+          rf = flippers[1];
+        for (const b of balls) {
+          b.vy += GRAVITY * dt;
+          b.x += b.vx * dt;
+          b.y += b.vy * dt;
+          b.angle += b.av * dt;
+          b.av *= 0.995;
+
+          // outer walls (top and sides; the bottom is the drain)
+          if (b.x < b.r) {
+            b.x = b.r;
+            if (b.vx < 0) b.vx = -b.vx * WALL_REST;
+          }
+          if (b.x > W - b.r) {
+            b.x = W - b.r;
+            if (b.vx > 0) b.vx = -b.vx * WALL_REST;
+          }
+          if (b.y < b.r && b.vy < 0) {
+            b.y = b.r;
+            b.vy = -b.vy * WALL_REST;
+          }
+
+          // funnel guides steering the ball onto the flippers
+          collideSegment(b, -20, funnelTopY, lf.px, lf.py, FUNNEL_REST, 3);
+          collideSegment(b, W + 20, funnelTopY, rf.px, rf.py, FUNNEL_REST, 3);
+
+          collideFlipper(b, lf);
+          collideFlipper(b, rf);
+          for (const t of targets) collideTarget(b, t, now);
+        }
+
+        // ball-ball collisions (multiball): equal-mass bounce
+        for (let i = 0; i < balls.length; i++) {
+          for (let j = i + 1; j < balls.length; j++) {
+            const a = balls[i],
+              b = balls[j];
+            let dx = b.x - a.x,
+              dy = b.y - a.y;
+            const minD = a.r + b.r;
+            const d2 = dx * dx + dy * dy;
+            if (d2 >= minD * minD) continue;
+            const d = Math.sqrt(d2) || 0.0001;
+            const nx = dx / d,
+              ny = dy / d;
+            const corr = (minD - d) / 2;
+            a.x -= nx * corr;
+            a.y -= ny * corr;
+            b.x += nx * corr;
+            b.y += ny * corr;
+            const vn = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+            if (vn < 0) {
+              const jImp = (-(1 + 0.85) * vn) / 2;
+              a.vx -= jImp * nx;
+              a.vy -= jImp * ny;
+              b.vx += jImp * nx;
+              b.vy += jImp * ny;
+            }
+          }
+        }
+
+        // drain
+        const before = balls.length;
+        balls = balls.filter((b) => b.y < H + b.r * 3);
+        if (before > 0 && balls.length === 0) respawnAt = now + 900;
+
+        // target respawns
+        for (const t of targets) {
+          if (t.dead && now >= t.respawnAt) respawnTarget(t);
+        }
+
+        // loose glyph particles
+        for (const p of particles) {
+          p.vy += GRAVITY * 0.6 * dt;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.angle += p.av * dt;
+          p.life -= dt * 0.9;
+        }
+        particles = particles.filter((p) => p.life > 0 && p.y < H + 40);
+
+        for (const p of pops) {
+          p.y -= 46 * dt;
+          p.life -= dt * 1.3;
+        }
+        pops = pops.filter((p) => p.life > 0);
+      }
+
+      // --- drawing ---
+      function draw(now) {
+        ctx.clearRect(0, 0, W, H);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const ink = inkColor();
+
+        // side walls
+        ctx.fillStyle = ink;
+        ctx.globalAlpha = 0.3;
+        ctx.font = targetFont + 'px ' + MONO;
+        for (let y = cellH; y < funnelTopY - cellH; y += cellH * 2) {
+          ctx.fillText('|', 8, y);
+          ctx.fillText('|', W - 8, y);
+        }
+        ctx.globalAlpha = 1;
+
+        // funnels
+        const lf = flippers[0],
+          rf = flippers[1];
+        ctx.globalAlpha = 0.65;
+        drawSegmentChars(0, funnelTopY, lf.px, lf.py, '\\', targetFont);
+        drawSegmentChars(W, funnelTopY, rf.px, rf.py, '/', targetFont);
+        ctx.globalAlpha = 1;
+
+        // targets
+        for (const t of targets) {
+          if (t.dead) continue;
+          const flashing = now < t.flashT;
+          ctx.font = (flashing ? Math.round(targetFont * 1.3) : targetFont) + 'px ' + MONO;
+          for (const cell of t.cells) {
+            if (!cell.alive) continue;
+            const jx = flashing ? (Math.random() - 0.5) * 3 : 0;
+            const jy = flashing ? (Math.random() - 0.5) * 3 : 0;
+            ctx.fillText(cell.ch, t.cx + cell.dx + jx, t.cy + cell.dy + jy);
+          }
+        }
+
+        // flippers: upright chars laid along the swinging segment
+        ctx.font = flipFont + 'px ' + MONO;
+        for (const f of flippers) {
+          const c = Math.cos(f.angle),
+            s = Math.sin(f.angle);
+          const dx = -f.side * c,
+            dy = s;
+          const n = Math.max(4, Math.round(f.len / (flipCharW * 0.85)));
+          for (let i = 0; i <= n; i++) {
+            const t = i / n;
+            const ch = i === 0 ? 'O' : i === n ? '#' : '=';
+            ctx.fillText(ch, f.px + dx * f.len * t, f.py + dy * f.len * t);
+          }
+        }
+
+        // loose glyph particles
+        ctx.font = targetFont + 'px ' + MONO;
+        for (const p of particles) {
+          ctx.globalAlpha = Math.max(0, Math.min(1, p.life));
+          if (p.angle) {
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.angle);
+            ctx.fillText(p.ch, 0, 0);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          } else {
+            ctx.fillText(p.ch, p.x, p.y);
+          }
+        }
+        ctx.globalAlpha = 1;
+
+        // balls
+        for (const b of balls) {
+          ctx.font = Math.round(b.r * 2) + 'px ' + MONO;
+          if (b.angle) {
+            ctx.translate(b.x, b.y);
+            ctx.rotate(b.angle);
+            ctx.fillText(b.ch, 0, 0);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          } else {
+            ctx.fillText(b.ch, b.x, b.y);
+          }
+        }
+
+        // score pops
+        ctx.fillStyle = ink;
+        ctx.font = '13px ' + MONO;
+        for (const p of pops) {
+          ctx.globalAlpha = Math.max(0, Math.min(1, p.life));
+          ctx.fillText(p.text, p.x, p.y);
+        }
+        ctx.globalAlpha = 1;
+
+        // score
+        ctx.textAlign = 'left';
+        ctx.globalAlpha = 0.85;
+        ctx.font = '14px ' + MONO;
+        ctx.fillText('score ' + String(score).padStart(6, '0'), 12, 22);
+        ctx.globalAlpha = 1;
+        ctx.textAlign = 'center';
+      }
+
+      function drawSegmentChars(x1, y1, x2, y2, ch, font) {
+        ctx.font = font + 'px ' + MONO;
+        const len = Math.hypot(x2 - x1, y2 - y1);
+        const n = Math.max(2, Math.round(len / (cellH * 1.1)));
+        for (let i = 0; i <= n; i++) {
+          const t = i / n;
+          ctx.fillText(ch, x1 + (x2 - x1) * t, y1 + (y2 - y1) * t);
+        }
+      }
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        W = window.innerWidth;
+        H = window.innerHeight;
+        canvas.width = Math.round(W * dpr);
+        canvas.height = Math.round(H * dpr);
+        canvas.style.width = W + 'px';
+        canvas.style.height = H + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        layout();
+        buildTargets();
+        for (const b of balls) {
+          b.x = Math.max(b.r, Math.min(W - b.r, b.x));
+          b.y = Math.min(b.y, H * 0.5);
+        }
+      }
+
+      let lastT = performance.now();
+      let acc = 0;
+      const FIXED = 1 / 120; // seconds
+      function frame(now) {
+        let elapsed = (now - lastT) / 1000;
+        lastT = now;
+        if (elapsed > 0.05) elapsed = 0.05; // clamp after tab switch / hitch
+        acc += elapsed;
+        let iters = 0;
+        while (acc >= FIXED && iters++ < 8) {
+          step(FIXED, now);
+          acc -= FIXED;
+        }
+        if (balls.length === 0 && now >= respawnAt) spawnBall();
+        draw(now);
+        requestAnimationFrame(frame);
+      }
+
+      // --- input ---
+      // Bottom-left / bottom-right presses work the flippers; a tap in the
+      // upper playfield drops in another ball (up to MAX_BALLS).
+      const pointerSides = new Map(); // pointerId -> flipper
+
+      function localPoint(e) {
+        const rect = canvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      }
+
+      canvas.addEventListener('pointerdown', (e) => {
+        hideHintSoon();
+        const p = localPoint(e);
+        if (p.y >= H * 0.55) {
+          const f = p.x < W / 2 ? flippers[0] : flippers[1];
+          f.pressed = true;
+          pointerSides.set(e.pointerId, f);
+          if (canvas.setPointerCapture) {
+            try {
+              canvas.setPointerCapture(e.pointerId);
+            } catch (_) {}
+          }
+        } else {
+          spawnBall(p.x);
+        }
+      });
+
+      function releasePointer(e) {
+        const f = pointerSides.get(e.pointerId);
+        if (!f) return;
+        pointerSides.delete(e.pointerId);
+        // Only drop the flipper if no other pointer is still holding it.
+        let held = false;
+        for (const other of pointerSides.values()) if (other === f) held = true;
+        if (!held) f.pressed = false;
+      }
+      canvas.addEventListener('pointerup', releasePointer);
+      canvas.addEventListener('pointercancel', releasePointer);
+      // iOS Safari: stop scroll/zoom gestures from stealing touches.
+      canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+
+      function setFlipperKey(e, down) {
+        if (e.key === 'ArrowLeft' || e.key === 'z' || e.key === 'Z') {
+          flippers[0].pressed = down;
+          return true;
+        }
+        if (e.key === 'ArrowRight' || e.key === '/') {
+          flippers[1].pressed = down;
+          return true;
+        }
+        if (e.key === ' ') {
+          flippers[0].pressed = down;
+          flippers[1].pressed = down;
+          return true;
+        }
+        return false;
+      }
+
+      function reset() {
+        score = 0;
+        balls = [];
+        particles = [];
+        pops = [];
+        buildTargets();
+        spawnBall();
+      }
+
+      document.addEventListener('keydown', (e) => {
+        if (setFlipperKey(e, true)) {
+          e.preventDefault();
+        } else if ((e.key === 'r' || e.key === 'R') && !e.repeat) {
+          reset();
+          showHint();
+        }
+      });
+      document.addEventListener('keyup', (e) => {
+        setFlipperKey(e, false);
+      });
+
+      // --- hint + controls ---
+      const hintEl = document.getElementById('hint');
+      Common.initHintUpdated({ hintEl });
+      let hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 4000);
+      function hideHintSoon() {
+        clearTimeout(hintTimer);
+        hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 1200);
+      }
+      function showHint() {
+        hintEl.classList.remove('hidden');
+        clearTimeout(hintTimer);
+        hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 2500);
+      }
+      window.addEventListener('pointermove', (e) => {
+        if (e.clientY >= window.innerHeight - 60) showHint();
+      });
+      // While the hint is hidden, the zone overlay catches pointerdowns in the
+      // bottom band before they reach the canvas, so a tap there reveals the
+      // hint instead of working a flipper. Once the hint is up, the CSS flips
+      // the zone back to pointer-events:none and flipping works again.
+      document.getElementById('hint-zone').addEventListener('pointerdown', showHint);
+
+      document.getElementById('hb-reset').addEventListener('click', () => {
+        reset();
+        showHint();
+      });
+      document.getElementById('hb-dark').addEventListener('click', () => {
+        Common.toggleDark();
+        showHint();
+      });
+      document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
+      Common.initSitemapShortcut();
+
+      let resizeTimer = null;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(resize, 150);
+      });
+
+      resize();
+      spawnBall();
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>
