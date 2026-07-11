@@ -132,14 +132,43 @@
       Common.initDarkMode();
       Common.initCursorHide();
 
-      const FALLBACK =
-        "Curious cats chase shimmering shadows past silent rooftops while drowsy moths drift toward the lantern, dreaming of yesterday's almanac and tomorrow's tide; somewhere a clock forgets the hour, the wind learns a new vowel, and the river writes its memoirs in the margins of moss.";
+      // Filler texts shown when no custom text is set in the query string.
+      // Clicking to cycle the font also steps to the next one of these; the
+      // first entry is always what a fresh page load shows.
+      const FALLBACKS = [
+        "Curious cats chase shimmering shadows past silent rooftops while drowsy moths drift toward the lantern, dreaming of yesterday's almanac and tomorrow's tide; somewhere a clock forgets the hour, the wind learns a new vowel, and the river writes its memoirs in the margins of moss.",
+        'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
+        'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit.',
+        'But I must explain to you how all this mistaken idea of denouncing pleasure and praising pain was born, and I will give you a complete account of the system, and expound the actual teachings of the great explorer of the truth, the master-builder of human happiness.',
+        'The ocean rehearses its oldest argument against the patient shore, salting every syllable; gulls annotate the wind, a lighthouse blinks its slow punctuation, and somewhere below the surface a whale hums the first draft of a lullaby no map has learned to spell.',
+        'Beyond the last streetlight the galaxy unrolls its inventory of small fires; a comet signs its name in a long cold flourish, satellites gossip in binary, and the moon, patient bookkeeper of tides, files another quiet night under miscellaneous silver.',
+        'Steam curls from the third cup of the morning while the bakery window fogs with cinnamon arithmetic; the kettle recites its one hot vowel, croissants practice their folded geometry, and the barista draws a fern in foam that lasts exactly one perfect minute.',
+        "Under the fern's green patience the forest files its slow paperwork of leaves; a woodpecker audits the oldest oak, mushrooms convene their small umbrella parliament, and the creek, fluent in gravel, translates the mountain's silence one smooth stone at a time.",
+        'The mountain keeps its appointments with weather and cancels them with fog; goats footnote the cliffs, a hawk proofreads the valley from a thermal margin, and snow arrives every winter to whiten the same sentence the glacier began ten thousand years ago.',
+        'In the library after closing, the dictionaries argue quietly about the past tense of light; dust drifts like unhurried punctuation, a forgotten bookmark dreams of its abandoned chapter, and the card catalogue remembers every hand that ever asked it a question.',
+        'Rain interviews the tin roof all night and prints no retractions; umbrellas bloom in doorways like sudden black tulips, gutters memorize the alphabet of dripping, and by morning the puddles publish upside-down editions of the entire sky.',
+        "The night train stitches one sleeping town to the next with a long silver thread; timetables dream in departures, a conductor pockets the moon like a watch, and every window carries a passenger's reflection farther than the passenger ever meant to go.",
+        'In the tea garden the kettle practices its patient scales; jasmine unfolds its slow telegram, porcelain cups hold their small warm lakes, and the afternoon steeps until even the shadows taste faintly of honey and unhurried conversation.',
+        'Late in the basement club the saxophone bends a note until it apologizes; the double bass walks home the long way, brushes whisper rumors across the snare, and the singer holds one blue syllable so long the streetlights outside agree to flicker in time.',
+        'The desert keeps a minimalist diary: one saguaro, two lizards, an abbreviated noon; dunes revise themselves whenever the wind edits, a tortoise carries its patient architecture toward no deadline, and at dusk the whole horizon signs off in apricot ink.',
+        "North of every compass the ice writes its white memoranda; auroras rummage through the sky's green wardrobe, a fox in winter costume erases its own footnotes, and the long night stacks its silences neatly, like clean plates in a frozen cupboard.",
+        'The night market strings its bulbs like commas between bargains; dumplings steam their round rumors, a radio two stalls down remembers a summer no one else attended, and lanterns dab the wet street with small warm errata of orange.',
+        "Inside the clockmaker's window a hundred pendulums disagree politely about now; escapements gossip in ticks, a brass bird waits all week for its one cuckoo sentence, and time, flattered by so much attention, slows down just enough to be admired.",
+        'The harbor sorts its boats by the colors of their patience; ropes rehearse their knots, fish scales confetti the dock at dawn, and the lighthouse keeper writes one bright sentence every few seconds, addressed to whom it may concern at sea.',
+        'In the meadow the bees run their honey errands with bureaucratic joy; clover files a motion for more afternoon, a scarecrow practices nonchalance, and the grasshoppers publish their dry green telegraphs from the tall grass until the dew calls recess.',
+        'October signs the maples in triplicate — amber, ember, umber; sweaters return from their cedar sabbaticals, chimneys clear their throats after a summer of silence, and every sidewalk becomes a crackling bibliography of leaves.',
+        'The typewriter remembers every letter it ever struck and regrets only the apostrophes; ribbons dream in carbon, the margin bell rings for no one, and a half-finished sentence waits in the platen like a train paused between two stations of thought.',
+        "At dawn the city yawns in delivery trucks and half-lit bakeries; pigeons convene their gray committees, a street sweeper conducts the gutters' quiet overture, and the first bus carries a cargo of unfinished dreams toward their day jobs.",
+        'The orchard alphabetizes autumn one apple at a time; ladders lean their patient hypotenuses against the light, wasps audit the windfalls, and the cider press translates a whole summer of rain into something you can hold in a cup.',
+        'Snow negotiates with the streetlamp and settles for amber; the last bus exhales at the corner, mittens hold hands inside their pockets, and the whole neighborhood is rewritten overnight in a soft font nobody can read without smiling.',
+      ];
       const SEP = ' ';
       const SPEED = 60;
 
       let fontSize = window.innerWidth < 640 ? 18 : 28;
       let currentFont = null;
-      let fallbackItems = [FALLBACK];
+      let fallbackIndex = 0;
+      let fallbackItems = [FALLBACKS[fallbackIndex]];
 
       const canvas = document.getElementById('border-canvas');
       const ctx = canvas.getContext('2d');
@@ -357,9 +386,24 @@
         document.fonts.ready.then(rebuild);
       }
 
+      // Assigned once the text editor exists (it's initialised further down,
+      // after the hint bar); font changes land well after that, but the first
+      // automatic one races page setup, so start with a no-op.
+      let refreshTextLabel = () => {};
+
+      let fontChanges = 0;
       const fontCycle = Common.initFontCycle({
         onChange: (font) => {
           currentFont = font;
+          // Each font cycle also steps to the next filler text. The first
+          // change is the automatic pick during page load — keep the default
+          // text for it so a fresh load always opens with the same words.
+          // Custom text in the query string always wins over the filler.
+          if (fontChanges++ > 0) {
+            fallbackIndex = (fallbackIndex + 1) % FALLBACKS.length;
+            fallbackItems = [FALLBACKS[fallbackIndex]];
+            refreshTextLabel();
+          }
           rebuild();
         },
       });
@@ -411,6 +455,7 @@
         onEditStart: () => setHintLocked(true),
         onEditEnd: () => setHintLocked(false),
       });
+      refreshTextLabel = textEditor.refresh;
     </script>
   </body>
 </html>
