@@ -678,13 +678,7 @@
               score -= BULLET_PENALTY;
               addPop(bl.x, bl.y - 14, '-' + BULLET_PENALTY, '#cc4444');
               for (let i = 0; i < 6; i++) {
-                spawnParticle(
-                  bl.x,
-                  bl.y,
-                  '*',
-                  (Math.random() - 0.5) * 240,
-                  -Math.random() * 200
-                );
+                spawnParticle(bl.x, bl.y, '*', (Math.random() - 0.5) * 240, -Math.random() * 200);
               }
               if (score < 0) triggerGameOver('your score went negative');
               break;
@@ -696,13 +690,7 @@
             if (Math.hypot(b.x - bl.x, b.y - bl.y) < b.r + 4) {
               bl.dead = true;
               for (let i = 0; i < 3; i++) {
-                spawnParticle(
-                  bl.x,
-                  bl.y,
-                  '*',
-                  (Math.random() - 0.5) * 160,
-                  -Math.random() * 140
-                );
+                spawnParticle(bl.x, bl.y, '*', (Math.random() - 0.5) * 160, -Math.random() * 140);
               }
               break;
             }
