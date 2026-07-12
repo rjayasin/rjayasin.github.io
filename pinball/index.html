@@ -278,7 +278,8 @@
       const INVADER_HITS = 3; // ball hits to kill one invader
       const HIT_SCORE = 100;
       const KILL_SCORE = 500;
-      const BULLET_PENALTY = 200; // score lost when a bullet hits a flipper
+      const BULLET_PENALTY = 200; // score lost to a bullet on wave 1
+      const BULLET_PENALTY_PER_WAVE = 100; // extra damage per later wave
       const FLEET_BASE_SPEED = 26; // px/s sideways at ref height
       const BULLET_SPEED = 300; // px/s at ref height
       const FIRST_SHOT_GRACE_MS = 2500;
@@ -576,7 +577,7 @@
         const b = balls.find((bb) => bb.inLane);
         if (!b || pull < 0.05 || gameOver) return;
         const vFull = Math.sqrt(2 * gravity * H * 1.1);
-        b.vy = -vFull * (0.32 + 0.78 * pull);
+        b.vy = -vFull * (0.32 + 0.98 * pull);
       }
 
       function spawnParticle(x, y, ch, vx, vy) {
@@ -752,8 +753,9 @@
             const tipY = f.py + s * f.len;
             if (pointSegDist(bl.x, bl.y, f.px, f.py, tipX, tipY) < f.thick + 5) {
               bl.dead = true;
-              score -= BULLET_PENALTY;
-              addPop(bl.x, bl.y - 14, '-' + BULLET_PENALTY, '#cc4444');
+              const damage = BULLET_PENALTY + (wave - 1) * BULLET_PENALTY_PER_WAVE;
+              score -= damage;
+              addPop(bl.x, bl.y - 14, '-' + damage, '#cc4444');
               for (let i = 0; i < 6; i++) {
                 spawnParticle(bl.x, bl.y, '*', (Math.random() - 0.5) * 240, -Math.random() * 200);
               }
@@ -859,7 +861,7 @@
                   b.inLane = false;
                   b.x = laneCX - curveR;
                   b.y = curveStartY - curveR;
-                  b.vx = -Math.min(b.railV * 0.55, 480 * physScale);
+                  b.vx = -Math.min(b.railV * 0.7, 760 * physScale);
                   b.vy = 0;
                 } else {
                   b.x = laneCX - curveR + curveR * Math.cos(b.curveA);
