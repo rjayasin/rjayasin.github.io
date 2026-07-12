@@ -678,13 +678,7 @@
               score -= BULLET_PENALTY;
               addPop(bl.x, bl.y - 14, '-' + BULLET_PENALTY, '#cc4444');
               for (let i = 0; i < 6; i++) {
-                spawnParticle(
-                  bl.x,
-                  bl.y,
-                  '*',
-                  (Math.random() - 0.5) * 240,
-                  -Math.random() * 200
-                );
+                spawnParticle(bl.x, bl.y, '*', (Math.random() - 0.5) * 240, -Math.random() * 200);
               }
               if (score < 0) triggerGameOver('your score went negative');
               break;
@@ -696,13 +690,7 @@
             if (Math.hypot(b.x - bl.x, b.y - bl.y) < b.r + 4) {
               bl.dead = true;
               for (let i = 0; i < 3; i++) {
-                spawnParticle(
-                  bl.x,
-                  bl.y,
-                  '*',
-                  (Math.random() - 0.5) * 160,
-                  -Math.random() * 140
-                );
+                spawnParticle(bl.x, bl.y, '*', (Math.random() - 0.5) * 160, -Math.random() * 140);
               }
               break;
             }
@@ -888,9 +876,20 @@
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         }
 
-        // invader bullets
-        ctx.font = targetFont + 'px ' + MONO;
+        // invader bullets: bold, oversized, and cycling through the whole
+        // rainbow with a soft glow so incoming fire stands out from the
+        // monochrome playfield; kept darker on the light theme so the
+        // yellow-green stretch doesn't wash out on white
+        const pulse = 0.5 + 0.5 * Math.sin(now / 90);
+        const bulletHue = Math.round((now / 4) % 360);
+        const bulletL = isDark() ? 52 + pulse * 12 : 38 + pulse * 6;
+        ctx.font = 'bold ' + Math.round(targetFont * (1.35 + pulse * 0.4)) + 'px ' + MONO;
+        ctx.fillStyle = 'hsl(' + bulletHue + ', 95%, ' + Math.round(bulletL) + '%)';
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.shadowBlur = 4 + pulse * 8;
         for (const bl of bullets) ctx.fillText('!', bl.x, bl.y);
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = ink;
 
         // flippers: upright chars laid along the swinging segment
         ctx.font = flipFont + 'px ' + MONO;
