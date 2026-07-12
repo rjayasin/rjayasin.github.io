@@ -284,8 +284,10 @@
       const BULLET_SPEED = 300; // px/s at ref height
       const FIRST_SHOT_GRACE_MS = 2500;
       // A few invaders per fleet are "special": drawn in color, and killing
-      // one releases extra balls into play.
+      // one releases extra balls into play. They get rarer wave by wave.
       const SPECIAL_CHANCE = 0.15;
+      const SPECIAL_CHANCE_DECAY = 0.03; // less per wave, floored below
+      const SPECIAL_CHANCE_MIN = 0.04;
       const SPECIAL_BONUS_BALLS = 2;
       const SPECIAL_HUES = [25, 130, 195, 315]; // orange, green, cyan, magenta
 
@@ -428,9 +430,13 @@
           }
         }
         // sprinkle in the specials, always at least one per fleet
+        const specialChance = Math.max(
+          SPECIAL_CHANCE_MIN,
+          SPECIAL_CHANCE - SPECIAL_CHANCE_DECAY * (wave - 1)
+        );
         let specials = 0;
         for (const inv of invaders) {
-          if (Math.random() < SPECIAL_CHANCE) {
+          if (Math.random() < specialChance) {
             inv.special = true;
             inv.hue = SPECIAL_HUES[Math.floor(Math.random() * SPECIAL_HUES.length)];
             specials++;
@@ -444,9 +450,38 @@
         nextShotAt = performance.now() + FIRST_SHOT_GRACE_MS;
       }
 
+      // --- high scores (localStorage only) ---
+      const HS_KEY = 'pinball-highscores';
+      const HS_MAX = 5;
+      let hsList = loadHighScores();
+      let hsRank = -1; // this run's slot on the board, -1 if it missed
+
+      function loadHighScores() {
+        try {
+          const list = JSON.parse(localStorage.getItem(HS_KEY));
+          return Array.isArray(list) ? list : [];
+        } catch (_) {
+          return [];
+        }
+      }
+
+      function recordHighScore(s, w) {
+        if (s <= 0) return -1;
+        const entry = { score: s, wave: w, date: new Date().toISOString().slice(0, 10) };
+        const list = loadHighScores();
+        list.push(entry);
+        list.sort((a, b) => b.score - a.score);
+        hsList = list.slice(0, HS_MAX);
+        try {
+          localStorage.setItem(HS_KEY, JSON.stringify(hsList));
+        } catch (_) {}
+        return hsList.indexOf(entry);
+      }
+
       function triggerGameOver(reason) {
         if (gameOver) return;
         gameOver = reason;
+        hsRank = recordHighScore(score, wave);
         for (const f of flippers) f.pressed = false;
       }
 
@@ -462,6 +497,13 @@
             buildFleet();
             addPop(W / 2, H * 0.3, 'wave ' + wave);
           }
+          return;
+        }
+
+        // the invasion holds its fire and its ground until a ball is
+        // actually in play — the plunger sets the pace
+        if (!balls.some((b) => !b.inLane)) {
+          nextShotAt = now + FIRST_SHOT_GRACE_MS;
           return;
         }
 
@@ -1106,23 +1148,54 @@
         ctx.globalAlpha = 1;
         ctx.fillStyle = ink;
 
-        // score + wave
+        // score + wave + personal best
         ctx.textAlign = 'left';
         ctx.globalAlpha = 0.85;
         ctx.font = '14px ' + MONO;
         const sTxt = (score < 0 ? '-' : '') + String(Math.abs(score)).padStart(6, '0');
         ctx.fillText('score ' + sTxt, 12, 22);
         ctx.fillText('wave ' + wave, 12, 40);
+        if (hsList.length) {
+          ctx.globalAlpha = 0.5;
+          ctx.fillText('best ' + String(hsList[0].score).padStart(6, '0'), 12, 58);
+        }
         ctx.globalAlpha = 1;
         ctx.textAlign = 'center';
 
         if (gameOver) {
+          const gy = H * 0.32;
+          // punch a clear window through the playfield so the card and
+          // scoreboard stay readable over whatever the fleet left behind
+          ctx.clearRect(W * 0.06, gy - 44, W * 0.88, 178 + hsList.length * 20);
           ctx.globalAlpha = 0.92;
           ctx.font = 'bold ' + Math.max(26, Math.min(44, Math.round(W / 14))) + 'px ' + MONO;
-          ctx.fillText('GAME OVER', W / 2, H * 0.38);
+          ctx.fillText('GAME OVER', W / 2, gy);
           ctx.font = '14px ' + MONO;
-          ctx.fillText(gameOver, W / 2, H * 0.38 + 34);
-          ctx.fillText('press r or tap to restart', W / 2, H * 0.38 + 56);
+          ctx.fillText(gameOver, W / 2, gy + 34);
+          ctx.fillText('press r or tap to restart', W / 2, gy + 56);
+          // the local scoreboard, this run's entry marked with its rank
+          if (hsList.length) {
+            ctx.font = '13px ' + MONO;
+            ctx.globalAlpha = 0.6;
+            ctx.fillText('— high scores —', W / 2, gy + 96);
+            for (let i = 0; i < hsList.length; i++) {
+              const e = hsList[i];
+              const mine = i === hsRank;
+              ctx.globalAlpha = mine ? 0.95 : 0.6;
+              if (mine) ctx.fillStyle = '#cc4444';
+              const line =
+                i +
+                1 +
+                '. ' +
+                String(e.score).padStart(6, '0') +
+                '  wave ' +
+                e.wave +
+                '  ' +
+                e.date;
+              ctx.fillText(line + (mine ? '  ◄' : ''), W / 2, gy + 118 + i * 20);
+              if (mine) ctx.fillStyle = ink;
+            }
+          }
           ctx.globalAlpha = 1;
         }
       }
@@ -1273,6 +1346,8 @@
       }
 
       function reset() {
+        // a run abandoned mid-game still counts toward the scoreboard
+        if (!gameOver) recordHighScore(score, wave);
         score = 0;
         wave = 1;
         balls = [];
