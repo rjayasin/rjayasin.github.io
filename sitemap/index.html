@@ -104,6 +104,25 @@
       [hidden] {
         display: none !important;
       }
+      #query-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 8px 32px;
+        background: rgba(255, 255, 255, 0.95);
+        border-bottom: 1px solid #ddd;
+        letter-spacing: 0.05em;
+        z-index: 10;
+      }
+      #query-overlay .label {
+        color: #888;
+        user-select: none;
+      }
+      li.selected a:not(.when) {
+        background: #000;
+        color: #fff;
+      }
       @media (max-width: 640px) {
         body {
           font-size: 15px;
@@ -120,12 +139,28 @@
       body.dark .view-toggle button.active {
         color: #fff;
       }
+      body.dark #query-overlay {
+        background: rgba(17, 17, 17, 0.95);
+        border-bottom-color: #333;
+      }
+      body.dark li.selected a:not(.when) {
+        background: #fff;
+        color: #000;
+      }
       @media (prefers-color-scheme: dark) {
         body:not(.light) header a,
         body:not(.light) li a:not(.when),
         body:not(.light) .view-toggle button:hover,
         body:not(.light) .view-toggle button.active {
           color: #fff;
+        }
+        body:not(.light) #query-overlay {
+          background: rgba(17, 17, 17, 0.95);
+          border-bottom-color: #333;
+        }
+        body:not(.light) li.selected a:not(.when) {
+          background: #fff;
+          color: #000;
         }
       }
     </style>
@@ -140,8 +175,11 @@
       <span class="sep">·</span>
       <button type="button" data-view="recent">recent</button>
       <span class="sep">·</span>
-      <button type="button" data-view="alpha">alpha</button>
+      <button type="button" data-view="alpha">abc</button>
     </nav>
+    <div id="query-overlay" hidden>
+      <span class="label">filter: </span><span id="query-text"></span>
+    </div>
     <!-- prettier-ignore -->
     <div id="tree-view">
       <!-- Keep every sublist ordered by date added, oldest at the top and newest at the bottom. -->
@@ -402,6 +440,7 @@
         recentView.hidden = view !== 'recent';
         alphaView.hidden = view !== 'alpha';
         buttons.forEach((b) => b.classList.toggle('active', b.dataset.view === view));
+        applyFilter();
         try {
           localStorage.setItem(VIEW_KEY, view);
         } catch {}
@@ -435,19 +474,111 @@
 
       buttons.forEach((b) => b.addEventListener('click', () => switchTo(b.dataset.view)));
 
-      function shortcutTarget(e) {
-        if (e.ctrlKey || e.metaKey || e.altKey) return null;
-        const t = e.target;
-        if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return null;
-        return e.key.toLowerCase();
+      // Type-to-filter: printable keys build a query that narrows every view
+      // to links whose label contains it; Escape clears it.
+      let query = '';
+      const queryOverlay = document.getElementById('query-overlay');
+      const queryText = document.getElementById('query-text');
+
+      function applyFilter() {
+        queryOverlay.hidden = !query;
+        queryText.textContent = query;
+        document
+          .querySelectorAll('#tree-view li, #recent-view li, #alpha-view li')
+          .forEach((li) => {
+            const a = li.querySelector('a:not(.when)');
+            if (!a) {
+              // Subheading rows have no link of their own; hide them while filtering.
+              li.hidden = !!query;
+              return;
+            }
+            const label = a.textContent;
+            const idx = query ? label.toLowerCase().indexOf(query) : -1;
+            li.hidden = !!query && idx === -1;
+            if (idx === -1) {
+              if (a.firstElementChild) a.textContent = label;
+            } else {
+              a.replaceChildren(
+                label.slice(0, idx),
+                Object.assign(document.createElement('b'), {
+                  textContent: label.slice(idx, idx + query.length),
+                }),
+                label.slice(idx + query.length)
+              );
+            }
+          });
+        treeView.querySelectorAll('ul').forEach((ul) => {
+          const empty = ![...ul.children].some((li) => !li.hidden);
+          ul.hidden = empty;
+          const h2 = ul.previousElementSibling;
+          if (h2 && h2.tagName === 'H2') h2.hidden = empty;
+        });
+        selIndex = 0;
+        updateSelection();
+      }
+
+      // While a query is active the topmost match is highlighted; arrows move
+      // the highlight and Enter opens it.
+      let selIndex = 0;
+
+      function visibleLinkLis() {
+        const view = [treeView, recentView, alphaView].find((v) => !v.hidden);
+        return [...view.querySelectorAll('li')].filter(
+          (li) => !li.hidden && li.querySelector('a:not(.when)')
+        );
+      }
+
+      function updateSelection() {
+        document.querySelectorAll('li.selected').forEach((li) => li.classList.remove('selected'));
+        if (!query) return;
+        const lis = visibleLinkLis();
+        if (!lis.length) return;
+        selIndex = Math.min(Math.max(selIndex, 0), lis.length - 1);
+        lis[selIndex].classList.add('selected');
       }
 
       document.addEventListener('keydown', (e) => {
-        const k = shortcutTarget(e);
-        if (k === 't') switchTo('tree');
-        else if (k === 'r') switchTo('recent');
-        else if (k === 'a') switchTo('alpha');
-        else if (k === 'c') window.location.href = '/commits/';
+        const t = e.target;
+        if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+        if (e.altKey && !e.ctrlKey && !e.metaKey) {
+          // e.code, not e.key: Option remaps the produced character on macOS.
+          if (e.code === 'KeyT') switchTo('tree');
+          else if (e.code === 'KeyR') switchTo('recent');
+          else if (e.code === 'KeyA') switchTo('alpha');
+          else return;
+          e.preventDefault();
+          return;
+        }
+        if (e.ctrlKey || e.metaKey) return;
+        if (query && e.key === 'ArrowDown') {
+          selIndex++;
+          updateSelection();
+          e.preventDefault();
+          return;
+        }
+        if (query && e.key === 'ArrowUp') {
+          selIndex--;
+          updateSelection();
+          e.preventDefault();
+          return;
+        }
+        if (query && e.key === 'Enter') {
+          const a = document.querySelector('li.selected a:not(.when)');
+          if (a) a.click();
+          e.preventDefault();
+          return;
+        }
+        if (e.key === 'Escape') {
+          query = '';
+        } else if (e.key === 'Backspace') {
+          query = query.slice(0, -1);
+        } else if (e.key.length === 1 && e.key !== ' ') {
+          query += e.key.toLowerCase();
+        } else {
+          return;
+        }
+        e.preventDefault();
+        applyFilter();
       });
 
       let datesPromise = null;
