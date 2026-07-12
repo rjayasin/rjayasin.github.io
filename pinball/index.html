@@ -225,33 +225,16 @@
         return BALL_EMOJIS[Math.floor(Math.random() * BALL_EMOJIS.length)];
       }
 
-      // Targets are little ASCII shapes and blobs; each non-space character
-      // is a cell that can be knocked loose.
-      const SHAPES = [
-        // hollow ring
-        ['  oOOOo  ', ' OOo oOO ', 'oO     Oo', 'OO     OO', 'oO     Oo', ' OOo oOO ', '  oOOOo  '],
-        // diamond
-        ['   #   ', '  ###  ', ' ##### ', '#######', ' ##### ', '  ###  ', '   #   '],
-        // splat blob
-        ['   %%  %   ', '  %%%%%%%  ', ' %%%%%%%%% ', '%%%%%%%%%%%', ' %%%%%%%%  ', '   %%%%    '],
-        // asterisk burst
-        [
-          '*   *   *',
-          ' *  *  * ',
-          '  * * *  ',
-          '   ***   ',
-          '*********',
-          '   ***   ',
-          '  * * *  ',
-          ' *  *  * ',
-          '*   *   *',
-        ],
-        // amoeba
-        ['   &&&&    ', '  &&&&&&&  ', ' &&&&&&&&& ', '&&&&&&&&   ', ' &&&&&&&&& ', '   &&&&&&  '],
-        // mountain
-        ['    ^    ', '   ^^^   ', '  ^^=^^  ', ' ^^===^^ ', '^^=====^^', '========='],
-        // hexagon
-        ['  @@@@@  ', ' @@@@@@@ ', '@@@@@@@@@', '@@@@@@@@@', ' @@@@@@@ ', '  @@@@@  '],
+      // The targets are a fleet of space invaders: little ASCII sprites in
+      // rows, one sprite style per row, each non-space character a cell that
+      // can be knocked loose as the invader takes damage.
+      const INVADER_SPRITES = [
+        // squid
+        [' /\\ ', '/oo\\', '<~~>'],
+        // crab
+        ['d^^b', '{oo}', ' vv '],
+        // block
+        ['[==]', '|oo|', '/  \\'],
       ];
 
       const canvas = document.getElementById('game');
@@ -263,11 +246,17 @@
       let ballR, targetFont, cellW, cellH, flipFont, flipCharW;
 
       let balls = [];
-      let targets = [];
+      let invaders = [];
+      let bullets = [];
+      let fallers = []; // dead invaders tumbling out the bottom
       let particles = [];
       let pops = [];
       let score = 0;
+      let wave = 1;
       let respawnAt = 0;
+      let nextShotAt = 0;
+      let nextWaveAt = 0;
+      let gameOver = null; // string reason when the game has ended
 
       // --- physics constants ---
       // Tuned floaty: gentle gravity plus per-substep air drag give the ball
@@ -281,12 +270,19 @@
       const FUNNEL_REST = 0.45;
       const FLIP_REST = 0.45;
       const BUMPER_REST = 0.9;
-      const BUMPER_KICK = 380; // min outgoing normal speed off a target
+      const BUMPER_KICK = 380; // min outgoing normal speed off an invader
       const MAX_SPEED = 1400;
       const MAX_BALLS = 4;
-      const HIT_COOLDOWN = 90; // ms between scoring hits on one target
-      const POP_FRACTION = 0.45; // target explodes below this alive ratio
-      const RESPAWN_MS = 2600;
+      const HIT_COOLDOWN = 90; // ms between scoring hits on one invader
+
+      // --- invader constants ---
+      const INVADER_HITS = 3; // ball hits to kill one invader
+      const HIT_SCORE = 100;
+      const KILL_SCORE = 500;
+      const BULLET_PENALTY = 200; // score lost when a bullet hits a flipper
+      const FLEET_BASE_SPEED = 26; // px/s sideways at ref height
+      const BULLET_SPEED = 300; // px/s at ref height
+      const FIRST_SHOT_GRACE_MS = 2500;
 
       // Flipper angles are measured from horizontal; y grows downward so the
       // rest position droops toward the drain and "up" swings above it.
@@ -304,7 +300,7 @@
       ];
       let funnelTopY = 0;
       // Height-scaled physics (see the constants above); set in layout().
-      let gravity, maxSpeed, bumperKick, flipUpSpeed, flipDownSpeed;
+      let physScale, gravity, maxSpeed, bumperKick, flipUpSpeed, flipDownSpeed;
 
       function isDark() {
         if (document.body.classList.contains('dark')) return true;
@@ -316,7 +312,7 @@
       }
 
       function layout() {
-        const physScale = Math.max(1, H / 780);
+        physScale = Math.max(1, H / 780);
         gravity = GRAVITY * physScale;
         maxSpeed = MAX_SPEED * physScale;
         bumperKick = BUMPER_KICK * physScale;
@@ -346,14 +342,13 @@
         funnelTopY = pivotY - len * 1.6;
       }
 
-      // --- targets ---
-      function makeTarget(cx, cy) {
-        const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
-        const rows = shape.length;
+      // --- invaders ---
+      function makeInvader(sprite, hx, hy, col) {
+        const rows = sprite.length;
         const cells = [];
         let maxR = 0;
         for (let r = 0; r < rows; r++) {
-          const line = shape[r];
+          const line = sprite[r];
           for (let c = 0; c < line.length; c++) {
             const ch = line[c];
             if (ch === ' ') continue;
@@ -364,61 +359,129 @@
           }
         }
         return {
-          cx,
-          cy,
+          hx, // formation offset from the fleet origin
+          hy,
+          col,
           cells,
-          total: cells.length,
-          alive: cells.length,
-          r: maxR + cellH * 0.6,
-          hitR: maxR * 0.85 || cellH,
+          hits: 0,
+          alive: true,
+          r: maxR + cellH * 0.5,
+          hitR: Math.max(maxR * 0.8, cellH),
           lastHit: 0,
           flashT: 0,
-          dead: false,
-          respawnAt: 0,
         };
       }
 
-      function randomTargetPos(selfR, skip) {
-        const yMin = 70 + selfR;
-        const yMax = Math.max(yMin + 1, H * 0.52 - selfR);
-        const xMin = selfR + 16;
-        const xMax = Math.max(xMin + 1, W - selfR - 16);
-        let best = null;
-        for (let i = 0; i < 60; i++) {
-          const x = xMin + Math.random() * (xMax - xMin);
-          const y = yMin + Math.random() * (yMax - yMin);
-          let ok = true;
-          for (const t of targets) {
-            if (t === skip || t.dead) continue;
-            if (Math.hypot(t.cx - x, t.cy - y) < (t.r + selfR) * 0.9 + 24) {
-              ok = false;
-              break;
-            }
+      // fleet.x/y is the center of the top-left invader; everyone else hangs
+      // off it at fixed formation offsets so the whole grid marches together.
+      let fleet = { x: 0, y: 0, dir: 1 };
+
+      function buildFleet() {
+        invaders = [];
+        bullets = [];
+        const invW = 4 * cellW;
+        const invH = 3 * cellH;
+        const gapX = invW * 0.65;
+        const gapY = invH * 0.7;
+        const cols = Math.max(4, Math.min(8, Math.floor((W * 0.72) / (invW + gapX))));
+        const rows = H > 760 ? 4 : 3;
+        const spanW = cols * invW + (cols - 1) * gapX;
+        fleet = { x: (W - spanW) / 2 + invW / 2, y: 78 + invH / 2, dir: 1 };
+        for (let r = 0; r < rows; r++) {
+          const sprite = INVADER_SPRITES[r % INVADER_SPRITES.length];
+          for (let c = 0; c < cols; c++) {
+            invaders.push(makeInvader(sprite, c * (invW + gapX), r * (invH + gapY), c));
           }
-          best = { x, y };
-          if (ok) return best;
         }
-        return best;
+        nextShotAt = performance.now() + FIRST_SHOT_GRACE_MS;
       }
 
-      function buildTargets() {
-        targets = [];
-        const count = Math.max(3, Math.min(7, Math.round((W * H) / 230000)));
-        for (let i = 0; i < count; i++) {
-          const probe = makeTarget(0, 0);
-          const pos = randomTargetPos(probe.r, null);
-          probe.cx = pos.x;
-          probe.cy = pos.y;
-          targets.push(probe);
+      function triggerGameOver(reason) {
+        if (gameOver) return;
+        gameOver = reason;
+        for (const f of flippers) f.pressed = false;
+      }
+
+      function stepFleet(dt, now) {
+        const aliveInv = invaders.filter((i) => i.alive);
+        if (aliveInv.length === 0) {
+          // wave cleared: pause a beat, then send in a faster fleet
+          if (!nextWaveAt) {
+            nextWaveAt = now + 1600;
+          } else if (now >= nextWaveAt) {
+            nextWaveAt = 0;
+            wave++;
+            buildFleet();
+            addPop(W / 2, H * 0.3, 'wave ' + wave);
+          }
+          return;
+        }
+
+        // classic invaders pacing: the fewer left, the faster they scuttle
+        const deadRatio = 1 - aliveInv.length / invaders.length;
+        const speed = FLEET_BASE_SPEED * physScale * (1 + 2.2 * deadRatio + 0.25 * (wave - 1));
+        fleet.x += fleet.dir * speed * dt;
+
+        let minX = Infinity,
+          maxX = -Infinity,
+          maxY = -Infinity;
+        for (const inv of aliveInv) {
+          const x = fleet.x + inv.hx;
+          minX = Math.min(minX, x - inv.r);
+          maxX = Math.max(maxX, x + inv.r);
+          maxY = Math.max(maxY, fleet.y + inv.hy + inv.r);
+        }
+        if (fleet.dir > 0 && maxX > W - 10) {
+          fleet.dir = -1;
+          fleet.y += cellH * 1.6;
+        } else if (fleet.dir < 0 && minX < 10) {
+          fleet.dir = 1;
+          fleet.y += cellH * 1.6;
+        }
+        if (maxY >= flippers[0].py - ballR) {
+          triggerGameOver('the invaders reached the bottom');
+          return;
+        }
+
+        if (now >= nextShotAt) {
+          fireBullet(aliveInv);
+          const base = Math.max(500, 1500 - (wave - 1) * 120);
+          nextShotAt = now + base + Math.random() * 1200;
         }
       }
 
-      function respawnTarget(t) {
-        const fresh = makeTarget(0, 0);
-        const pos = randomTargetPos(fresh.r, t);
-        fresh.cx = pos.x;
-        fresh.cy = pos.y;
-        Object.assign(t, fresh);
+      // Only the bottom-most invader of a column may fire, like the original.
+      function fireBullet(aliveInv) {
+        const byCol = new Map();
+        for (const inv of aliveInv) {
+          const cur = byCol.get(inv.col);
+          if (!cur || inv.hy > cur.hy) byCol.set(inv.col, inv);
+        }
+        const shooters = [...byCol.values()];
+        const s = shooters[Math.floor(Math.random() * shooters.length)];
+        bullets.push({
+          x: fleet.x + s.hx,
+          y: fleet.y + s.hy + s.r * 0.8,
+          vy: (BULLET_SPEED + (wave - 1) * 25) * physScale,
+          dead: false,
+        });
+      }
+
+      function killInvader(inv, b) {
+        inv.alive = false;
+        score += KILL_SCORE;
+        const x = fleet.x + inv.hx,
+          y = fleet.y + inv.hy;
+        addPop(x, y, '+' + KILL_SCORE);
+        fallers.push({
+          x,
+          y,
+          vx: (b ? b.vx * 0.15 : 0) + (Math.random() - 0.5) * 60,
+          vy: 40,
+          angle: 0,
+          av: (Math.random() - 0.5) * 6,
+          cells: inv.cells.filter((c) => c.alive),
+        });
       }
 
       // --- balls, particles, score pops ---
@@ -453,46 +516,27 @@
         });
       }
 
-      function addPop(x, y, text) {
-        pops.push({ x, y, text, life: 1 });
+      function addPop(x, y, text, color) {
+        pops.push({ x, y, text, color, life: 1 });
       }
 
-      function knockCells(t, n, now) {
-        const aliveCells = t.cells.filter((c) => c.alive);
-        for (let i = 0; i < n && aliveCells.length; i++) {
+      // Chip a couple of cells off a damaged invader, but keep a core so the
+      // corpse still reads as a sprite when it falls.
+      function knockInvaderCells(inv, n) {
+        const aliveCells = inv.cells.filter((c) => c.alive);
+        for (let i = 0; i < n && aliveCells.length > 4; i++) {
           const idx = Math.floor(Math.random() * aliveCells.length);
           const cell = aliveCells.splice(idx, 1)[0];
           cell.alive = false;
-          t.alive--;
           const dir = Math.atan2(cell.dy, cell.dx) + (Math.random() - 0.5) * 1.2;
           const sp = 140 + Math.random() * 260;
           spawnParticle(
-            t.cx + cell.dx,
-            t.cy + cell.dy,
+            fleet.x + inv.hx + cell.dx,
+            fleet.y + inv.hy + cell.dy,
             cell.ch,
             Math.cos(dir) * sp,
             Math.sin(dir) * sp - 80
           );
-        }
-        if (t.alive / t.total <= POP_FRACTION) {
-          for (const cell of t.cells) {
-            if (!cell.alive) continue;
-            cell.alive = false;
-            const dir = Math.atan2(cell.dy, cell.dx) + (Math.random() - 0.5) * 0.8;
-            const sp = 220 + Math.random() * 340;
-            spawnParticle(
-              t.cx + cell.dx,
-              t.cy + cell.dy,
-              cell.ch,
-              Math.cos(dir) * sp,
-              Math.sin(dir) * sp - 120
-            );
-          }
-          t.alive = 0;
-          t.dead = true;
-          t.respawnAt = now + RESPAWN_MS;
-          score += 500;
-          addPop(t.cx, t.cy, '+500');
         }
       }
 
@@ -504,6 +548,15 @@
           b.vx *= k;
           b.vy *= k;
         }
+      }
+
+      function pointSegDist(px0, py0, x1, y1, x2, y2) {
+        const dx = x2 - x1,
+          dy = y2 - y1;
+        const L2 = dx * dx + dy * dy || 0.0001;
+        let t = ((px0 - x1) * dx + (py0 - y1) * dy) / L2;
+        t = Math.max(0, Math.min(1, t));
+        return Math.hypot(px0 - (x1 + t * dx), py0 - (y1 + t * dy));
       }
 
       function collideSegment(b, x1, y1, x2, y2, rest, thick) {
@@ -574,17 +627,19 @@
         clampSpeed(b);
       }
 
-      function collideTarget(b, t, now) {
-        if (t.dead) return;
-        let nx = b.x - t.cx,
-          ny = b.y - t.cy;
+      function collideInvader(b, inv, now) {
+        if (!inv.alive) return;
+        const ix = fleet.x + inv.hx,
+          iy = fleet.y + inv.hy;
+        let nx = b.x - ix,
+          ny = b.y - iy;
         const d = Math.hypot(nx, ny) || 0.0001;
-        const minD = b.r + t.hitR;
+        const minD = b.r + inv.hitR;
         if (d >= minD) return;
         nx /= d;
         ny /= d;
-        b.x = t.cx + nx * minD;
-        b.y = t.cy + ny * minD;
+        b.x = ix + nx * minD;
+        b.y = iy + ny * minD;
         const vn = b.vx * nx + b.vy * ny;
         if (vn < 0) {
           b.vx -= (1 + BUMPER_REST) * vn * nx;
@@ -598,17 +653,99 @@
         }
         b.av = Math.max(-16, Math.min(16, b.av + (Math.random() - 0.5) * 10));
         clampSpeed(b);
-        if (now - t.lastHit > HIT_COOLDOWN) {
-          t.lastHit = now;
-          t.flashT = now + 140;
-          score += 100;
-          addPop(b.x, b.y, '+100');
-          knockCells(t, 2, now);
+        if (now - inv.lastHit > HIT_COOLDOWN) {
+          inv.lastHit = now;
+          inv.flashT = now + 140;
+          inv.hits++;
+          score += HIT_SCORE;
+          addPop(b.x, b.y, '+' + HIT_SCORE);
+          knockInvaderCells(inv, 2);
+          if (inv.hits >= INVADER_HITS) killInvader(inv, b);
         }
       }
 
+      function stepBullets(dt, now) {
+        for (const bl of bullets) {
+          bl.y += bl.vy * dt;
+          // flipper hits cost points
+          for (const f of flippers) {
+            const c = Math.cos(f.angle),
+              s = Math.sin(f.angle);
+            const tipX = f.px - f.side * c * f.len;
+            const tipY = f.py + s * f.len;
+            if (pointSegDist(bl.x, bl.y, f.px, f.py, tipX, tipY) < f.thick + 5) {
+              bl.dead = true;
+              score -= BULLET_PENALTY;
+              addPop(bl.x, bl.y - 14, '-' + BULLET_PENALTY, '#cc4444');
+              for (let i = 0; i < 6; i++) {
+                spawnParticle(
+                  bl.x,
+                  bl.y,
+                  '*',
+                  (Math.random() - 0.5) * 240,
+                  -Math.random() * 200
+                );
+              }
+              if (score < 0) triggerGameOver('your score went negative');
+              break;
+            }
+          }
+          if (bl.dead) continue;
+          // the ball soaks up bullets — a shield you can juggle
+          for (const b of balls) {
+            if (Math.hypot(b.x - bl.x, b.y - bl.y) < b.r + 4) {
+              bl.dead = true;
+              for (let i = 0; i < 3; i++) {
+                spawnParticle(
+                  bl.x,
+                  bl.y,
+                  '*',
+                  (Math.random() - 0.5) * 160,
+                  -Math.random() * 140
+                );
+              }
+              break;
+            }
+          }
+        }
+        bullets = bullets.filter((bl) => !bl.dead && bl.y < H + 20);
+      }
+
       // --- simulation ---
+      function stepDebris(dt) {
+        // dead invaders tumble out the bottom
+        for (const fa of fallers) {
+          fa.vy += gravity * 0.5 * dt;
+          fa.x += fa.vx * dt;
+          fa.y += fa.vy * dt;
+          fa.angle += fa.av * dt;
+        }
+        fallers = fallers.filter((fa) => fa.y < H + 100);
+
+        // loose glyph particles
+        for (const p of particles) {
+          p.vy += gravity * 0.6 * dt;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.angle += p.av * dt;
+          p.life -= dt * 0.9;
+        }
+        particles = particles.filter((p) => p.life > 0 && p.y < H + 40);
+
+        for (const p of pops) {
+          p.y -= 46 * dt;
+          p.life -= dt * 1.3;
+        }
+        pops = pops.filter((p) => p.life > 0);
+      }
+
       function step(dt, now) {
+        if (gameOver) {
+          // let the wreckage finish falling behind the game-over card
+          stepDebris(dt);
+          return;
+        }
+
         for (const f of flippers) {
           const target = f.pressed ? UP_ANGLE : REST_ANGLE;
           f.prevAngle = f.angle;
@@ -618,6 +755,13 @@
             f.angle = Math.min(target, f.angle + flipDownSpeed * dt);
           }
           f.av = (f.angle - f.prevAngle) / dt;
+        }
+
+        stepFleet(dt, now);
+        stepBullets(dt, now);
+        if (gameOver) {
+          stepDebris(dt);
+          return;
         }
 
         const lf = flippers[0],
@@ -655,7 +799,7 @@
             const n = Math.max(1, Math.ceil(Math.abs(sweep) / 0.05));
             for (let k = 1; k <= n; k++) collideFlipper(b, f, f.prevAngle + (sweep * k) / n);
           }
-          for (const t of targets) collideTarget(b, t, now);
+          for (const inv of invaders) collideInvader(b, inv, now);
         }
 
         // ball-ball collisions (multiball): equal-mass bounce
@@ -692,26 +836,7 @@
         balls = balls.filter((b) => b.y < H + b.r * 3);
         if (before > 0 && balls.length === 0) respawnAt = now + 900;
 
-        // target respawns
-        for (const t of targets) {
-          if (t.dead && now >= t.respawnAt) respawnTarget(t);
-        }
-
-        // loose glyph particles
-        for (const p of particles) {
-          p.vy += gravity * 0.6 * dt;
-          p.x += p.vx * dt;
-          p.y += p.vy * dt;
-          p.angle += p.av * dt;
-          p.life -= dt * 0.9;
-        }
-        particles = particles.filter((p) => p.life > 0 && p.y < H + 40);
-
-        for (const p of pops) {
-          p.y -= 46 * dt;
-          p.life -= dt * 1.3;
-        }
-        pops = pops.filter((p) => p.life > 0);
+        stepDebris(dt);
       }
 
       // --- drawing ---
@@ -739,18 +864,33 @@
         drawSegmentChars(W, funnelTopY, rf.px, rf.py, '/', targetFont);
         ctx.globalAlpha = 1;
 
-        // targets
-        for (const t of targets) {
-          if (t.dead) continue;
-          const flashing = now < t.flashT;
-          ctx.font = (flashing ? Math.round(targetFont * 1.3) : targetFont) + 'px ' + MONO;
-          for (const cell of t.cells) {
+        // the invader fleet
+        for (const inv of invaders) {
+          if (!inv.alive) continue;
+          const ix = fleet.x + inv.hx,
+            iy = fleet.y + inv.hy;
+          const flashing = now < inv.flashT;
+          ctx.font = (flashing ? Math.round(targetFont * 1.25) : targetFont) + 'px ' + MONO;
+          for (const cell of inv.cells) {
             if (!cell.alive) continue;
             const jx = flashing ? (Math.random() - 0.5) * 3 : 0;
             const jy = flashing ? (Math.random() - 0.5) * 3 : 0;
-            ctx.fillText(cell.ch, t.cx + cell.dx + jx, t.cy + cell.dy + jy);
+            ctx.fillText(cell.ch, ix + cell.dx + jx, iy + cell.dy + jy);
           }
         }
+
+        // dead invaders tumbling out
+        ctx.font = targetFont + 'px ' + MONO;
+        for (const fa of fallers) {
+          ctx.translate(fa.x, fa.y);
+          ctx.rotate(fa.angle);
+          for (const cell of fa.cells) ctx.fillText(cell.ch, cell.dx, cell.dy);
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        // invader bullets
+        ctx.font = targetFont + 'px ' + MONO;
+        for (const bl of bullets) ctx.fillText('!', bl.x, bl.y);
 
         // flippers: upright chars laid along the swinging segment
         ctx.font = flipFont + 'px ' + MONO;
@@ -796,21 +936,34 @@
         }
 
         // score pops
-        ctx.fillStyle = ink;
         ctx.font = '13px ' + MONO;
         for (const p of pops) {
+          ctx.fillStyle = p.color || ink;
           ctx.globalAlpha = Math.max(0, Math.min(1, p.life));
           ctx.fillText(p.text, p.x, p.y);
         }
         ctx.globalAlpha = 1;
+        ctx.fillStyle = ink;
 
-        // score
+        // score + wave
         ctx.textAlign = 'left';
         ctx.globalAlpha = 0.85;
         ctx.font = '14px ' + MONO;
-        ctx.fillText('score ' + String(score).padStart(6, '0'), 12, 22);
+        const sTxt = (score < 0 ? '-' : '') + String(Math.abs(score)).padStart(6, '0');
+        ctx.fillText('score ' + sTxt, 12, 22);
+        ctx.fillText('wave ' + wave, 12, 40);
         ctx.globalAlpha = 1;
         ctx.textAlign = 'center';
+
+        if (gameOver) {
+          ctx.globalAlpha = 0.92;
+          ctx.font = 'bold ' + Math.max(26, Math.min(44, Math.round(W / 14))) + 'px ' + MONO;
+          ctx.fillText('GAME OVER', W / 2, H * 0.38);
+          ctx.font = '14px ' + MONO;
+          ctx.fillText(gameOver, W / 2, H * 0.38 + 34);
+          ctx.fillText('press r or tap to restart', W / 2, H * 0.38 + 56);
+          ctx.globalAlpha = 1;
+        }
       }
 
       function drawSegmentChars(x1, y1, x2, y2, ch, font) {
@@ -833,7 +986,7 @@
         canvas.style.height = H + 'px';
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         layout();
-        buildTargets();
+        buildFleet();
         for (const b of balls) {
           b.x = Math.max(b.r, Math.min(W - b.r, b.x));
           b.y = Math.min(b.y, H * 0.5);
@@ -853,7 +1006,7 @@
           step(FIXED, now);
           acc -= FIXED;
         }
-        if (balls.length === 0 && now >= respawnAt) spawnBall();
+        if (!gameOver && balls.length === 0 && now >= respawnAt) spawnBall();
         draw(now);
         requestAnimationFrame(frame);
       }
@@ -870,6 +1023,10 @@
 
       canvas.addEventListener('pointerdown', (e) => {
         hideHintSoon();
+        if (gameOver) {
+          reset();
+          return;
+        }
         const p = localPoint(e);
         if (p.y >= H * 0.55) {
           const f = p.x < W / 2 ? flippers[0] : flippers[1];
@@ -900,6 +1057,7 @@
       canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
 
       function setFlipperKey(e, down) {
+        if (gameOver) return false;
         if (e.key === 'ArrowLeft' || e.key === 'z' || e.key === 'Z') {
           flippers[0].pressed = down;
           return true;
@@ -918,10 +1076,15 @@
 
       function reset() {
         score = 0;
+        wave = 1;
         balls = [];
+        bullets = [];
+        fallers = [];
         particles = [];
         pops = [];
-        buildTargets();
+        nextWaveAt = 0;
+        gameOver = null;
+        buildFleet();
         spawnBall();
       }
 
