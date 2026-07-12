@@ -343,9 +343,9 @@
     <header>
       <h1><a href="/">Ruvan</a> <span class="crumb">/ gif-helper</span></h1>
       <p class="subtitle">
-        Paste a YouTube link, scrub out a clip, and copy the <code>yt-dlp</code> +
-        <code>ffmpeg</code> commands that turn it into a small looping gif. Nothing is downloaded
-        here &mdash; the commands run in your terminal.
+        Paste a YouTube link anywhere on this page, scrub out a clip, and copy the
+        <code>yt-dlp</code> + <code>ffmpeg</code> commands that turn it into a small looping gif.
+        Nothing is downloaded here &mdash; the commands run in your terminal.
       </p>
     </header>
 
@@ -353,7 +353,7 @@
       <input
         type="text"
         id="url"
-        placeholder="https://www.youtube.com/watch?v=…"
+        placeholder="⌘V anywhere, or paste a link here"
         autocomplete="off"
         spellcheck="false"
         aria-label="YouTube URL"
@@ -800,11 +800,30 @@
         loadVideo(parsed);
       });
 
-      // Auto-load when a URL is pasted into the empty input.
+      // Auto-load when a URL is pasted into the input.
       urlInput.addEventListener('paste', () => {
         setTimeout(() => {
           if (parseVideoUrl(urlInput.value)) urlForm.requestSubmit();
         }, 0);
+      });
+
+      // …or pasted anywhere else on the page.
+      document.addEventListener('paste', (e) => {
+        const el = e.target;
+        if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA'].includes(el.tagName))) return;
+        const text = (e.clipboardData?.getData('text') || '').trim();
+        if (!text) return;
+        const parsed = parseVideoUrl(text);
+        if (!parsed) {
+          // Stay quiet about pasted text that was never meant for us.
+          if (/youtu|^https?:/i.test(text)) {
+            errorEl.textContent = "That doesn't look like a YouTube video URL.";
+          }
+          return;
+        }
+        e.preventDefault();
+        urlInput.value = text;
+        loadVideo(parsed);
       });
 
       startSlider.addEventListener('input', () => setStart(+startSlider.value, { seek: true }));
