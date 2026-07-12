@@ -306,16 +306,19 @@
       // Height-scaled physics (see the constants above); set in layout().
       let physScale, gravity, maxSpeed, bumperKick, flipUpSpeed, flipDownSpeed;
 
-      // Shooter lane on the right edge: new balls rest on a spring plunger at
-      // the bottom; pulling it down and letting go fires the ball up the lane
-      // and out the opening at the top. laneX is the inner wall, and the
-      // playfield proper spans [0, laneX].
+      // Shooter lane on the right edge, overlaid on the playfield: it only
+      // materializes while a ball needs launching and fades away once the
+      // ball clears it. New balls rest on a spring plunger at the bottom;
+      // pulling it down and letting go fires the ball up the lane, around
+      // the curve at the top, and out toward the top center.
       let laneW = 0,
         laneX = 0,
         laneCX = 0,
-        laneExitY = 0,
+        curveR = 0,
+        curveStartY = 0,
         plungerRestTop = 0,
         plungerTravel = 0;
+      let laneAlpha = 1;
       const plunger = { pull: 0, pointerId: null, grabY: 0, keyHold: false };
 
       function isDark() {
@@ -348,7 +351,8 @@
         laneW = Math.max(30, ballR * 2.4);
         laneX = W - laneW;
         laneCX = laneX + laneW / 2;
-        laneExitY = Math.max(40, ballR * 2.2);
+        curveR = Math.min(110, Math.max(56, W * 0.22));
+        curveStartY = curveR + ballR + 10;
         plungerTravel = Math.min(80, H * 0.1);
         plungerRestTop = H - plungerTravel - 34;
 
@@ -359,7 +363,7 @@
         for (const f of flippers) {
           f.len = len;
           f.thick = flipFont * 0.42;
-          f.px = laneX / 2 + f.side * pivotDx;
+          f.px = W / 2 + f.side * pivotDx;
           f.py = pivotY;
         }
         funnelTopY = pivotY - len * 1.6;
@@ -412,10 +416,10 @@
         const invH = 3 * cellH;
         const gapX = invW * 0.65;
         const gapY = invH * 0.7;
-        const cols = Math.max(4, Math.min(8, Math.floor((laneX * 0.75) / (invW + gapX))));
+        const cols = Math.max(4, Math.min(8, Math.floor((W * 0.72) / (invW + gapX))));
         const rows = H > 760 ? 4 : 3;
         const spanW = cols * invW + (cols - 1) * gapX;
-        fleet = { x: (laneX - spanW) / 2 + invW / 2, y: 78 + invH / 2, dir: 1 };
+        fleet = { x: (W - spanW) / 2 + invW / 2, y: 78 + invH / 2, dir: 1 };
         for (let r = 0; r < rows; r++) {
           const sprite = INVADER_SPRITES[r % INVADER_SPRITES.length];
           for (let c = 0; c < cols; c++) {
@@ -474,7 +478,7 @@
           maxX = Math.max(maxX, x + inv.r);
           maxY = Math.max(maxY, fleet.y + inv.hy + inv.r);
         }
-        if (fleet.dir > 0 && maxX > laneX - 10) {
+        if (fleet.dir > 0 && maxX > W - 10) {
           fleet.dir = -1;
           fleet.y += cellH * 1.6;
         } else if (fleet.dir < 0 && minX < 10) {
@@ -559,6 +563,8 @@
           angle: 0,
           av: 0,
           inLane: true,
+          curveA: null, // angle around the top curve while riding it
+          railV: 0, // scalar speed along the curve rail
         });
       }
 
@@ -773,6 +779,11 @@
 
       // --- simulation ---
       function stepDebris(dt) {
+        // raceway visibility: solid while a ball waits on or rides it,
+        // fading out entirely once the ball has cleared the curve
+        const hasLaneBall = balls.some((b) => b.inLane);
+        laneAlpha += ((hasLaneBall ? 1 : 0) - laneAlpha) * Math.min(1, dt * (hasLaneBall ? 12 : 3));
+
         // dead invaders tumble out the bottom
         for (const fa of fallers) {
           fa.vy += gravity * 0.5 * dt;
@@ -830,7 +841,33 @@
           rf = flippers[1];
         for (const b of balls) {
           if (b.inLane) {
-            // shooter lane: pure vertical motion, no drag, riding the plunger
+            // riding the quarter curve at the top of the lane: the rail
+            // carries the ball from moving straight up to moving left, then
+            // flings it out toward the top center of the playfield
+            if (b.curveA != null) {
+              b.railV -= gravity * Math.cos(b.curveA) * dt;
+              if (b.railV <= 0) {
+                // ran out of steam on the curve: drop back down the straight
+                b.curveA = null;
+                b.x = laneCX;
+                b.y = curveStartY;
+                b.vy = 0;
+              } else {
+                b.curveA += (b.railV / curveR) * dt;
+                if (b.curveA >= Math.PI / 2) {
+                  b.inLane = false;
+                  b.x = laneCX - curveR;
+                  b.y = curveStartY - curveR;
+                  b.vx = -Math.min(b.railV * 0.55, 480 * physScale);
+                  b.vy = 0;
+                } else {
+                  b.x = laneCX - curveR + curveR * Math.cos(b.curveA);
+                  b.y = curveStartY - curveR * Math.sin(b.curveA);
+                }
+              }
+              continue;
+            }
+            // straight run: pure vertical motion, no drag, riding the plunger
             b.vy += gravity * dt;
             b.y += b.vy * dt;
             const restY = plungerRestTop + plunger.pull * plungerTravel - b.r;
@@ -839,11 +876,10 @@
               if (b.vy > 0) b.vy = -b.vy * 0.25;
               if (Math.abs(b.vy) < 60) b.vy = 0;
             }
-            if (b.y < laneExitY && b.vy < 0) {
-              // spat out the opening up top, into the playfield
-              b.inLane = false;
-              b.x = laneX - b.r - 2;
-              b.vx = -(180 + Math.random() * 120) * physScale;
+            if (b.y <= curveStartY && b.vy < 0) {
+              b.curveA = 0;
+              b.railV = -b.vy;
+              b.y = curveStartY;
             }
             continue;
           }
@@ -856,14 +892,13 @@
           b.angle += b.av * dt;
           b.av *= 0.995;
 
-          // outer walls (top and left; the lane wall on the right; the
-          // bottom is the drain)
+          // outer walls (top and sides; the bottom is the drain)
           if (b.x < b.r) {
             b.x = b.r;
             if (b.vx < 0) b.vx = -b.vx * WALL_REST;
           }
-          if (b.x > laneX - b.r) {
-            b.x = laneX - b.r;
+          if (b.x > W - b.r) {
+            b.x = W - b.r;
             if (b.vx > 0) b.vx = -b.vx * WALL_REST;
           }
           if (b.y < b.r && b.vy < 0) {
@@ -874,7 +909,7 @@
           // funnel guides steering the ball onto the flippers; same collision
           // thickness as the blades so there's no bump at the pivot junction
           collideSegment(b, -20, funnelTopY, lf.px, lf.py, FUNNEL_REST, lf.thick);
-          collideSegment(b, laneX + 20, funnelTopY, rf.px, rf.py, FUNNEL_REST, rf.thick);
+          collideSegment(b, W + 20, funnelTopY, rf.px, rf.py, FUNNEL_REST, rf.thick);
 
           for (const f of flippers) {
             const sweep = f.angle - f.prevAngle;
@@ -929,40 +964,22 @@
         ctx.textBaseline = 'middle';
         const ink = inkColor();
 
-        // side walls; the right one runs the full height of the shooter lane
+        // side walls
         ctx.fillStyle = ink;
         ctx.globalAlpha = 0.3;
         ctx.font = targetFont + 'px ' + MONO;
         for (let y = cellH; y < funnelTopY - cellH; y += cellH * 2) {
           ctx.fillText('|', 8, y);
-        }
-        for (let y = cellH; y < H; y += cellH * 2) {
           ctx.fillText('|', W - 8, y);
         }
         ctx.globalAlpha = 1;
 
-        // shooter lane inner wall, open at the top where the ball exits
-        ctx.globalAlpha = 0.65;
-        for (let y = laneExitY; y < H; y += cellH) {
-          ctx.fillText('|', laneX, y);
-        }
-
         // funnels
         const lf = flippers[0],
           rf = flippers[1];
+        ctx.globalAlpha = 0.65;
         drawSegmentChars(0, funnelTopY, lf.px, lf.py, '\\', targetFont);
-        drawSegmentChars(laneX, funnelTopY, rf.px, rf.py, '/', targetFont);
-        ctx.globalAlpha = 1;
-
-        // plunger: a cap riding on a coil spring at the bottom of the lane
-        const pTop = plungerRestTop + plunger.pull * plungerTravel;
-        ctx.globalAlpha = 0.85;
-        ctx.fillText('==', laneCX, pTop);
-        const coilTop = pTop + cellH;
-        const coilBot = H - 8;
-        for (let i = 0; i < 4; i++) {
-          ctx.fillText('w', laneCX, coilTop + ((coilBot - coilTop) * i) / 3);
-        }
+        drawSegmentChars(W, funnelTopY, rf.px, rf.py, '/', targetFont);
         ctx.globalAlpha = 1;
 
         // the invader fleet; specials wear their color
@@ -1021,6 +1038,31 @@
             const ch = i === n ? '#' : '=';
             ctx.fillText(ch, f.px + dx * f.len * t, f.py + dy * f.len * t);
           }
+        }
+
+        // shooter lane raceway, overlaid on the playfield: straight channel
+        // up the right edge into a quarter curve at the top, plus the spring
+        // plunger; only visible while a ball needs launching
+        if (laneAlpha > 0.01) {
+          ctx.font = targetFont + 'px ' + MONO;
+          ctx.globalAlpha = 0.65 * laneAlpha;
+          for (let y = curveStartY + cellH; y < H; y += cellH) {
+            ctx.fillText('|', laneX, y);
+            ctx.fillText('|', W - 8, y);
+          }
+          const ccx = laneCX - curveR,
+            ccy = curveStartY;
+          drawArcChars(ccx, ccy, curveR + laneW / 2, 0, Math.PI / 2);
+          drawArcChars(ccx, ccy, curveR - laneW / 2, 0, Math.PI / 2);
+          const pTop = plungerRestTop + plunger.pull * plungerTravel;
+          ctx.globalAlpha = 0.85 * laneAlpha;
+          ctx.fillText('==', laneCX, pTop);
+          const coilTop = pTop + cellH;
+          const coilBot = H - 8;
+          for (let i = 0; i < 4; i++) {
+            ctx.fillText('w', laneCX, coilTop + ((coilBot - coilTop) * i) / 3);
+          }
+          ctx.globalAlpha = 1;
         }
 
         // loose glyph particles
@@ -1082,6 +1124,18 @@
         }
       }
 
+      // Trace a quarter arc (angles measured up from +x, y up) in glyphs that
+      // roughly follow the local tangent: | on the vertical stretch, \ in the
+      // middle, - as the curve flattens out.
+      function drawArcChars(cx, cy, r, a0, a1) {
+        const n = Math.max(3, Math.round((r * (a1 - a0)) / (cellH * 0.9)));
+        for (let i = 0; i <= n; i++) {
+          const a = a0 + ((a1 - a0) * i) / n;
+          const ch = a < Math.PI / 8 ? '|' : a > (3 * Math.PI) / 8 ? '-' : '\\';
+          ctx.fillText(ch, cx + r * Math.cos(a), cy - r * Math.sin(a));
+        }
+      }
+
       function drawSegmentChars(x1, y1, x2, y2, ch, font) {
         ctx.font = font + 'px ' + MONO;
         const len = Math.hypot(x2 - x1, y2 - y1);
@@ -1108,9 +1162,10 @@
             b.x = laneCX;
             b.y = plungerRestTop + plunger.pull * plungerTravel - b.r;
             b.vy = 0;
+            b.curveA = null;
             continue;
           }
-          b.x = Math.max(b.r, Math.min(laneX - b.r, b.x));
+          b.x = Math.max(b.r, Math.min(W - b.r, b.x));
           b.y = Math.min(b.y, H * 0.5);
         }
       }
@@ -1150,7 +1205,7 @@
           return;
         }
         const p = localPoint(e);
-        if (p.x > laneX) {
+        if (p.x > laneX && balls.some((b) => b.inLane)) {
           plunger.pointerId = e.pointerId;
           plunger.grabY = p.y - plunger.pull * plungerTravel * 1.3;
           if (canvas.setPointerCapture) {
@@ -1161,7 +1216,7 @@
           return;
         }
         if (p.y >= H * 0.55) {
-          const f = p.x < laneX / 2 ? flippers[0] : flippers[1];
+          const f = p.x < W / 2 ? flippers[0] : flippers[1];
           f.pressed = true;
           pointerSides.set(e.pointerId, f);
           if (canvas.setPointerCapture) {
