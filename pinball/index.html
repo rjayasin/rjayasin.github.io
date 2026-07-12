@@ -297,8 +297,10 @@
 
       // side: -1 = left flipper, 1 = right (mirrored geometry).
       const flippers = [
-        { side: -1, px: 0, py: 0, len: 0, thick: 0, angle: REST_ANGLE, av: 0, pressed: false },
-        { side: 1, px: 0, py: 0, len: 0, thick: 0, angle: REST_ANGLE, av: 0, pressed: false },
+        // prettier-ignore
+        { side: -1, px: 0, py: 0, len: 0, thick: 0, angle: REST_ANGLE, prevAngle: REST_ANGLE, av: 0, pressed: false },
+        // prettier-ignore
+        { side: 1, px: 0, py: 0, len: 0, thick: 0, angle: REST_ANGLE, prevAngle: REST_ANGLE, av: 0, pressed: false },
       ];
       let funnelTopY = 0;
       // Height-scaled physics (see the constants above); set in layout().
@@ -420,12 +422,15 @@
       }
 
       // --- balls, particles, score pops ---
-      function spawnBall(x) {
+      // With a position the ball appears right there (tap/click); with none it
+      // drops in from above the top edge with a little sideways drift.
+      function spawnBall(x, y) {
         if (balls.length >= MAX_BALLS) return;
+        const placed = y != null;
         balls.push({
-          x: x != null ? x : W * (0.2 + Math.random() * 0.6),
-          y: -ballR * 2,
-          vx: (Math.random() - 0.5) * 140,
+          x: placed ? Math.max(ballR, Math.min(W - ballR, x)) : W * (0.2 + Math.random() * 0.6),
+          y: placed ? Math.max(ballR, y) : -ballR * 2,
+          vx: placed ? 0 : (Math.random() - 0.5) * 140,
           vy: 0,
           r: ballR,
           ch: pickBallEmoji(),
@@ -526,9 +531,13 @@
         return true;
       }
 
-      function collideFlipper(b, f) {
-        const c = Math.cos(f.angle),
-          s = Math.sin(f.angle);
+      // Test the ball against the blade at an explicit angle so step() can
+      // sweep the check across the blade's motion within a substep — a fast
+      // flip otherwise jumps the blade further per substep than the contact
+      // radius and the ball clips straight through.
+      function collideFlipper(b, f, angle) {
+        const c = Math.cos(angle),
+          s = Math.sin(angle);
         const tipX = f.px - f.side * c * f.len;
         const tipY = f.py + s * f.len;
         const dx = tipX - f.px,
@@ -602,13 +611,13 @@
       function step(dt, now) {
         for (const f of flippers) {
           const target = f.pressed ? UP_ANGLE : REST_ANGLE;
-          const prev = f.angle;
+          f.prevAngle = f.angle;
           if (f.angle > target) {
             f.angle = Math.max(target, f.angle - flipUpSpeed * dt);
           } else if (f.angle < target) {
             f.angle = Math.min(target, f.angle + flipDownSpeed * dt);
           }
-          f.av = (f.angle - prev) / dt;
+          f.av = (f.angle - f.prevAngle) / dt;
         }
 
         const lf = flippers[0],
@@ -636,12 +645,16 @@
             b.vy = -b.vy * WALL_REST;
           }
 
-          // funnel guides steering the ball onto the flippers
-          collideSegment(b, -20, funnelTopY, lf.px, lf.py, FUNNEL_REST, 3);
-          collideSegment(b, W + 20, funnelTopY, rf.px, rf.py, FUNNEL_REST, 3);
+          // funnel guides steering the ball onto the flippers; same collision
+          // thickness as the blades so there's no bump at the pivot junction
+          collideSegment(b, -20, funnelTopY, lf.px, lf.py, FUNNEL_REST, lf.thick);
+          collideSegment(b, W + 20, funnelTopY, rf.px, rf.py, FUNNEL_REST, rf.thick);
 
-          collideFlipper(b, lf);
-          collideFlipper(b, rf);
+          for (const f of flippers) {
+            const sweep = f.angle - f.prevAngle;
+            const n = Math.max(1, Math.ceil(Math.abs(sweep) / 0.05));
+            for (let k = 1; k <= n; k++) collideFlipper(b, f, f.prevAngle + (sweep * k) / n);
+          }
           for (const t of targets) collideTarget(b, t, now);
         }
 
@@ -749,7 +762,7 @@
           const n = Math.max(4, Math.round(f.len / (flipCharW * 0.85)));
           for (let i = 0; i <= n; i++) {
             const t = i / n;
-            const ch = i === 0 ? 'O' : i === n ? '#' : '=';
+            const ch = i === n ? '#' : '=';
             ctx.fillText(ch, f.px + dx * f.len * t, f.py + dy * f.len * t);
           }
         }
@@ -868,7 +881,7 @@
             } catch (_) {}
           }
         } else {
-          spawnBall(p.x);
+          spawnBall(p.x, p.y);
         }
       });
 
