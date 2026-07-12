@@ -272,7 +272,6 @@
       const BUMPER_REST = 0.9;
       const BUMPER_KICK = 380; // min outgoing normal speed off an invader
       const MAX_SPEED = 1400;
-      const MAX_BALLS = 4;
       const HIT_COOLDOWN = 90; // ms between scoring hits on one invader
 
       // --- invader constants ---
@@ -283,6 +282,11 @@
       const FLEET_BASE_SPEED = 26; // px/s sideways at ref height
       const BULLET_SPEED = 300; // px/s at ref height
       const FIRST_SHOT_GRACE_MS = 2500;
+      // A few invaders per fleet are "special": drawn in color, and killing
+      // one releases extra balls into play.
+      const SPECIAL_CHANCE = 0.15;
+      const SPECIAL_BONUS_BALLS = 2;
+      const SPECIAL_HUES = [25, 130, 195, 315]; // orange, green, cyan, magenta
 
       // Flipper angles are measured from horizontal; y grows downward so the
       // rest position droops toward the drain and "up" swings above it.
@@ -369,7 +373,13 @@
           hitR: Math.max(maxR * 0.8, cellH),
           lastHit: 0,
           flashT: 0,
+          special: false,
+          hue: 0,
         };
+      }
+
+      function specialColor(hue) {
+        return 'hsl(' + hue + ', 90%, ' + (isDark() ? 60 : 38) + '%)';
       }
 
       // fleet.x/y is the center of the top-left invader; everyone else hangs
@@ -392,6 +402,20 @@
           for (let c = 0; c < cols; c++) {
             invaders.push(makeInvader(sprite, c * (invW + gapX), r * (invH + gapY), c));
           }
+        }
+        // sprinkle in the specials, always at least one per fleet
+        let specials = 0;
+        for (const inv of invaders) {
+          if (Math.random() < SPECIAL_CHANCE) {
+            inv.special = true;
+            inv.hue = SPECIAL_HUES[Math.floor(Math.random() * SPECIAL_HUES.length)];
+            specials++;
+          }
+        }
+        if (specials === 0) {
+          const inv = invaders[Math.floor(Math.random() * invaders.length)];
+          inv.special = true;
+          inv.hue = SPECIAL_HUES[Math.floor(Math.random() * SPECIAL_HUES.length)];
         }
         nextShotAt = performance.now() + FIRST_SHOT_GRACE_MS;
       }
@@ -481,14 +505,30 @@
           angle: 0,
           av: (Math.random() - 0.5) * 6,
           cells: inv.cells.filter((c) => c.alive),
+          hue: inv.special ? inv.hue : null,
         });
+        // specials burst into extra balls, scattered from where they died
+        if (inv.special) {
+          addPop(x, y - cellH * 1.6, 'multiball!', specialColor(inv.hue));
+          for (let i = 0; i < SPECIAL_BONUS_BALLS; i++) {
+            balls.push({
+              x: x + (Math.random() - 0.5) * 30,
+              y,
+              vx: (Math.random() - 0.5) * 400,
+              vy: -(100 + Math.random() * 200) * physScale,
+              r: ballR,
+              ch: pickBallEmoji(),
+              angle: 0,
+              av: 0,
+            });
+          }
+        }
       }
 
       // --- balls, particles, score pops ---
       // With a position the ball appears right there (tap/click); with none it
       // drops in from above the top edge with a little sideways drift.
       function spawnBall(x, y) {
-        if (balls.length >= MAX_BALLS) return;
         const placed = y != null;
         balls.push({
           x: placed ? Math.max(ballR, Math.min(W - ballR, x)) : W * (0.2 + Math.random() * 0.6),
@@ -852,12 +892,13 @@
         drawSegmentChars(W, funnelTopY, rf.px, rf.py, '/', targetFont);
         ctx.globalAlpha = 1;
 
-        // the invader fleet
+        // the invader fleet; specials wear their color
         for (const inv of invaders) {
           if (!inv.alive) continue;
           const ix = fleet.x + inv.hx,
             iy = fleet.y + inv.hy;
           const flashing = now < inv.flashT;
+          ctx.fillStyle = inv.special ? specialColor(inv.hue) : ink;
           ctx.font = (flashing ? Math.round(targetFont * 1.25) : targetFont) + 'px ' + MONO;
           for (const cell of inv.cells) {
             if (!cell.alive) continue;
@@ -866,24 +907,27 @@
             ctx.fillText(cell.ch, ix + cell.dx + jx, iy + cell.dy + jy);
           }
         }
+        ctx.fillStyle = ink;
 
-        // dead invaders tumbling out
+        // dead invaders tumbling out, specials still in their color
         ctx.font = targetFont + 'px ' + MONO;
         for (const fa of fallers) {
+          ctx.fillStyle = fa.hue != null ? specialColor(fa.hue) : ink;
           ctx.translate(fa.x, fa.y);
           ctx.rotate(fa.angle);
           for (const cell of fa.cells) ctx.fillText(cell.ch, cell.dx, cell.dy);
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         }
+        ctx.fillStyle = ink;
 
-        // invader bullets: bold, oversized, and cycling through the whole
+        // invader bullets: oversized and cycling through the whole
         // rainbow with a soft glow so incoming fire stands out from the
         // monochrome playfield; kept darker on the light theme so the
         // yellow-green stretch doesn't wash out on white
         const pulse = 0.5 + 0.5 * Math.sin(now / 90);
         const bulletHue = Math.round((now / 4) % 360);
         const bulletL = isDark() ? 52 + pulse * 12 : 38 + pulse * 6;
-        ctx.font = 'bold ' + Math.round(targetFont * (1.35 + pulse * 0.4)) + 'px ' + MONO;
+        ctx.font = Math.round(targetFont * (1.35 + pulse * 0.4)) + 'px ' + MONO;
         ctx.fillStyle = 'hsl(' + bulletHue + ', 95%, ' + Math.round(bulletL) + '%)';
         ctx.shadowColor = ctx.fillStyle;
         ctx.shadowBlur = 4 + pulse * 8;
@@ -1012,7 +1056,7 @@
 
       // --- input ---
       // Bottom-left / bottom-right presses work the flippers; a tap in the
-      // upper playfield drops in another ball (up to MAX_BALLS).
+      // upper playfield drops in another ball (no limit).
       const pointerSides = new Map(); // pointerId -> flipper
 
       function localPoint(e) {
