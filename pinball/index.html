@@ -779,10 +779,11 @@
 
       // --- simulation ---
       function stepDebris(dt) {
-        // raceway visibility: solid while a ball waits on or rides it,
-        // fading out entirely once the ball has cleared the curve
+        // raceway visibility: solid while a ball waits on or rides it, gone
+        // as soon as it isn't needed
         const hasLaneBall = balls.some((b) => b.inLane);
-        laneAlpha += ((hasLaneBall ? 1 : 0) - laneAlpha) * Math.min(1, dt * (hasLaneBall ? 12 : 3));
+        laneAlpha += ((hasLaneBall ? 1 : 0) - laneAlpha) * Math.min(1, dt * (hasLaneBall ? 12 : 8));
+        if (!hasLaneBall && laneAlpha < 0.03) laneAlpha = 0;
 
         // dead invaders tumble out the bottom
         for (const fa of fallers) {
