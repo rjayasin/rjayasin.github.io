@@ -1202,17 +1202,24 @@
               const mine = i === hsRank;
               ctx.globalAlpha = mine ? 0.95 : 0.6;
               if (mine) ctx.fillStyle = '#cc4444';
+              // wave padded so every row is the same width, and the marker
+              // drawn separately so this run's row stays in column with the
+              // rest instead of being pushed left by the extra characters
               const line =
                 i +
                 1 +
                 '. ' +
                 String(e.score).padStart(6, '0') +
                 '  wave ' +
-                e.wave +
+                String(e.wave).padStart(2, ' ') +
                 '  ' +
                 e.date;
-              ctx.fillText(line + (mine ? '  ◄' : ''), W / 2, gy + 118 + i * 20);
-              if (mine) ctx.fillStyle = ink;
+              const ly = gy + 118 + i * 20;
+              ctx.fillText(line, W / 2, ly);
+              if (mine) {
+                ctx.fillText('◄', W / 2 + ctx.measureText(line).width / 2 + 14, ly);
+                ctx.fillStyle = ink;
+              }
             }
           }
           ctx.globalAlpha = 1;
