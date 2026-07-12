@@ -272,6 +272,9 @@
       // --- physics constants ---
       // Tuned floaty: gentle gravity plus per-substep air drag give the ball
       // a slow, drifting arc instead of a hard arcade drop.
+      // Speeds and accelerations are tuned for a ~780px-tall phone playfield
+      // and get scaled with height in layout() so a full flip can still carry
+      // the ball to the top targets on tall desktop windows.
       const GRAVITY = 780; // px/s^2
       const BALL_DRAG = 0.995; // per substep; caps fall speed at a lazy drift
       const WALL_REST = 0.72;
@@ -298,6 +301,8 @@
         { side: 1, px: 0, py: 0, len: 0, thick: 0, angle: REST_ANGLE, av: 0, pressed: false },
       ];
       let funnelTopY = 0;
+      // Height-scaled physics (see the constants above); set in layout().
+      let gravity, maxSpeed, bumperKick, flipUpSpeed, flipDownSpeed;
 
       function isDark() {
         if (document.body.classList.contains('dark')) return true;
@@ -309,6 +314,13 @@
       }
 
       function layout() {
+        const physScale = Math.max(1, H / 780);
+        gravity = GRAVITY * physScale;
+        maxSpeed = MAX_SPEED * physScale;
+        bumperKick = BUMPER_KICK * physScale;
+        flipUpSpeed = FLIP_UP_SPEED * physScale;
+        flipDownSpeed = FLIP_DOWN_SPEED * physScale;
+
         const minDim = Math.min(W, H);
         ballR = Math.max(11, Math.min(20, Math.round(minDim / 40)));
         targetFont = Math.max(10, Math.min(18, Math.round(minDim / 48)));
@@ -482,8 +494,8 @@
       // --- collision helpers ---
       function clampSpeed(b) {
         const sp = Math.hypot(b.vx, b.vy);
-        if (sp > MAX_SPEED) {
-          const k = MAX_SPEED / sp;
+        if (sp > maxSpeed) {
+          const k = maxSpeed / sp;
           b.vx *= k;
           b.vy *= k;
         }
@@ -571,9 +583,9 @@
         }
         // Bumper kick: guarantee a lively outgoing speed away from center.
         const out = b.vx * nx + b.vy * ny;
-        if (out < BUMPER_KICK) {
-          b.vx += (BUMPER_KICK - out) * nx;
-          b.vy += (BUMPER_KICK - out) * ny;
+        if (out < bumperKick) {
+          b.vx += (bumperKick - out) * nx;
+          b.vy += (bumperKick - out) * ny;
         }
         b.av = Math.max(-16, Math.min(16, b.av + (Math.random() - 0.5) * 10));
         clampSpeed(b);
@@ -592,9 +604,9 @@
           const target = f.pressed ? UP_ANGLE : REST_ANGLE;
           const prev = f.angle;
           if (f.angle > target) {
-            f.angle = Math.max(target, f.angle - FLIP_UP_SPEED * dt);
+            f.angle = Math.max(target, f.angle - flipUpSpeed * dt);
           } else if (f.angle < target) {
-            f.angle = Math.min(target, f.angle + FLIP_DOWN_SPEED * dt);
+            f.angle = Math.min(target, f.angle + flipDownSpeed * dt);
           }
           f.av = (f.angle - prev) / dt;
         }
@@ -602,7 +614,7 @@
         const lf = flippers[0],
           rf = flippers[1];
         for (const b of balls) {
-          b.vy += GRAVITY * dt;
+          b.vy += gravity * dt;
           b.vx *= BALL_DRAG;
           b.vy *= BALL_DRAG;
           b.x += b.vx * dt;
@@ -674,7 +686,7 @@
 
         // loose glyph particles
         for (const p of particles) {
-          p.vy += GRAVITY * 0.6 * dt;
+          p.vy += gravity * 0.6 * dt;
           p.x += p.vx * dt;
           p.y += p.vy * dt;
           p.angle += p.av * dt;
