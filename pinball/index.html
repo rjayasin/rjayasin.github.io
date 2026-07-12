@@ -876,14 +876,15 @@
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         }
 
-        // invader bullets: bold, oversized, and pulsing red-to-orange with a
-        // soft glow so incoming fire stands out from the monochrome playfield;
-        // kept darker on the light theme so the orange phase doesn't wash out
+        // invader bullets: bold, oversized, and cycling through the whole
+        // rainbow with a soft glow so incoming fire stands out from the
+        // monochrome playfield; kept darker on the light theme so the
+        // yellow-green stretch doesn't wash out on white
         const pulse = 0.5 + 0.5 * Math.sin(now / 90);
-        const bulletL = isDark() ? 52 + pulse * 12 : 42 + pulse * 8;
+        const bulletHue = Math.round((now / 4) % 360);
+        const bulletL = isDark() ? 52 + pulse * 12 : 38 + pulse * 6;
         ctx.font = 'bold ' + Math.round(targetFont * (1.35 + pulse * 0.4)) + 'px ' + MONO;
-        ctx.fillStyle =
-          'hsl(' + Math.round(4 + pulse * 34) + ', 95%, ' + Math.round(bulletL) + '%)';
+        ctx.fillStyle = 'hsl(' + bulletHue + ', 95%, ' + Math.round(bulletL) + '%)';
         ctx.shadowColor = ctx.fillStyle;
         ctx.shadowBlur = 4 + pulse * 8;
         for (const bl of bullets) ctx.fillText('!', bl.x, bl.y);
