@@ -116,10 +116,10 @@
   </head>
   <body>
     <canvas id="game"></canvas>
-    <div id="hint">
+    <div id="hint" class="hidden">
       <span id="hint-inner"
         ><span style="white-space: nowrap">tap bottom left/right to flip</span> &nbsp;·&nbsp;
-        <span style="white-space: nowrap">tap up top for another ball</span> &nbsp;·&nbsp;
+        <span style="white-space: nowrap">pull plunger (or hold ↓) to launch</span> &nbsp;·&nbsp;
         <span style="white-space: nowrap"><span class="hint-btn" id="hb-reset">r reset</span></span>
         &nbsp;·&nbsp;
         <span style="white-space: nowrap"
@@ -272,7 +272,6 @@
       const BUMPER_REST = 0.9;
       const BUMPER_KICK = 380; // min outgoing normal speed off an invader
       const MAX_SPEED = 1400;
-      const MAX_BALLS = 4;
       const HIT_COOLDOWN = 90; // ms between scoring hits on one invader
 
       // --- invader constants ---
@@ -283,6 +282,11 @@
       const FLEET_BASE_SPEED = 26; // px/s sideways at ref height
       const BULLET_SPEED = 300; // px/s at ref height
       const FIRST_SHOT_GRACE_MS = 2500;
+      // A few invaders per fleet are "special": drawn in color, and killing
+      // one releases extra balls into play.
+      const SPECIAL_CHANCE = 0.15;
+      const SPECIAL_BONUS_BALLS = 2;
+      const SPECIAL_HUES = [25, 130, 195, 315]; // orange, green, cyan, magenta
 
       // Flipper angles are measured from horizontal; y grows downward so the
       // rest position droops toward the drain and "up" swings above it.
@@ -301,6 +305,21 @@
       let funnelTopY = 0;
       // Height-scaled physics (see the constants above); set in layout().
       let physScale, gravity, maxSpeed, bumperKick, flipUpSpeed, flipDownSpeed;
+
+      // Shooter lane on the right edge, overlaid on the playfield: it only
+      // materializes while a ball needs launching and fades away once the
+      // ball clears it. New balls rest on a spring plunger at the bottom;
+      // pulling it down and letting go fires the ball up the lane, around
+      // the curve at the top, and out toward the top center.
+      let laneW = 0,
+        laneX = 0,
+        laneCX = 0,
+        curveR = 0,
+        curveStartY = 0,
+        plungerRestTop = 0,
+        plungerTravel = 0;
+      let laneAlpha = 1;
+      const plunger = { pull: 0, pointerId: null, grabY: 0, keyHold: false };
 
       function isDark() {
         if (document.body.classList.contains('dark')) return true;
@@ -328,6 +347,14 @@
         flipFont = Math.max(14, Math.min(24, Math.round(minDim / 34)));
         ctx.font = flipFont + 'px ' + MONO;
         flipCharW = ctx.measureText('M').width;
+
+        laneW = Math.max(30, ballR * 2.4);
+        laneX = W - laneW;
+        laneCX = laneX + laneW / 2;
+        curveR = Math.min(110, Math.max(56, W * 0.22));
+        curveStartY = curveR + ballR + 10;
+        plungerTravel = Math.min(80, H * 0.1);
+        plungerRestTop = H - plungerTravel - 34;
 
         const len = Math.max(80, Math.min(170, minDim * 0.17));
         const tipGapHalf = len * 0.36; // half the drain width between tips
@@ -369,7 +396,13 @@
           hitR: Math.max(maxR * 0.8, cellH),
           lastHit: 0,
           flashT: 0,
+          special: false,
+          hue: 0,
         };
+      }
+
+      function specialColor(hue) {
+        return 'hsl(' + hue + ', 90%, ' + (isDark() ? 60 : 38) + '%)';
       }
 
       // fleet.x/y is the center of the top-left invader; everyone else hangs
@@ -392,6 +425,20 @@
           for (let c = 0; c < cols; c++) {
             invaders.push(makeInvader(sprite, c * (invW + gapX), r * (invH + gapY), c));
           }
+        }
+        // sprinkle in the specials, always at least one per fleet
+        let specials = 0;
+        for (const inv of invaders) {
+          if (Math.random() < SPECIAL_CHANCE) {
+            inv.special = true;
+            inv.hue = SPECIAL_HUES[Math.floor(Math.random() * SPECIAL_HUES.length)];
+            specials++;
+          }
+        }
+        if (specials === 0) {
+          const inv = invaders[Math.floor(Math.random() * invaders.length)];
+          inv.special = true;
+          inv.hue = SPECIAL_HUES[Math.floor(Math.random() * SPECIAL_HUES.length)];
         }
         nextShotAt = performance.now() + FIRST_SHOT_GRACE_MS;
       }
@@ -481,25 +528,55 @@
           angle: 0,
           av: (Math.random() - 0.5) * 6,
           cells: inv.cells.filter((c) => c.alive),
+          hue: inv.special ? inv.hue : null,
         });
+        // specials burst into extra balls, scattered from where they died
+        if (inv.special) {
+          addPop(x, y - cellH * 1.6, 'multiball!', specialColor(inv.hue));
+          for (let i = 0; i < SPECIAL_BONUS_BALLS; i++) {
+            balls.push({
+              x: x + (Math.random() - 0.5) * 30,
+              y,
+              vx: (Math.random() - 0.5) * 400,
+              vy: -(100 + Math.random() * 200) * physScale,
+              r: ballR,
+              ch: pickBallEmoji(),
+              angle: 0,
+              av: 0,
+              inLane: false,
+            });
+          }
+        }
       }
 
       // --- balls, particles, score pops ---
-      // With a position the ball appears right there (tap/click); with none it
-      // drops in from above the top edge with a little sideways drift.
-      function spawnBall(x, y) {
-        if (balls.length >= MAX_BALLS) return;
-        const placed = y != null;
+      // A new ball arrives resting on the plunger in the shooter lane; the
+      // player pulls the plunger down and releases to fire it into play.
+      function spawnBall() {
         balls.push({
-          x: placed ? Math.max(ballR, Math.min(W - ballR, x)) : W * (0.2 + Math.random() * 0.6),
-          y: placed ? Math.max(ballR, y) : -ballR * 2,
-          vx: placed ? 0 : (Math.random() - 0.5) * 140,
+          x: laneCX,
+          y: plungerRestTop + plunger.pull * plungerTravel - ballR,
+          vx: 0,
           vy: 0,
           r: ballR,
           ch: pickBallEmoji(),
           angle: 0,
           av: 0,
+          inLane: true,
+          curveA: null, // angle around the top curve while riding it
+          railV: 0, // scalar speed along the curve rail
         });
+      }
+
+      // Fire the lane ball with speed proportional to how far the plunger was
+      // pulled; a full pull clears the whole lane with a little to spare.
+      function releasePlunger() {
+        const pull = plunger.pull;
+        plunger.pull = 0;
+        const b = balls.find((bb) => bb.inLane);
+        if (!b || pull < 0.05 || gameOver) return;
+        const vFull = Math.sqrt(2 * gravity * H * 1.1);
+        b.vy = -vFull * (0.32 + 0.78 * pull);
       }
 
       function spawnParticle(x, y, ch, vx, vy) {
@@ -687,6 +764,7 @@
           if (bl.dead) continue;
           // the ball soaks up bullets — a shield you can juggle
           for (const b of balls) {
+            if (b.inLane) continue;
             if (Math.hypot(b.x - bl.x, b.y - bl.y) < b.r + 4) {
               bl.dead = true;
               for (let i = 0; i < 3; i++) {
@@ -701,6 +779,12 @@
 
       // --- simulation ---
       function stepDebris(dt) {
+        // raceway visibility: solid while a ball waits on or rides it, gone
+        // as soon as it isn't needed
+        const hasLaneBall = balls.some((b) => b.inLane);
+        laneAlpha += ((hasLaneBall ? 1 : 0) - laneAlpha) * Math.min(1, dt * (hasLaneBall ? 12 : 8));
+        if (!hasLaneBall && laneAlpha < 0.03) laneAlpha = 0;
+
         // dead invaders tumble out the bottom
         for (const fa of fallers) {
           fa.vy += gravity * 0.5 * dt;
@@ -745,6 +829,8 @@
           f.av = (f.angle - f.prevAngle) / dt;
         }
 
+        if (plunger.keyHold) plunger.pull = Math.min(1, plunger.pull + 1.6 * dt);
+
         stepFleet(dt, now);
         stepBullets(dt, now);
         if (gameOver) {
@@ -755,6 +841,50 @@
         const lf = flippers[0],
           rf = flippers[1];
         for (const b of balls) {
+          if (b.inLane) {
+            // riding the quarter curve at the top of the lane: the rail
+            // carries the ball from moving straight up to moving left, then
+            // flings it out toward the top center of the playfield
+            if (b.curveA != null) {
+              b.railV -= gravity * Math.cos(b.curveA) * dt;
+              if (b.railV <= 0) {
+                // ran out of steam on the curve: drop back down the straight
+                b.curveA = null;
+                b.x = laneCX;
+                b.y = curveStartY;
+                b.vy = 0;
+              } else {
+                b.curveA += (b.railV / curveR) * dt;
+                if (b.curveA >= Math.PI / 2) {
+                  b.inLane = false;
+                  b.x = laneCX - curveR;
+                  b.y = curveStartY - curveR;
+                  b.vx = -Math.min(b.railV * 0.55, 480 * physScale);
+                  b.vy = 0;
+                } else {
+                  b.x = laneCX - curveR + curveR * Math.cos(b.curveA);
+                  b.y = curveStartY - curveR * Math.sin(b.curveA);
+                }
+              }
+              continue;
+            }
+            // straight run: pure vertical motion, no drag, riding the plunger
+            b.vy += gravity * dt;
+            b.y += b.vy * dt;
+            const restY = plungerRestTop + plunger.pull * plungerTravel - b.r;
+            if (b.y >= restY) {
+              b.y = restY;
+              if (b.vy > 0) b.vy = -b.vy * 0.25;
+              if (Math.abs(b.vy) < 60) b.vy = 0;
+            }
+            if (b.y <= curveStartY && b.vy < 0) {
+              b.curveA = 0;
+              b.railV = -b.vy;
+              b.y = curveStartY;
+            }
+            continue;
+          }
+
           b.vy += gravity * dt;
           b.vx *= BALL_DRAG;
           b.vy *= BALL_DRAG;
@@ -795,6 +925,7 @@
           for (let j = i + 1; j < balls.length; j++) {
             const a = balls[i],
               b = balls[j];
+            if (a.inLane || b.inLane) continue;
             let dx = b.x - a.x,
               dy = b.y - a.y;
             const minD = a.r + b.r;
@@ -852,12 +983,13 @@
         drawSegmentChars(W, funnelTopY, rf.px, rf.py, '/', targetFont);
         ctx.globalAlpha = 1;
 
-        // the invader fleet
+        // the invader fleet; specials wear their color
         for (const inv of invaders) {
           if (!inv.alive) continue;
           const ix = fleet.x + inv.hx,
             iy = fleet.y + inv.hy;
           const flashing = now < inv.flashT;
+          ctx.fillStyle = inv.special ? specialColor(inv.hue) : ink;
           ctx.font = (flashing ? Math.round(targetFont * 1.25) : targetFont) + 'px ' + MONO;
           for (const cell of inv.cells) {
             if (!cell.alive) continue;
@@ -866,24 +998,27 @@
             ctx.fillText(cell.ch, ix + cell.dx + jx, iy + cell.dy + jy);
           }
         }
+        ctx.fillStyle = ink;
 
-        // dead invaders tumbling out
+        // dead invaders tumbling out, specials still in their color
         ctx.font = targetFont + 'px ' + MONO;
         for (const fa of fallers) {
+          ctx.fillStyle = fa.hue != null ? specialColor(fa.hue) : ink;
           ctx.translate(fa.x, fa.y);
           ctx.rotate(fa.angle);
           for (const cell of fa.cells) ctx.fillText(cell.ch, cell.dx, cell.dy);
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         }
+        ctx.fillStyle = ink;
 
-        // invader bullets: bold, oversized, and cycling through the whole
+        // invader bullets: oversized and cycling through the whole
         // rainbow with a soft glow so incoming fire stands out from the
         // monochrome playfield; kept darker on the light theme so the
         // yellow-green stretch doesn't wash out on white
         const pulse = 0.5 + 0.5 * Math.sin(now / 90);
         const bulletHue = Math.round((now / 4) % 360);
         const bulletL = isDark() ? 52 + pulse * 12 : 38 + pulse * 6;
-        ctx.font = 'bold ' + Math.round(targetFont * (1.35 + pulse * 0.4)) + 'px ' + MONO;
+        ctx.font = Math.round(targetFont * (1.35 + pulse * 0.4)) + 'px ' + MONO;
         ctx.fillStyle = 'hsl(' + bulletHue + ', 95%, ' + Math.round(bulletL) + '%)';
         ctx.shadowColor = ctx.fillStyle;
         ctx.shadowBlur = 4 + pulse * 8;
@@ -904,6 +1039,31 @@
             const ch = i === n ? '#' : '=';
             ctx.fillText(ch, f.px + dx * f.len * t, f.py + dy * f.len * t);
           }
+        }
+
+        // shooter lane raceway, overlaid on the playfield: straight channel
+        // up the right edge into a quarter curve at the top, plus the spring
+        // plunger; only visible while a ball needs launching
+        if (laneAlpha > 0.01) {
+          ctx.font = targetFont + 'px ' + MONO;
+          ctx.globalAlpha = 0.65 * laneAlpha;
+          for (let y = curveStartY + cellH; y < H; y += cellH) {
+            ctx.fillText('|', laneX, y);
+            ctx.fillText('|', W - 8, y);
+          }
+          const ccx = laneCX - curveR,
+            ccy = curveStartY;
+          drawArcChars(ccx, ccy, curveR + laneW / 2, 0, Math.PI / 2);
+          drawArcChars(ccx, ccy, curveR - laneW / 2, 0, Math.PI / 2);
+          const pTop = plungerRestTop + plunger.pull * plungerTravel;
+          ctx.globalAlpha = 0.85 * laneAlpha;
+          ctx.fillText('==', laneCX, pTop);
+          const coilTop = pTop + cellH;
+          const coilBot = H - 8;
+          for (let i = 0; i < 4; i++) {
+            ctx.fillText('w', laneCX, coilTop + ((coilBot - coilTop) * i) / 3);
+          }
+          ctx.globalAlpha = 1;
         }
 
         // loose glyph particles
@@ -965,6 +1125,18 @@
         }
       }
 
+      // Trace a quarter arc (angles measured up from +x, y up) in glyphs that
+      // roughly follow the local tangent: | on the vertical stretch, \ in the
+      // middle, - as the curve flattens out.
+      function drawArcChars(cx, cy, r, a0, a1) {
+        const n = Math.max(3, Math.round((r * (a1 - a0)) / (cellH * 0.9)));
+        for (let i = 0; i <= n; i++) {
+          const a = a0 + ((a1 - a0) * i) / n;
+          const ch = a < Math.PI / 8 ? '|' : a > (3 * Math.PI) / 8 ? '-' : '\\';
+          ctx.fillText(ch, cx + r * Math.cos(a), cy - r * Math.sin(a));
+        }
+      }
+
       function drawSegmentChars(x1, y1, x2, y2, ch, font) {
         ctx.font = font + 'px ' + MONO;
         const len = Math.hypot(x2 - x1, y2 - y1);
@@ -987,6 +1159,13 @@
         layout();
         buildFleet();
         for (const b of balls) {
+          if (b.inLane) {
+            b.x = laneCX;
+            b.y = plungerRestTop + plunger.pull * plungerTravel - b.r;
+            b.vy = 0;
+            b.curveA = null;
+            continue;
+          }
           b.x = Math.max(b.r, Math.min(W - b.r, b.x));
           b.y = Math.min(b.y, H * 0.5);
         }
@@ -1011,8 +1190,8 @@
       }
 
       // --- input ---
-      // Bottom-left / bottom-right presses work the flippers; a tap in the
-      // upper playfield drops in another ball (up to MAX_BALLS).
+      // A press in the shooter lane grabs the plunger (drag down to pull);
+      // bottom-left / bottom-right presses elsewhere work the flippers.
       const pointerSides = new Map(); // pointerId -> flipper
 
       function localPoint(e) {
@@ -1021,12 +1200,22 @@
       }
 
       canvas.addEventListener('pointerdown', (e) => {
-        hideHintSoon();
+        hideHint();
         if (gameOver) {
           reset();
           return;
         }
         const p = localPoint(e);
+        if (p.x > laneX && balls.some((b) => b.inLane)) {
+          plunger.pointerId = e.pointerId;
+          plunger.grabY = p.y - plunger.pull * plungerTravel * 1.3;
+          if (canvas.setPointerCapture) {
+            try {
+              canvas.setPointerCapture(e.pointerId);
+            } catch (_) {}
+          }
+          return;
+        }
         if (p.y >= H * 0.55) {
           const f = p.x < W / 2 ? flippers[0] : flippers[1];
           f.pressed = true;
@@ -1036,12 +1225,20 @@
               canvas.setPointerCapture(e.pointerId);
             } catch (_) {}
           }
-        } else {
-          spawnBall(p.x, p.y);
         }
       });
 
+      canvas.addEventListener('pointermove', (e) => {
+        if (plunger.pointerId !== e.pointerId) return;
+        const p = localPoint(e);
+        plunger.pull = Math.max(0, Math.min(1, (p.y - plunger.grabY) / (plungerTravel * 1.3)));
+      });
+
       function releasePointer(e) {
+        if (plunger.pointerId === e.pointerId) {
+          plunger.pointerId = null;
+          releasePlunger();
+        }
         const f = pointerSides.get(e.pointerId);
         if (!f) return;
         pointerSides.delete(e.pointerId);
@@ -1083,6 +1280,9 @@
         pops = [];
         nextWaveAt = 0;
         gameOver = null;
+        plunger.pull = 0;
+        plunger.pointerId = null;
+        plunger.keyHold = false;
         buildFleet();
         spawnBall();
       }
@@ -1090,41 +1290,43 @@
       document.addEventListener('keydown', (e) => {
         if (setFlipperKey(e, true)) {
           e.preventDefault();
+        } else if (e.key === 'ArrowDown') {
+          if (!gameOver) plunger.keyHold = true;
+          e.preventDefault();
         } else if ((e.key === 'r' || e.key === 'R') && !e.repeat) {
           reset();
-          showHint();
         }
       });
       document.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowDown') {
+          plunger.keyHold = false;
+          releasePlunger();
+          return;
+        }
         setFlipperKey(e, false);
       });
 
       // --- hint + controls ---
+      // The hint bar stays hidden until the ? button is pressed, and any
+      // press on the playfield dismisses it again.
       const hintEl = document.getElementById('hint');
       Common.initHintUpdated({ hintEl });
-      let hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 4000);
-      function hideHintSoon() {
-        clearTimeout(hintTimer);
-        hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 1200);
-      }
       function showHint() {
         hintEl.classList.remove('hidden');
-        clearTimeout(hintTimer);
-        hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 2500);
       }
-      // The ? button in the top-right corner brings the hint bar back up,
-      // leaving the whole bottom of the screen free for flipper presses.
+      function hideHint() {
+        hintEl.classList.add('hidden');
+      }
       document.getElementById('help').addEventListener('pointerdown', (e) => {
         e.stopPropagation();
-        showHint();
+        if (hintEl.classList.contains('hidden')) showHint();
+        else hideHint();
       });
       document.getElementById('hb-reset').addEventListener('click', () => {
         reset();
-        showHint();
       });
       document.getElementById('hb-dark').addEventListener('click', () => {
         Common.toggleDark();
-        showHint();
       });
       document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
       Common.initSitemapShortcut();
