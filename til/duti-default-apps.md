@@ -3,13 +3,17 @@ added: 2026-07-06
 tags: [macos, cli]
 ---
 
-# Set default apps from the command line with duti
+# Set default macOS apps from the command line with duti
 
-macOS has no built-in command for changing which app opens a given file type — the supported path is right-clicking a file in Finder, Get Info, changing "Open with:", and clicking "Change All…", one file type at a time. [duti](https://github.com/moretension/duti) is a small CLI that does the same thing through Launch Services:
+Changing default apps on macOS is cumbersone: right-click a file in Finder, Get Info, changing "Open with:", and clicking "Change All…", one file type at a time.
+
+[`duti`](https://github.com/moretension/duti) is a small CLI that does the same thing through Launch Services:
 
 ```
 brew install duti
 ```
+
+I had claude use duti to change .md files to be opened in vscode. Here are it's notes on how to do that:
 
 ## Example: open all .md files in VS Code
 
