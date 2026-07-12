@@ -258,6 +258,7 @@
       let nextWaveAt = 0;
       let gameOver = null; // string reason when the game has ended
       let gameOverAt = 0; // when it ended; restarts are locked out briefly
+      let gameStarted = false; // set once the first ball enters the playfield
 
       // --- physics constants ---
       // Tuned floaty: gentle gravity plus per-substep air drag give the ball
@@ -503,9 +504,9 @@
           return;
         }
 
-        // the invasion holds its fire and its ground until a ball is
-        // actually in play — the plunger sets the pace
-        if (!balls.some((b) => !b.inLane)) {
+        // the invasion holds its fire and its ground only until the game's
+        // very first launch — reloading mid-game buys no such mercy
+        if (!gameStarted) {
           nextShotAt = now + FIRST_SHOT_GRACE_MS;
           return;
         }
@@ -904,6 +905,7 @@
                 b.curveA += (b.railV / curveR) * dt;
                 if (b.curveA >= Math.PI / 2) {
                   b.inLane = false;
+                  gameStarted = true;
                   b.x = laneCX - curveR;
                   b.y = curveStartY - curveR;
                   b.vx = -Math.min(b.railV * 0.7, 760 * physScale);
@@ -1366,6 +1368,7 @@
         pops = [];
         nextWaveAt = 0;
         gameOver = null;
+        gameStarted = false;
         plunger.pull = 0;
         plunger.pointerId = null;
         plunger.keyHold = false;
