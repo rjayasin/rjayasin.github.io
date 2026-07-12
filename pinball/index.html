@@ -116,10 +116,10 @@
   </head>
   <body>
     <canvas id="game"></canvas>
-    <div id="hint">
+    <div id="hint" class="hidden">
       <span id="hint-inner"
         ><span style="white-space: nowrap">tap bottom left/right to flip</span> &nbsp;·&nbsp;
-        <span style="white-space: nowrap">tap up top for another ball</span> &nbsp;·&nbsp;
+        <span style="white-space: nowrap">pull plunger (or hold ↓) to launch</span> &nbsp;·&nbsp;
         <span style="white-space: nowrap"><span class="hint-btn" id="hb-reset">r reset</span></span>
         &nbsp;·&nbsp;
         <span style="white-space: nowrap"
@@ -306,6 +306,18 @@
       // Height-scaled physics (see the constants above); set in layout().
       let physScale, gravity, maxSpeed, bumperKick, flipUpSpeed, flipDownSpeed;
 
+      // Shooter lane on the right edge: new balls rest on a spring plunger at
+      // the bottom; pulling it down and letting go fires the ball up the lane
+      // and out the opening at the top. laneX is the inner wall, and the
+      // playfield proper spans [0, laneX].
+      let laneW = 0,
+        laneX = 0,
+        laneCX = 0,
+        laneExitY = 0,
+        plungerRestTop = 0,
+        plungerTravel = 0;
+      const plunger = { pull: 0, pointerId: null, grabY: 0, keyHold: false };
+
       function isDark() {
         if (document.body.classList.contains('dark')) return true;
         if (document.body.classList.contains('light')) return false;
@@ -333,6 +345,13 @@
         ctx.font = flipFont + 'px ' + MONO;
         flipCharW = ctx.measureText('M').width;
 
+        laneW = Math.max(30, ballR * 2.4);
+        laneX = W - laneW;
+        laneCX = laneX + laneW / 2;
+        laneExitY = Math.max(40, ballR * 2.2);
+        plungerTravel = Math.min(80, H * 0.1);
+        plungerRestTop = H - plungerTravel - 34;
+
         const len = Math.max(80, Math.min(170, minDim * 0.17));
         const tipGapHalf = len * 0.36; // half the drain width between tips
         const pivotY = H - 24 - Math.sin(REST_ANGLE) * len;
@@ -340,7 +359,7 @@
         for (const f of flippers) {
           f.len = len;
           f.thick = flipFont * 0.42;
-          f.px = W / 2 + f.side * pivotDx;
+          f.px = laneX / 2 + f.side * pivotDx;
           f.py = pivotY;
         }
         funnelTopY = pivotY - len * 1.6;
@@ -393,10 +412,10 @@
         const invH = 3 * cellH;
         const gapX = invW * 0.65;
         const gapY = invH * 0.7;
-        const cols = Math.max(4, Math.min(8, Math.floor((W * 0.72) / (invW + gapX))));
+        const cols = Math.max(4, Math.min(8, Math.floor((laneX * 0.75) / (invW + gapX))));
         const rows = H > 760 ? 4 : 3;
         const spanW = cols * invW + (cols - 1) * gapX;
-        fleet = { x: (W - spanW) / 2 + invW / 2, y: 78 + invH / 2, dir: 1 };
+        fleet = { x: (laneX - spanW) / 2 + invW / 2, y: 78 + invH / 2, dir: 1 };
         for (let r = 0; r < rows; r++) {
           const sprite = INVADER_SPRITES[r % INVADER_SPRITES.length];
           for (let c = 0; c < cols; c++) {
@@ -455,7 +474,7 @@
           maxX = Math.max(maxX, x + inv.r);
           maxY = Math.max(maxY, fleet.y + inv.hy + inv.r);
         }
-        if (fleet.dir > 0 && maxX > W - 10) {
+        if (fleet.dir > 0 && maxX > laneX - 10) {
           fleet.dir = -1;
           fleet.y += cellH * 1.6;
         } else if (fleet.dir < 0 && minX < 10) {
@@ -520,26 +539,38 @@
               ch: pickBallEmoji(),
               angle: 0,
               av: 0,
+              inLane: false,
             });
           }
         }
       }
 
       // --- balls, particles, score pops ---
-      // With a position the ball appears right there (tap/click); with none it
-      // drops in from above the top edge with a little sideways drift.
-      function spawnBall(x, y) {
-        const placed = y != null;
+      // A new ball arrives resting on the plunger in the shooter lane; the
+      // player pulls the plunger down and releases to fire it into play.
+      function spawnBall() {
         balls.push({
-          x: placed ? Math.max(ballR, Math.min(W - ballR, x)) : W * (0.2 + Math.random() * 0.6),
-          y: placed ? Math.max(ballR, y) : -ballR * 2,
-          vx: placed ? 0 : (Math.random() - 0.5) * 140,
+          x: laneCX,
+          y: plungerRestTop + plunger.pull * plungerTravel - ballR,
+          vx: 0,
           vy: 0,
           r: ballR,
           ch: pickBallEmoji(),
           angle: 0,
           av: 0,
+          inLane: true,
         });
+      }
+
+      // Fire the lane ball with speed proportional to how far the plunger was
+      // pulled; a full pull clears the whole lane with a little to spare.
+      function releasePlunger() {
+        const pull = plunger.pull;
+        plunger.pull = 0;
+        const b = balls.find((bb) => bb.inLane);
+        if (!b || pull < 0.05 || gameOver) return;
+        const vFull = Math.sqrt(2 * gravity * H * 1.1);
+        b.vy = -vFull * (0.32 + 0.78 * pull);
       }
 
       function spawnParticle(x, y, ch, vx, vy) {
@@ -727,6 +758,7 @@
           if (bl.dead) continue;
           // the ball soaks up bullets — a shield you can juggle
           for (const b of balls) {
+            if (b.inLane) continue;
             if (Math.hypot(b.x - bl.x, b.y - bl.y) < b.r + 4) {
               bl.dead = true;
               for (let i = 0; i < 3; i++) {
@@ -785,6 +817,8 @@
           f.av = (f.angle - f.prevAngle) / dt;
         }
 
+        if (plunger.keyHold) plunger.pull = Math.min(1, plunger.pull + 1.6 * dt);
+
         stepFleet(dt, now);
         stepBullets(dt, now);
         if (gameOver) {
@@ -795,6 +829,25 @@
         const lf = flippers[0],
           rf = flippers[1];
         for (const b of balls) {
+          if (b.inLane) {
+            // shooter lane: pure vertical motion, no drag, riding the plunger
+            b.vy += gravity * dt;
+            b.y += b.vy * dt;
+            const restY = plungerRestTop + plunger.pull * plungerTravel - b.r;
+            if (b.y >= restY) {
+              b.y = restY;
+              if (b.vy > 0) b.vy = -b.vy * 0.25;
+              if (Math.abs(b.vy) < 60) b.vy = 0;
+            }
+            if (b.y < laneExitY && b.vy < 0) {
+              // spat out the opening up top, into the playfield
+              b.inLane = false;
+              b.x = laneX - b.r - 2;
+              b.vx = -(180 + Math.random() * 120) * physScale;
+            }
+            continue;
+          }
+
           b.vy += gravity * dt;
           b.vx *= BALL_DRAG;
           b.vy *= BALL_DRAG;
@@ -803,13 +856,14 @@
           b.angle += b.av * dt;
           b.av *= 0.995;
 
-          // outer walls (top and sides; the bottom is the drain)
+          // outer walls (top and left; the lane wall on the right; the
+          // bottom is the drain)
           if (b.x < b.r) {
             b.x = b.r;
             if (b.vx < 0) b.vx = -b.vx * WALL_REST;
           }
-          if (b.x > W - b.r) {
-            b.x = W - b.r;
+          if (b.x > laneX - b.r) {
+            b.x = laneX - b.r;
             if (b.vx > 0) b.vx = -b.vx * WALL_REST;
           }
           if (b.y < b.r && b.vy < 0) {
@@ -820,7 +874,7 @@
           // funnel guides steering the ball onto the flippers; same collision
           // thickness as the blades so there's no bump at the pivot junction
           collideSegment(b, -20, funnelTopY, lf.px, lf.py, FUNNEL_REST, lf.thick);
-          collideSegment(b, W + 20, funnelTopY, rf.px, rf.py, FUNNEL_REST, rf.thick);
+          collideSegment(b, laneX + 20, funnelTopY, rf.px, rf.py, FUNNEL_REST, rf.thick);
 
           for (const f of flippers) {
             const sweep = f.angle - f.prevAngle;
@@ -835,6 +889,7 @@
           for (let j = i + 1; j < balls.length; j++) {
             const a = balls[i],
               b = balls[j];
+            if (a.inLane || b.inLane) continue;
             let dx = b.x - a.x,
               dy = b.y - a.y;
             const minD = a.r + b.r;
@@ -874,22 +929,40 @@
         ctx.textBaseline = 'middle';
         const ink = inkColor();
 
-        // side walls
+        // side walls; the right one runs the full height of the shooter lane
         ctx.fillStyle = ink;
         ctx.globalAlpha = 0.3;
         ctx.font = targetFont + 'px ' + MONO;
         for (let y = cellH; y < funnelTopY - cellH; y += cellH * 2) {
           ctx.fillText('|', 8, y);
+        }
+        for (let y = cellH; y < H; y += cellH * 2) {
           ctx.fillText('|', W - 8, y);
         }
         ctx.globalAlpha = 1;
 
+        // shooter lane inner wall, open at the top where the ball exits
+        ctx.globalAlpha = 0.65;
+        for (let y = laneExitY; y < H; y += cellH) {
+          ctx.fillText('|', laneX, y);
+        }
+
         // funnels
         const lf = flippers[0],
           rf = flippers[1];
-        ctx.globalAlpha = 0.65;
         drawSegmentChars(0, funnelTopY, lf.px, lf.py, '\\', targetFont);
-        drawSegmentChars(W, funnelTopY, rf.px, rf.py, '/', targetFont);
+        drawSegmentChars(laneX, funnelTopY, rf.px, rf.py, '/', targetFont);
+        ctx.globalAlpha = 1;
+
+        // plunger: a cap riding on a coil spring at the bottom of the lane
+        const pTop = plungerRestTop + plunger.pull * plungerTravel;
+        ctx.globalAlpha = 0.85;
+        ctx.fillText('==', laneCX, pTop);
+        const coilTop = pTop + cellH;
+        const coilBot = H - 8;
+        for (let i = 0; i < 4; i++) {
+          ctx.fillText('w', laneCX, coilTop + ((coilBot - coilTop) * i) / 3);
+        }
         ctx.globalAlpha = 1;
 
         // the invader fleet; specials wear their color
@@ -1031,7 +1104,13 @@
         layout();
         buildFleet();
         for (const b of balls) {
-          b.x = Math.max(b.r, Math.min(W - b.r, b.x));
+          if (b.inLane) {
+            b.x = laneCX;
+            b.y = plungerRestTop + plunger.pull * plungerTravel - b.r;
+            b.vy = 0;
+            continue;
+          }
+          b.x = Math.max(b.r, Math.min(laneX - b.r, b.x));
           b.y = Math.min(b.y, H * 0.5);
         }
       }
@@ -1055,8 +1134,8 @@
       }
 
       // --- input ---
-      // Bottom-left / bottom-right presses work the flippers; a tap in the
-      // upper playfield drops in another ball (no limit).
+      // A press in the shooter lane grabs the plunger (drag down to pull);
+      // bottom-left / bottom-right presses elsewhere work the flippers.
       const pointerSides = new Map(); // pointerId -> flipper
 
       function localPoint(e) {
@@ -1065,14 +1144,24 @@
       }
 
       canvas.addEventListener('pointerdown', (e) => {
-        hideHintSoon();
+        hideHint();
         if (gameOver) {
           reset();
           return;
         }
         const p = localPoint(e);
+        if (p.x > laneX) {
+          plunger.pointerId = e.pointerId;
+          plunger.grabY = p.y - plunger.pull * plungerTravel * 1.3;
+          if (canvas.setPointerCapture) {
+            try {
+              canvas.setPointerCapture(e.pointerId);
+            } catch (_) {}
+          }
+          return;
+        }
         if (p.y >= H * 0.55) {
-          const f = p.x < W / 2 ? flippers[0] : flippers[1];
+          const f = p.x < laneX / 2 ? flippers[0] : flippers[1];
           f.pressed = true;
           pointerSides.set(e.pointerId, f);
           if (canvas.setPointerCapture) {
@@ -1080,12 +1169,20 @@
               canvas.setPointerCapture(e.pointerId);
             } catch (_) {}
           }
-        } else {
-          spawnBall(p.x, p.y);
         }
       });
 
+      canvas.addEventListener('pointermove', (e) => {
+        if (plunger.pointerId !== e.pointerId) return;
+        const p = localPoint(e);
+        plunger.pull = Math.max(0, Math.min(1, (p.y - plunger.grabY) / (plungerTravel * 1.3)));
+      });
+
       function releasePointer(e) {
+        if (plunger.pointerId === e.pointerId) {
+          plunger.pointerId = null;
+          releasePlunger();
+        }
         const f = pointerSides.get(e.pointerId);
         if (!f) return;
         pointerSides.delete(e.pointerId);
@@ -1127,6 +1224,9 @@
         pops = [];
         nextWaveAt = 0;
         gameOver = null;
+        plunger.pull = 0;
+        plunger.pointerId = null;
+        plunger.keyHold = false;
         buildFleet();
         spawnBall();
       }
@@ -1134,41 +1234,43 @@
       document.addEventListener('keydown', (e) => {
         if (setFlipperKey(e, true)) {
           e.preventDefault();
+        } else if (e.key === 'ArrowDown') {
+          if (!gameOver) plunger.keyHold = true;
+          e.preventDefault();
         } else if ((e.key === 'r' || e.key === 'R') && !e.repeat) {
           reset();
-          showHint();
         }
       });
       document.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowDown') {
+          plunger.keyHold = false;
+          releasePlunger();
+          return;
+        }
         setFlipperKey(e, false);
       });
 
       // --- hint + controls ---
+      // The hint bar stays hidden until the ? button is pressed, and any
+      // press on the playfield dismisses it again.
       const hintEl = document.getElementById('hint');
       Common.initHintUpdated({ hintEl });
-      let hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 4000);
-      function hideHintSoon() {
-        clearTimeout(hintTimer);
-        hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 1200);
-      }
       function showHint() {
         hintEl.classList.remove('hidden');
-        clearTimeout(hintTimer);
-        hintTimer = setTimeout(() => hintEl.classList.add('hidden'), 2500);
       }
-      // The ? button in the top-right corner brings the hint bar back up,
-      // leaving the whole bottom of the screen free for flipper presses.
+      function hideHint() {
+        hintEl.classList.add('hidden');
+      }
       document.getElementById('help').addEventListener('pointerdown', (e) => {
         e.stopPropagation();
-        showHint();
+        if (hintEl.classList.contains('hidden')) showHint();
+        else hideHint();
       });
       document.getElementById('hb-reset').addEventListener('click', () => {
         reset();
-        showHint();
       });
       document.getElementById('hb-dark').addEventListener('click', () => {
         Common.toggleDark();
-        showHint();
       });
       document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
       Common.initSitemapShortcut();
