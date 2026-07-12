@@ -259,6 +259,7 @@
       let gameOver = null; // string reason when the game has ended
       let gameOverAt = 0; // when it ended; restarts are locked out briefly
       let gameStarted = false; // set once the first ball enters the playfield
+      let fleetProvoked = false; // set once the ball has struck an invader
       let respawnsUsed = 0;
 
       // --- physics constants ---
@@ -507,12 +508,9 @@
           return;
         }
 
-        // the invasion holds its fire and its ground only until the game's
-        // very first launch — reloading mid-game buys no such mercy
-        if (!gameStarted) {
-          nextShotAt = now + FIRST_SHOT_GRACE_MS;
-          return;
-        }
+        // the invasion holds its ground only until the game's very first
+        // launch — reloading mid-game buys no such mercy
+        if (!gameStarted) return;
 
         // classic invaders pacing: the fewer left, the faster they scuttle
         const deadRatio = 1 - aliveInv.length / invaders.length;
@@ -545,7 +543,9 @@
           return;
         }
 
-        if (now >= nextShotAt) {
+        // they only shoot back once provoked: the first ball to land on an
+        // invader starts the war, and even then after a grace period
+        if (fleetProvoked && now >= nextShotAt) {
           fireBullet(aliveInv);
           const base = Math.max(500, 1500 - (wave - 1) * 120);
           nextShotAt = now + base + Math.random() * 1200;
@@ -787,6 +787,10 @@
         b.av = Math.max(-16, Math.min(16, b.av + (Math.random() - 0.5) * 10));
         clampSpeed(b);
         if (now - inv.lastHit > HIT_COOLDOWN) {
+          if (!fleetProvoked) {
+            fleetProvoked = true;
+            nextShotAt = now + FIRST_SHOT_GRACE_MS;
+          }
           inv.lastHit = now;
           inv.flashT = now + 140;
           inv.hits++;
@@ -1390,6 +1394,7 @@
         nextWaveAt = 0;
         gameOver = null;
         gameStarted = false;
+        fleetProvoked = false;
         respawnsUsed = 0;
         plunger.pull = 0;
         plunger.pointerId = null;
