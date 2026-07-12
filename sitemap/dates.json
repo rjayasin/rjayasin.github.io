@@ -8,8 +8,8 @@
     "url": "https://github.com/rjayasin/rjayasin.github.io/commit/5c739411a6f5768da0bc84b177b6b88c972daea0"
   },
   "/border/": {
-    "date": "2026-06-02T09:35:57-07:00",
-    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/2842b8c6e0e3cb4db1f579ab9a5c587d252750e2"
+    "date": "2026-07-11T00:16:10-07:00",
+    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/d55a6bbd8ead082190c432ab65833db2a61a31a5"
   },
   "/box/": {
     "date": "2026-05-27T09:08:04-07:00",
@@ -56,12 +56,12 @@
     "url": "https://github.com/rjayasin/rjayasin.github.io/commit/a44393d392920ec81341e47b463faf8e832346a4"
   },
   "/snake/": {
-    "date": "2026-07-02T10:00:49-07:00",
-    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/3b021f6d9dec2059a4488c23acac15ca5b730151"
+    "date": "2026-07-11T00:07:43-07:00",
+    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/a497918978b67e5d9082d67a18a92582d1788bce"
   },
   "/sitemap/": {
-    "date": "2026-07-07T15:01:32-07:00",
-    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/ec437972c2fd2b00f981fd948da74f8990687638"
+    "date": "2026-07-11T00:13:18-07:00",
+    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/f2ea69d25ebc612be8a5d014494ea75772c5ea2e"
   },
   "/grid/": {
     "date": "2026-05-28T13:04:13-07:00",
@@ -84,8 +84,8 @@
     "url": "https://github.com/rjayasin/rjayasin.github.io/commit/73eff8e4dd56a257ddc8be9a57ded301c3237db6"
   },
   "/etymology/game/": {
-    "date": "2026-07-09T13:17:55-07:00",
-    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/6b0bf03e30c7f5c2e6e1bff0ab6517237bc04008"
+    "date": "2026-07-10T23:41:05-07:00",
+    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/03c4f83b5f1a5d950ed2bcf704f725aae609e421"
   },
   "/fuji-viewer/": {
     "date": "2026-07-05T17:04:16-07:00",
@@ -98,5 +98,9 @@
   "/gif-helper/": {
     "date": "2026-07-07T15:01:32-07:00",
     "url": "https://github.com/rjayasin/rjayasin.github.io/commit/ec437972c2fd2b00f981fd948da74f8990687638"
+  },
+  "/pinball/": {
+    "date": "2026-07-11T00:22:23-07:00",
+    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/051ab0ff2706e8ce3d4443c9cbca855396489890"
   }
 }

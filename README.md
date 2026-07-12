@@ -38,6 +38,7 @@
   - [`spotify-auth`](https://rjayasin.github.io/visualizer/spotify-auth.html)
 - [`maze-canvas`](https://rjayasin.github.io/maze-canvas/)
 - [`snake`](https://rjayasin.github.io/snake/)
+- [`pinball`](https://rjayasin.github.io/pinball/)
 
 `experiments`
 
