@@ -292,12 +292,12 @@
       const DESKTOP = !!(
         window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches
       );
-      const DESKTOP_GRAVITY = 1.4; // multipliers on the tuned constants
-      const DESKTOP_MAX_SPEED = 1.35;
-      const DESKTOP_KICK = 1.25;
-      const DESKTOP_FLIP_SPEED = 1.35; // blades swing faster, so they hit harder
-      const DESKTOP_DRAG = 0.998; // barely any; the ball keeps what it's given
-      const DESKTOP_FLIP_REST = 0.62; // vs FLIP_REST
+      const DESKTOP_GRAVITY = 1.22; // multipliers on the tuned constants
+      const DESKTOP_MAX_SPEED = 1.2;
+      const DESKTOP_KICK = 1.15;
+      const DESKTOP_FLIP_SPEED = 1.2; // blades swing faster, so they hit harder
+      const DESKTOP_DRAG = 0.9968; // less than the floaty default, but still there
+      const DESKTOP_FLIP_REST = 0.55; // vs FLIP_REST
 
       // --- invader constants ---
       const INVADER_HITS = 3; // ball hits to kill one invader
