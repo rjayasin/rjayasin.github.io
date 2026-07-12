@@ -257,6 +257,7 @@
       let nextShotAt = 0;
       let nextWaveAt = 0;
       let gameOver = null; // string reason when the game has ended
+      let gameOverAt = 0; // when it ended; restarts are locked out briefly
 
       // --- physics constants ---
       // Tuned floaty: gentle gravity plus per-substep air drag give the ball
@@ -280,6 +281,7 @@
       const KILL_SCORE = 500;
       const BULLET_PENALTY = 200; // score lost to a bullet on wave 1
       const BULLET_PENALTY_PER_WAVE = 100; // extra damage per later wave
+      const GAME_OVER_LOCK_MS = 2000; // no restarting until this has passed
       const FLEET_BASE_SPEED = 26; // px/s sideways at ref height
       const BULLET_SPEED = 300; // px/s at ref height
       const FIRST_SHOT_GRACE_MS = 2500;
@@ -481,6 +483,7 @@
       function triggerGameOver(reason) {
         if (gameOver) return;
         gameOver = reason;
+        gameOverAt = performance.now();
         hsRank = recordHighScore(score, wave);
         for (const f of flippers) f.pressed = false;
       }
@@ -1172,7 +1175,10 @@
           ctx.fillText('GAME OVER', W / 2, gy);
           ctx.font = '14px ' + MONO;
           ctx.fillText(gameOver, W / 2, gy + 34);
-          ctx.fillText('press r or tap to restart', W / 2, gy + 56);
+          // the restart prompt only appears once the brief lockout is over
+          if (now - gameOverAt >= GAME_OVER_LOCK_MS) {
+            ctx.fillText('press r or tap to restart', W / 2, gy + 56);
+          }
           // the local scoreboard, this run's entry marked with its rank
           if (hsList.length) {
             ctx.font = '13px ' + MONO;
@@ -1346,6 +1352,9 @@
       }
 
       function reset() {
+        // right after game over, ignore restarts briefly so a stray tap or
+        // held key can't skip past the card before it registers
+        if (gameOver && performance.now() - gameOverAt < GAME_OVER_LOCK_MS) return;
         // a run abandoned mid-game still counts toward the scoreboard
         if (!gameOver) recordHighScore(score, wave);
         score = 0;
