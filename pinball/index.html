@@ -1173,9 +1173,8 @@
         ctx.globalAlpha = 0.85;
         ctx.font = '14px ' + MONO;
         const sTxt = (score < 0 ? '-' : '') + String(Math.abs(score)).padStart(6, '0');
-        ctx.fillText('score ' + sTxt, 12, 22);
-        ctx.fillText('wave ' + wave, 12, 40);
-        ctx.fillText('balls ' + Math.max(0, MAX_RESPAWNS - respawnsUsed), 12, 58);
+        const ballsLeft = Math.max(0, MAX_RESPAWNS - respawnsUsed);
+        ctx.fillText('score ' + sTxt + ' · wave ' + wave + ' · balls ' + ballsLeft, 12, 22);
         ctx.globalAlpha = 1;
         ctx.textAlign = 'center';
 
