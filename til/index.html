@@ -241,7 +241,9 @@
         const emphasize = (s) =>
           s.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/\*([^*]+)\*/g, '<i>$1</i>');
         // Inline code first, so its contents are shielded from other passes.
-        let s = text.replace(/`([^`]+)`/g, (m, code) => hold('<code>' + Common.escHtml(code) + '</code>'));
+        let s = text.replace(/`([^`]+)`/g, (m, code) =>
+          hold('<code>' + Common.escHtml(code) + '</code>')
+        );
         // Links. Labels may contain the code placeholders above, so link text
         // can be rendered in monospace, e.g. [`duti`](url).
         s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, label, url) => {
