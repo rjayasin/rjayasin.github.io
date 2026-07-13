@@ -232,23 +232,28 @@
       // links, bold/italic, lists, blockquotes, hr, paragraphs) ---
 
       function renderInline(text) {
-        return text
-          .split(/(`[^`]+`)/)
-          .map((chunk) => {
-            if (chunk.length > 2 && chunk.startsWith('`') && chunk.endsWith('`')) {
-              return '<code>' + Common.escHtml(chunk.slice(1, -1)) + '</code>';
-            }
-            let s = Common.escHtml(chunk);
-            s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, label, url) => {
-              if (!/^(https?:\/\/|\/|#|\.)/.test(url)) return m;
-              const ext = /^https?:\/\//.test(url) ? ' target="_blank" rel="noopener"' : '';
-              return '<a href="' + url + '"' + ext + '>' + label + '</a>';
-            });
-            s = s.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
-            s = s.replace(/\*([^*]+)\*/g, '<i>$1</i>');
-            return s;
-          })
-          .join('');
+        // Rendered fragments are stashed behind placeholders (a NUL sentinel
+        // that never appears in the source text) so later passes -- escaping
+        // and emphasis -- leave them untouched, then spliced back in at the end.
+        const NUL = '\u0000';
+        const holds = [];
+        const hold = (html) => NUL + (holds.push(html) - 1) + NUL;
+        const emphasize = (s) =>
+          s.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/\*([^*]+)\*/g, '<i>$1</i>');
+        // Inline code first, so its contents are shielded from other passes.
+        let s = text.replace(/`([^`]+)`/g, (m, code) => hold('<code>' + Common.escHtml(code) + '</code>'));
+        // Links. Labels may contain the code placeholders above, so link text
+        // can be rendered in monospace, e.g. [`duti`](url).
+        s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, label, url) => {
+          if (!/^(https?:\/\/|\/|#|\.)/.test(url)) return m;
+          const ext = /^https?:\/\//.test(url) ? ' target="_blank" rel="noopener"' : '';
+          return hold('<a href="' + url + '"' + ext + '>' + Common.escHtml(label) + '</a>');
+        });
+        s = emphasize(Common.escHtml(s));
+        // Restore recursively: a link's HTML may itself embed a code placeholder.
+        const restore = (str) =>
+          str.replace(new RegExp(NUL + '(\\d+)' + NUL, 'g'), (m, i) => restore(holds[+i]));
+        return restore(s);
       }
 
       function renderMarkdown(src) {
