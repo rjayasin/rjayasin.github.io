@@ -584,6 +584,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Geo | OFL | Ben Weiner | Copyright (c) 2000-2010, Ben Weiner (ben@readingtype.org.uk), with Reserved Font Name Geo. |
 | Geologica | OFL | Monokrom, Sindre Bremnes, Frode Helland | Copyright 2020 The Geologica Project Authors (https://github.com/googlefonts/geologica) |
 | Geom | OFL | Thanos Poulakidas | Copyright 2022 The Geom Project Authors (https://github.com/ThanosPoulakidas/Geom) |
+| Geomini | OFL | FontBob | Copyright 2026 The Geomini Project Authors (https://github.com/fontbob/geomini) |
 | Georama | OFL | Production Type | Copyright 2020 The Georama Project Authors (http://github.com/productiontype/georama) |
 | Geostar | OFL | Joe Prince | Copyright (c) 2011, Admix Designs (http://www.admixdesigns.com joe@admixdesigns.com) with Reserved Font Name Geostar. |
 | Geostar Fill | OFL | Joe Prince | Copyright (c) 2011, Admix Designs (http://www.admixdesigns.com joe@admixdesigns.com) with Reserved Font Name Geostar. |
@@ -656,6 +657,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Hepta Slab | OFL | Mike LaGattuta | Copyright 2018 The Hepta Slab Project Authors (https://github.com/mjlagattuta/Hepta-Slab) |
 | Herr Von Muellerhoff | OFL | Sudtipos | Copyright (c) 2004 Alejandro Paul (sudtipos@sudtipos.com), with Reserved Font Name "Herr Von Mullerhoff" |
 | Hi Melody | OFL | YoonDesign Inc | Copyright (c) YoonDesign Inc. All Rights Reserved. |
+| Hibur Mono | OFL | TypeHabesha, Behailu Berento | Copyright 2025-2026 The Hibur Mono Font Project Authors (https://github.com/typehabesha/HiburMono). |
 | Hina Mincho | OFL | Satsuyako | Copyright 2020 The Hina Mincho Project Authors (https://github.com/satsuyako/Hina-Mincho) |
 | Hind | OFL | Indian Type Foundry | Copyright (c) 2014 Indian Type Foundry (info@indiantypefoundry.com) |
 | Hind Guntur | OFL | Indian Type Foundry | Copyright (c) 2015 Indian Type Foundry (info@indiantypefoundry.com) |

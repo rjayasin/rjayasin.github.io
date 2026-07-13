@@ -4592,6 +4592,14 @@
       "copyright": "Copyright 2022 The Geom Project Authors (https://github.com/ThanosPoulakidas/Geom)",
       "resolved": true
     },
+    "Geomini": {
+      "family": "Geomini",
+      "slug": "geomini",
+      "licenseCode": "OFL",
+      "designer": "FontBob",
+      "copyright": "Copyright 2026 The Geomini Project Authors (https://github.com/fontbob/geomini)",
+      "resolved": true
+    },
     "Georama": {
       "family": "Georama",
       "slug": "georama",
@@ -5150,6 +5158,14 @@
       "licenseCode": "OFL",
       "designer": "YoonDesign Inc",
       "copyright": "Copyright (c) YoonDesign Inc. All Rights Reserved.",
+      "resolved": true
+    },
+    "Hibur Mono": {
+      "family": "Hibur Mono",
+      "slug": "hiburmono",
+      "licenseCode": "OFL",
+      "designer": "TypeHabesha, Behailu Berento",
+      "copyright": "Copyright 2025-2026 The Hibur Mono Font Project Authors (https://github.com/typehabesha/HiburMono).",
       "resolved": true
     },
     "Hina Mincho": {
