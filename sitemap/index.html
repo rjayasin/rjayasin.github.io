@@ -237,7 +237,11 @@
     <ul id="recent-view" hidden></ul>
     <ul id="alpha-view" hidden></ul>
     <script>
-      Common.paintFavicon({ glyph: '🗺️', fontSize: 48, transparent: true, dy: 5 });
+      // The world-map emoji is full-bleed artwork (no transparent margin), and
+      // iOS renders Apple Color Emoji larger than the nominal font size, so at 48px
+      // it overflowed the 64px favicon canvas and got clipped into a zoomed-in map.
+      // A smaller size keeps the whole map contained with a normal margin.
+      Common.paintFavicon({ glyph: '🗺️', fontSize: 38, transparent: true });
       Common.initDarkMode();
 
       // iOS Safari ignores user-scalable=no; touch-action handles double-tap, so
