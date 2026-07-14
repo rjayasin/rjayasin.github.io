@@ -299,6 +299,7 @@
           angle: 0,
           av: 0,
           r: radius * (size / fontSize),
+          m: size * size, // mass scales with glyph area, so big shots hit harder
           ch,
           fixed: !!fixed,
           shot: !!shot,
@@ -598,12 +599,15 @@
           return;
         }
 
-        // both non-fixed: equal-mass collision
-        const corr = overlap / 2;
-        a.x -= nx * corr;
-        a.y -= ny * corr;
-        b.x += nx * corr;
-        b.y += ny * corr;
+        // both non-fixed: mass-weighted collision, so heavy glyphs shove
+        // light ones aside rather than budging themselves
+        const invSum = 1 / (a.m + b.m);
+        const wa = b.m * invSum,
+          wb = a.m * invSum;
+        a.x -= nx * overlap * wa;
+        a.y -= ny * overlap * wa;
+        b.x += nx * overlap * wb;
+        b.y += ny * overlap * wb;
 
         const rvx = b.vx - a.vx,
           rvy = b.vy - a.vy;
@@ -615,13 +619,13 @@
         // exchanging momentum and losing speed to RESTITUTION = 0.18.
         const energetic = bounceMode && (a.shot || b.shot);
         const rest = energetic ? BOUNCE_UNSTICK_RESTITUTION : RESTITUTION;
-        const jImp = (-(1 + rest) * vn) / 2;
+        const jImp = -(1 + rest) * vn * (a.m * b.m * invSum);
         const ix = jImp * nx,
           iy = jImp * ny;
-        a.vx -= ix;
-        a.vy -= iy;
-        b.vx += ix;
-        b.vy += iy;
+        a.vx -= ix / a.m;
+        a.vy -= iy / a.m;
+        b.vx += ix / b.m;
+        b.vy += iy / b.m;
 
         const tx = -ny,
           ty = nx;
@@ -633,15 +637,18 @@
         // Energetic shot bounces skip the clamp so the ricochet keeps its
         // tangential velocity instead of getting halved into the target.
         if (!energetic && Math.abs(vt) < WALL_STATIC_SLIP) {
-          const halfVt = vt / 2;
-          a.vx += halfVt * tx;
-          a.vy += halfVt * ty;
-          b.vx -= halfVt * tx;
-          b.vy -= halfVt * ty;
+          // kill relative tangential motion, split inversely to mass so
+          // momentum is conserved
+          a.vx += vt * wa * tx;
+          a.vy += vt * wa * ty;
+          b.vx -= vt * wb * tx;
+          b.vy -= vt * wb * ty;
         } else {
-          const spin = (vt / a.r) * SPIN_FACTOR;
-          a.av = Math.max(-MAX_AV, Math.min(MAX_AV, a.av - spin));
-          b.av = Math.max(-MAX_AV, Math.min(MAX_AV, b.av + spin));
+          // heavier glyphs resist being spun by the lighter one
+          const spinA = (vt / a.r) * SPIN_FACTOR * 2 * wa;
+          const spinB = (vt / b.r) * SPIN_FACTOR * 2 * wb;
+          a.av = Math.max(-MAX_AV, Math.min(MAX_AV, a.av - spinA));
+          b.av = Math.max(-MAX_AV, Math.min(MAX_AV, b.av + spinB));
         }
         a.av *= CONTACT_ANG_DAMP;
         b.av *= CONTACT_ANG_DAMP;

@@ -289,6 +289,7 @@
           angle: 0,
           av: 0,
           r: radius * (size / fontSize),
+          m: size * size, // mass scales with glyph area, so big shots hit harder
           ch,
           size,
           shot: !!shot,
@@ -425,32 +426,36 @@
           ny = dy / dist;
         const overlap = minDist - dist;
 
-        // positional correction (equal mass)
-        const corr = overlap / 2;
-        a.x -= nx * corr;
-        a.y -= ny * corr;
-        b.x += nx * corr;
-        b.y += ny * corr;
+        // positional correction, split inversely to mass so heavy glyphs
+        // shove light ones aside rather than budging themselves
+        const invSum = 1 / (a.m + b.m);
+        const wa = b.m * invSum,
+          wb = a.m * invSum;
+        a.x -= nx * overlap * wa;
+        a.y -= ny * overlap * wa;
+        b.x += nx * overlap * wb;
+        b.y += ny * overlap * wb;
 
-        // velocity impulse along normal
+        // velocity impulse along normal (mass-weighted)
         const rvx = b.vx - a.vx,
           rvy = b.vy - a.vy;
         const vn = rvx * nx + rvy * ny;
         if (vn > 0) return; // separating
-        const jImp = (-(1 + RESTITUTION) * vn) / 2;
+        const jImp = -(1 + RESTITUTION) * vn * (a.m * b.m * invSum);
         const ix = jImp * nx,
           iy = jImp * ny;
-        a.vx -= ix;
-        a.vy -= iy;
-        b.vx += ix;
-        b.vy += iy;
+        a.vx -= ix / a.m;
+        a.vy -= iy / a.m;
+        b.vx += ix / b.m;
+        b.vy += iy / b.m;
 
         // glancing (tangential) contact spins the glyphs instead of leaving
-        // them locked upright.
+        // them locked upright; heavier glyphs resist being spun.
         const vt = rvx * -ny + rvy * nx;
-        const spin = (vt / a.r) * SPIN_FACTOR;
-        a.av = Math.max(-MAX_AV, Math.min(MAX_AV, a.av - spin));
-        b.av = Math.max(-MAX_AV, Math.min(MAX_AV, b.av + spin));
+        const spinA = (vt / a.r) * SPIN_FACTOR * 2 * wa;
+        const spinB = (vt / b.r) * SPIN_FACTOR * 2 * wb;
+        a.av = Math.max(-MAX_AV, Math.min(MAX_AV, a.av - spinA));
+        b.av = Math.max(-MAX_AV, Math.min(MAX_AV, b.av + spinB));
       }
 
       function draw() {
