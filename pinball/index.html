@@ -603,9 +603,7 @@
       // invaders farthest from the fleet's center.
       function pickDiver(candidates) {
         const cx = fleet.x + fleet.hw;
-        const sorted = candidates
-          .slice()
-          .sort((a, b) => Math.abs(b.x - cx) - Math.abs(a.x - cx));
+        const sorted = candidates.slice().sort((a, b) => Math.abs(b.x - cx) - Math.abs(a.x - cx));
         const n = Math.max(1, Math.ceil(sorted.length / 3));
         return sorted[Math.floor(Math.random() * n)];
       }
@@ -648,9 +646,7 @@
         }
         // bank into the turn: attackers lean with their sideways motion
         const lean =
-          inv.mode === 'formation'
-            ? 0
-            : Math.max(-0.6, Math.min(0.6, (inv.x - px) / dt / 700));
+          inv.mode === 'formation' ? 0 : Math.max(-0.6, Math.min(0.6, (inv.x - px) / dt / 700));
         inv.tilt += (lean - inv.tilt) * Math.min(1, dt * 6);
       }
 
@@ -1043,9 +1039,7 @@
             }
           }
         }
-        bullets = bullets.filter(
-          (bl) => !bl.dead && bl.y < H + 20 && bl.x > -20 && bl.x < W + 20
-        );
+        bullets = bullets.filter((bl) => !bl.dead && bl.y < H + 20 && bl.x > -20 && bl.x < W + 20);
       }
 
       // Dropped plus signs drift down the table until a ball or a flipper
