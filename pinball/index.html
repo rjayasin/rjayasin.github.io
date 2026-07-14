@@ -231,7 +231,10 @@
 
       // The targets are a fleet of space invaders: little ASCII sprites in
       // rows, one sprite style per row, each non-space character a cell that
-      // can be knocked loose as the invader takes damage.
+      // can be knocked loose as the invader takes damage. The fleet holds
+      // its altitude Galaga-style — no creeping toward the flippers — and
+      // instead sends attackers peeling out of formation on swooping dive
+      // runs across the table before they climb back to their slots.
       const INVADER_SPRITES = [
         // squid
         [' /\\ ', '/oo\\', '<~~>'],
@@ -310,6 +313,16 @@
       const FLEET_BASE_SPEED = 26; // px/s sideways at ref height
       const BULLET_SPEED = 300; // px/s at ref height
       const FIRST_SHOT_GRACE_MS = 2500;
+      // Galaga formation: the grid breathes in and out around its center
+      // while the whole fleet sways side to side, and individual invaders
+      // peel off on bezier dive runs before climbing back to their slots.
+      const BREATHE_AMT = 0.055; // fraction the slot spacing swells
+      const BREATHE_RATE = 1.7; // rad/s
+      const DIVE_BASE_INTERVAL = 2400; // ms between dive launches on wave 1
+      const DIVE_MIN_INTERVAL = 650;
+      const DIVE_TIME = 2.1; // s for the swoop itself, before wave speedup
+      const DIVE_RETURN_SPEED = 240; // px/s climbing back to the slot
+      const MAX_DIVERS = 3; // simultaneous attackers, reached in later waves
       // A few invaders per fleet are "special": drawn in color, and killing
       // one releases extra balls into play. They get rarer wave by wave.
       const SPECIAL_CHANCE = 0.15;
@@ -438,6 +451,11 @@
         return {
           hx, // formation offset from the fleet origin
           hy,
+          x: 0, // actual position right now (slot, or somewhere mid-dive)
+          y: 0,
+          mode: 'formation', // 'formation' | 'dive' | 'return'
+          dive: null, // bezier control points + timing while attacking
+          tilt: 0, // banking lean while swooping
           col,
           cells,
           hits: 0,
@@ -455,9 +473,22 @@
         return 'hsl(' + hue + ', 90%, ' + (isDark() ? 60 : 38) + '%)';
       }
 
-      // fleet.x/y is the center of the top-left invader; everyone else hangs
-      // off it at fixed formation offsets so the whole grid marches together.
-      let fleet = { x: 0, y: 0, yTarget: 0, dir: 1 };
+      // fleet.x/y anchors the top-left slot; everyone else hangs off it at
+      // breathing formation offsets, except while out on a dive run.
+      let fleet = { x: 0, y: 0, dir: 1, hw: 0 };
+      let formT = 0; // clock driving the formation breathing
+      let nextDiveAt = 0;
+
+      // Where an invader's formation slot sits right now: the grid swells
+      // and shrinks around the fleet center while fleet.x sways the whole
+      // formation side to side.
+      function slotPoint(inv) {
+        const breathe = 1 + BREATHE_AMT * Math.sin(formT * BREATHE_RATE);
+        return {
+          x: fleet.x + fleet.hw + (inv.hx - fleet.hw) * breathe,
+          y: fleet.y + inv.hy * breathe,
+        };
+      }
 
       function buildFleet() {
         invaders = [];
@@ -470,7 +501,12 @@
         const rows = H > 760 ? 4 : 3;
         const spanW = cols * invW + (cols - 1) * gapX;
         const fleetY = 78 + invH / 2;
-        fleet = { x: (W - spanW) / 2 + invW / 2, y: fleetY, yTarget: fleetY, dir: 1 };
+        fleet = {
+          x: (W - spanW) / 2 + invW / 2,
+          y: fleetY,
+          dir: 1,
+          hw: ((cols - 1) * (invW + gapX)) / 2,
+        };
         for (let r = 0; r < rows; r++) {
           const sprite = INVADER_SPRITES[r % INVADER_SPRITES.length];
           for (let c = 0; c < cols; c++) {
@@ -495,7 +531,13 @@
           inv.special = true;
           inv.hue = SPECIAL_HUES[Math.floor(Math.random() * SPECIAL_HUES.length)];
         }
+        for (const inv of invaders) {
+          const s = slotPoint(inv);
+          inv.x = s.x;
+          inv.y = s.y;
+        }
         nextShotAt = performance.now() + FIRST_SHOT_GRACE_MS;
+        nextDiveAt = performance.now() + FIRST_SHOT_GRACE_MS;
       }
 
       // --- high scores (localStorage only) ---
@@ -534,6 +576,80 @@
         for (const f of flippers) f.pressed = false;
       }
 
+      // Send one invader peeling out of formation: a pull-up-and-away
+      // followed by a big S-curve down across the table, traced as a cubic
+      // bezier, with a few strafing shots on the way.
+      function startDive(inv, now) {
+        const across = inv.x < W / 2 ? 1 : -1; // carve toward the far side
+        const cl = (x) => Math.max(30, Math.min(W - 30, x));
+        inv.mode = 'dive';
+        inv.dive = {
+          t: 0,
+          dur: (DIVE_TIME + Math.random() * 0.8) / (1 + 0.08 * (wave - 1)),
+          x0: inv.x,
+          y0: inv.y,
+          x1: cl(inv.x - across * (70 + Math.random() * 70)),
+          y1: inv.y - (60 + Math.random() * 60) * physScale,
+          x2: cl(W / 2 + across * W * (0.2 + Math.random() * 0.35)),
+          y2: H * (0.3 + Math.random() * 0.25),
+          x3: cl(W * (0.15 + Math.random() * 0.7)),
+          y3: Math.min(funnelTopY - ballR * 3, H * 0.85),
+          shots: Math.min(3, 1 + Math.floor((wave - 1) / 2)),
+          nextShotT: 0.3 + Math.random() * 0.25,
+        };
+      }
+
+      // Galaga sends attackers from the flanks: weight the pick toward the
+      // invaders farthest from the fleet's center.
+      function pickDiver(candidates) {
+        const cx = fleet.x + fleet.hw;
+        const sorted = candidates.slice().sort((a, b) => Math.abs(b.x - cx) - Math.abs(a.x - cx));
+        const n = Math.max(1, Math.ceil(sorted.length / 3));
+        return sorted[Math.floor(Math.random() * n)];
+      }
+
+      function stepInvader(inv, dt) {
+        const px = inv.x;
+        if (inv.mode === 'formation') {
+          const s = slotPoint(inv);
+          inv.x = s.x;
+          inv.y = s.y;
+        } else if (inv.mode === 'dive') {
+          const d = inv.dive;
+          d.t = Math.min(1, d.t + dt / d.dur);
+          const t = d.t,
+            u = 1 - t;
+          inv.x = u * u * u * d.x0 + 3 * u * u * t * d.x1 + 3 * u * t * t * d.x2 + t * t * t * d.x3;
+          inv.y = u * u * u * d.y0 + 3 * u * u * t * d.y1 + 3 * u * t * t * d.y2 + t * t * t * d.y3;
+          if (fleetProvoked && d.shots > 0 && t >= d.nextShotT) {
+            d.shots--;
+            d.nextShotT = t + 0.25;
+            fireDiveBullet(inv);
+          }
+          if (t >= 1) inv.mode = 'return';
+        } else {
+          // climbing home: chase the (still swaying) slot until it's close
+          const s = slotPoint(inv);
+          const dx = s.x - inv.x,
+            dy = s.y - inv.y;
+          const dist = Math.hypot(dx, dy);
+          const step = DIVE_RETURN_SPEED * physScale * dt;
+          if (dist <= step) {
+            inv.x = s.x;
+            inv.y = s.y;
+            inv.mode = 'formation';
+            inv.dive = null;
+          } else {
+            inv.x += (dx / dist) * step;
+            inv.y += (dy / dist) * step;
+          }
+        }
+        // bank into the turn: attackers lean with their sideways motion
+        const lean =
+          inv.mode === 'formation' ? 0 : Math.max(-0.6, Math.min(0.6, (inv.x - px) / dt / 700));
+        inv.tilt += (lean - inv.tilt) * Math.min(1, dt * 6);
+      }
+
       function stepFleet(dt, now) {
         const aliveInv = invaders.filter((i) => i.alive);
         if (aliveInv.length === 0) {
@@ -549,44 +665,52 @@
           return;
         }
 
-        // the invasion holds its ground only until the game's very first
+        // the formation breathes even while it holds fire...
+        formT += dt;
+
+        // ...but only sways, dives, and shoots after the game's very first
         // launch — reloading mid-game buys no such mercy
-        if (!gameStarted) return;
+        if (gameStarted) {
+          // classic pacing: the fewer left, the livelier the survivors
+          const deadRatio = 1 - aliveInv.length / invaders.length;
+          const speed = FLEET_BASE_SPEED * physScale * (1 + 1.6 * deadRatio + 0.25 * (wave - 1));
+          fleet.x += fleet.dir * speed * dt;
 
-        // classic invaders pacing: the fewer left, the faster they scuttle
-        const deadRatio = 1 - aliveInv.length / invaders.length;
-        const speed = FLEET_BASE_SPEED * physScale * (1 + 2.2 * deadRatio + 0.25 * (wave - 1));
-        fleet.x += fleet.dir * speed * dt;
+          let minX = Infinity,
+            maxX = -Infinity;
+          for (const inv of aliveInv) {
+            const sx = slotPoint(inv).x;
+            minX = Math.min(minX, sx - inv.r);
+            maxX = Math.max(maxX, sx + inv.r);
+          }
+          if (fleet.dir > 0 && maxX > W - 10) fleet.dir = -1;
+          else if (fleet.dir < 0 && minX < 10) fleet.dir = 1;
 
-        let minX = Infinity,
-          maxX = -Infinity,
-          maxY = -Infinity;
-        for (const inv of aliveInv) {
-          const x = fleet.x + inv.hx;
-          minX = Math.min(minX, x - inv.r);
-          maxX = Math.max(maxX, x + inv.r);
-          maxY = Math.max(maxY, fleet.y + inv.hy + inv.r);
+          // send the next attacker peeling out of formation; later waves
+          // and thinner fleets keep more divers in the air at once
+          const diving = aliveInv.reduce((n, i) => n + (i.mode !== 'formation' ? 1 : 0), 0);
+          const maxDivers = Math.min(
+            MAX_DIVERS,
+            1 + Math.floor((wave - 1) / 2) + (deadRatio > 0.6 ? 1 : 0)
+          );
+          if (now >= nextDiveAt) {
+            if (diving < maxDivers) {
+              const candidates = aliveInv.filter((i) => i.mode === 'formation');
+              if (candidates.length) startDive(pickDiver(candidates), now);
+            }
+            const base = Math.max(
+              DIVE_MIN_INTERVAL,
+              DIVE_BASE_INTERVAL - (wave - 1) * 240 - deadRatio * 900
+            );
+            nextDiveAt = now + base * (0.7 + Math.random() * 0.8);
+          }
         }
-        // each edge reversal queues a drop; the fleet glides down to it
-        // instead of snapping a whole step at once
-        if (fleet.dir > 0 && maxX > W - 10) {
-          fleet.dir = -1;
-          fleet.yTarget += cellH * 1.6;
-        } else if (fleet.dir < 0 && minX < 10) {
-          fleet.dir = 1;
-          fleet.yTarget += cellH * 1.6;
-        }
-        if (fleet.y < fleet.yTarget) {
-          fleet.y = Math.min(fleet.yTarget, fleet.y + cellH * 2.2 * dt);
-        }
-        if (maxY >= flippers[0].py - ballR) {
-          triggerGameOver('the invaders reached the bottom');
-          return;
-        }
+
+        for (const inv of aliveInv) stepInvader(inv, dt);
 
         // they only shoot back once provoked: the first ball to land on an
         // invader starts the war, and even then after a grace period
-        if (fleetProvoked && now >= nextShotAt) {
+        if (gameStarted && fleetProvoked && now >= nextShotAt) {
           fireBullet(aliveInv);
           const base = Math.max(500, 1500 - (wave - 1) * 120);
           nextShotAt = now + base + Math.random() * 1200;
@@ -603,9 +727,28 @@
         const shooters = [...byCol.values()];
         const s = shooters[Math.floor(Math.random() * shooters.length)];
         bullets.push({
-          x: fleet.x + s.hx,
-          y: fleet.y + s.hy + s.r * 0.8,
+          x: s.x,
+          y: s.y + s.r * 0.8,
+          vx: 0,
           vy: (BULLET_SPEED + (wave - 1) * 25) * physScale,
+          dead: false,
+        });
+      }
+
+      // Divers strafe on the way down: bullets aimed loosely at the flipper
+      // zone rather than dropped straight.
+      function fireDiveBullet(inv) {
+        const tx = W * (0.25 + Math.random() * 0.5);
+        const dx = tx - inv.x,
+          dy = flippers[0].py - inv.y;
+        if (dy <= 40) return; // too low to shoot anything but upward; hold fire
+        const dist = Math.hypot(dx, dy);
+        const sp = (BULLET_SPEED + (wave - 1) * 25) * physScale;
+        bullets.push({
+          x: inv.x,
+          y: inv.y + inv.r * 0.5,
+          vx: (dx / dist) * sp,
+          vy: (dy / dist) * sp,
           dead: false,
         });
       }
@@ -613,8 +756,8 @@
       function killInvader(inv, b) {
         inv.alive = false;
         score += KILL_SCORE;
-        const x = fleet.x + inv.hx,
-          y = fleet.y + inv.hy;
+        const x = inv.x,
+          y = inv.y;
         addPop(x, y, '+' + KILL_SCORE);
         fallers.push({
           x,
@@ -717,8 +860,8 @@
           const dir = Math.atan2(cell.dy, cell.dx) + (Math.random() - 0.5) * 1.2;
           const sp = 140 + Math.random() * 260;
           spawnParticle(
-            fleet.x + inv.hx + cell.dx,
-            fleet.y + inv.hy + cell.dy,
+            inv.x + cell.dx,
+            inv.y + cell.dy,
             cell.ch,
             Math.cos(dir) * sp,
             Math.sin(dir) * sp - 80
@@ -815,8 +958,8 @@
 
       function collideInvader(b, inv, now) {
         if (!inv.alive) return;
-        const ix = fleet.x + inv.hx,
-          iy = fleet.y + inv.hy;
+        const ix = inv.x,
+          iy = inv.y;
         let nx = b.x - ix,
           ny = b.y - iy;
         const d = Math.hypot(nx, ny) || 0.0001;
@@ -863,6 +1006,7 @@
 
       function stepBullets(dt, now) {
         for (const bl of bullets) {
+          bl.x += bl.vx * dt;
           bl.y += bl.vy * dt;
           // flipper hits cost points
           for (const f of flippers) {
@@ -895,7 +1039,7 @@
             }
           }
         }
-        bullets = bullets.filter((bl) => !bl.dead && bl.y < H + 20);
+        bullets = bullets.filter((bl) => !bl.dead && bl.y < H + 20 && bl.x > -20 && bl.x < W + 20);
       }
 
       // Dropped plus signs drift down the table until a ball or a flipper
@@ -954,8 +1098,8 @@
           const half = LASER_HALF_W * physScale;
           for (const inv of invaders) {
             if (!inv.alive || la.hit.has(inv)) continue;
-            const dx = fleet.x + inv.hx - la.x;
-            const dy = fleet.y + inv.hy - la.y;
+            const dx = inv.x - la.x;
+            const dy = inv.y - la.y;
             const reach = la.len + inv.hitR;
             const across = inv.hitR + half;
             const onArm =
@@ -963,7 +1107,7 @@
               (Math.abs(dx) < across && Math.abs(dy) < reach);
             if (!onArm) continue;
             la.hit.add(inv);
-            damageInvader(inv, fleet.x + inv.hx, fleet.y + inv.hy, now, LASER_DAMAGE);
+            damageInvader(inv, inv.x, inv.y, now, LASER_DAMAGE);
           }
         }
         lasers = lasers.filter((la) => la.life > 0);
@@ -1194,20 +1338,25 @@
         );
         ctx.globalAlpha = 1;
 
-        // the invader fleet; specials wear their color
+        // the invader fleet; specials wear their color, and attackers out
+        // on a dive run bank into their turns
         for (const inv of invaders) {
           if (!inv.alive) continue;
-          const ix = fleet.x + inv.hx,
-            iy = fleet.y + inv.hy;
           const flashing = now < inv.flashT;
           ctx.fillStyle = inv.special ? specialColor(inv.hue) : ink;
           ctx.font = (flashing ? Math.round(targetFont * 1.25) : targetFont) + 'px ' + MONO;
+          const tilted = Math.abs(inv.tilt) > 0.02;
+          if (tilted) {
+            ctx.translate(inv.x, inv.y);
+            ctx.rotate(inv.tilt);
+          }
           for (const cell of inv.cells) {
             if (!cell.alive) continue;
-            const jx = flashing ? (Math.random() - 0.5) * 3 : 0;
-            const jy = flashing ? (Math.random() - 0.5) * 3 : 0;
-            ctx.fillText(cell.ch, ix + cell.dx + jx, iy + cell.dy + jy);
+            const jx = (tilted ? 0 : inv.x) + (flashing ? (Math.random() - 0.5) * 3 : 0);
+            const jy = (tilted ? 0 : inv.y) + (flashing ? (Math.random() - 0.5) * 3 : 0);
+            ctx.fillText(cell.ch, cell.dx + jx, cell.dy + jy);
           }
+          if (tilted) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         }
         ctx.fillStyle = ink;
 
