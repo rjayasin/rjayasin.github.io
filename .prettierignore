@@ -3,6 +3,7 @@ node_modules/
 fonts/
 emojis.js
 fonts.js
+fonts-meta.js
 words.txt
 sitemap/dates.json
 fonts/.licenses-cache.json

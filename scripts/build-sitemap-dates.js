@@ -65,6 +65,11 @@ function internalPathspecs(href) {
   // words.json growing) don't bump the viewer. The game maps to its own folder
   // below and stays independent.
   if (href === '/etymology/') return ['etymology', ':(exclude)etymology/game'];
+  // The explorer page shares fonts/ with ~2k woff2 files the weekly font
+  // workflow keeps adding to; scope it to its own files (plus the metadata
+  // it renders) so those drops don't bump its "updated" timestamp.
+  if (href === '/fonts/')
+    return ['fonts/index.html', 'fonts/explorer.css', 'fonts/explorer.js', 'fonts-meta.js'];
   if (!href.startsWith('/')) return null;
   const clean = href.replace(/^\/+/, '').replace(/\/+$/, '');
   return [clean || 'index.html'];

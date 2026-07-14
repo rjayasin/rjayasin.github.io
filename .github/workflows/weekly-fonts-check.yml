@@ -35,12 +35,15 @@ jobs:
       - name: Refresh font licenses & attribution
         run: node scripts/fetch-licenses.js
 
+      - name: Refresh font category/date metadata
+        run: node scripts/fetch-font-meta.js
+
       - name: Commit font updates
         run: |
-          if git diff --quiet -- fonts.js fonts/; then
+          if git diff --quiet -- fonts.js fonts-meta.js fonts/; then
             echo "No font changes."
           else
-            git add fonts.js fonts/
+            git add fonts.js fonts-meta.js fonts/
             git commit -m "🤖 add new google fonts ($RUN_LABEL)"
           fi
 

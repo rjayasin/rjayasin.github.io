@@ -65,6 +65,8 @@ window.Common = window.Common || {};
     updateDarkToggleLabels();
     document.addEventListener('keydown', (e) => {
       if (e.key === '1' && !e.repeat && !e.metaKey && !e.ctrlKey) {
+        const t = e.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
         toggleDark();
       }
     });
