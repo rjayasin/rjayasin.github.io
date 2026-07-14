@@ -1166,13 +1166,19 @@
         ctx.textBaseline = 'middle';
         const ink = inkColor();
 
-        // side walls
+        // side walls; the right one yields to the shooter lane while it's
+        // visible so the lane reads as the boundary, and returns as it fades
         ctx.fillStyle = ink;
-        ctx.globalAlpha = 0.3;
         ctx.font = targetFont + 'px ' + MONO;
+        ctx.globalAlpha = 0.3;
         for (let y = cellH; y < funnelTopY - cellH; y += cellH * 2) {
           ctx.fillText('|', 8, y);
-          ctx.fillText('|', W - 8, y);
+        }
+        ctx.globalAlpha = 0.3 * (1 - laneAlpha);
+        if (ctx.globalAlpha > 0.01) {
+          for (let y = cellH; y < funnelTopY - cellH; y += cellH * 2) {
+            ctx.fillText('|', W - 8, y);
+          }
         }
         ctx.globalAlpha = 1;
 
@@ -1298,7 +1304,10 @@
           }
           const ccx = laneCX - curveR,
             ccy = curveStartY;
-          drawArcChars(ccx, ccy, curveR + laneW / 2, 0, Math.PI / 2);
+          // outer arc sized to land exactly on the outer wall column at
+          // W - 8, so the curve joins the vertical run instead of ending
+          // clipped at the screen edge
+          drawArcChars(ccx, ccy, W - 8 - ccx, 0, Math.PI / 2);
           drawArcChars(ccx, ccy, curveR - laneW / 2, 0, Math.PI / 2);
           const pTop = plungerRestTop + plunger.pull * plungerTravel;
           ctx.globalAlpha = 0.85 * laneAlpha;
