@@ -1182,12 +1182,16 @@
         }
         ctx.globalAlpha = 1;
 
-        // funnels
+        // funnels; the stretch of the right guide that crosses the shooter
+        // lane hides with the lane overlay, as if the tube sits on top of
+        // the board there
         const lf = flippers[0],
           rf = flippers[1];
         ctx.globalAlpha = 0.65;
         drawSegmentChars(0, funnelTopY, lf.px, lf.py, '\\', targetFont);
-        drawSegmentChars(W, funnelTopY, rf.px, rf.py, '/', targetFont);
+        drawSegmentChars(W, funnelTopY, rf.px, rf.py, '/', targetFont, (x) =>
+          x > laneX - cellW ? 1 - laneAlpha : 1
+        );
         ctx.globalAlpha = 1;
 
         // the invader fleet; specials wear their color
@@ -1428,14 +1432,21 @@
         }
       }
 
-      function drawSegmentChars(x1, y1, x2, y2, ch, font) {
+      // alphaAt(x, y), when given, scales the current alpha per character so
+      // callers can dim just a stretch of the segment.
+      function drawSegmentChars(x1, y1, x2, y2, ch, font, alphaAt) {
         ctx.font = font + 'px ' + MONO;
         const len = Math.hypot(x2 - x1, y2 - y1);
         const n = Math.max(2, Math.round(len / (cellH * 1.1)));
+        const base = ctx.globalAlpha;
         for (let i = 0; i <= n; i++) {
           const t = i / n;
-          ctx.fillText(ch, x1 + (x2 - x1) * t, y1 + (y2 - y1) * t);
+          const x = x1 + (x2 - x1) * t,
+            y = y1 + (y2 - y1) * t;
+          if (alphaAt) ctx.globalAlpha = base * alphaAt(x, y);
+          ctx.fillText(ch, x, y);
         }
+        ctx.globalAlpha = base;
       }
 
       function resize() {
