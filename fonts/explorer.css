@@ -1,6 +1,9 @@
 body {
   font-family: monospace;
   font-size: 13px;
+  /* iOS Safari ignores user-scalable=no for double-tap zoom (e.g. rapid taps
+     on the a-/a+ buttons); "manipulation" drops that gesture but keeps panning. */
+  touch-action: manipulation;
 }
 #controls {
   position: sticky;
