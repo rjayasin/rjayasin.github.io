@@ -61,31 +61,45 @@
     return state.text || font;
   }
 
+  function familyFor(font) {
+    return `'${font}', ${FALLBACKS[catOf(font)] || 'serif'}`;
+  }
+
+  function fillInfo(el, font) {
+    el.textContent = '';
+    const link = document.createElement('a');
+    link.href = `https://fonts.google.com/specimen/${font.replace(/ /g, '+')}`;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = font;
+    el.appendChild(link);
+    const parts = [];
+    const cat = catOf(font);
+    if (cat >= 0) parts.push(meta.categories[cat].toLowerCase());
+    const date = dateOf(font);
+    if (date) parts.push(date);
+    if (parts.length) el.appendChild(document.createTextNode(` · ${parts.join(' · ')}`));
+  }
+
   function makeCard(font) {
     const card = document.createElement('div');
     card.className = 'card';
 
     const sample = document.createElement('div');
     sample.className = 'sample';
-    const cat = catOf(font);
-    sample.style.fontFamily = `'${font}', ${FALLBACKS[cat] || 'serif'}`;
+    sample.style.fontFamily = familyFor(font);
     sample.textContent = sampleFor(font);
     card.appendChild(sample);
 
     const info = document.createElement('div');
     info.className = 'info';
-    const link = document.createElement('a');
-    link.href = `https://fonts.google.com/specimen/${font.replace(/ /g, '+')}`;
-    link.target = '_blank';
-    link.rel = 'noopener';
-    link.textContent = font;
-    info.appendChild(link);
-    const parts = [];
-    if (cat >= 0) parts.push(meta.categories[cat].toLowerCase());
-    const date = dateOf(font);
-    if (date) parts.push(date);
-    if (parts.length) info.appendChild(document.createTextNode(` · ${parts.join(' · ')}`));
+    fillInfo(info, font);
     card.appendChild(info);
+
+    // Anywhere on the card that isn't the specimen link opens the single view.
+    card.addEventListener('click', (e) => {
+      if (!e.target.closest('a')) openSingle(font);
+    });
 
     Common.loadGoogleFont(font).then(() => card.classList.add('loaded'));
     return card;
@@ -178,6 +192,35 @@
     fill();
   });
 
+  // Single font view: a fixed overlay over the untouched list, so closing it
+  // lands back exactly where the user was.
+  const singleEl = document.getElementById('single');
+  const singleInfoEl = document.getElementById('single-info');
+  const singleTilesEl = document.getElementById('single-tiles');
+  const singleCloseEl = document.getElementById('single-close');
+
+  function openSingle(font) {
+    fillInfo(singleInfoEl, font);
+    singleTilesEl.style.fontFamily = familyFor(font);
+    // Match the list's current sample size.
+    const sample = listEl.querySelector('.card .sample');
+    singleTilesEl.style.fontSize = sample ? getComputedStyle(sample).fontSize : '';
+    const text = sampleFor(font);
+    const reps = Math.max(1, Math.ceil(5000 / (text.length + 1)));
+    singleTilesEl.textContent = new Array(reps).fill(text).join(' ');
+    singleTilesEl.scrollTop = 0;
+    singleEl.hidden = false;
+    document.body.style.overflow = 'hidden';
+    Common.loadGoogleFont(font);
+  }
+
+  function closeSingle() {
+    singleEl.hidden = true;
+    document.body.style.overflow = '';
+  }
+
+  singleCloseEl.addEventListener('click', closeSingle);
+
   // Retype existing cards in place so edits don't reset scroll or refetch.
   inputEl.addEventListener('input', () => {
     state.text = inputEl.value.trim();
@@ -197,6 +240,10 @@
   }
 
   document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !singleEl.hidden) {
+      closeSingle();
+      return;
+    }
     const t = e.target;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) {
       if (e.key === 'Escape') t.blur();
