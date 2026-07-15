@@ -139,6 +139,11 @@ body {
 #list.minimal .card {
   border-bottom: none;
   padding: 0;
+  /* Flex items default to min-width auto, so a long font name would push a
+     tile past the viewport — which makes iOS Safari zoom the page out. Cap
+     tiles at the row width so the sample's break-word can kick in instead. */
+  min-width: 0;
+  max-width: 100%;
 }
 #list.minimal .card .info {
   display: none;
