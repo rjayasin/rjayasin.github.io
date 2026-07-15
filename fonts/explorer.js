@@ -161,6 +161,8 @@
   filtersToggleEl.addEventListener('click', () => {
     const collapsed = filtersEl.classList.toggle('collapsed');
     filtersToggleEl.classList.toggle('active', !collapsed);
+    filtersToggleEl.textContent = collapsed ? '▾' : '▴';
+    filtersToggleEl.title = collapsed ? 'show filters' : 'hide filters';
   });
 
   sizeButtonsEl.addEventListener('click', (e) => {
