@@ -22,7 +22,8 @@ body {
   gap: 16px;
   margin-bottom: 12px;
 }
-#sample-input {
+#sample-input,
+#single-input {
   font: inherit;
   color: inherit;
   background: transparent;
@@ -51,7 +52,8 @@ body {
 #filters-toggle.active {
   color: #000;
 }
-#sample-input::placeholder {
+#sample-input::placeholder,
+#single-input::placeholder {
   color: #888;
 }
 #filters {
@@ -183,6 +185,13 @@ body {
   overflow-x: auto;
   scrollbar-width: none;
 }
+#single-input {
+  /* Shares #sample-input's look; uncap the width so it fills the bar and the
+     close button stays pinned right. The bar's #888 is placeholder-only —
+     typed text gets the body color back. */
+  max-width: none;
+  color: #000;
+}
 #single-info::-webkit-scrollbar {
   display: none;
 }
@@ -233,6 +242,9 @@ body.dark #single-top {
 body.dark #single-close:hover {
   color: #fff;
 }
+body.dark #single-input {
+  color: #fff;
+}
 @media (prefers-color-scheme: dark) {
   body:not(.light) #controls {
     background: rgba(17, 17, 17, 0.95);
@@ -257,6 +269,9 @@ body.dark #single-close:hover {
     border-bottom-color: #333;
   }
   body:not(.light) #single-close:hover {
+    color: #fff;
+  }
+  body:not(.light) #single-input {
     color: #fff;
   }
 }

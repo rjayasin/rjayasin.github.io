@@ -195,18 +195,26 @@
   // lands back exactly where the user was.
   const singleEl = document.getElementById('single');
   const singleInfoEl = document.getElementById('single-info');
+  const singleInputEl = document.getElementById('single-input');
   const singleTilesEl = document.getElementById('single-tiles');
   const singleCloseEl = document.getElementById('single-close');
+  let singleFont = null;
+
+  function retileSingle() {
+    const text = sampleFor(singleFont);
+    const reps = Math.max(1, Math.ceil(5000 / (text.length + 1)));
+    singleTilesEl.textContent = new Array(reps).fill(text).join(' ');
+  }
 
   function openSingle(font) {
+    singleFont = font;
     fillInfo(singleInfoEl, font);
     singleTilesEl.style.fontFamily = familyFor(font);
     // Match the list's current sample size.
     const sample = listEl.querySelector('.card .sample');
     singleTilesEl.style.fontSize = sample ? getComputedStyle(sample).fontSize : '';
-    const text = sampleFor(font);
-    const reps = Math.max(1, Math.ceil(5000 / (text.length + 1)));
-    singleTilesEl.textContent = new Array(reps).fill(text).join(' ');
+    singleInputEl.value = inputEl.value;
+    retileSingle();
     singleTilesEl.scrollTop = 0;
     singleEl.hidden = false;
     document.body.style.overflow = 'hidden';
@@ -221,16 +229,22 @@
   singleCloseEl.addEventListener('click', closeSingle);
 
   // Retype existing cards in place so edits don't reset scroll or refetch.
-  inputEl.addEventListener('input', () => {
-    state.text = inputEl.value.trim();
+  function applyText(raw) {
+    state.text = raw.trim();
     const samples = listEl.querySelectorAll('.card .sample');
     for (let i = 0; i < samples.length; i++) {
       samples[i].textContent = sampleFor(filtered[i]);
     }
-  });
+  }
 
-  inputEl.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') inputEl.blur();
+  inputEl.addEventListener('input', () => applyText(inputEl.value));
+
+  // The single view's input mirrors the main one, so the sample text stays
+  // put when hopping between fonts or back to the list.
+  singleInputEl.addEventListener('input', () => {
+    inputEl.value = singleInputEl.value;
+    applyText(singleInputEl.value);
+    retileSingle();
   });
 
   // Inline style beats the stylesheet's desktop/mobile defaults for
@@ -243,19 +257,21 @@
   }
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !singleEl.hidden) {
-      closeSingle();
+    const t = e.target;
+    // In an input, Escape/Enter just unfocus it; a second Escape (below)
+    // closes the single view.
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) {
+      if (e.key === 'Escape' || e.key === 'Enter') t.blur();
       return;
     }
-    const t = e.target;
-    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) {
-      if (e.key === 'Escape') t.blur();
+    if (e.key === 'Escape' && !singleEl.hidden) {
+      closeSingle();
       return;
     }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === '/') {
       e.preventDefault();
-      inputEl.focus();
+      (singleEl.hidden ? inputEl : singleInputEl).focus();
     } else if (e.key === '+' || e.key === '=') {
       bumpSampleSize(4);
     } else if (e.key === '-' || e.key === '_') {
