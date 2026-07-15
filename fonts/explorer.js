@@ -26,9 +26,18 @@
     return m ? m[1] : '';
   }
 
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  }
+
   function buildFiltered() {
     filtered = allFonts.filter((f) => state.cat === 'all' || catOf(f) === state.cat);
-    if (state.sort === 'new') {
+    if (state.sort === 'random') {
+      shuffle(filtered);
+    } else if (state.sort === 'new') {
       // fonts.js is alphabetical, so the stable sort keeps same-day fonts in
       // name order; dateless (delisted) families sink to the end.
       filtered.sort((a, b) => {
@@ -135,7 +144,9 @@
 
   sortButtonsEl.addEventListener('click', (e) => {
     const btn = e.target.closest('button');
-    if (!btn || state.sort === btn.dataset.sort) return;
+    if (!btn) return;
+    // Re-clicking "random" deals a fresh shuffle; the others are no-ops.
+    if (state.sort === btn.dataset.sort && btn.dataset.sort !== 'random') return;
     state.sort = btn.dataset.sort;
     sortButtonsEl
       .querySelectorAll('button')

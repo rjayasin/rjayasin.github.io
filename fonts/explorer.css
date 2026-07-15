@@ -141,6 +141,28 @@ body.dark .card .info a:hover {
   #controls {
     padding: 20px 20px 10px;
   }
+  /* One horizontally scrollable line, bleeding to the viewport edges so
+     entries aren't clipped mid-padding while scrolling. */
+  #filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin: 0 -20px;
+    padding: 0 20px;
+  }
+  #filters::-webkit-scrollbar {
+    display: none;
+  }
+  #filters .group {
+    flex-wrap: nowrap;
+  }
+  #filters button,
+  #filters .sep,
+  #filters .dot,
+  #count {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
   #list {
     padding: 4px 20px 12px;
   }
