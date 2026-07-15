@@ -169,4 +169,13 @@ body.dark .card .info a:hover {
   #list {
     --sample-size: 26px;
   }
+  /* Keep each card's metadata on one line, scrollable if it overflows. */
+  .card .info {
+    white-space: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .card .info::-webkit-scrollbar {
+    display: none;
+  }
 }
