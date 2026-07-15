@@ -15,7 +15,7 @@ body {
 }
 #bar {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 16px;
   margin-bottom: 12px;
 }
@@ -32,11 +32,15 @@ body {
 }
 #filters-toggle {
   font: inherit;
-  letter-spacing: 0.05em;
+  font-size: 20px;
+  line-height: 1;
   color: #888;
   background: transparent;
   border: none;
-  padding: 0;
+  /* Generous tap target; negative margins cancel it out of the layout so the
+     bar stays input-height and the glyph hugs the content's right edge. */
+  padding: 8px 10px;
+  margin: -8px -10px;
   cursor: pointer;
   transition: color 0.2s ease;
 }
