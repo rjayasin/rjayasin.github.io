@@ -2,14 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <title>fonts</title>
     <link rel="icon" id="favicon" />
     <link rel="stylesheet" href="/common.css" />
     <!-- Bump ?v= on the explorer.css/js URLs whenever those files change, so a
          deploy can't pair fresh HTML with stale cached assets (Pages caches
          everything for 10 minutes, and mixed versions break the controls). -->
-    <link rel="stylesheet" href="/fonts/explorer.css?v=2" />
+    <link rel="stylesheet" href="/fonts/explorer.css?v=3" />
     <script src="/common.js"></script>
   </head>
   <body>
@@ -19,16 +22,12 @@
         <button type="button" id="filters-toggle" class="active" title="hide filters">▴</button>
       </div>
       <nav id="filters">
-        <span class="group" id="cat-buttons">
-          <button type="button" data-cat="all" class="active">all</button>
-        </span>
-        <span class="sep">|</span>
         <span class="group" id="sort-buttons">
-          <button type="button" data-sort="new" class="active">newest</button>
+          <button type="button" data-sort="random" class="active">random</button>
+          <span class="dot">·</span>
+          <button type="button" data-sort="new">newest</button>
           <span class="dot">·</span>
           <button type="button" data-sort="abc">abc</button>
-          <span class="dot">·</span>
-          <button type="button" data-sort="random">random</button>
         </span>
         <span class="sep">|</span>
         <span class="group" id="size-buttons">
@@ -40,6 +39,10 @@
         <button type="button" id="minimal-toggle">minimal</button>
         <span class="sep">|</span>
         <span id="count"></span>
+        <span class="sep">|</span>
+        <span class="group" id="cat-buttons">
+          <button type="button" data-cat="all" class="active">all</button>
+        </span>
       </nav>
     </header>
     <main id="list"></main>
@@ -49,7 +52,7 @@
       Common.initSitemapShortcut();
       Common.paintFavicon({ glyph: '🔤', fontSize: 48, transparent: true });
       Promise.all([Common.loadScript('/fonts.js'), Common.loadScript('/fonts-meta.js')]).then(
-        () => Common.loadScript('/fonts/explorer.js?v=2')
+        () => Common.loadScript('/fonts/explorer.js?v=3')
       );
     </script>
   </body>
