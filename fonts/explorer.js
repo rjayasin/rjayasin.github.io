@@ -11,6 +11,10 @@
   const countEl = document.getElementById('count');
   const catButtonsEl = document.getElementById('cat-buttons');
   const sortButtonsEl = document.getElementById('sort-buttons');
+  const filtersEl = document.getElementById('filters');
+  const filtersToggleEl = document.getElementById('filters-toggle');
+  const sizeButtonsEl = document.getElementById('size-buttons');
+  const minimalToggleEl = document.getElementById('minimal-toggle');
 
   const BATCH = 24;
   const state = { cat: 'all', sort: 'new', text: '' };
@@ -152,6 +156,22 @@
       .querySelectorAll('button')
       .forEach((b) => b.classList.toggle('active', b === btn));
     reset();
+  });
+
+  filtersToggleEl.addEventListener('click', () => {
+    const collapsed = filtersEl.classList.toggle('collapsed');
+    filtersToggleEl.classList.toggle('active', !collapsed);
+  });
+
+  sizeButtonsEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (btn) bumpSampleSize(Number(btn.dataset.size));
+  });
+
+  minimalToggleEl.addEventListener('click', () => {
+    minimalToggleEl.classList.toggle('active', listEl.classList.toggle('minimal'));
+    // Tiled cards are much shorter, so top the list back up right away.
+    fill();
   });
 
   // Retype existing cards in place so edits don't reset scroll or refetch.
