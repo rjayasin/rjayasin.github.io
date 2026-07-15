@@ -83,9 +83,15 @@ body {
   user-select: none;
 }
 /* Collapsed filters vanish entirely; the toggle lives on the input line so
-   the header shrinks to a single row. */
+   the header shrinks to a single row, with the trailing space tightened up. */
 #filters.collapsed {
   display: none;
+}
+#controls.collapsed {
+  padding-bottom: 6px;
+}
+#controls.collapsed #bar {
+  margin-bottom: 0;
 }
 #list {
   padding: 8px 32px 16px;

@@ -11,13 +11,14 @@
   const countEl = document.getElementById('count');
   const catButtonsEl = document.getElementById('cat-buttons');
   const sortButtonsEl = document.getElementById('sort-buttons');
+  const controlsEl = document.getElementById('controls');
   const filtersEl = document.getElementById('filters');
   const filtersToggleEl = document.getElementById('filters-toggle');
   const sizeButtonsEl = document.getElementById('size-buttons');
   const minimalToggleEl = document.getElementById('minimal-toggle');
 
   const BATCH = 24;
-  const state = { cat: 'all', sort: 'new', text: '' };
+  const state = { cat: 'all', sort: 'random', text: '' };
   let filtered = [];
   let rendered = 0;
 
@@ -160,6 +161,7 @@
 
   filtersToggleEl.addEventListener('click', () => {
     const collapsed = filtersEl.classList.toggle('collapsed');
+    controlsEl.classList.toggle('collapsed', collapsed);
     filtersToggleEl.classList.toggle('active', !collapsed);
     filtersToggleEl.textContent = collapsed ? '▾' : '▴';
     filtersToggleEl.title = collapsed ? 'show filters' : 'hide filters';
