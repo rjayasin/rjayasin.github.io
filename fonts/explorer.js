@@ -96,10 +96,9 @@
     fillInfo(info, font);
     card.appendChild(info);
 
-    // Anywhere on the card that isn't the specimen link opens the single view.
-    card.addEventListener('click', (e) => {
-      if (!e.target.closest('a')) openSingle(font);
-    });
+    // Clicking the sample itself opens the single view; the rest of the row
+    // (whitespace, metadata) stays inert.
+    sample.addEventListener('click', () => openSingle(font));
 
     Common.loadGoogleFont(font).then(() => card.classList.add('loaded'));
     return card;
@@ -228,6 +227,10 @@
     for (let i = 0; i < samples.length; i++) {
       samples[i].textContent = sampleFor(filtered[i]);
     }
+  });
+
+  inputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') inputEl.blur();
   });
 
   // Inline style beats the stylesheet's desktop/mobile defaults for
