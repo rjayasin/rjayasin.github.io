@@ -11,8 +11,10 @@
   </head>
   <body>
     <header id="controls">
-      <h1><a href="/">Ruvan</a> / fonts</h1>
-      <input id="sample-input" type="text" autocomplete="off" spellcheck="false" placeholder="type anything…" />
+      <div id="bar">
+        <input id="sample-input" type="text" autocomplete="off" spellcheck="false" placeholder="type anything…" />
+        <button type="button" id="filters-toggle" class="active" title="hide filters">▴</button>
+      </div>
       <nav id="filters">
         <span class="group" id="cat-buttons">
           <button type="button" data-cat="all" class="active">all</button>
@@ -25,6 +27,14 @@
           <span class="dot">·</span>
           <button type="button" data-sort="random">random</button>
         </span>
+        <span class="sep">|</span>
+        <span class="group" id="size-buttons">
+          <button type="button" data-size="-4" title="smaller samples">a−</button>
+          <span class="dot">·</span>
+          <button type="button" data-size="4" title="larger samples">a+</button>
+        </span>
+        <span class="sep">|</span>
+        <button type="button" id="minimal-toggle">minimal</button>
         <span class="sep">|</span>
         <span id="count"></span>
       </nav>
