@@ -9,10 +9,11 @@
     <title>fonts</title>
     <link rel="icon" id="favicon" />
     <link rel="stylesheet" href="/common.css" />
-    <!-- Bump ?v= on the explorer.css/js URLs whenever those files change, so a
-         deploy can't pair fresh HTML with stale cached assets (Pages caches
-         everything for 10 minutes, and mixed versions break the controls). -->
-    <link rel="stylesheet" href="/fonts/explorer.css?v=6" />
+    <!-- The ?v= values are dev-only placeholders: the deploy workflow rewrites
+         them to content hashes (scripts/rewrite-asset-versions.js), so fresh
+         HTML can't pair with stale cached assets (Pages caches everything for
+         10 minutes, and mixed versions break the controls). -->
+    <link rel="stylesheet" href="/fonts/explorer.css?v=dev" />
     <script src="/common.js"></script>
   </head>
   <body>
@@ -59,7 +60,7 @@
       Common.initSitemapShortcut();
       Common.paintFavicon({ glyph: '🔤', fontSize: 48, transparent: true });
       Promise.all([Common.loadScript('/fonts.js'), Common.loadScript('/fonts-meta.js')]).then(
-        () => Common.loadScript('/fonts/explorer.js?v=5')
+        () => Common.loadScript('/fonts/explorer.js?v=dev')
       );
     </script>
   </body>
