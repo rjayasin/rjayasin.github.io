@@ -6,20 +6,21 @@
       50,
       50,
       50,
-      50
+      50,
+      2
     ],
     "medium": [
       50,
       50,
       50,
-      42
+      45
     ],
     "hard": [
       50,
       50,
       50,
       50,
-      30
+      33
     ]
   },
   "words": {
@@ -143,6 +144,7 @@
       "patio",
       "penguin",
       "phobia",
+      "photodissociated",
       "piano",
       "pistol",
       "pizza",
@@ -202,6 +204,7 @@
       "wife",
       "wigwam",
       "winter",
+      "yed",
       "yogurt",
       "zenith"
     ],
@@ -277,6 +280,7 @@
       "hyena",
       "hypothesis",
       "idiot",
+      "inaffected",
       "incognito",
       "juggernaut",
       "jungle",
@@ -352,6 +356,7 @@
       "stomach",
       "stone",
       "storm",
+      "subgingival",
       "sudoku",
       "sultan",
       "summer",
@@ -384,6 +389,7 @@
       "yarn",
       "yoga",
       "zero",
+      "zincian",
       "zodiac"
     ],
     "hard": [
@@ -466,6 +472,7 @@
       "inkily",
       "introscan",
       "irony",
+      "isobutane",
       "karaoke",
       "king",
       "knife",
@@ -515,6 +522,7 @@
       "quarantine",
       "radar",
       "restaurant",
+      "retorter",
       "rickshaw",
       "ringdown",
       "robot",
@@ -537,6 +545,7 @@
       "star",
       "steward",
       "sugar",
+      "superhead",
       "swearing",
       "sympathy",
       "tantalize",
