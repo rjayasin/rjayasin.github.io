@@ -686,9 +686,33 @@ function buildChain(etymText, root, rootLang) {
     let last = null;
     let lastEnd = 0;
     let parenResume = null; // node to resume the chain from after a "(…)" aside
+    // "Reanalysis of French acajou as a + cajou, from Old Tupi akaîu": in a
+    // reanalysis/rebracketing paragraph, the "as …" clause re-spells the word
+    // just named, so templates inside it are pieces of that word, not
+    // ancestors — and its literal "+" must not read as a compound join.
+    const reanalyzed = /\b[Rr]eanaly[sz]|\b[Rr]ebracket/.test(text);
+    let respelling = null; // node the open "as …" re-spelling clause describes
     for (const t of templates) {
-      const gap = text.slice(lastEnd, t.start);
+      let gap = text.slice(lastEnd, t.start);
       lastEnd = t.end;
+      if (respelling) {
+        const close = gap.search(/[,;.)]/);
+        if (close === -1) continue; // still inside the "as …" clause
+        // The clause is over: resume the chain from the word it re-spelled
+        // ("from Old Tupi akaîu" continues acajou's line), and judge this
+        // node only on the prose after the clause, not the clause itself.
+        last = respelling;
+        respelling = null;
+        gap = gap.slice(close + 1);
+      } else if (
+        reanalyzed &&
+        last &&
+        /(^|[^a-z])as\s*'*\s*$/i.test(gap) &&
+        !/such\s+as\s*'*\s*$/i.test(gap)
+      ) {
+        respelling = last;
+        continue;
+      }
       if (COMPOUND_NAMES.has(t.name)) {
         // Morphological analysis describes the headword itself; an
         // ancestor-language compound belongs to the current node.
