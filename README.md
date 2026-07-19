@@ -40,6 +40,7 @@
 - [`maze-canvas`](https://rjayasin.github.io/maze-canvas/)
 - [`snake`](https://rjayasin.github.io/snake/)
 - [`pinball`](https://rjayasin.github.io/pinball/)
+- [`la-transit-map`](https://rjayasin.github.io/la-transit-map/)
 
 `experiments`
 
