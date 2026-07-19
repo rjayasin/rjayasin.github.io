@@ -7,25 +7,26 @@
       50,
       50,
       50,
-      6
+      10
     ],
     "medium": [
       50,
       50,
       50,
       50,
-      4
+      5
     ],
     "hard": [
       50,
       50,
       50,
       50,
-      37
+      40
     ]
   },
   "words": {
     "easy": [
+      "abditive",
       "alcove",
       "algebra",
       "arsenal",
@@ -50,6 +51,7 @@
       "cashew",
       "casino",
       "catamaran",
+      "cervicide",
       "chandelier",
       "chaos",
       "checkmate",
@@ -192,6 +194,7 @@
       "tofu",
       "tomato",
       "toucan",
+      "trichrysobactin",
       "tsunami",
       "tulip",
       "tundra",
@@ -211,7 +214,8 @@
       "winter",
       "yed",
       "yogurt",
-      "zenith"
+      "zenith",
+      "zombification"
     ],
     "medium": [
       "acorn",
@@ -320,6 +324,7 @@
       "nectar",
       "night",
       "oath",
+      "ophthalmectomy",
       "orange",
       "orangutan",
       "pajamas",
@@ -439,6 +444,7 @@
       "cheesepare",
       "chess",
       "chortle",
+      "chronolectal",
       "cixutumumab",
       "clue",
       "coheiress",
@@ -557,6 +563,7 @@
       "sneakily",
       "snow",
       "socioanthropology",
+      "sonometer",
       "sphinx",
       "spuriousness",
       "stanza",
@@ -580,6 +587,7 @@
       "tutorialize",
       "twilight",
       "undetrimental",
+      "uninducible",
       "unnoticeableness",
       "upcoming",
       "utopia",
