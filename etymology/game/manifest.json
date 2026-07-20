@@ -7,21 +7,21 @@
       50,
       50,
       50,
-      10
+      11
     ],
     "medium": [
       50,
       50,
       50,
       50,
-      5
+      9
     ],
     "hard": [
       50,
       50,
       50,
       50,
-      40
+      42
     ]
   },
   "words": {
@@ -29,6 +29,7 @@
       "abditive",
       "alcove",
       "algebra",
+      "anaphylactogen",
       "arsenal",
       "assassin",
       "avocado",
@@ -295,6 +296,7 @@
       "inaffected",
       "incognito",
       "incoincident",
+      "jeggings",
       "juggernaut",
       "jungle",
       "kiosk",
@@ -314,10 +316,12 @@
       "melancholy",
       "metaphor",
       "moon",
+      "mortify",
       "mother",
       "mouse",
       "mouth",
       "muscle",
+      "muster",
       "mystery",
       "nail",
       "name",
@@ -397,6 +401,7 @@
       "unglorified",
       "unspirantized",
       "unswerving",
+      "untethered",
       "vampire",
       "waffle",
       "waltz",
@@ -481,6 +486,7 @@
       "geometry",
       "geyser",
       "giraffe",
+      "glancest",
       "gospel",
       "gossip",
       "grammar",
@@ -537,6 +543,7 @@
       "photograph",
       "photoperiodical",
       "photosynthesis",
+      "prededication",
       "pretzel",
       "psammon",
       "pseudoautomatic",
