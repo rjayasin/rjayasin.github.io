@@ -5,6 +5,8 @@ on:
     branches: [main]
   schedule:
     - cron: '17 6 * * *' # daily: refresh external-repo dates
+  repository_dispatch:
+    types: [la-transit-map-push] # sent by la-transit-map on push to main
   workflow_dispatch: {}
 
 permissions:
