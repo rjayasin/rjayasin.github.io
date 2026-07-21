@@ -7,21 +7,21 @@
       50,
       50,
       50,
-      11
+      15
     ],
     "medium": [
       50,
       50,
       50,
       50,
-      9
+      11
     ],
     "hard": [
       50,
       50,
       50,
       50,
-      42
+      44
     ]
   },
   "words": {
@@ -33,6 +33,7 @@
       "arsenal",
       "assassin",
       "avocado",
+      "bagwigged",
       "balcony",
       "ballet",
       "banana",
@@ -86,6 +87,8 @@
       "geisha",
       "ghoul",
       "glamour",
+      "gonadotropin",
+      "gree",
       "guru",
       "gusto",
       "gymnasium",
@@ -213,6 +216,7 @@
       "wife",
       "wigwam",
       "winter",
+      "withershins",
       "yed",
       "yogurt",
       "zenith",
@@ -307,6 +311,7 @@
       "leaf",
       "lime",
       "love",
+      "lymphomatoid",
       "maelstrom",
       "magazine",
       "maim",
@@ -385,6 +390,7 @@
       "symphony",
       "syrup",
       "telephone",
+      "thermofiltration",
       "thermometer",
       "tiger",
       "tongue",
@@ -493,10 +499,12 @@
       "groundtrack",
       "guesstimate",
       "guiltless",
+      "heelstrike",
       "history",
       "horizon",
       "horse",
       "iceberg",
+      "infodisruption",
       "inkily",
       "introscan",
       "irony",
