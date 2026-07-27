@@ -304,11 +304,15 @@
 
       // --- invader constants ---
       const INVADER_HITS = 3; // ball hits to kill one invader
-      const HIT_SCORE = 100;
-      const KILL_SCORE = 200;
       const MAX_RESPAWNS = 3; // fresh balls after a full drain; then it's over
+      // The invaders' fire sets the scale for the whole economy: a bullet that
+      // reaches a flipper costs this much, and landing a hit on an invader pays
+      // exactly the same, so trading shot for shot comes out even. The kill and
+      // laser-pickup bonuses ride along at their old ratios to a hit.
       const BULLET_PENALTY = 200; // score lost to a bullet on wave 1
       const BULLET_PENALTY_PER_WAVE = 100; // extra damage per later wave
+      const KILL_HITS_WORTH = 2; // kill bonus, counted in hits
+      const POWERUP_HITS_WORTH = 3; // laser pickup bonus, counted in hits
       const GAME_OVER_LOCK_MS = 2000; // no restarting until this has passed
       const FLEET_BASE_SPEED = 26; // px/s sideways at ref height
       const BULLET_SPEED = 300; // px/s at ref height
@@ -347,7 +351,6 @@
       // every invader they sweep over.
       const POWERUP_DROP_CHANCE = 0.12; // per invader killed
       const POWERUP_FALL = 130; // px/s terminal drift at ref height
-      const POWERUP_SCORE = 300;
       const LASER_SPEED = 1500; // px/s the beam front races outward
       const LASER_LIFE = 0.5; // s from detonation to faded out
       const LASER_HALF_W = 7; // px half-thickness of the damage beam
@@ -862,12 +865,22 @@
         });
       }
 
+      // Everything the fleet is worth is priced off its own firepower, and both
+      // sides of the ledger grow together wave by wave.
+      function bulletDamage() {
+        return BULLET_PENALTY + (wave - 1) * BULLET_PENALTY_PER_WAVE;
+      }
+      function hitScore() {
+        return bulletDamage();
+      }
+
       function killInvader(inv, b) {
         inv.alive = false;
-        score += KILL_SCORE;
+        const bonus = KILL_HITS_WORTH * hitScore();
+        score += bonus;
         const x = inv.x,
           y = inv.y;
-        addPop(x, y, '+' + KILL_SCORE);
+        addPop(x, y, '+' + bonus);
         fallers.push({
           x,
           y,
@@ -1106,7 +1119,7 @@
         inv.lastHit = now;
         inv.flashT = now + 140;
         inv.hits += hits;
-        const gained = HIT_SCORE * hits;
+        const gained = hitScore() * hits;
         score += gained;
         addPop(x, y, '+' + gained);
         knockInvaderCells(inv, 2 * hits);
@@ -1125,7 +1138,7 @@
             const tipY = f.py + s * f.len;
             if (pointSegDist(bl.x, bl.y, f.px, f.py, tipX, tipY) < f.thick + 5) {
               bl.dead = true;
-              const damage = BULLET_PENALTY + (wave - 1) * BULLET_PENALTY_PER_WAVE;
+              const damage = bulletDamage();
               score -= damage;
               addPop(bl.x, bl.y - 14, '-' + damage, '#cc4444');
               for (let i = 0; i < 6; i++) {
@@ -1189,8 +1202,9 @@
       function fireLaser(x, y, now) {
         const hue = Math.round(now / 4) % 360;
         lasers.push({ x, y, len: 0, life: 1, hue, hit: new Set() });
-        score += POWERUP_SCORE;
-        addPop(x, y - cellH, '+' + POWERUP_SCORE + ' laser!', specialColor(hue), 0.55);
+        const bonus = POWERUP_HITS_WORTH * hitScore();
+        score += bonus;
+        addPop(x, y - cellH, '+' + bonus + ' laser!', specialColor(hue), 0.55);
         for (let i = 0; i < 10; i++) {
           const a = Math.random() * Math.PI * 2;
           const sp = 120 + Math.random() * 220;
