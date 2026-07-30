@@ -119,6 +119,19 @@
         color: #888;
         user-select: none;
       }
+      #query-clear {
+        font: inherit;
+        color: #888;
+        background: transparent;
+        border: none;
+        margin-left: 6px;
+        padding: 0 4px;
+        cursor: pointer;
+        transition: color 0.2s ease;
+      }
+      #query-clear:hover {
+        color: #000;
+      }
       li.selected a:not(.when) {
         background: #000;
         color: #fff;
@@ -136,7 +149,8 @@
       body.dark header a,
       body.dark li a:not(.when),
       body.dark .view-toggle button:hover,
-      body.dark .view-toggle button.active {
+      body.dark .view-toggle button.active,
+      body.dark #query-clear:hover {
         color: #fff;
       }
       body.dark #query-overlay {
@@ -151,7 +165,8 @@
         body:not(.light) header a,
         body:not(.light) li a:not(.when),
         body:not(.light) .view-toggle button:hover,
-        body:not(.light) .view-toggle button.active {
+        body:not(.light) .view-toggle button.active,
+        body:not(.light) #query-clear:hover {
           color: #fff;
         }
         body:not(.light) #query-overlay {
@@ -178,7 +193,10 @@
       <button type="button" data-view="alpha">abc</button>
     </nav>
     <div id="query-overlay" hidden>
-      <span class="label">filter: </span><span id="query-text"></span>
+      <span class="label">filter: </span><span id="query-text"></span
+      ><button type="button" id="query-clear" title="clear filter (esc)" aria-label="clear filter">
+        ×
+      </button>
     </div>
     <!-- prettier-ignore -->
     <div id="tree-view">
@@ -481,10 +499,48 @@
       buttons.forEach((b) => b.addEventListener('click', () => switchTo(b.dataset.view)));
 
       // Type-to-filter: printable keys build a query that narrows every view
-      // to links whose label contains it; Escape clears it.
+      // to links whose label contains it; Escape or the overlay's × clears it.
+      // In the tree view headings and subheadings match too, and a match brings
+      // everything under them along as results.
       let query = '';
       const queryOverlay = document.getElementById('query-overlay');
       const queryText = document.getElementById('query-text');
+
+      // Bolds the matched run inside el, or restores its plain text when it no
+      // longer matches. Returns whether the query hit.
+      function highlight(el) {
+        const label = el.textContent;
+        const idx = query ? label.toLowerCase().indexOf(query) : -1;
+        if (idx === -1) {
+          if (el.firstElementChild) el.textContent = label;
+          return false;
+        }
+        el.replaceChildren(
+          label.slice(0, idx),
+          Object.assign(document.createElement('b'), {
+            textContent: label.slice(idx, idx + query.length),
+          }),
+          label.slice(idx + query.length)
+        );
+        return true;
+      }
+
+      // Rows nested under a subheading carry a longer branch prefix ("│   ├── "
+      // vs "├── "), so a subtree is the run of following siblings indented deeper.
+      function branchWidth(li) {
+        const branch = li.querySelector('.branch');
+        return branch ? branch.textContent.length : 0;
+      }
+
+      function subtreeOf(li) {
+        const depth = branchWidth(li);
+        const rows = [];
+        for (let next = li.nextElementSibling; next; next = next.nextElementSibling) {
+          if (branchWidth(next) <= depth) break;
+          rows.push(next);
+        }
+        return rows;
+      }
 
       function applyFilter() {
         queryOverlay.hidden = !query;
@@ -492,27 +548,24 @@
         document
           .querySelectorAll('#tree-view li, #recent-view li, #alpha-view li')
           .forEach((li) => {
-            const a = li.querySelector('a:not(.when)');
-            if (!a) {
-              // Subheading rows have no link of their own; hide them while filtering.
-              li.hidden = !!query;
-              return;
-            }
-            const label = a.textContent;
-            const idx = query ? label.toLowerCase().indexOf(query) : -1;
-            li.hidden = !!query && idx === -1;
-            if (idx === -1) {
-              if (a.firstElementChild) a.textContent = label;
-            } else {
-              a.replaceChildren(
-                label.slice(0, idx),
-                Object.assign(document.createElement('b'), {
-                  textContent: label.slice(idx, idx + query.length),
-                }),
-                label.slice(idx + query.length)
-              );
-            }
+            // Subheading rows have no link of their own, so they match on their
+            // own text instead. highlight() runs either way: with no query it is
+            // what clears the bolding left over from the last one.
+            const target = li.querySelector('a:not(.when)') || li.querySelector('.subheading');
+            const hit = target ? highlight(target) : false;
+            li.hidden = !!query && !hit;
           });
+        // A heading match keeps its whole group; a subheading match keeps
+        // everything nested under it.
+        treeView.querySelectorAll('h2').forEach((h2) => {
+          if (!highlight(h2)) return;
+          const ul = h2.nextElementSibling;
+          if (ul && ul.tagName === 'UL') [...ul.children].forEach((li) => (li.hidden = false));
+        });
+        treeView.querySelectorAll('li .subheading').forEach((subheading) => {
+          const li = subheading.closest('li');
+          if (query && !li.hidden) subtreeOf(li).forEach((row) => (row.hidden = false));
+        });
         treeView.querySelectorAll('ul').forEach((ul) => {
           const empty = ![...ul.children].some((li) => !li.hidden);
           ul.hidden = empty;
@@ -522,6 +575,14 @@
         selIndex = 0;
         updateSelection();
       }
+
+      // Keep focus off the button so typing keeps building the filter.
+      const queryClear = document.getElementById('query-clear');
+      queryClear.addEventListener('mousedown', (e) => e.preventDefault());
+      queryClear.addEventListener('click', () => {
+        query = '';
+        applyFilter();
+      });
 
       // While a query is active the topmost match is highlighted; arrows move
       // the highlight and Enter opens it.
