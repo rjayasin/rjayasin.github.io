@@ -1,12 +1,16 @@
 name: Deploy site
 
+# A repository_dispatch run shows no source repo in the UI; name it after the payload instead.
+run-name: ${{ github.event_name == 'repository_dispatch' && format('Deploy site (sitemap-update from {0})', github.event.client_payload.repo) || 'Deploy site' }}
+
 on:
   push:
     branches: [main]
   schedule:
     - cron: '17 6 * * *' # daily: refresh external-repo dates
   repository_dispatch:
-    types: [la-transit-map-push] # sent by la-transit-map on push to main
+    # Sent by every repo the sitemap links to, so adding one never means editing this file.
+    types: [sitemap-update]
   workflow_dispatch: {}
 
 permissions:
