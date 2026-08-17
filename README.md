@@ -2,6 +2,9 @@
 
 `tools`
 
+- `visualizer`
+  - [`video-player`](https://rjayasin.github.io/visualizer/video-player.html)
+  - [`spotify-auth`](https://rjayasin.github.io/visualizer/spotify-auth.html)
 - [`commits`](https://rjayasin.github.io/commits/)
 - [`dodgers-notifier`](https://rjayasin.github.io/dodgers-notifier/)
 - [`deploys`](https://rjayasin.github.io/deploys/)
@@ -17,7 +20,7 @@
 - [`across`](https://rjayasin.github.io/across/)
 - `etymology`
   - [`tree-explorer`](https://rjayasin.github.io/etymology/)
-  - [`tree-game`](https://rjayasin.github.io/etymology/game/)
+  - [`etymology-game`](https://rjayasin.github.io/etymology/game/)
 - [`explorer`](https://rjayasin.github.io/explorer/)
 
 `text`
@@ -32,19 +35,17 @@
 - [`gravity`](https://rjayasin.github.io/gravity/)
 - [`fonts`](https://rjayasin.github.io/fonts/)
 
-`fun`
+`games`
 
-- `visualizer`
-  - [`video-player`](https://rjayasin.github.io/visualizer/video-player.html)
-  - [`spotify-auth`](https://rjayasin.github.io/visualizer/spotify-auth.html)
 - [`maze-canvas`](https://rjayasin.github.io/maze-canvas/)
 - [`snake`](https://rjayasin.github.io/snake/)
+- [`etymology-game`](https://rjayasin.github.io/etymology/game/)
 - [`pinball`](https://rjayasin.github.io/pinball/)
-- [`la-transit-map`](https://rjayasin.github.io/la-transit-map/)
 
 `experiments`
 
 - [`mirror`](https://rjayasin.github.io/mirror/)
+- [`la-transit-map`](https://rjayasin.github.io/la-transit-map/)
 
 `site`
 
