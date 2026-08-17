@@ -37,6 +37,8 @@
         --card-edge: #cfc7b6;
         --back-ink: #8c2f39;
         --back-line: #fffdf7;
+        --win-ring: #2f9e5c;
+        --lose-ring: #c0392b;
         /* Width off both axes: tall phones get a readable card, and a short
            desktop window still fits two rows plus the middle. */
         --cw: clamp(64px, min(22vw, 15vh), 116px);
@@ -48,6 +50,8 @@
         --card-edge: #b6ae9c;
         --back-ink: #7c2831;
         --back-line: #efeadf;
+        --win-ring: #4cc182;
+        --lose-ring: #e2594b;
       }
       @media (prefers-color-scheme: dark) {
         body:not(.light) {
@@ -56,6 +60,8 @@
           --card-edge: #b6ae9c;
           --back-ink: #7c2831;
           --back-line: #efeadf;
+          --win-ring: #4cc182;
+          --lose-ring: #e2594b;
         }
       }
       #stage {
@@ -122,9 +128,38 @@
       }
       /* The card in play, flipped face up as it is dealt. */
       .slot {
+        position: relative;
         width: var(--cw);
         height: var(--ch);
         perspective: 900px;
+      }
+      /* Verdict ring; radius tracks the card's own rx="8" in a 100-wide box. */
+      .ring {
+        position: absolute;
+        inset: -3px;
+        border: 2px solid transparent;
+        border-radius: calc(var(--cw) * 0.11);
+        opacity: 0;
+        pointer-events: none;
+      }
+      .slot.win .ring {
+        border-color: var(--win-ring);
+        box-shadow: 0 0 9px -1px var(--win-ring);
+        animation: ring-in 0.2s ease-out forwards;
+      }
+      .slot.lose .ring {
+        border-color: var(--lose-ring);
+        box-shadow: 0 0 9px -1px var(--lose-ring);
+        animation: ring-in 0.2s ease-out forwards;
+      }
+      /* Opacity only: the outline must not appear to move. */
+      @keyframes ring-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
       }
       .flip {
         position: relative;
@@ -154,11 +189,11 @@
         height: 100%;
         filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.28));
       }
-      #middle {
+      #readout {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 6px;
+        gap: 4px;
       }
       #status {
         font-size: 13px;
@@ -172,6 +207,7 @@
       #pot {
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 4px;
         height: calc(var(--ch) * 0.26);
       }
@@ -230,6 +266,12 @@
         .flip {
           transition: none;
         }
+        /* The ring still marks the winner, it just doesn't fade in. */
+        .slot.win .ring,
+        .slot.lose .ring {
+          animation: none;
+          opacity: 1;
+        }
       }
     </style>
     <script src="/common.js"></script>
@@ -241,30 +283,32 @@
           <span class="tag">computer <span id="count-cpu">26</span></span>
           <div class="deck" id="deck-cpu"><div class="ghost"></div></div>
         </div>
-        <div class="slot">
+        <div class="slot" id="slot-cpu">
           <div class="flip" id="flip-cpu">
             <div class="face back"></div>
             <div class="face front"></div>
           </div>
+          <div class="ring"></div>
         </div>
       </section>
-      <div id="middle">
-        <div id="status"></div>
-        <div id="tally"></div>
-        <div id="pot"></div>
-      </div>
+      <div id="pot"></div>
       <section class="seat you">
         <div class="side">
           <span class="tag">you <span id="count-you">26</span></span>
           <div class="deck" id="deck-you"><div class="ghost"></div></div>
         </div>
-        <div class="slot">
+        <div class="slot" id="slot-you">
           <div class="flip" id="flip-you">
             <div class="face back"></div>
             <div class="face front"></div>
           </div>
+          <div class="ring"></div>
         </div>
       </section>
+      <div id="readout">
+        <div id="status"></div>
+        <div id="tally"></div>
+      </div>
     </div>
     <div id="hint">
       <span style="white-space: nowrap"><span class="hint-btn" id="hb-flip">space flip</span></span>
@@ -468,8 +512,9 @@
         );
       }
 
-      // The back: a lattice, masked back to the border by an even-odd frame so
-      // the lines never touch the white edge.
+      // The back: a lattice clipped to the inner panel so the lines never touch
+      // the white edge. Clipped rather than covered by an even-odd frame — that
+      // frame's square outer contour filled in the card's rounded corners.
       const CARD_BACK = (() => {
         let lattice = '';
         for (let i = -CARD_H; i < CARD_W + CARD_H; i += 9) {
@@ -479,9 +524,9 @@
         }
         return (
           `<svg viewBox="0 0 ${CARD_W} ${CARD_H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="face-down card">` +
+          `<clipPath id="card-back-panel"><rect x="7" y="7" width="${CARD_W - 14}" height="${CARD_H - 14}" rx="4"/></clipPath>` +
           `<rect width="${CARD_W}" height="${CARD_H}" rx="8" fill="var(--back-ink)"/>` +
-          `<g stroke="var(--back-line)" stroke-width="1.1" opacity="0.4" fill="none">${lattice}</g>` +
-          `<path d="M0 0h${CARD_W}v${CARD_H}H0Z M7 7h${CARD_W - 14}v${CARD_H - 14}H7Z" fill="var(--back-ink)" fill-rule="evenodd"/>` +
+          `<g stroke="var(--back-line)" stroke-width="1.1" opacity="0.4" fill="none" clip-path="url(#card-back-panel)">${lattice}</g>` +
           `<rect x="0.6" y="0.6" width="${CARD_W - 1.2}" height="${CARD_H - 1.2}" rx="8" fill="none" stroke="var(--back-line)" stroke-width="1.2" opacity="0.85"/>` +
           `<rect x="7" y="7" width="${CARD_W - 14}" height="${CARD_H - 14}" rx="4" fill="none" stroke="var(--back-line)" stroke-width="1.2" opacity="0.7"/>` +
           `</svg>`
@@ -501,6 +546,10 @@
       const flipEls = {
         cpu: document.getElementById('flip-cpu'),
         you: document.getElementById('flip-you'),
+      };
+      const slotEls = {
+        cpu: document.getElementById('slot-cpu'),
+        you: document.getElementById('slot-you'),
       };
       const deckEls = {
         cpu: document.getElementById('deck-cpu'),
@@ -677,6 +726,17 @@
         statusEl.textContent = text;
       }
 
+      // A tie rings neither card: nobody has won anything yet.
+      function clearRings() {
+        for (const side of SIDES) slotEls[side].classList.remove('win', 'lose');
+      }
+
+      function markVerdict(winner) {
+        for (const side of SIDES) {
+          slotEls[side].classList.add(side === winner ? 'win' : 'lose');
+        }
+      }
+
       // --- turns ----------------------------------------------------------
       function playFlip() {
         if (busy) return;
@@ -692,6 +752,7 @@
         }
 
         busy = true;
+        clearRings();
         // The computer's card lands first, then yours — the beat between them
         // is the whole drama of the game.
         dealTo('cpu', ev.cards.cpu, 0);
@@ -713,6 +774,7 @@
           const won = ev.side === 'you';
           const high = won ? ev.cards.you : ev.cards.cpu;
           const low = won ? ev.cards.cpu : ev.cards.you;
+          markVerdict(ev.side);
           setStatus(
             `${won ? 'you take' : 'computer takes'} ${ev.taken} · ${label(high)} beats ${label(low)}`
           );
@@ -742,6 +804,7 @@
         warPending = false;
         result = null;
         busy = false;
+        clearRings();
         SIDES.forEach(faceDown);
         setStatus('26 cards each · tap to flip');
         renderCounts();
