@@ -39,6 +39,10 @@
         --back-line: #fffdf7;
         --win-ring: #2f9e5c;
         --lose-ring: #c0392b;
+        /* The graph sits on the page, not on card stock, so its ink follows the
+           theme: you are the neutral line, the computer the red of the backs. */
+        --graph-you: #3a3a3a;
+        --graph-cpu: #b4302a;
         /* Width off both axes: tall phones get a readable card, and a short
            desktop window still fits two rows plus the middle. */
         --cw: clamp(64px, min(22vw, 15vh), 116px);
@@ -52,6 +56,8 @@
         --back-line: #efeadf;
         --win-ring: #4cc182;
         --lose-ring: #e2594b;
+        --graph-you: #ded9cf;
+        --graph-cpu: #e2594b;
       }
       @media (prefers-color-scheme: dark) {
         body:not(.light) {
@@ -62,6 +68,8 @@
           --back-line: #efeadf;
           --win-ring: #4cc182;
           --lose-ring: #e2594b;
+          --graph-you: #ded9cf;
+          --graph-cpu: #e2594b;
         }
       }
       #stage {
@@ -203,6 +211,27 @@
         align-items: center;
         gap: 4px;
       }
+      /* The lead by round, you above the axis and the computer below. Sized to
+         match a seat's width so it lines up with the table above it. */
+      #graph {
+        display: none;
+        width: min(100%, 560px);
+        height: clamp(128px, 26vh, 208px);
+        flex-shrink: 0; /* the table gives up the room, not the graph */
+      }
+      /* Showing the graph costs the table some card: without this the flex
+         column squeezes the graph back down on a short window. */
+      body.graph {
+        --cw: clamp(52px, min(18vw, 11vh), 96px);
+      }
+      body.graph #graph {
+        display: block;
+      }
+      #graph svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
       #status {
         font-size: 13px;
         letter-spacing: 0.05em;
@@ -317,12 +346,19 @@
         <div id="status"></div>
         <div id="tally"></div>
       </div>
+      <div id="graph"></div>
     </div>
     <div id="hint">
       <span style="white-space: nowrap"><span class="hint-btn" id="hb-flip">space flip</span></span>
       &nbsp;·&nbsp;
       <span style="white-space: nowrap"
         ><span class="hint-btn" id="hb-auto">a <span class="hb-auto-label">auto</span></span></span
+      >
+      &nbsp;·&nbsp;
+      <span style="white-space: nowrap"
+        ><span class="hint-btn" id="hb-graph"
+          >g <span class="hb-graph-label">graph</span></span
+        ></span
       >
       &nbsp;·&nbsp;
       <span style="white-space: nowrap"><span class="hint-btn" id="hb-deal">r new game</span></span>
@@ -553,11 +589,17 @@
       const AUTO_REVEAL_MS = 90; // matched to body.auto .flip
       const AUTO_STAGGER_MS = 30;
       const AUTO_GAP_MS = 40; // a beat on the verdict before the next deal
+      const DECK_SIZE = 52; // the graph's full scale: every card on one side
+      const GRAPH_MIN_ROUNDS = 12; // so the opening rounds aren't stretched across the width
+      const TICK_STEPS = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
+      const TICK_MAX = 6; // ticks to aim for; the step grows with the game
       const SIDES = ['cpu', 'you'];
 
       const stageEl = document.getElementById('stage');
       const statusEl = document.getElementById('status');
       const autoLabelEl = document.querySelector('.hb-auto-label');
+      const graphEl = document.getElementById('graph');
+      const graphLabelEl = document.querySelector('.hb-graph-label');
       const potEl = document.getElementById('pot');
       const tallyEl = document.getElementById('tally');
       const flipEls = {
@@ -719,6 +761,120 @@
         tallyEl.textContent = `round ${round} · wars ${wars}`;
       }
 
+      // --- the graph ------------------------------------------------------
+      // The lead by round: one line for you minus the computer, above the axis
+      // while you are ahead and below it while you are behind. Two lines would
+      // be redundant — the piles always sum to the deck, so each is the other
+      // upside down. History is kept whether or not the graph is showing, so
+      // turning it on mid-game draws the whole game so far.
+      let history,
+        graphOn = false;
+
+      // One point per round, taken once the round has settled. A war doesn't
+      // advance the round, so its flips overwrite the round's point rather than
+      // adding to it; the same rewrite lets the final pot land on the last one.
+      function sample() {
+        const point = { round, you: piles.you.length, cpu: piles.cpu.length };
+        const last = history[history.length - 1];
+        if (last && last.round === round) history[history.length - 1] = point;
+        else history.push(point);
+        if (graphOn) drawGraph();
+      }
+
+      function drawGraph() {
+        // The viewBox tracks the pixel box 1:1, so strokes never come out
+        // stretched the way a fixed viewBox on a fluid width would leave them.
+        const box = graphEl.getBoundingClientRect();
+        const w = Math.round(box.width);
+        const h = Math.round(box.height);
+        if (!w || !h) return;
+        // Gutters: the rotated title on the left, the tier values on the right,
+        // the round ticks and their title below.
+        const padL = 15;
+        const padR = 22;
+        const padT = 8;
+        const padB = 26;
+        const plotW = w - padL - padR;
+        const plotH = h - padT - padB;
+        if (plotW < 40 || plotH < 40) return;
+        const mid = padT + plotH / 2; // the axis: dead even
+        const span = plotH / 2 - 2; // the whole deck to one side
+        const top = mid - span;
+        const bottom = mid + span;
+        const right = w - padR;
+        const xMax = Math.max(round, GRAPH_MIN_ROUNDS);
+        const xOf = (r) => padL + (r / xMax) * (plotW - 1) + 0.5;
+        const pts = history.map((p) => ({
+          x: xOf(p.round),
+          y: mid - ((p.you - p.cpu) / DECK_SIZE) * span,
+        }));
+        const walk = pts.map((p) => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' L ');
+        const line = `M ${walk}`;
+        const area =
+          `M ${pts[0].x.toFixed(1)} ${mid} L ${walk} ` +
+          `L ${pts[pts.length - 1].x.toFixed(1)} ${mid} Z`;
+        // One line, but clipped either side of the axis so the half that means
+        // "you" carries your colour and the half that means the computer carries
+        // its own. Ids are safe to hard-code: there is only ever one graph.
+        const band = (clip, color) =>
+          `<g clip-path="url(#${clip})">` +
+          `<path d="${area}" fill="${color}" opacity="0.16"/>` +
+          `<path d="${line}" fill="none" stroke="${color}" stroke-width="1.4" ` +
+          `stroke-linejoin="round"/>` +
+          `</g>`;
+        // The two bounds are a whole deck to either side — the most either can
+        // be ahead by, so the line can never leave them.
+        const rule = (y, dash) =>
+          `<line x1="${padL}" y1="${y}" x2="${right}" y2="${y}" stroke="#888" stroke-width="1" ` +
+          `opacity="${dash ? 0.3 : 0.55}"${dash ? ' stroke-dasharray="3 3"' : ''}/>`;
+        const tier = (y, text) =>
+          `<text x="${right + 4}" y="${y}" dy="3.2" fill="#888" font-size="9">${text}</text>`;
+        // Ticks every round at the start, then in coarser steps as the game runs
+        // long, so the axis keeps roughly the same handful of labels throughout.
+        const step = TICK_STEPS.find((s) => xMax / s <= TICK_MAX) ?? xMax;
+        let ticks = '';
+        for (let r = 0; r <= xMax; r += step) {
+          const x = xOf(r).toFixed(1);
+          ticks +=
+            `<line x1="${x}" y1="${bottom}" x2="${x}" y2="${bottom + 4}" stroke="#888" stroke-width="1" opacity="0.55"/>` +
+            `<text x="${x}" y="${bottom + 14}" fill="#888" font-size="9" text-anchor="middle">${r}</text>`;
+        }
+        const lead = piles.you.length - piles.cpu.length;
+        graphEl.innerHTML =
+          `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" role="img" ` +
+          `aria-label="lead by round: ${
+            lead === 0 ? 'even' : `${Math.abs(lead)} cards to ${lead > 0 ? 'you' : 'the computer'}`
+          } after round ${round}">` +
+          `<clipPath id="g-above"><rect x="0" y="0" width="${w}" height="${mid}"/></clipPath>` +
+          `<clipPath id="g-below"><rect x="0" y="${mid}" width="${w}" height="${h - mid}"/></clipPath>` +
+          rule(top, true) +
+          rule(bottom, true) +
+          band('g-above', 'var(--graph-you)') +
+          band('g-below', 'var(--graph-cpu)') +
+          rule(mid, false) +
+          ticks +
+          tier(top, DECK_SIZE) +
+          tier(mid, 0) +
+          tier(bottom, DECK_SIZE) +
+          `<text transform="rotate(-90 9 ${mid})" x="9" y="${mid}" dy="3.2" fill="#888" font-size="9" text-anchor="middle">cards ahead</text>` +
+          `<text x="${padL + plotW / 2}" y="${h - 2}" fill="#888" font-size="9" text-anchor="middle">round</text>` +
+          `<text x="${padL + 3}" y="${top + 11}" fill="#888" font-size="9">you</text>` +
+          `<text x="${padL + 3}" y="${bottom - 5}" fill="#888" font-size="9">computer</text>` +
+          `</svg>`;
+      }
+
+      function toggleGraph() {
+        graphOn = !graphOn;
+        document.body.classList.toggle('graph', graphOn);
+        graphLabelEl.textContent = graphOn ? 'hide' : 'graph';
+        if (graphOn) drawGraph();
+        else graphEl.replaceChildren();
+      }
+
+      window.addEventListener('resize', () => {
+        if (graphOn) drawGraph();
+      });
+
       // Turns a card face down without animating, swaps in the new face, then
       // lets it flip up on the next frame.
       function dealTo(side, card, delay) {
@@ -844,7 +1000,9 @@
           );
           renderCounts();
           renderPot();
+          // announce() samples the finished standing itself.
           if (ev.over) announce(finish(ev.side, null));
+          else sample();
         }, reveal + stagger);
       }
 
@@ -855,6 +1013,7 @@
         else if (ev.side === 'you') setStatus(`you win in ${n}! · tap for a new game`);
         else setStatus(`computer wins in ${n} · tap for a new game`);
         renderCounts();
+        sample();
       }
 
       // A flip the player asked for takes the wheel back off auto mode.
@@ -875,6 +1034,8 @@
         warPending = false;
         result = null;
         busy = false;
+        history = [{ round: 0, you: piles.you.length, cpu: piles.cpu.length }];
+        if (graphOn) drawGraph();
         clearRings();
         SIDES.forEach(faceDown);
         setStatus('26 cards each · tap to flip');
@@ -890,6 +1051,9 @@
           showHint();
         } else if ((e.key === 'a' || e.key === 'A') && !e.repeat) {
           toggleAuto();
+          showHint();
+        } else if ((e.key === 'g' || e.key === 'G') && !e.repeat) {
+          toggleGraph();
           showHint();
         } else if ((e.key === 'r' || e.key === 'R') && !e.repeat) {
           newGame();
@@ -908,6 +1072,10 @@
       });
       document.getElementById('hb-auto').addEventListener('click', () => {
         toggleAuto();
+        showHint();
+      });
+      document.getElementById('hb-graph').addEventListener('click', () => {
+        toggleGraph();
         showHint();
       });
       document.getElementById('hb-deal').addEventListener('click', () => {
