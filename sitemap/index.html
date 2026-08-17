@@ -648,6 +648,9 @@
           e.preventDefault();
           return;
         }
+        // "1" is the site-wide dark-mode toggle (Common.initDarkMode). Leave it
+        // to that handler rather than swallowing it into the query.
+        if (e.key === '1') return;
         if (e.key === 'Escape') {
           query = '';
         } else if (e.key === 'Backspace') {
