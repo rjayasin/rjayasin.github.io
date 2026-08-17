@@ -2,9 +2,6 @@
 
 `tools`
 
-- `visualizer`
-  - [`video-player`](https://rjayasin.github.io/visualizer/video-player.html)
-  - [`spotify-auth`](https://rjayasin.github.io/visualizer/spotify-auth.html)
 - [`commits`](https://rjayasin.github.io/commits/)
 - [`dodgers-notifier`](https://rjayasin.github.io/dodgers-notifier/)
 - [`deploys`](https://rjayasin.github.io/deploys/)
@@ -45,6 +42,9 @@
 
 `experiments`
 
+- `visualizer`
+  - [`video-player`](https://rjayasin.github.io/visualizer/video-player.html)
+  - [`spotify-auth`](https://rjayasin.github.io/visualizer/spotify-auth.html)
 - [`mirror`](https://rjayasin.github.io/mirror/)
 - [`la-transit-map`](https://rjayasin.github.io/la-transit-map/)
 

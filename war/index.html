@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title>Ruvan / war</title>
     <link rel="icon" id="favicon" />
@@ -17,6 +17,7 @@
         overflow: hidden;
         -webkit-user-select: none;
         user-select: none;
+        -webkit-touch-callout: none;
       }
       body {
         font-family:
@@ -27,6 +28,35 @@
           Consolas,
           Liberation Mono,
           monospace;
+        /* Card stock stays light in both themes — a playing card is a printed
+           object, not a surface that follows the page. Dark mode only takes the
+           glare off it. */
+        --card-bg: #fffdf7;
+        --card-ink: #16130f;
+        --card-red: #c0392b;
+        --card-edge: #cfc7b6;
+        --back-ink: #8c2f39;
+        --back-line: #fffdf7;
+        /* Width off both axes: tall phones get a readable card, and a short
+           desktop window still fits two rows plus the middle. */
+        --cw: clamp(64px, min(22vw, 15vh), 116px);
+        --ch: calc(var(--cw) * 1.4);
+      }
+      body.dark {
+        --card-bg: #efeadf;
+        --card-red: #b4302a;
+        --card-edge: #b6ae9c;
+        --back-ink: #7c2831;
+        --back-line: #efeadf;
+      }
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) {
+          --card-bg: #efeadf;
+          --card-red: #b4302a;
+          --card-edge: #b6ae9c;
+          --back-ink: #7c2831;
+          --back-line: #efeadf;
+        }
       }
       #stage {
         position: fixed;
@@ -35,110 +65,134 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 22px;
-        padding: 24px;
+        gap: clamp(10px, 2.5vh, 22px);
+        padding: 20px 16px 64px;
         touch-action: manipulation;
+        cursor: pointer;
+      }
+      /* Computer on top, player at the bottom. The three-column grid keeps the
+         played card dead centre on both rows — label and deck sit in the left
+         column, and the empty right column balances them. */
+      .seat {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        width: min(100%, 560px);
+      }
+      /* Label under the deck rather than beside it: on a phone the two side by
+         side are wider than the column, which shoves the played card off centre. */
+      .side {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        justify-self: end;
+        padding-right: clamp(10px, 4vw, 28px);
+      }
+      .tag {
+        font-size: 12px;
+        color: #888;
+        white-space: nowrap;
+      }
+      /* The deck a side still holds: layered backs, so a thin pile reads as
+         thin at a glance. */
+      .deck {
+        position: relative;
+        width: var(--cw);
+        height: var(--ch);
+        transform: scale(0.62);
+        transform-origin: center;
+      }
+      .deck .layer {
+        position: absolute;
+        inset: 0;
+      }
+      .deck.empty .layer {
+        display: none;
+      }
+      .deck .ghost {
+        position: absolute;
+        inset: 0;
+        border: 1px dashed #888;
+        border-radius: 8px;
+        opacity: 0.5;
+      }
+      .deck:not(.empty) .ghost {
+        display: none;
+      }
+      /* The card in play, flipped face up as it is dealt. */
+      .slot {
+        width: var(--cw);
+        height: var(--ch);
+        perspective: 900px;
+      }
+      .flip {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transform-style: preserve-3d;
+        transition: transform 0.34s ease;
+      }
+      .flip.revealed {
+        transform: rotateY(180deg);
+      }
+      .flip.instant {
+        transition: none;
+      }
+      .face {
+        position: absolute;
+        inset: 0;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+      }
+      .face.front {
+        transform: rotateY(180deg);
+      }
+      .face svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.28));
+      }
+      #middle {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
       }
       #status {
         font-size: 13px;
         letter-spacing: 0.05em;
         text-align: center;
-        /* Reserve the line so the table doesn't shift as the text changes. */
         min-height: 1.4em;
       }
-      #table {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: clamp(16px, 6vw, 44px);
-      }
-      .seat {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-      }
-      .card {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 2px;
-        width: clamp(64px, 19vw, 84px);
-        height: clamp(92px, 27vw, 120px);
-        border: 1px solid currentColor;
-        border-radius: 7px;
-      }
-      .card .rank {
-        font-size: clamp(17px, 5vw, 21px);
-      }
-      .card .suit {
-        font-size: clamp(19px, 5.5vw, 24px);
-        line-height: 1;
-      }
-      /* Hearts and diamonds keep their colour in both themes; the lighter red
-         reads better against the dark background. */
-      .card.red {
-        color: #c0392b;
-      }
-      body.dark .card.red {
-        color: #ff6b6b;
-      }
-      @media (prefers-color-scheme: dark) {
-        body:not(.light) .card.red {
-          color: #ff6b6b;
-        }
-      }
-      /* Face down: hatched, so an unflipped card never reads as a blank slot. */
-      .card.down {
-        background-image: repeating-linear-gradient(45deg, currentColor 0 1px, transparent 1px 6px);
-        opacity: 0.35;
-      }
-      /* Outline rather than a thicker border, so marking the winner of a flip
-         can't nudge the layout. */
-      .card.won {
-        outline: 1px solid currentColor;
-        outline-offset: 3px;
-      }
-      .meta {
-        font-size: 12px;
-        color: #888;
-        text-align: center;
-      }
-      .meta .count {
-        color: inherit;
-      }
+      /* Cards staked but not yet won: the face-down burials of a war. */
+      /* Height is reserved whether or not a war is on, so the table doesn't
+         jump when cards are staked. */
       #pot {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        height: calc(var(--ch) * 0.26);
+      }
+      #pot .stake {
+        width: calc(var(--cw) * 0.3);
+        height: calc(var(--ch) * 0.3);
+      }
+      #pot .count {
         font-size: 12px;
         color: #888;
-        min-width: 5ch;
-        text-align: center;
-      }
-      /* Share-of-the-deck rail: the fill is the left player's half, so the game
-         reads at a glance even when the cards are flipping too fast to follow. */
-      #rail {
-        width: min(320px, 78vw);
-        height: 3px;
-        border: 1px solid #888;
-        border-radius: 2px;
-      }
-      #rail-fill {
-        height: 100%;
-        background: #888;
-        transition: width 0.2s ease;
+        margin-left: 4px;
       }
       #tally {
         font-size: 12px;
         color: #888;
-        text-align: center;
       }
       #hint {
         position: fixed;
         left: 0;
         right: 0;
         bottom: 12px;
-        /* Six items wrap on a phone; the padding keeps the wrapped line off
-           the edge of the screen. */
         padding: 0 14px;
         text-align: center;
         font-size: 12px;
@@ -172,41 +226,50 @@
         height: 60px;
         z-index: 2;
       }
+      @media (prefers-reduced-motion: reduce) {
+        .flip {
+          transition: none;
+        }
+      }
     </style>
     <script src="/common.js"></script>
   </head>
   <body>
     <div id="stage">
-      <div id="status"></div>
-      <div id="table">
-        <div class="seat">
-          <div class="card down" id="card-l">
-            <span class="rank"></span><span class="suit"></span>
-          </div>
-          <div class="meta">left <span class="count" id="count-l">26</span></div>
+      <section class="seat cpu">
+        <div class="side">
+          <span class="tag">computer <span id="count-cpu">26</span></span>
+          <div class="deck" id="deck-cpu"><div class="ghost"></div></div>
         </div>
+        <div class="slot">
+          <div class="flip" id="flip-cpu">
+            <div class="face back"></div>
+            <div class="face front"></div>
+          </div>
+        </div>
+      </section>
+      <div id="middle">
+        <div id="status"></div>
+        <div id="tally"></div>
         <div id="pot"></div>
-        <div class="seat">
-          <div class="card down" id="card-r">
-            <span class="rank"></span><span class="suit"></span>
-          </div>
-          <div class="meta">right <span class="count" id="count-r">26</span></div>
-        </div>
       </div>
-      <div id="rail"><div id="rail-fill"></div></div>
-      <div id="tally"></div>
+      <section class="seat you">
+        <div class="side">
+          <span class="tag">you <span id="count-you">26</span></span>
+          <div class="deck" id="deck-you"><div class="ghost"></div></div>
+        </div>
+        <div class="slot">
+          <div class="flip" id="flip-you">
+            <div class="face back"></div>
+            <div class="face front"></div>
+          </div>
+        </div>
+      </section>
     </div>
     <div id="hint">
-      <span style="white-space: nowrap"><span class="hint-btn" id="hb-play">space play</span></span>
+      <span style="white-space: nowrap"><span class="hint-btn" id="hb-flip">space flip</span></span>
       &nbsp;·&nbsp;
-      <span style="white-space: nowrap"><span class="hint-btn" id="hb-step">→ step</span></span>
-      &nbsp;·&nbsp;
-      <span style="white-space: nowrap"><span class="hint-btn" id="hb-deal">r new deal</span></span>
-      &nbsp;·&nbsp;
-      <span style="white-space: nowrap"
-        ><span class="hint-btn" id="hb-sf">+</span>/<span class="hint-btn" id="hb-ss">−</span>
-        <span id="hb-speed">speed ×1</span></span
-      >
+      <span style="white-space: nowrap"><span class="hint-btn" id="hb-deal">r new game</span></span>
       &nbsp;·&nbsp;
       <span style="white-space: nowrap"
         ><span class="hint-btn" id="hb-dark">1 <span class="hb-dark-label">dark</span></span></span
@@ -222,35 +285,234 @@
       Common.initDarkMode();
       Common.initSitemapShortcut();
 
-      const SUITS = ['♠', '♥', '♦', '♣'];
+      // --- the deck -------------------------------------------------------
+      // A suit is drawn once in a 100×100 box and then placed wherever a pip
+      // is needed (corner index, spot card, ace, court panel) by scaling that
+      // box, so every pip on the page is the same shape at a different size.
+      const SUITS = [
+        {
+          name: 'spade',
+          glyph: '♠',
+          red: false,
+          art: '<path d="M50 7C50 7 11 37 11 60c0 14 10 23 21 23 7 0 13-3 16-9-1 11-5 18-13 23h30c-8-5-12-12-13-23 3 6 9 9 16 9 11 0 21-9 21-23C89 37 50 7 50 7Z"/>',
+        },
+        {
+          name: 'heart',
+          glyph: '♥',
+          red: true,
+          art: '<path d="M50 93C19 68 8 51 8 35 8 20 18 10 31 10c9 0 16 5 19 13 3-8 10-13 19-13 13 0 23 10 23 25 0 16-11 33-42 58Z"/>',
+        },
+        {
+          name: 'diamond',
+          glyph: '♦',
+          red: true,
+          art: '<path d="M50 5c11 21 24 35 38 45-14 10-27 24-38 45C39 74 26 60 12 50 26 40 39 26 50 5Z"/>',
+        },
+        {
+          name: 'club',
+          glyph: '♣',
+          red: false,
+          art:
+            '<circle cx="50" cy="29" r="19"/><circle cx="26" cy="60" r="19"/><circle cx="74" cy="60" r="19"/>' +
+            '<path d="M50 52c2 18 8 31 17 41H33c9-10 15-23 17-41Z"/>',
+        },
+      ];
       const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+
+      // Spot-card pip layouts, as fractions of the card's inner area. Columns
+      // are left/centre/right; a pip below the middle is printed upside down,
+      // the way a real deck does it.
+      const L = 0.29,
+        C = 0.5,
+        R = 0.71;
+      const PIPS = {
+        2: [
+          [C, 0.16],
+          [C, 0.84],
+        ],
+        3: [
+          [C, 0.16],
+          [C, 0.5],
+          [C, 0.84],
+        ],
+        4: [
+          [L, 0.16],
+          [R, 0.16],
+          [L, 0.84],
+          [R, 0.84],
+        ],
+        5: [
+          [L, 0.16],
+          [R, 0.16],
+          [C, 0.5],
+          [L, 0.84],
+          [R, 0.84],
+        ],
+        6: [
+          [L, 0.16],
+          [R, 0.16],
+          [L, 0.5],
+          [R, 0.5],
+          [L, 0.84],
+          [R, 0.84],
+        ],
+        7: [
+          [L, 0.16],
+          [R, 0.16],
+          [C, 0.33],
+          [L, 0.5],
+          [R, 0.5],
+          [L, 0.84],
+          [R, 0.84],
+        ],
+        8: [
+          [L, 0.16],
+          [R, 0.16],
+          [C, 0.33],
+          [L, 0.5],
+          [R, 0.5],
+          [C, 0.67],
+          [L, 0.84],
+          [R, 0.84],
+        ],
+        9: [
+          [L, 0.13],
+          [R, 0.13],
+          [L, 0.37],
+          [R, 0.37],
+          [C, 0.5],
+          [L, 0.63],
+          [R, 0.63],
+          [L, 0.87],
+          [R, 0.87],
+        ],
+        10: [
+          [L, 0.13],
+          [R, 0.13],
+          [C, 0.25],
+          [L, 0.37],
+          [R, 0.37],
+          [L, 0.63],
+          [R, 0.63],
+          [C, 0.75],
+          [L, 0.87],
+          [R, 0.87],
+        ],
+      };
+
+      const CARD_W = 100;
+      const CARD_H = 140;
+      const INNER = { top: 22, bottom: 118 }; // the band the pips are laid out in
+
+      // Places a suit's 100×100 art at (x, y) scaled to `size`, optionally
+      // turned upside down.
+      function pip(suit, x, y, size, flip) {
+        const s = size / 100;
+        // The rotation follows the translate, so it turns about the pip's own
+        // centre — spinning about (x, y) here would fling it off the card.
+        const turn = flip ? ' rotate(180)' : '';
+        return `<g transform="translate(${x} ${y})${turn} scale(${s}) translate(-50 -50)" fill="${suit.red ? 'var(--card-red)' : 'var(--card-ink)'}">${suit.art}</g>`;
+      }
+
+      // The rank and small pip printed in a corner, repeated upside down in the
+      // opposite corner so the card reads either way up.
+      function corner(rank, suit, x, y, flip) {
+        const ink = suit.red ? 'var(--card-red)' : 'var(--card-ink)';
+        const turn = flip ? ` transform="rotate(180 ${x} ${y})"` : '';
+        return (
+          `<g${turn}>` +
+          `<text x="${x}" y="${y - 4}" fill="${ink}" font-family="Georgia, serif" font-size="17" font-weight="600" text-anchor="middle">${rank}</text>` +
+          pip(suit, x, y + 8, 11, false) +
+          `</g>`
+        );
+      }
+
+      // Court cards get a framed panel rather than figure art: the letter, with
+      // the suit above and below it, keeps the deck's look without pretending
+      // to be a lithograph.
+      function court(rank, suit) {
+        const ink = suit.red ? 'var(--card-red)' : 'var(--card-ink)';
+        return (
+          `<rect x="26" y="30" width="48" height="80" rx="4" fill="none" stroke="${ink}" stroke-width="1.4" opacity="0.5"/>` +
+          `<rect x="29.5" y="33.5" width="41" height="73" rx="2" fill="none" stroke="${ink}" stroke-width="0.7" opacity="0.35"/>` +
+          pip(suit, 50, 45, 15, false) +
+          `<text x="50" y="79" fill="${ink}" font-family="Georgia, serif" font-size="30" font-weight="600" text-anchor="middle">${rank}</text>` +
+          pip(suit, 50, 95, 15, true)
+        );
+      }
+
+      function cardFace(card) {
+        const suit = SUITS[card.suit];
+        const rank = RANKS[card.rank];
+        let body;
+        if (rank === 'A') {
+          body = pip(suit, 50, 70, 46, false);
+        } else if (PIPS[rank]) {
+          const span = INNER.bottom - INNER.top;
+          // Nines and tens pack four rows into the same band, so their pips run
+          // a size smaller to keep the rows apart.
+          const size = rank === '9' || rank === '10' ? 15 : 17;
+          body = PIPS[rank]
+            .map(([fx, fy]) => pip(suit, fx * CARD_W, INNER.top + fy * span, size, fy > 0.5))
+            .join('');
+        } else {
+          body = court(rank, suit);
+        }
+        return (
+          `<svg viewBox="0 0 ${CARD_W} ${CARD_H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${rank} of ${suit.name}s">` +
+          `<rect x="0.6" y="0.6" width="${CARD_W - 1.2}" height="${CARD_H - 1.2}" rx="8" fill="var(--card-bg)" stroke="var(--card-edge)" stroke-width="1.2"/>` +
+          body +
+          corner(rank, suit, 12, 20, false) +
+          corner(rank, suit, CARD_W - 12, CARD_H - 20, true) +
+          `</svg>`
+        );
+      }
+
+      // The back: a lattice, masked back to the border by an even-odd frame so
+      // the lines never touch the white edge.
+      const CARD_BACK = (() => {
+        let lattice = '';
+        for (let i = -CARD_H; i < CARD_W + CARD_H; i += 9) {
+          lattice +=
+            `<path d="M${i} 0 L${i + CARD_H} ${CARD_H}"/>` +
+            `<path d="M${i} ${CARD_H} L${i + CARD_H} 0"/>`;
+        }
+        return (
+          `<svg viewBox="0 0 ${CARD_W} ${CARD_H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="face-down card">` +
+          `<rect width="${CARD_W}" height="${CARD_H}" rx="8" fill="var(--back-ink)"/>` +
+          `<g stroke="var(--back-line)" stroke-width="1.1" opacity="0.4" fill="none">${lattice}</g>` +
+          `<path d="M0 0h${CARD_W}v${CARD_H}H0Z M7 7h${CARD_W - 14}v${CARD_H - 14}H7Z" fill="var(--back-ink)" fill-rule="evenodd"/>` +
+          `<rect x="0.6" y="0.6" width="${CARD_W - 1.2}" height="${CARD_H - 1.2}" rx="8" fill="none" stroke="var(--back-line)" stroke-width="1.2" opacity="0.85"/>` +
+          `<rect x="7" y="7" width="${CARD_W - 14}" height="${CARD_H - 14}" rx="4" fill="none" stroke="var(--back-line)" stroke-width="1.2" opacity="0.7"/>` +
+          `</svg>`
+        );
+      })();
+
+      // --- the game -------------------------------------------------------
       const WAR_DOWN = 3; // cards buried face down by each side per war
-      // A war can only be fought with a card left over to flip, so a player
-      // short of cards buries fewer rather than forfeiting on the spot.
       const MAX_ROUNDS = 5000; // safety net; a shuffled pot ends games long before this
+      const REVEAL_MS = 380; // flip animation, matched to the .flip transition
+      const SIDES = ['cpu', 'you'];
 
-      const SPEEDS = [900, 420, 180, 70, 24]; // ms between flips
-      const SPEED_LABELS = ['×0.5', '×1', '×2', '×6', '×20'];
-      let speed = 1;
-
+      const stageEl = document.getElementById('stage');
       const statusEl = document.getElementById('status');
       const potEl = document.getElementById('pot');
       const tallyEl = document.getElementById('tally');
-      const railFill = document.getElementById('rail-fill');
-      const speedEl = document.getElementById('hb-speed');
-      const playEl = document.getElementById('hb-play');
-      const cardEls = {
-        left: document.getElementById('card-l'),
-        right: document.getElementById('card-r'),
+      const flipEls = {
+        cpu: document.getElementById('flip-cpu'),
+        you: document.getElementById('flip-you'),
+      };
+      const deckEls = {
+        cpu: document.getElementById('deck-cpu'),
+        you: document.getElementById('deck-you'),
       };
       const countEls = {
-        left: document.getElementById('count-l'),
-        right: document.getElementById('count-r'),
+        cpu: document.getElementById('count-cpu'),
+        you: document.getElementById('count-you'),
       };
 
-      let piles, pot, faceUp, round, wars, warDepth, warPending, result;
-      let timer = null;
-      let playing = false;
+      let piles, pot, round, wars, warDepth, warPending, result;
+      let busy = false; // ignore input while a flip is in the air
 
       function shuffle(cards) {
         for (let i = cards.length - 1; i > 0; i--) {
@@ -268,82 +530,63 @@
         return shuffle(deck);
       }
 
-      function deal() {
-        const deck = freshDeck();
-        // Index 0 is the top of each pile; won cards go on the bottom.
-        piles = { left: deck.slice(0, 26), right: deck.slice(26) };
-        pot = [];
-        faceUp = { left: null, right: null };
-        round = 0;
-        wars = 0;
-        warDepth = 0;
-        warPending = false;
-        result = null;
-        setStatus('26 cards each');
-        render();
-      }
-
-      function setStatus(text) {
-        statusEl.textContent = text;
-      }
-
       function label(card) {
-        return RANKS[card.rank] + SUITS[card.suit];
+        return RANKS[card.rank] + SUITS[card.suit].glyph;
       }
 
-      // One visible step: any face-down cards a pending war owes, then a flip
-      // from each side and the comparison. Wars therefore resolve one exchange
-      // at a time, the way they play out at a table.
-      function step() {
-        if (result) return;
-        if (round >= MAX_ROUNDS) return finish(null, 'stalemate');
-        // A player who cannot answer the flip is out, war pending or not.
-        if (!piles.left.length || !piles.right.length) return finish(null, null);
+      function name(side) {
+        return side === 'you' ? 'you' : 'computer';
+      }
 
+      // One flip for each side: any face-down cards a pending war owes, then the
+      // cards that settle it. Returns what happened so the page can animate it.
+      function step() {
+        if (result) return null;
+        if (round >= MAX_ROUNDS) return finish(null, 'stalemate');
+        // Whoever cannot answer the flip is out, war pending or not.
+        if (!piles.cpu.length || !piles.you.length) return finish(null, null);
+
+        let buried = 0;
         if (warPending) {
           warDepth++;
           wars++;
           // Bury up to WAR_DOWN each, but never the last card: it is owed to
           // the flip below.
-          for (const side of ['left', 'right']) {
+          for (const side of SIDES) {
             const down = Math.min(WAR_DOWN, piles[side].length - 1);
             for (let i = 0; i < down; i++) pot.push(piles[side].shift());
+            buried += down;
           }
         } else {
           round++;
           warDepth = 0;
         }
 
-        const l = piles.left.shift();
-        const r = piles.right.shift();
-        pot.push(l, r);
-        faceUp = { left: l, right: r };
+        const cards = { cpu: piles.cpu.shift(), you: piles.you.shift() };
+        pot.push(cards.cpu, cards.you);
 
-        if (l.rank === r.rank) {
+        if (cards.cpu.rank === cards.you.rank) {
           warPending = true;
-          setStatus(warDepth ? `war ×${warDepth + 1}` : 'war!');
-          render();
-          return;
+          return { type: 'war', cards, buried, depth: warDepth + 1 };
         }
 
         warPending = false;
-        const side = l.rank > r.rank ? 'left' : 'right';
+        const side = cards.you.rank > cards.cpu.rank ? 'you' : 'cpu';
         const taken = pot.length;
         // Spoils go to the bottom in a random order. Collected in a fixed order
         // the game can cycle forever; scooping them up (as you would at a
         // table) is what keeps it finite.
         piles[side].push(...shuffle(pot));
         pot = [];
-        setStatus(`${side} takes ${taken} · ${label(l)} vs ${label(r)}`);
-        render(side);
-        if (!piles.left.length || !piles.right.length) finish(side, null);
+        const over = !piles.cpu.length || !piles.you.length;
+        return { type: 'take', cards, buried, side, taken, over };
       }
 
       function finish(side, note) {
         if (!side) {
-          const l = piles.left.length;
-          const r = piles.right.length;
-          side = l && !r ? 'left' : r && !l ? 'right' : null;
+          const c = piles.cpu.length;
+          const y = piles.you.length;
+          side = c && !y ? 'cpu' : y && !c ? 'you' : null;
         }
         // Running out mid-war leaves the staked cards on the table: they belong
         // to whoever is still standing, so the winner really does end up with
@@ -354,95 +597,166 @@
           pot = [];
         }
         result = note || (side ? 'win' : 'draw');
-        const n = `${round} round${round === 1 ? '' : 's'}`;
-        if (result === 'stalemate') setStatus(`stalemate after ${n}`);
-        else if (side) setStatus(`${side} wins in ${n}`);
-        else setStatus(`draw after ${n}`);
-        pause();
-        render(side);
+        return { type: 'over', side, note: result };
       }
 
-      function paintCard(side, marked) {
-        const el = cardEls[side];
-        const card = faceUp[side];
-        el.classList.toggle('down', !card);
-        el.classList.toggle('red', !!card && (card.suit === 1 || card.suit === 2));
-        el.classList.toggle('won', marked === side);
-        el.querySelector('.rank').textContent = card ? RANKS[card.rank] : '';
-        el.querySelector('.suit').textContent = card ? SUITS[card.suit] : '';
-      }
-
-      function render(marked) {
-        paintCard('left', marked);
-        paintCard('right', marked);
-        countEls.left.textContent = piles.left.length;
-        countEls.right.textContent = piles.right.length;
-        potEl.textContent = pot.length ? `pot ${pot.length}` : '';
-        tallyEl.textContent = `round ${round} · wars ${wars}`;
-        const total = piles.left.length + piles.right.length || 1;
-        railFill.style.width = (piles.left.length / total) * 100 + '%';
-      }
-
-      function tick() {
-        step();
-        if (result) return;
-        timer = setTimeout(tick, SPEEDS[speed]);
-      }
-
-      function play() {
-        if (playing || result) return;
-        playing = true;
-        playEl.textContent = 'space pause';
-        tick();
-      }
-
-      function pause() {
-        playing = false;
-        playEl.textContent = 'space play';
-        clearTimeout(timer);
-        timer = null;
-      }
-
-      function togglePlay() {
-        if (result) return newDeal();
-        playing ? pause() : play();
-      }
-
-      function newDeal() {
-        pause();
-        deal();
-        play();
-      }
-
-      function setSpeed(delta) {
-        speed = Math.max(0, Math.min(SPEEDS.length - 1, speed + delta));
-        speedEl.textContent = `speed ${SPEED_LABELS[speed]}`;
-        // Re-arm at the new delay instead of waiting out the old one.
-        if (playing) {
-          clearTimeout(timer);
-          timer = setTimeout(tick, SPEEDS[speed]);
+      // --- rendering ------------------------------------------------------
+      function renderDeck(side) {
+        const el = deckEls[side];
+        const n = piles[side].length;
+        el.classList.toggle('empty', n === 0);
+        // Three layers is enough to read as a pile; the offset shrinks with the
+        // pile so a couple of cards look like a couple of cards.
+        const layers = Math.min(3, Math.max(0, Math.ceil(n / 6)));
+        const spread = n > 12 ? 2.5 : 1.5;
+        const want = layers;
+        const have = el.querySelectorAll('.layer').length;
+        if (want !== have) {
+          el.querySelectorAll('.layer').forEach((l) => l.remove());
+          for (let i = 0; i < want; i++) {
+            const layer = document.createElement('div');
+            layer.className = 'layer';
+            layer.innerHTML = CARD_BACK;
+            el.appendChild(layer);
+          }
         }
-        showHint();
+        [...el.querySelectorAll('.layer')].forEach((layer, i) => {
+          const off = (want - 1 - i) * spread;
+          layer.style.transform = `translate(${off}px, ${-off}px)`;
+        });
+      }
+
+      function renderPot() {
+        // The face-up pair is on the table already; only the buried cards are
+        // worth drawing, up to a handful.
+        const down = Math.max(0, pot.length - 2);
+        potEl.replaceChildren();
+        for (let i = 0; i < Math.min(down, 6); i++) {
+          const stake = document.createElement('div');
+          stake.className = 'stake';
+          stake.innerHTML = CARD_BACK;
+          potEl.appendChild(stake);
+        }
+        if (pot.length) {
+          const count = document.createElement('span');
+          count.className = 'count';
+          count.textContent = `pot ${pot.length}`;
+          potEl.appendChild(count);
+        }
+      }
+
+      function renderCounts() {
+        for (const side of SIDES) {
+          countEls[side].textContent = piles[side].length;
+          renderDeck(side);
+        }
+        tallyEl.textContent = `round ${round} · wars ${wars}`;
+      }
+
+      // Turns a card face down without animating, swaps in the new face, then
+      // lets it flip up on the next frame.
+      function dealTo(side, card, delay) {
+        const flip = flipEls[side];
+        flip.classList.add('instant');
+        flip.classList.remove('revealed');
+        void flip.offsetWidth; // commit the reset before re-enabling the transition
+        flip.classList.remove('instant');
+        flip.querySelector('.front').innerHTML = cardFace(card);
+        setTimeout(() => flip.classList.add('revealed'), delay);
+      }
+
+      function faceDown(side) {
+        const flip = flipEls[side];
+        flip.classList.add('instant');
+        flip.classList.remove('revealed');
+        void flip.offsetWidth;
+        flip.classList.remove('instant');
+      }
+
+      function setStatus(text) {
+        statusEl.textContent = text;
+      }
+
+      // --- turns ----------------------------------------------------------
+      function playFlip() {
+        if (busy) return;
+        if (result) return newGame();
+
+        const ev = step();
+        if (!ev) return;
+        if (ev.type === 'over') {
+          renderCounts();
+          renderPot();
+          announce(ev);
+          return;
+        }
+
+        busy = true;
+        // The computer's card lands first, then yours — the beat between them
+        // is the whole drama of the game.
+        dealTo('cpu', ev.cards.cpu, 0);
+        dealTo('you', ev.cards.you, 130);
+        setStatus(ev.buried ? `${ev.buried} face down…` : 'flipping…');
+        renderCounts();
+        renderPot();
+
+        setTimeout(() => {
+          busy = false;
+          if (ev.type === 'war') {
+            setStatus(
+              (ev.depth > 1 ? `war ×${ev.depth}!` : 'war!') +
+                ` ${label(ev.cards.you)} ties ${label(ev.cards.cpu)}`
+            );
+            renderPot();
+            return;
+          }
+          const won = ev.side === 'you';
+          const high = won ? ev.cards.you : ev.cards.cpu;
+          const low = won ? ev.cards.cpu : ev.cards.you;
+          setStatus(
+            `${won ? 'you take' : 'computer takes'} ${ev.taken} · ${label(high)} beats ${label(low)}`
+          );
+          renderCounts();
+          renderPot();
+          if (ev.over) announce(finish(ev.side, null));
+        }, REVEAL_MS + 130);
+      }
+
+      function announce(ev) {
+        const n = `${round} round${round === 1 ? '' : 's'}`;
+        if (ev.note === 'stalemate') setStatus(`stalemate after ${n} · tap for a new game`);
+        else if (!ev.side) setStatus(`draw after ${n} · tap for a new game`);
+        else if (ev.side === 'you') setStatus(`you win in ${n}! · tap for a new game`);
+        else setStatus(`computer wins in ${n} · tap for a new game`);
+        renderCounts();
+      }
+
+      function newGame() {
+        const deck = freshDeck();
+        // Index 0 is the top of each pile; won cards go on the bottom.
+        piles = { cpu: deck.slice(0, 26), you: deck.slice(26) };
+        pot = [];
+        round = 0;
+        wars = 0;
+        warDepth = 0;
+        warPending = false;
+        result = null;
+        busy = false;
+        SIDES.forEach(faceDown);
+        setStatus('26 cards each · tap to flip');
+        renderCounts();
+        renderPot();
       }
 
       document.addEventListener('keydown', (e) => {
         if (e.metaKey || e.ctrlKey || e.altKey) return;
-        if (e.key === ' ') {
+        if (e.key === ' ' || e.key === 'Enter') {
           e.preventDefault();
-          togglePlay();
-          showHint();
-        } else if (e.key === 'ArrowRight' || e.key === '.') {
-          e.preventDefault();
-          pause();
-          step();
+          playFlip();
           showHint();
         } else if ((e.key === 'r' || e.key === 'R') && !e.repeat) {
-          newDeal();
+          newGame();
           showHint();
-        } else if (e.key === '+' || e.key === '=') {
-          setSpeed(1);
-        } else if (e.key === '-' || e.key === '_') {
-          setSpeed(-1);
         }
       });
 
@@ -451,33 +765,25 @@
         hintZoneEl: document.getElementById('hint-zone'),
       });
 
-      playEl.addEventListener('click', () => {
-        togglePlay();
-        showHint();
-      });
-      document.getElementById('hb-step').addEventListener('click', () => {
-        pause();
-        step();
+      document.getElementById('hb-flip').addEventListener('click', () => {
+        playFlip();
         showHint();
       });
       document.getElementById('hb-deal').addEventListener('click', () => {
-        newDeal();
+        newGame();
         showHint();
       });
-      document.getElementById('hb-sf').addEventListener('click', () => setSpeed(1));
-      document.getElementById('hb-ss').addEventListener('click', () => setSpeed(-1));
       document.getElementById('hb-dark').addEventListener('click', () => {
         Common.toggleDark();
         showHint();
       });
       document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
 
-      // Tapping the table anywhere outside the hint bar plays or pauses.
-      Common.onTap(togglePlay);
+      // Tapping the table anywhere outside the hint bar plays the next flip.
+      Common.onTap(playFlip);
+      stageEl.setAttribute('aria-label', 'tap to flip the next card');
 
-      speedEl.textContent = `speed ${SPEED_LABELS[speed]}`;
-      deal();
-      play();
+      newGame();
     </script>
   </body>
 </html>
