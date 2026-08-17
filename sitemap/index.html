@@ -378,12 +378,23 @@
         return 'just now';
       }
 
+      // A page can sit under more than one heading in the tree (etymology-game is
+      // both a word toy and a game), but the flat views are one row per page, so
+      // only the first occurrence of an href survives here.
       function collectLinks() {
-        return [...treeView.querySelectorAll('li a[href]')].map((a) => ({
-          href: a.getAttribute('href'),
-          label: a.textContent,
-          external: a.hasAttribute('target'),
-        }));
+        const seen = new Set();
+        return [...treeView.querySelectorAll('li a[href]')]
+          .filter((a) => {
+            const href = a.getAttribute('href');
+            if (seen.has(href)) return false;
+            seen.add(href);
+            return true;
+          })
+          .map((a) => ({
+            href: a.getAttribute('href'),
+            label: a.textContent,
+            external: a.hasAttribute('target'),
+          }));
       }
 
       function dateKey(href) {
