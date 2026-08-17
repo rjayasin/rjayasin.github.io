@@ -41,6 +41,7 @@
 - [`snake`](https://rjayasin.github.io/snake/)
 - [`etymology-game`](https://rjayasin.github.io/etymology/game/)
 - [`pinball`](https://rjayasin.github.io/pinball/)
+- [`war`](https://rjayasin.github.io/war/)
 
 `experiments`
 
