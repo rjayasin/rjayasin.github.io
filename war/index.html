@@ -171,6 +171,14 @@
       .flip.revealed {
         transform: rotateY(180deg);
       }
+      /* Auto mode deals on a shorter clock; AUTO_REVEAL_MS matches. */
+      body.auto .flip {
+        transition-duration: 0.09s;
+      }
+      body.auto .slot.win .ring,
+      body.auto .slot.lose .ring {
+        animation-duration: 0.09s;
+      }
       .flip.instant {
         transition: none;
       }
@@ -312,6 +320,10 @@
     </div>
     <div id="hint">
       <span style="white-space: nowrap"><span class="hint-btn" id="hb-flip">space flip</span></span>
+      &nbsp;·&nbsp;
+      <span style="white-space: nowrap"
+        ><span class="hint-btn" id="hb-auto">a <span class="hb-auto-label">auto</span></span></span
+      >
       &nbsp;·&nbsp;
       <span style="white-space: nowrap"><span class="hint-btn" id="hb-deal">r new game</span></span>
       &nbsp;·&nbsp;
@@ -537,10 +549,15 @@
       const WAR_DOWN = 3; // cards buried face down by each side per war
       const MAX_ROUNDS = 5000; // safety net; a shuffled pot ends games long before this
       const REVEAL_MS = 380; // flip animation, matched to the .flip transition
+      const STAGGER_MS = 130; // beat between the computer's card and yours
+      const AUTO_REVEAL_MS = 90; // matched to body.auto .flip
+      const AUTO_STAGGER_MS = 30;
+      const AUTO_GAP_MS = 40; // a beat on the verdict before the next deal
       const SIDES = ['cpu', 'you'];
 
       const stageEl = document.getElementById('stage');
       const statusEl = document.getElementById('status');
+      const autoLabelEl = document.querySelector('.hb-auto-label');
       const potEl = document.getElementById('pot');
       const tallyEl = document.getElementById('tally');
       const flipEls = {
@@ -737,6 +754,52 @@
         }
       }
 
+      // --- auto mode ------------------------------------------------------
+      // Deals the game out on its own, one flip at a time, until somebody is
+      // out of cards. Each tick is scheduled a whole turn ahead so it never
+      // arrives while `busy` is still swallowing input.
+      let autoOn = false;
+      let autoTimer = null;
+
+      function pace() {
+        return autoOn
+          ? { stagger: AUTO_STAGGER_MS, reveal: AUTO_REVEAL_MS }
+          : { stagger: STAGGER_MS, reveal: REVEAL_MS };
+      }
+
+      function autoStep() {
+        autoTimer = null;
+        if (!autoOn) return;
+        // The flip that ended the game left `result` set; stop on it rather
+        // than dealing a fresh one, which is what playFlip would do.
+        if (result) return stopAuto();
+        playFlip();
+        const { stagger, reveal } = pace();
+        autoTimer = setTimeout(autoStep, reveal + stagger + AUTO_GAP_MS);
+      }
+
+      function startAuto() {
+        if (autoOn) return;
+        if (result) newGame(); // a finished game gets re-dealt to have something to run
+        autoOn = true;
+        document.body.classList.add('auto');
+        autoLabelEl.textContent = 'stop';
+        autoStep();
+      }
+
+      function stopAuto() {
+        clearTimeout(autoTimer);
+        autoTimer = null;
+        autoOn = false;
+        document.body.classList.remove('auto');
+        autoLabelEl.textContent = 'auto';
+      }
+
+      function toggleAuto() {
+        if (autoOn) stopAuto();
+        else startAuto();
+      }
+
       // --- turns ----------------------------------------------------------
       function playFlip() {
         if (busy) return;
@@ -753,10 +816,11 @@
 
         busy = true;
         clearRings();
+        const { stagger, reveal } = pace();
         // The computer's card lands first, then yours — the beat between them
         // is the whole drama of the game.
         dealTo('cpu', ev.cards.cpu, 0);
-        dealTo('you', ev.cards.you, 130);
+        dealTo('you', ev.cards.you, stagger);
         setStatus(ev.buried ? `${ev.buried} face down…` : 'flipping…');
         renderCounts();
         renderPot();
@@ -781,7 +845,7 @@
           renderCounts();
           renderPot();
           if (ev.over) announce(finish(ev.side, null));
-        }, REVEAL_MS + 130);
+        }, reveal + stagger);
       }
 
       function announce(ev) {
@@ -793,7 +857,14 @@
         renderCounts();
       }
 
+      // A flip the player asked for takes the wheel back off auto mode.
+      function manualFlip() {
+        stopAuto();
+        playFlip();
+      }
+
       function newGame() {
+        stopAuto();
         const deck = freshDeck();
         // Index 0 is the top of each pile; won cards go on the bottom.
         piles = { cpu: deck.slice(0, 26), you: deck.slice(26) };
@@ -815,7 +886,10 @@
         if (e.metaKey || e.ctrlKey || e.altKey) return;
         if (e.key === ' ' || e.key === 'Enter') {
           e.preventDefault();
-          playFlip();
+          manualFlip();
+          showHint();
+        } else if ((e.key === 'a' || e.key === 'A') && !e.repeat) {
+          toggleAuto();
           showHint();
         } else if ((e.key === 'r' || e.key === 'R') && !e.repeat) {
           newGame();
@@ -829,7 +903,11 @@
       });
 
       document.getElementById('hb-flip').addEventListener('click', () => {
-        playFlip();
+        manualFlip();
+        showHint();
+      });
+      document.getElementById('hb-auto').addEventListener('click', () => {
+        toggleAuto();
         showHint();
       });
       document.getElementById('hb-deal').addEventListener('click', () => {
@@ -843,7 +921,7 @@
       document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
 
       // Tapping the table anywhere outside the hint bar plays the next flip.
-      Common.onTap(playFlip);
+      Common.onTap(manualFlip);
       stageEl.setAttribute('aria-label', 'tap to flip the next card');
 
       newGame();
