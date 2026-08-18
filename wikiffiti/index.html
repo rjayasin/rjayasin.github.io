@@ -168,6 +168,11 @@
       // untouched stretch left whole between two edits on the same line.
       const MAX_CONTEXT = 140;
       const MAX_GAP = 160;
+      // How far below the fold the feed is kept stocked. The observer and the
+      // top-up check below have to agree on this: a load that stops while the
+      // sentinel is still inside the margin leaves it intersecting, and an
+      // element that never stops intersecting never reports again.
+      const LOAD_MARGIN = 600;
 
       const feed = document.getElementById('feed');
       const sentinel = document.getElementById('sentinel');
@@ -642,9 +647,9 @@
         } finally {
           loading = false;
         }
-        // A load that ends with the sentinel still on screen gets no fresh
-        // intersection event, so ask for the next page directly.
-        if (!failed && sentinel.getBoundingClientRect().top < window.innerHeight) {
+        // A load that ends with the sentinel still inside the margin gets no
+        // fresh intersection event, so ask for the next page directly.
+        if (!failed && sentinel.getBoundingClientRect().top < window.innerHeight + LOAD_MARGIN) {
           setTimeout(loadMore, 0);
         }
       }
@@ -653,7 +658,7 @@
         (entries) => {
           if (entries.some((e) => e.isIntersecting)) loadMore();
         },
-        { rootMargin: '600px' }
+        { rootMargin: `${LOAD_MARGIN}px` }
       );
       io.observe(sentinel);
     </script>

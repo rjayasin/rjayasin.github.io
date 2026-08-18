@@ -60,8 +60,8 @@
     "url": "https://github.com/rjayasin/rjayasin.github.io/commit/57c24d621b309434f1a302eaec1f1c40eabbe0c0"
   },
   "/sitemap/": {
-    "date": "2026-08-17T14:11:47-07:00",
-    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/ca16c560273d9bc19ebfda7f78fa6f34a0ec2a8d"
+    "date": "2026-08-18T00:15:18-07:00",
+    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/bc55e542f232196a81d5296983eec6cb9fc6f8df"
   },
   "/grid/": {
     "date": "2026-05-28T13:04:13-07:00",
@@ -108,11 +108,15 @@
     "url": "https://github.com/rjayasin/rjayasin.github.io/commit/000abee2258c3b3d82f6477690f42eaae2821467"
   },
   "https://rjayasin.github.io/la-transit-map/": {
-    "date": "2026-08-16T01:48:35Z",
-    "url": "https://github.com/rjayasin/la-transit-map/commit/6b022efed2694b40e7b16defc536ae514e914268"
+    "date": "2026-08-18T07:15:59Z",
+    "url": "https://github.com/rjayasin/la-transit-map/commit/0ebfe4c461619f2252c95a0ebdff1309c21953ff"
   },
   "/war/": {
-    "date": "2026-08-17T14:14:23-07:00",
-    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/748a1ff7975f347886d416e7ec204fddf396aa7c"
+    "date": "2026-08-17T14:47:22-07:00",
+    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/2058b49fedb78f654c3177ea3ef030a3a262fa59"
+  },
+  "/wikiffiti/": {
+    "date": "2026-08-18T10:02:12-07:00",
+    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/9917161bf3f3082fa18c6bf9450ca59abf11d8f1"
   }
 }
