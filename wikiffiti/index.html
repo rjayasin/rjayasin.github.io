@@ -83,6 +83,20 @@
         color: var(--fg);
         font-weight: 700;
       }
+      .more {
+        font-family: monospace;
+        font-size: 12px;
+        color: var(--muted);
+        background: transparent;
+        border: none;
+        padding: 0;
+        margin-left: 5px;
+        text-decoration: underline;
+        cursor: pointer;
+      }
+      .more:hover {
+        color: var(--fg);
+      }
       .meta {
         font-family: monospace;
         font-size: 12px;
@@ -385,7 +399,12 @@
           .map((seg, i) => {
             if (seg.vandal) {
               const t = seg.text;
-              return { ...seg, text: t.length > MAX_CHARS ? t.slice(0, MAX_CHARS) + '…' : t };
+              if (t.length <= MAX_CHARS) return { ...seg };
+              // The tail is kept rather than dropped: a run this long is a rant,
+              // and the reader can ask for the rest of it.
+              const clipped = t.slice(0, MAX_CHARS);
+              const space = clipped.lastIndexOf(' ');
+              return { ...seg, text: space === -1 ? clipped : clipped.slice(0, space), full: t };
             }
             if (i < firstVandal) return { ...seg, text: contextBefore(seg.text) };
             if (i > lastVandal) return { ...seg, text: contextAfter(seg.text) };
@@ -530,6 +549,26 @@
         return results;
       }
 
+      // A clipped run keeps its ellipsis until the button is pressed, so the
+      // feed stays scannable and nothing the vandal wrote is lost.
+      function expander(b, seg) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'more';
+        let open = false;
+        const sync = () => {
+          b.textContent = open ? seg.full : seg.text + '…';
+          button.textContent = open ? 'less' : 'more';
+          button.setAttribute('aria-expanded', String(open));
+        };
+        button.addEventListener('click', () => {
+          open = !open;
+          sync();
+        });
+        sync();
+        return button;
+      }
+
       function render({ contrib, lines }) {
         const article = document.createElement('article');
         article.className = 'hit';
@@ -544,6 +583,7 @@
             const b = document.createElement('b');
             b.textContent = seg.text;
             p.append(b);
+            if (seg.full) p.append(expander(b, seg));
           }
           article.append(p);
         }
