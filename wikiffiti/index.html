@@ -12,12 +12,14 @@
         --dim: #767676;
         --muted: #888;
         --rule: #e5e5e5;
+        --link: #0b69c7;
       }
       body.dark {
         --fg: #fff;
         --dim: #9a9a9a;
         --muted: #999;
         --rule: #2a2a2a;
+        --link: #00a2ff;
       }
       @media (prefers-color-scheme: dark) {
         body:not(.light) {
@@ -25,6 +27,7 @@
           --dim: #9a9a9a;
           --muted: #999;
           --rule: #2a2a2a;
+          --link: #00a2ff;
         }
       }
       body {
@@ -61,7 +64,7 @@
         margin-top: 4px;
       }
       .subtitle a {
-        color: inherit;
+        color: var(--link);
       }
       .hit {
         padding: 16px 0;
@@ -135,13 +138,13 @@
   </head>
   <body>
     <header>
-      <h1><a href="/">Ruvan</a> / wikiffiti</h1>
+      <h1>wikiffiti</h1>
       <p class="subtitle">
-        Graffiti scraped off Wikipedia: text that
+        A collection of "graffiti" from Wikipedia: user edits that
         <a href="https://en.wikipedia.org/wiki/User:ClueBot_NG" target="_blank" rel="noopener"
           >ClueBot NG</a
         >
-        reverted as vandalism, shown in the sentence it was written into.
+        reverted as vandalism, in bold.
       </p>
     </header>
     <main id="feed"></main>
