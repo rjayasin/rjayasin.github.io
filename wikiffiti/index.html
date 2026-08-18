@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ruvan / wikiffiti</title>
+    <link rel="icon" id="favicon" />
+    <link rel="stylesheet" href="/common.css" />
+    <style>
+      :root {
+        --fg: #000;
+        --dim: #767676;
+        --muted: #888;
+        --rule: #e5e5e5;
+      }
+      body.dark {
+        --fg: #fff;
+        --dim: #9a9a9a;
+        --muted: #999;
+        --rule: #2a2a2a;
+      }
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) {
+          --fg: #fff;
+          --dim: #9a9a9a;
+          --muted: #999;
+          --rule: #2a2a2a;
+        }
+      }
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 15px;
+        line-height: 1.6;
+        padding: 48px 32px 96px;
+        max-width: 720px;
+      }
+      a,
+      h1 {
+        transition:
+          background-color 0.2s ease,
+          color 0.2s ease,
+          border-color 0.2s ease;
+      }
+      header {
+        margin-bottom: 15px;
+      }
+      header a {
+        color: inherit;
+        text-decoration: none;
+      }
+      header a:hover {
+        text-decoration: underline;
+      }
+      h1 {
+        font-size: 15px;
+        font-weight: normal;
+        letter-spacing: 0.05em;
+      }
+      .subtitle {
+        color: var(--muted);
+        margin-top: 4px;
+      }
+      .subtitle a {
+        color: inherit;
+      }
+      .hit {
+        padding: 16px 0;
+        border-top: 1px solid var(--rule);
+      }
+      .hit:first-child {
+        border-top: none;
+      }
+      /* The untouched article text is only context, so it recedes; what the
+         vandal wrote carries the page's full contrast. */
+      .text {
+        font-size: 17px;
+        line-height: 1.5;
+        color: var(--dim);
+        overflow-wrap: anywhere;
+        margin-bottom: 6px;
+      }
+      .text b {
+        color: var(--fg);
+        font-weight: 700;
+      }
+      .meta {
+        font-family: monospace;
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 8px;
+      }
+      .meta a {
+        color: inherit;
+      }
+      .meta .sep {
+        margin: 0 6px;
+        user-select: none;
+      }
+      #status {
+        color: var(--muted);
+        font-family: monospace;
+        font-size: 12px;
+        padding: 24px 0;
+      }
+      #status button {
+        font: inherit;
+        color: inherit;
+        background: transparent;
+        border: none;
+        padding: 0;
+        text-decoration: underline;
+        cursor: pointer;
+      }
+      @media (max-width: 640px) {
+        body {
+          padding: 32px 20px 96px;
+        }
+      }
+    </style>
+    <script src="/common.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">Ruvan</a> / wikiffiti</h1>
+      <p class="subtitle">
+        Graffiti scraped off Wikipedia: text that
+        <a href="https://en.wikipedia.org/wiki/User:ClueBot_NG" target="_blank" rel="noopener"
+          >ClueBot NG</a
+        >
+        reverted as vandalism, shown in the sentence it was written into.
+      </p>
+    </header>
+    <main id="feed"></main>
+    <div id="sentinel"></div>
+    <p id="status">loading…</p>
+    <script>
+      Common.paintFavicon({ glyph: '🖍️', fontSize: 44, transparent: true });
+      Common.initDarkMode();
+      Common.initSitemapShortcut();
+
+      const API = 'https://en.wikipedia.org/w/api.php';
+      // usercontribs pages are cheap; the diffs are the expensive part, so pull a
+      // wide window of edits at once and spend requests only on the ones rendered.
+      const CONTRIB_LIMIT = 50;
+      const DIFFS_PER_LOAD = 12;
+      const CONCURRENCY = 3;
+      const MAX_LINES = 4;
+      const MAX_RUNS = 6;
+      const MAX_CHARS = 400;
+      // Untouched article text kept either side of an edit, and the longest
+      // untouched stretch left whole between two edits on the same line.
+      const MAX_CONTEXT = 140;
+      const MAX_GAP = 160;
+
+      const feed = document.getElementById('feed');
+      const sentinel = document.getElementById('sentinel');
+      const statusEl = document.getElementById('status');
+
+      function api(params) {
+        const qs = new URLSearchParams({
+          format: 'json',
+          formatversion: '2',
+          origin: '*',
+          ...params,
+        });
+        return fetch(`${API}?${qs}`).then((r) => {
+          if (!r.ok) throw new Error(`wikipedia api: ${r.status}`);
+          return r.json();
+        });
+      }
+
+      // --- pulling the vandalism back out of a diff ------------------------
+
+      const ENTITIES = {
+        amp: '&',
+        lt: '<',
+        gt: '>',
+        quot: '"',
+        '#39': "'",
+        nbsp: ' ',
+        '#160': ' ',
+      };
+
+      function decodeEntities(s) {
+        return s.replace(/&(#?\w+);/g, (m, e) => (e in ENTITIES ? ENTITIES[e] : m));
+      }
+
+      function stripTags(s) {
+        return s.replace(/<[^>]*>/g, '');
+      }
+
+      function cellText(html) {
+        return decodeEntities(stripTags(html.replace(/<br\s*\/?>/g, ' ')));
+      }
+
+      // Control characters can't occur in article text, so they survive the
+      // wikitext cleanup below as markers: the line is tidied as a whole and the
+      // edited run can still be found inside it afterwards.
+      const OPEN = '\u0001';
+      const CLOSE = '\u0002';
+
+      const words = (s) => s.split(/\s+/).filter(Boolean);
+
+      // A line the vandal edited in place comes back with <del class="diffchange">
+      // spans marking exactly the removed run.
+      function markRuns(cellHtml) {
+        return cellHtml.replace(
+          /<del class="diffchange[^"]*">([\s\S]*?)<\/del>/g,
+          (m, inner) => OPEN + inner + CLOSE
+        );
+      }
+
+      // Whole-line deletes carry no such spans, but a revert usually puts most of
+      // the line back: the words the two sides share at each end are the
+      // article's, and whatever is left in the middle is the vandal's.
+      function markRemainder(deleted, restored) {
+        const a = words(deleted);
+        const b = words(restored);
+        let head = 0;
+        while (head < a.length && head < b.length && a[head] === b[head]) head++;
+        let tail = 0;
+        while (
+          tail < a.length - head &&
+          tail < b.length - head &&
+          a[a.length - 1 - tail] === b[b.length - 1 - tail]
+        ) {
+          tail++;
+        }
+        const mid = a.slice(head, a.length - tail);
+        if (!mid.length) return '';
+        const before = a.slice(0, head).join(' ');
+        const after = a.slice(a.length - tail).join(' ');
+        return `${before} ${OPEN}${mid.join(' ')}${CLOSE} ${after}`.trim();
+      }
+
+      // How much of the restored line survives inside the deleted one — high means
+      // the two are versions of the same sentence and worth word-diffing.
+      function overlap(restored, deleted) {
+        const counts = new Map();
+        for (const w of words(deleted)) counts.set(w, (counts.get(w) || 0) + 1);
+        const source = words(restored);
+        let hits = 0;
+        for (const w of source) {
+          if (counts.get(w) > 0) {
+            counts.set(w, counts.get(w) - 1);
+            hits++;
+          }
+        }
+        return source.length ? hits / source.length : 0;
+      }
+
+      function markedLines(body) {
+        const out = [];
+        for (const row of body.split(/<tr[^>]*>/)) {
+          const del = /<td class="diff-deletedline[^"]*">([\s\S]*?)<\/td>/.exec(row);
+          if (!del) continue;
+          if (/<del class="diffchange/.test(del[1])) {
+            out.push(cellText(markRuns(del[1])));
+            continue;
+          }
+          const add = /<td class="diff-addedline[^"]*">([\s\S]*?)<\/td>/.exec(row);
+          const line = cellText(del[1]);
+          const restored = add ? cellText(add[1]) : '';
+          const pairs = restored && overlap(restored, line) > 0.3;
+          out.push(pairs ? markRemainder(line, restored) : OPEN + line + CLOSE);
+        }
+        return out;
+      }
+
+      // Wikitext down to something readable: references, templates and link
+      // plumbing are the article's, not the vandal's.
+      function cleanWikitext(s) {
+        let t = s;
+        t = t.replace(/<ref[^>]*\/>/gi, '').replace(/<ref[^>]*>[\s\S]*?<\/ref>/gi, '');
+        t = t.replace(/<!--[\s\S]*?-->/g, '');
+        // Nested templates unwrap from the inside out; four passes is plenty.
+        for (let i = 0; i < 4; i++) t = t.replace(/\{\{[^{}]*\}\}/g, ' ');
+        t = t.replace(/\[\[(?:[Ff]ile|[Ii]mage|[Cc]ategory):[^\]]*\]\]/g, ' ');
+        t = t.replace(/\[\[([^\]|]*)\|([^\]]*)\]\]/g, '$2').replace(/\[\[([^\]]*)\]\]/g, '$1');
+        t = t.replace(/\[(?:https?:)?\/\/\S+?\s+([^\]]*)\]/g, '$1');
+        t = t.replace(/\[(?:https?:)?\/\/\S+?\]/g, ' ');
+        t = t.replace(/'''''|'''|''/g, '');
+        t = stripTags(t);
+        // Stripped templates leave holes behind, e.g. "an area of {{cvt|...}}, and"
+        // becomes "an area of , and"; close those up.
+        t = t.replace(/\(\s*\)/g, ' ').replace(/\s+([,.;:!?)])/g, '$1');
+        // Collapsed but not trimmed: the spacing around a marker is what keeps
+        // the quote joined to the words on either side of it.
+        return t.replace(/\s+/g, ' ');
+      }
+
+      // Split a cleaned line into alternating article text and vandalism. A
+      // template that swallowed one of the markers leaves the line unreadable,
+      // so those are dropped rather than guessed at.
+      function segmentsFrom(cleaned) {
+        const segments = [];
+        let rest = cleaned;
+        for (;;) {
+          const open = rest.indexOf(OPEN);
+          if (open === -1) {
+            if (rest.includes(CLOSE)) return null;
+            if (rest) segments.push({ text: rest, vandal: false });
+            return segments;
+          }
+          const close = rest.indexOf(CLOSE, open);
+          if (close === -1) return null;
+          const before = rest.slice(0, open);
+          if (before.includes(CLOSE)) return null;
+          if (before) segments.push({ text: before, vandal: false });
+          segments.push({ text: rest.slice(open + 1, close), vandal: true });
+          rest = rest.slice(close + 1);
+        }
+      }
+
+      // Leftover markup means the diff cut through a citation or an infobox row;
+      // that wreckage is never quotable as writing, and context stops at it.
+      const MARKUP = /https?:|\{\{|\}\}|[|=<>[\]]/;
+      const FILE_WORD = /^(png|jpe?g|gif|svg|webp|thumb|right|left|upright)$/i;
+
+      function isQuotable(text) {
+        const t = text.trim();
+        if (t.length < 3 || MARKUP.test(t) || FILE_WORD.test(t)) return false;
+        return /[\p{L}]/u.test(t);
+      }
+
+      function cutAtMarkup(text, keepTail) {
+        const re = /https?:|\{\{|\}\}|[|=<>[\]]/g;
+        let last = -1;
+        let m;
+        while ((m = re.exec(text)) !== null) {
+          if (!keepTail) return text.slice(0, m.index);
+          last = m.index + m[0].length;
+        }
+        return last === -1 ? text : text.slice(last);
+      }
+
+      // Context before an edit: start at the sentence the vandal wrote into, and
+      // fall back to a character window when that sentence runs long. Only the
+      // far end is trimmed, so the join to the quote itself survives.
+      function contextBefore(text) {
+        let t = cutAtMarkup(text, true);
+        const stop = Math.max(t.lastIndexOf('. '), t.lastIndexOf('! '), t.lastIndexOf('? '));
+        if (stop !== -1) t = t.slice(stop + 2);
+        if (t.length > MAX_CONTEXT) {
+          const clipped = t.slice(t.length - MAX_CONTEXT);
+          const space = clipped.indexOf(' ');
+          t = '…' + (space === -1 ? clipped : clipped.slice(space + 1));
+        }
+        return t.replace(/^[\s|*#:;]+/, '');
+      }
+
+      // Context after an edit: runs to the end of that sentence at the latest.
+      function contextAfter(text) {
+        let t = cutAtMarkup(text, false);
+        const end = /[.!?](\s|$)/.exec(t);
+        if (end) t = t.slice(0, end.index + 1);
+        if (t.length > MAX_CONTEXT) {
+          const clipped = t.slice(0, MAX_CONTEXT);
+          const space = clipped.lastIndexOf(' ');
+          t = (space === -1 ? clipped : clipped.slice(0, space)) + '…';
+        }
+        return t.replace(/[\s|]+$/, '');
+      }
+
+      // Two edits far apart on one line: keep both ends of what sits between them
+      // and elide the middle.
+      function contextBetween(text) {
+        if (text.length <= MAX_GAP) return text;
+        const half = Math.floor(MAX_GAP / 2);
+        const head = text.slice(0, half);
+        const tail = text.slice(text.length - half);
+        const headCut = head.lastIndexOf(' ');
+        const tailCut = tail.indexOf(' ');
+        return (
+          (headCut === -1 ? head : head.slice(0, headCut)) +
+          ' … ' +
+          (tailCut === -1 ? tail : tail.slice(tailCut + 1))
+        );
+      }
+
+      function trimContext(segments) {
+        const firstVandal = segments.findIndex((s) => s.vandal);
+        const lastVandal = segments.map((s) => s.vandal).lastIndexOf(true);
+        return segments
+          .map((seg, i) => {
+            if (seg.vandal) {
+              const t = seg.text;
+              return { ...seg, text: t.length > MAX_CHARS ? t.slice(0, MAX_CHARS) + '…' : t };
+            }
+            if (i < firstVandal) return { ...seg, text: contextBefore(seg.text) };
+            if (i > lastVandal) return { ...seg, text: contextAfter(seg.text) };
+            return { ...seg, text: contextBetween(seg.text) };
+          })
+          .filter((seg) => seg.text);
+      }
+
+      // The diff marks whitespace either side of an edit as part of it; that
+      // space belongs to the sentence, not to what the vandal wrote.
+      function unpadRuns(segments) {
+        const out = [];
+        for (const seg of segments) {
+          if (!seg.vandal) {
+            out.push({ ...seg });
+            continue;
+          }
+          const [, lead, core, trail] = /^(\s*)([\s\S]*?)(\s*)$/.exec(seg.text);
+          if (!core) {
+            out.push({ text: seg.text, vandal: false });
+            continue;
+          }
+          if (lead) out.push({ text: lead, vandal: false });
+          out.push({ text: core, vandal: true });
+          if (trail) out.push({ text: trail, vandal: false });
+        }
+        return out;
+      }
+
+      // Neighbours of the same kind join up, and so do two edits with nothing but
+      // a space between them — wikidiff2 splits those word by word, but they read
+      // as one piece of writing.
+      function mergeRuns(segments) {
+        const out = [];
+        for (const seg of segments) {
+          const prev = out[out.length - 1];
+          const before = out[out.length - 2];
+          if (prev && prev.vandal === seg.vandal) {
+            prev.text += seg.text;
+          } else if (seg.vandal && prev && !prev.text.trim() && before && before.vandal) {
+            before.text += prev.text + seg.text;
+            out.pop();
+          } else {
+            out.push({ ...seg });
+          }
+        }
+        return out;
+      }
+
+      function lineToSegments(marked) {
+        const parsed = segmentsFrom(cleanWikitext(marked));
+        if (!parsed) return null;
+        // Runs of pure markup are demoted to context rather than quoted; if that
+        // leaves nothing a person wrote, there is no graffiti on this line.
+        const demoted = parsed.map((s) =>
+          s.vandal && !isQuotable(s.text) ? { ...s, vandal: false } : s
+        );
+        const segments = mergeRuns(unpadRuns(demoted));
+        const quoted = segments.filter((s) => s.vandal).length;
+        if (!quoted || quoted > MAX_RUNS) return null;
+        return trimContext(segments);
+      }
+
+      function linesFor(body) {
+        const seen = new Set();
+        const out = [];
+        for (const marked of markedLines(body)) {
+          const segments = marked ? lineToSegments(marked) : null;
+          if (!segments) continue;
+          const key = segments
+            .filter((s) => s.vandal)
+            .map((s) => s.text.trim().toLowerCase())
+            .join('|');
+          if (seen.has(key)) continue;
+          seen.add(key);
+          out.push(segments);
+          if (out.length === MAX_LINES) break;
+        }
+        return out;
+      }
+
+      // --- feed ------------------------------------------------------------
+
+      const queue = [];
+      let contribsCursor = null;
+      let contribsDone = false;
+      let loading = false;
+      let failed = false;
+      let shown = 0;
+
+      function setStatus(html) {
+        statusEl.innerHTML = html;
+      }
+
+      async function fillQueue() {
+        const params = {
+          action: 'query',
+          list: 'usercontribs',
+          ucuser: 'ClueBot NG',
+          uclimit: String(CONTRIB_LIMIT),
+          ucnamespace: '0',
+          ucprop: 'ids|title|timestamp|comment',
+        };
+        if (contribsCursor) params.uccontinue = contribsCursor;
+        const data = await api(params);
+        contribsCursor = data.continue?.uccontinue || null;
+        if (!contribsCursor) contribsDone = true;
+        // The bot also files warnings on user talk pages; only its article-space
+        // reverts carry the vandalism itself.
+        for (const c of data.query?.usercontribs || []) {
+          if (c.parentid && /vandalism/i.test(c.comment || '')) queue.push(c);
+        }
+      }
+
+      async function fetchEntry(contrib) {
+        const data = await api({
+          action: 'compare',
+          fromrev: String(contrib.revid),
+          torelative: 'prev',
+          prop: 'diff',
+        });
+        const lines = linesFor(data.compare?.body || '');
+        return lines.length ? { contrib, lines } : null;
+      }
+
+      // Ordered map with a small pool, so the feed stays in the bot's own order
+      // however the responses come back.
+      async function mapLimit(items, limit, fn) {
+        const results = new Array(items.length);
+        let next = 0;
+        const worker = async () => {
+          while (next < items.length) {
+            const i = next++;
+            try {
+              results[i] = await fn(items[i]);
+            } catch {
+              results[i] = null;
+            }
+          }
+        };
+        await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+        return results;
+      }
+
+      function render({ contrib, lines }) {
+        const article = document.createElement('article');
+        article.className = 'hit';
+        for (const segments of lines) {
+          const p = document.createElement('p');
+          p.className = 'text';
+          for (const seg of segments) {
+            if (!seg.vandal) {
+              p.append(document.createTextNode(seg.text));
+              continue;
+            }
+            const b = document.createElement('b');
+            b.textContent = seg.text;
+            p.append(b);
+          }
+          article.append(p);
+        }
+        const title = contrib.title;
+        const slug = encodeURIComponent(title.replace(/ /g, '_'));
+        const wiki = `https://en.wikipedia.org/wiki/${slug}`;
+        const diff = `https://en.wikipedia.org/w/index.php?diff=${contrib.revid}`;
+        const when = `${Common.fmtTime(contrib.timestamp)} ${Common.fmtDay(contrib.timestamp)}`;
+        const meta = document.createElement('p');
+        meta.className = 'meta';
+        meta.innerHTML =
+          `<a href="${wiki}" target="_blank" rel="noopener">${Common.escHtml(title)}</a>` +
+          `<span class="sep">·</span>` +
+          `<a href="${diff}" target="_blank" rel="noopener">diff</a>` +
+          `<span class="sep">·</span>${when}`;
+        article.append(meta);
+        feed.append(article);
+        shown++;
+      }
+
+      async function loadMore() {
+        if (loading || failed) return;
+        loading = true;
+        setStatus('loading…');
+        try {
+          // Most reverts yield nothing quotable, so keep pulling until the screen
+          // actually gains something (or the bot's history runs out).
+          let added = 0;
+          while (!added && !(contribsDone && !queue.length)) {
+            while (queue.length < DIFFS_PER_LOAD && !contribsDone) await fillQueue();
+            const batch = queue.splice(0, DIFFS_PER_LOAD);
+            if (!batch.length) break;
+            for (const entry of await mapLimit(batch, CONCURRENCY, fetchEntry)) {
+              if (entry) {
+                render(entry);
+                added++;
+              }
+            }
+          }
+          if (contribsDone && !queue.length) {
+            setStatus(`${shown} of them · that's the whole log`);
+          } else {
+            setStatus(`${shown} of them · scroll for more`);
+          }
+        } catch (e) {
+          failed = true;
+          const msg = Common.escHtml(e.message);
+          setStatus(`${msg} · <button type="button" id="retry">retry</button>`);
+          document.getElementById('retry').addEventListener('click', () => {
+            failed = false;
+            loadMore();
+          });
+        } finally {
+          loading = false;
+        }
+        // A load that ends with the sentinel still on screen gets no fresh
+        // intersection event, so ask for the next page directly.
+        if (!failed && sentinel.getBoundingClientRect().top < window.innerHeight) {
+          setTimeout(loadMore, 0);
+        }
+      }
+
+      const io = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((e) => e.isIntersecting)) loadMore();
+        },
+        { rootMargin: '600px' }
+      );
+      io.observe(sentinel);
+    </script>
+  </body>
+</html>

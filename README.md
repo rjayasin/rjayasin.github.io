@@ -47,6 +47,7 @@
   - [`spotify-auth`](https://rjayasin.github.io/visualizer/spotify-auth.html)
 - [`mirror`](https://rjayasin.github.io/mirror/)
 - [`la-transit-map`](https://rjayasin.github.io/la-transit-map/)
+- [`wikiffiti`](https://rjayasin.github.io/wikiffiti/)
 
 `site`
 
