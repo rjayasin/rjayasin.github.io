@@ -75,12 +75,30 @@
       .subtitle a {
         color: var(--link);
       }
+      /* Rows land a batch at a time rather than one by one, so they fade up on
+         arrival instead of a screenful appearing between two frames. */
+      @keyframes hit-in {
+        from {
+          opacity: 0;
+          transform: translateY(4px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
       .hit {
         padding: 16px 0;
         border-top: 1px solid var(--rule);
+        animation: hit-in 0.2s ease-out both;
       }
       .hit:first-child {
         border-top: none;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .hit {
+          animation: none;
+        }
       }
       /* The untouched article text is only context, so it recedes; what the
          vandal wrote carries the page's full contrast. */
@@ -187,6 +205,11 @@
       // sentinel is still inside the margin leaves it intersecting, and an
       // element that never stops intersecting never reports again.
       const LOAD_MARGIN = 600;
+      // A whole batch is appended in one go, so each row's fade is held back a
+      // beat longer than the one above it. The delay stops growing after
+      // FADE_STEPS rows, which are more than a screenful anyway.
+      const FADE_STEP = 35;
+      const FADE_STEPS = 15;
 
       const feed = document.getElementById('feed');
       const sentinel = document.getElementById('sentinel');
@@ -591,9 +614,10 @@
         return button;
       }
 
-      function render({ contrib, lines }) {
+      function render({ contrib, lines }, order = 0) {
         const article = document.createElement('article');
         article.className = 'hit';
+        article.style.animationDelay = `${Math.min(order, FADE_STEPS) * FADE_STEP}ms`;
         for (const segments of lines) {
           const p = document.createElement('p');
           p.className = 'text';
@@ -640,7 +664,9 @@
             if (!batch.length) break;
             for (const entry of await mapLimit(batch, CONCURRENCY, fetchEntry)) {
               if (entry) {
-                render(entry);
+                // `added` doubles as this row's place in the batch, which is
+                // what walks the fade down the page.
+                render(entry, added);
                 added++;
               }
             }
