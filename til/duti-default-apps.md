@@ -7,13 +7,15 @@ tags: [macos, cli]
 
 Changing default apps on macOS is cumbersone: right-click a file in Finder, Get Info, changing "Open with:", and clicking "Change All…", one file type at a time.
 
-[`duti`](https://github.com/moretension/duti) is a small CLI that does the same thing through Launch Services:
+[`duti`](https://github.com/moretension/duti) is a small CLI that does the same thing
 
 ```
 brew install duti
 ```
 
-I had claude use duti to change .md files to be opened in vscode. Here are it's notes on how to do that:
+Nowadays I prompt claude to use CLIs for me, i.e. `> use duti to change the default application for md files to vs code`
+
+Here are claude's notes on the command specifics:
 
 ## Example: open all .md files in VS Code
 
