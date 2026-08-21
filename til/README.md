@@ -18,6 +18,11 @@ Short "today I learned" notes, rendered at
   artifact, and `make til` writes it locally for previewing. So the markdown
   files are the single source of truth — no array to keep in sync.
 - Clicking a tag filters the list (`/til/#tag:<tag>`).
+- A lone `<!-- claude -->` line splits a post in two: everything above it is my
+  own writing, everything below is claude's notes, rendered in a tinted panel
+  with a "claude's notes" chip. Posts without the marker render entirely as
+  mine. The marker is stripped before rendering, so it stays invisible both on
+  the page and in GitHub's view of the markdown.
 
 ## Adding a TIL
 
@@ -33,6 +38,10 @@ Short "today I learned" notes, rendered at
 
    # Exactly the h1 text shown in the list
    ```
+
+   Write your own notes first. Where claude's notes take over, keep the
+   sentence that hands off to them and put a `<!-- claude -->` line after it —
+   the rest of the file renders in the claude panel.
 
 2. Commit the `.md`. That's all the index needs — the deploy workflow
    regenerates `tils.json` on every build. To preview locally, run `make til`

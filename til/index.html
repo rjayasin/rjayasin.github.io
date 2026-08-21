@@ -152,6 +152,41 @@
         border-top: 1px solid #ccc;
         margin: 16px 0;
       }
+      /* Everything past the `<!-- claude -->` marker is claude's notes rather
+         than my own writing, so it gets its own tinted panel. Code blocks are
+         re-tinted a shade darker so they still read against it. */
+      #post .claude {
+        margin: 20px -18px 0;
+        padding: 16px 18px 18px;
+        background: #f7f7f7;
+        border: 1px solid #ededed;
+        border-radius: 5px;
+      }
+      #post .claude > :nth-child(2) {
+        margin-top: 0;
+      }
+      #post .claude-label {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+      }
+      #post .claude-label span {
+        display: inline-block;
+        padding: 2px 9px;
+        border: 1px solid #e2e2e2;
+        border-radius: 999px;
+        background: #fff;
+        color: #8c8c8c;
+      }
+      #post .claude pre,
+      #post .claude code {
+        background: #ececec;
+      }
+      #post .claude pre code {
+        background: none;
+      }
       [hidden] {
         display: none !important;
       }
@@ -179,6 +214,22 @@
       body.dark #post hr {
         border-top-color: #444;
       }
+      body.dark #post .claude {
+        background: #181818;
+        border-color: #262626;
+      }
+      body.dark #post .claude-label span {
+        background: #111;
+        border-color: #303030;
+        color: #8a8a8a;
+      }
+      body.dark #post .claude pre,
+      body.dark #post .claude code {
+        background: #242424;
+      }
+      body.dark #post .claude pre code {
+        background: none;
+      }
       @media (prefers-color-scheme: dark) {
         body:not(.light) header a,
         body:not(.light) #list-view a:not(.tag),
@@ -195,6 +246,22 @@
         }
         body:not(.light) #post hr {
           border-top-color: #444;
+        }
+        body:not(.light) #post .claude {
+          background: #181818;
+          border-color: #262626;
+        }
+        body:not(.light) #post .claude-label span {
+          background: #111;
+          border-color: #303030;
+          color: #8a8a8a;
+        }
+        body:not(.light) #post .claude pre,
+        body:not(.light) #post .claude code {
+          background: #242424;
+        }
+        body:not(.light) #post .claude pre code {
+          background: none;
         }
       }
     </style>
@@ -347,6 +414,24 @@
         return html.join('\n');
       }
 
+      // A lone `<!-- claude -->` line splits a post: everything above it is my
+      // own writing, everything below is claude's notes, which render inside a
+      // panel. Without the marker the whole post renders as mine. The marker is
+      // consumed here, so it never reaches the renderer (which would escape it
+      // and print it literally) and stays invisible in GitHub's markdown view.
+      const CLAUDE_MARKER = /^<!--\s*claude\s*-->[ \t]*$/m;
+
+      function renderPost(body) {
+        const marker = body.match(CLAUDE_MARKER);
+        if (!marker) return renderMarkdown(body);
+        return (
+          renderMarkdown(body.slice(0, marker.index)) +
+          '<section class="claude"><div class="claude-label"><span>claude’s notes</span></div>' +
+          renderMarkdown(body.slice(marker.index + marker[0].length)) +
+          '</section>'
+        );
+      }
+
       // --- views ---
 
       function sep() {
@@ -457,7 +542,7 @@
           if (location.hash.replace(/^#\/?/, '') !== til.slug) return;
           // Strip the leading frontmatter block (metadata lives in tils.json).
           const body = md.replace(/^---\n[\s\S]*?\n---\n?/, '');
-          post.innerHTML = renderMarkdown(body);
+          post.innerHTML = renderPost(body);
         } catch (e) {
           post.textContent = 'failed to load: ' + e.message;
         }

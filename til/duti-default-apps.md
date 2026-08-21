@@ -17,6 +17,8 @@ Nowadays I prompt claude to use CLIs for me, i.e. `> use duti to change the defa
 
 Here are claude's notes on the command specifics:
 
+<!-- claude -->
+
 ## Example: open all .md files in VS Code
 
 duti identifies apps by bundle ID, which you can look up with osascript:

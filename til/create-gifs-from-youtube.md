@@ -37,6 +37,8 @@ Once I had these commands working, I had claude build me a small tool around the
 
 Claude's notes on the exploration:
 
+<!-- claude -->
+
 ## What actually mattered for size vs. quality
 
 GIF has no inter-frame prediction and relies on palette + LZW compression, so file size scales quickly with resolution, frame rate, color count, and dithering noise.
