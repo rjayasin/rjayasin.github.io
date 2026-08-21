@@ -10,12 +10,16 @@ Changing default apps on macOS is cumbersone: right-click a file in Finder, Get 
 [`duti`](https://github.com/moretension/duti) is a small CLI that does the same thing
 
 ```
-brew install duti
+$ brew install duti
 ```
 
-Nowadays I prompt claude to use CLIs for me, i.e. `> use duti to change the default application for md files to vs code`
+Nowadays I prompt claude to use CLIs for me, e.g.
 
-Here are claude's notes on the command specifics:
+```
+❯ use duti to change the default application for md files to vs code
+```
+
+Here are claude's notes on duti's specifics:
 
 <!-- claude -->
 
