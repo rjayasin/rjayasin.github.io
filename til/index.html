@@ -90,11 +90,10 @@
       a.tag:hover {
         text-decoration: underline;
       }
-      /* The date floats to the right of whichever line of the title it lands
-         on -- the only line when the title fits, the last one when it wraps --
-         so it never sits alone above or below the entry it dates. On wrapped
-         entries alignDates() then pulls it in to the title's own right edge
-         (see there). Tabular figures keep the column from wobbling. */
+      /* The date floats to the right edge of whichever line of the title it
+         lands on -- the only line when the title fits, the last one when it
+         wraps -- so it never sits alone above or below the entry it dates.
+         Tabular figures keep the right-hand column from wobbling. */
       #list-view .when {
         float: right;
         margin-left: 20px;
@@ -530,42 +529,6 @@
         listView.replaceChildren(frag);
       }
 
-      // A wrapped title ends short of the list's right edge, which left the
-      // date poking out past it. Pull the date in to line up with the end of
-      // the title's longest line, so the two read as one block. Rows whose
-      // title fits on one line keep the date flush right -- there is no ragged
-      // edge to meet -- and so does any row where pulling the date in would
-      // crowd the text it shares a line with.
-      const DATE_GAP = 20; // matches .when's margin-left
-
-      function alignDates() {
-        for (const li of listView.querySelectorAll('li')) {
-          const when = li.querySelector('.when');
-          const title = li.querySelector('a:not(.tag)');
-          if (!when || !title) continue;
-          when.style.marginRight = '';
-          const lines = title.getClientRects();
-          if (lines.length < 2) continue;
-          const edge = li.querySelector('.entry').getBoundingClientRect().right;
-          let widest = 0;
-          for (const line of lines) widest = Math.max(widest, line.right);
-          const last = lines[lines.length - 1].right;
-          if (last + DATE_GAP + when.getBoundingClientRect().width > widest) continue;
-          when.style.marginRight = edge - widest + 'px';
-        }
-      }
-
-      // Titles rewrap on resize, so the edge they end at moves with them.
-      let alignQueued = false;
-      window.addEventListener('resize', () => {
-        if (alignQueued) return;
-        alignQueued = true;
-        requestAnimationFrame(() => {
-          alignQueued = false;
-          alignDates();
-        });
-      });
-
       const mdCache = new Map();
       function fetchMarkdown(slug) {
         if (!mdCache.has(slug)) {
@@ -585,8 +548,6 @@
         buildList(tag);
         postView.hidden = true;
         listView.hidden = false;
-        // Measured after the list is visible; a hidden list has no geometry.
-        alignDates();
       }
 
       async function showPost(til) {
