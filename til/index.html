@@ -61,7 +61,7 @@
          onto a second line still reads as one entry rather than running into
          the next one. */
       #list-view li {
-        padding: 13px 0;
+        padding: 10px 0;
         border-bottom: 1px solid var(--rule);
         display: flex;
         align-items: baseline;
@@ -71,12 +71,13 @@
       #list-view .entry {
         flex: 1 1 auto;
         min-width: 0;
+        line-height: 1.35;
       }
       /* Tags sit on their own line under the title, dotted apart so a long
          run of them reads as separate links instead of one grey phrase. */
       #list-view .tags {
         display: block;
-        margin-top: 3px;
+        margin-top: 2px;
         font-size: 13px;
       }
       #list-view .tags .sep {
@@ -232,8 +233,8 @@
           order: -1;
           text-align: left;
           margin-left: 0;
-          line-height: 1.4;
-          margin-bottom: 3px;
+          line-height: 1.35;
+          margin-bottom: 2px;
         }
       }
       body.dark {
