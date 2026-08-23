@@ -63,15 +63,12 @@
       #list-view li {
         padding: 10px 0;
         border-bottom: 1px solid var(--rule);
-        display: flex;
-        align-items: baseline;
-        gap: 20px;
       }
-      /* Titles wrap rather than run under the date at the right edge. */
+      /* One block per row, floats contained, with the line height pinned in px
+         so the floated date shares a line box with the title text. */
       #list-view .entry {
-        flex: 1 1 auto;
-        min-width: 0;
-        line-height: 1.35;
+        display: flow-root;
+        line-height: 20px;
       }
       /* Tags sit on their own line under the title, dotted apart so a long
          run of them reads as separate links instead of one grey phrase. */
@@ -79,6 +76,7 @@
         display: block;
         margin-top: 2px;
         font-size: 13px;
+        line-height: 1.35;
       }
       #list-view .tags .sep {
         color: var(--faint);
@@ -92,16 +90,16 @@
       a.tag:hover {
         text-decoration: underline;
       }
-      /* The date trails the title and is pushed flush with the right edge of
-         the list, so every date lines up in a column down the page. Tabular
-         figures keep that column from wobbling. */
+      /* The date floats to the right edge of whichever line of the title it
+         lands on -- the only line when the title fits, the last one when it
+         wraps -- so it never sits alone above or below the entry it dates.
+         Tabular figures keep the right-hand column from wobbling. */
       #list-view .when {
+        float: right;
+        margin-left: 20px;
         color: var(--muted);
         font-size: 13px;
         font-variant-numeric: tabular-nums;
-        flex: 0 0 auto;
-        margin-left: auto;
-        text-align: right;
       }
       #list-view a:not(.tag) {
         color: #000;
@@ -221,20 +219,6 @@
       @media (max-width: 640px) {
         body {
           padding: 32px 20px;
-        }
-        /* Too narrow for a title and a right-aligned date on the same line, so
-           the row stacks and the date leads it as a small dateline. */
-        #list-view li {
-          flex-direction: column;
-          align-items: stretch;
-          gap: 0;
-        }
-        #list-view .when {
-          order: -1;
-          text-align: left;
-          margin-left: 0;
-          line-height: 1.35;
-          margin-bottom: 2px;
         }
       }
       body.dark {
@@ -530,14 +514,16 @@
           a.href = '#' + til.slug;
           a.textContent = til.title;
           entry.appendChild(a);
+          // The date follows the title in the flow and floats right, so it
+          // rides the title's last line rather than claiming a line of its own.
+          const when = document.createElement('span');
+          when.className = 'when';
+          when.textContent = til.added;
+          entry.appendChild(when);
           if (til.tags && til.tags.length) {
             entry.appendChild(tagsSpan(til.tags));
           }
           li.appendChild(entry);
-          const when = document.createElement('span');
-          when.className = 'when';
-          when.textContent = til.added;
-          li.appendChild(when);
           ul.appendChild(li);
         }
         frag.appendChild(ul);
