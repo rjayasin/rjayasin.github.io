@@ -8,6 +8,11 @@
     <link rel="stylesheet" href="/common.css" />
     <style>
       body {
+        /* Greys and hairlines are named once here so the two dark-mode blocks
+           at the bottom only restate the handful that actually change. */
+        --muted: #888;
+        --rule: #e9e9e9;
+        --faint: #cfcfcf;
         font-family: Arial, Helvetica, sans-serif;
         font-size: 15px;
         line-height: 1.6;
@@ -37,48 +42,64 @@
         letter-spacing: 0.05em;
       }
       .subtitle {
-        color: #888;
+        color: var(--muted);
         margin-top: 4px;
       }
       #list-view ul {
         list-style: none;
-        margin-top: 18px;
+        margin-top: 26px;
+        border-top: 1px solid var(--rule);
       }
       #filter-line {
-        color: #888;
-        margin-top: 18px;
+        color: var(--muted);
+        margin-top: 26px;
       }
       #filter-line + ul {
-        margin-top: 4px;
+        margin-top: 8px;
       }
+      /* Rows get room to breathe and a hairline each, so a title that wraps
+         onto a second line still reads as one entry rather than running into
+         the next one. */
       #list-view li {
-        padding: 2px 0;
-        display: flex;
-        align-items: baseline;
-        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--rule);
       }
-      /* Titles wrap rather than run under the date at the right edge. */
+      /* One block per row, floats contained, with the line height pinned in px
+         so the floated date shares a line box with the title text. */
       #list-view .entry {
-        min-width: 0;
+        display: flow-root;
+        line-height: 20px;
       }
-      .sep {
-        color: #888;
-        margin: 0 11px;
+      /* Tags sit on their own line under the title, dotted apart so a long
+         run of them reads as separate links instead of one grey phrase. */
+      #list-view .tags {
+        display: block;
+        margin-top: 2px;
+        font-size: 13px;
+        line-height: 1.35;
+      }
+      #list-view .tags .sep {
+        color: var(--faint);
+        margin: 0 6px;
+        user-select: none;
       }
       a.tag {
-        color: #888;
+        color: var(--muted);
         text-decoration: none;
       }
       a.tag:hover {
         text-decoration: underline;
       }
-      /* The date trails the title and is pushed flush with the right edge of
-         the list, so every date lines up in a column down the page. */
+      /* The date floats to the right edge of whichever line of the title it
+         lands on -- the only line when the title fits, the last one when it
+         wraps -- so it never sits alone above or below the entry it dates.
+         Tabular figures keep the right-hand column from wobbling. */
       #list-view .when {
-        color: #888;
-        flex: 0 0 auto;
-        margin-left: auto;
-        text-align: right;
+        float: right;
+        margin-left: 20px;
+        color: var(--muted);
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
       }
       #list-view a:not(.tag) {
         color: #000;
@@ -88,11 +109,12 @@
         text-decoration: underline;
       }
       .meta {
-        color: #888;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
         margin-bottom: 14px;
       }
       .meta a {
-        color: #888;
+        color: var(--muted);
         text-decoration: none;
       }
       .meta a:hover {
@@ -199,6 +221,10 @@
           padding: 32px 20px;
         }
       }
+      body.dark {
+        --rule: #262626;
+        --faint: #3a3a3a;
+      }
       body.dark header a,
       body.dark #list-view a:not(.tag),
       body.dark #post a {
@@ -232,6 +258,10 @@
         background: none;
       }
       @media (prefers-color-scheme: dark) {
+        body:not(.light) {
+          --rule: #262626;
+          --faint: #3a3a3a;
+        }
         body:not(.light) header a,
         body:not(.light) #list-view a:not(.tag),
         body:not(.light) #post a {
@@ -435,13 +465,6 @@
 
       // --- views ---
 
-      function sep() {
-        const s = document.createElement('span');
-        s.className = 'sep';
-        s.textContent = '•';
-        return s;
-      }
-
       function tagLink(tag) {
         const a = document.createElement('a');
         a.className = 'tag';
@@ -450,11 +473,18 @@
         return a;
       }
 
+      // Tags are dotted apart rather than space-separated so a long run of
+      // them reads as separate links instead of one grey phrase.
       function tagsSpan(tags) {
         const span = document.createElement('span');
         span.className = 'tags';
         (tags || []).forEach((tag, idx) => {
-          if (idx) span.append(' ');
+          if (idx) {
+            const dot = document.createElement('span');
+            dot.className = 'sep';
+            dot.textContent = '·';
+            span.appendChild(dot);
+          }
           span.appendChild(tagLink(tag));
         });
         return span;
@@ -484,15 +514,16 @@
           a.href = '#' + til.slug;
           a.textContent = til.title;
           entry.appendChild(a);
-          if (til.tags && til.tags.length) {
-            entry.appendChild(sep());
-            entry.appendChild(tagsSpan(til.tags));
-          }
-          li.appendChild(entry);
+          // The date follows the title in the flow and floats right, so it
+          // rides the title's last line rather than claiming a line of its own.
           const when = document.createElement('span');
           when.className = 'when';
           when.textContent = til.added;
-          li.appendChild(when);
+          entry.appendChild(when);
+          if (til.tags && til.tags.length) {
+            entry.appendChild(tagsSpan(til.tags));
+          }
+          li.appendChild(entry);
           ul.appendChild(li);
         }
         frag.appendChild(ul);
