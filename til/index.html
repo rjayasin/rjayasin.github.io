@@ -54,10 +54,11 @@
       #list-view li {
         padding: 2px 0;
         display: flex;
+        align-items: baseline;
         gap: 10px;
       }
+      /* Titles wrap rather than run under the date at the right edge. */
       #list-view .entry {
-        white-space: nowrap;
         min-width: 0;
       }
       .sep {
@@ -71,10 +72,13 @@
       a.tag:hover {
         text-decoration: underline;
       }
+      /* The date trails the title and is pushed flush with the right edge of
+         the list, so every date lines up in a column down the page. */
       #list-view .when {
         color: #888;
         flex: 0 0 auto;
-        width: 5.5em;
+        margin-left: auto;
+        text-align: right;
       }
       #list-view a:not(.tag) {
         color: #000;
@@ -193,9 +197,6 @@
       @media (max-width: 640px) {
         body {
           padding: 32px 20px;
-        }
-        #list-view .entry {
-          white-space: normal;
         }
       }
       body.dark header a,
@@ -477,10 +478,6 @@
         const ul = document.createElement('ul');
         for (const til of items) {
           const li = document.createElement('li');
-          const when = document.createElement('span');
-          when.className = 'when';
-          when.textContent = til.added;
-          li.appendChild(when);
           const entry = document.createElement('span');
           entry.className = 'entry';
           const a = document.createElement('a');
@@ -492,6 +489,10 @@
             entry.appendChild(tagsSpan(til.tags));
           }
           li.appendChild(entry);
+          const when = document.createElement('span');
+          when.className = 'when';
+          when.textContent = til.added;
+          li.appendChild(when);
           ul.appendChild(li);
         }
         frag.appendChild(ul);
