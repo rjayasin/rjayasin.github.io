@@ -180,13 +180,14 @@
         margin: 16px 0;
       }
       /* Everything past the `<!-- claude -->` marker is claude's notes rather
-         than my own writing, so it gets its own tinted panel. Code blocks are
-         re-tinted a shade darker so they still read against it. */
+         than my own writing, so it gets its own tinted panel, outlined in a
+         dash to mark it as an aside. Code blocks are re-tinted a shade darker
+         so they still read against it. */
       #post .claude {
         margin: 20px -18px 0;
         padding: 16px 18px 18px;
         background: #f7f7f7;
-        border: 1px solid #ededed;
+        border: 1px dashed var(--faint);
         border-radius: 5px;
       }
       #post .claude > :nth-child(2) {
@@ -244,7 +245,6 @@
       }
       body.dark #post .claude {
         background: #181818;
-        border-color: #262626;
       }
       body.dark #post .claude-label span {
         background: #111;
@@ -281,7 +281,6 @@
         }
         body:not(.light) #post .claude {
           background: #181818;
-          border-color: #262626;
         }
         body:not(.light) #post .claude-label span {
           background: #111;
