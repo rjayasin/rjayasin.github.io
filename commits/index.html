@@ -651,7 +651,7 @@
       );
       io.observe(sentinel);
 
-      // ---- activity heatmap (trailing year, collapsed by default) ----
+      // ---- activity heatmap (trailing six months, collapsed by default) ----
       (function initHeatmap() {
         const toggle = document.getElementById('activity-toggle');
         const bodyEl = document.getElementById('activity-body');
@@ -729,7 +729,7 @@
         });
 
         // Single delegated listener set on the container instead of three
-        // listeners per cell (~1100 for a full year), so render() stays cheap.
+        // listeners per cell (~190 over six months), so render() stays cheap.
         const parseLocal = (iso) => {
           const [y, m, d] = iso.split('-').map(Number);
           return new Date(y, m - 1, d);
@@ -789,10 +789,10 @@
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           const since = new Date(today);
-          since.setDate(since.getDate() - 371); // trailing year + buffer
+          since.setDate(since.getDate() - 189); // trailing six months + buffer
           const cutoff = since.getTime();
           // Walk the shared search pages (same query the log uses, desc by
-          // committer-date) until we pass the trailing-year cutoff. Pages are
+          // committer-date) until we pass the six-month cutoff. Pages are
           // cached, so the log reuses whatever we fetch here and vice versa.
           for (let page = 1; page <= 10; page++) {
             let data;
@@ -834,7 +834,7 @@
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           const start = new Date(today);
-          start.setDate(start.getDate() - 364);
+          start.setDate(start.getDate() - 181);
           start.setDate(start.getDate() - start.getDay()); // back to Sunday
           let gmax = 1,
             total = 0;
