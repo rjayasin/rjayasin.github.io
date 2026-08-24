@@ -221,6 +221,15 @@
         body {
           padding: 32px 20px;
         }
+        /* The body's side padding is tighter here, so the panel pulls out by
+           less than it does on desktop — enough to still read as an aside,
+           but leaving its dashed border clear of the screen edges. */
+        #post .claude {
+          margin-left: -12px;
+          margin-right: -12px;
+          padding-left: 12px;
+          padding-right: 12px;
+        }
       }
       body.dark {
         --rule: #262626;
