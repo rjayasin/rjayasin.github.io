@@ -55,10 +55,23 @@
     return Math.ceil(p90);
   }
 
+  // How many whole cells to lay across `extent`. Rounding to the nearest count
+  // and then stretching the tracks to fill covers the viewport edge to edge;
+  // rounding up is only allowed while the squeezed track still clears the
+  // glyph itself (the cell carries size * 0.2 of padding on top of that).
+  function fitCount(extent, cell) {
+    const glyph = cell - size * 0.2;
+    const n = Math.max(1, Math.round(extent / cell));
+    if (extent / n >= glyph) return n;
+    return Math.max(1, Math.floor(extent / cell));
+  }
+
   function rebuild() {
     const cell = currentCell();
-    const cols = Math.ceil(window.innerWidth / cell);
-    const rows = Math.ceil(window.innerHeight / cell);
+    const cols = fitCount(window.innerWidth, cell);
+    const rows = fitCount(window.innerHeight, cell);
+    const cellW = window.innerWidth / cols;
+    const cellH = window.innerHeight / rows;
     const total = cols * rows;
 
     document.body.innerHTML = '';
@@ -69,12 +82,12 @@
       const span = document.createElement('span');
       span.className = 'grid';
       span.textContent = window.GRID;
-      span.style.width = cell + 'px';
-      span.style.height = cell + 'px';
       span.style.fontSize = size + 'px';
       frag.appendChild(span);
       spans.push(span);
     }
+    document.body.style.gridTemplateColumns = `repeat(${cols}, ${cellW}px)`;
+    document.body.style.gridAutoRows = cellH + 'px';
     document.body.appendChild(frag);
     if (mode === 'single') spans.forEach((s) => (s.style.fontFamily = `'${currentFont}', serif`));
     else spans.forEach((s) => (s.style.fontFamily = `'${Common.pickLoadedGoogleFont()}', serif`));

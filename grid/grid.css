@@ -1,9 +1,9 @@
+/* An explicit grid, sized in JS to a whole number of rows and columns that
+   exactly covers the viewport: no clipped top row, no half-filled last one. */
 body.grid-mode {
   height: 100%;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   align-content: center;
-  align-items: stretch;
   justify-content: center;
 }
 html:has(body.grid-mode),
