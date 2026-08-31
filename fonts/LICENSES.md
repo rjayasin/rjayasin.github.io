@@ -133,6 +133,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Arya | OFL | Eduardo Tunni | Copyright (c) 2014, Eduardo Rodriguez Tunni. Copyright (c) 2000, Modular Infotech, Pune, INDIA. All rights reserved. |
 | Asap | OFL | Omnibus-Type | Copyright 2018 The Asap Project Authors (https://github.com/Omnibus-Type/Asap) |
 | Asap Condensed | OFL | Omnibus-Type | Copyright 2018 The Asap Project Authors (https://github.com/Omnibus-Type/Asap) |
+| Asap Sharp | OFL | Omnibus-Type | Copyright 2026 The Asap Sharp Project Authors (https://github.com/Omnibus-Type/Asap_Sharp) |
 | Asar | OFL | Sorkin Type | Copyright (c) 2014-2015, Sorkin Type Co (sorkintype.com \| sorkintype@gmail.com). Copyright 2014 Pria Ravichandran (pria.ravichandran@gmail.com) |
 | Asimovian | OFL | Carolina Short | Copyright 2024 The Asimovian Project Authors (https://github.com/carolinashort/asimovian) |
 | Asset | OFL | Riccardo De Franceschi, Eben Sorkin | Copyright 2023 The Asset Project Authors (https://github.com/SorkinType/Asset) |
@@ -291,6 +292,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Butcherman | OFL | Typomondo | Copyright (c) 2011, Typomondo, with Reserved Font Name  "Butcherman". |
 | Butterfly Kids | OFL | Tart Workshop | Copyright (c) 2012 by Font Diner, Inc DBA Tart Workshop (diner@fontdiner.com) with Reseved Font Name "Butterfly Kids" |
 | Bytesized | OFL | Baltdev | Copyright 2024 The Bytesized Project Authors (https://github.com/balt-dev/bytesized-gf) |
+| Caacupe One | OFL | Magdalena Alonso Rebollo | Copyright 2014-2026 The Caacupe One Project Authors (https://github.com/googlefonts/caacupe) |
 | Cabin | OFL | Impallari Type, Rodrigo Fuenzalida | Copyright 2018 The Cabin Project Authors (https://github.com/impallari/Cabin) |
 | Cabin Condensed | OFL | Impallari Type | Copyright 2016 The Cabin Project Authors (impallari@gmail.com) |
 | Cabin Sketch | OFL | Impallari Type | Copyright 2011 The Cabin Project Authors (impallari@gmail.com), with Reserved Font Name "Cabin", "Cabin Sketch". |
@@ -1658,6 +1660,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Schoolbell | APACHE2 | Font Diner | Copyright (c) 2010 by Font Diner, Inc. All rights reserved. |
 | Science Gothic | OFL | Thomas Phinney, Vassil Kateliev, Brandon Buerkle | Copyright © 2025 The Science Gothic Project Authors (https://github.com/googlefonts/science-gothic/blob/main/AUTHORS.txt) |
 | Scope One | OFL | Dalton Maag | Copyright 2015 Dalton Maag Ltd (info@daltonmaag.com) |
+| Scoutie Sans | OFL | Tyler Finck | Copyright 2026 The Scoutie Sans Project Authors (https://github.com/sursly/scoutie) |
 | Seaweed Script | OFL | Neapolitan | Copyright (c) 2012 by Font Diner, Inc DBA Neapolitan (diner@fontdiner.com) with Reseved Font Name "Seaweed Script" |
 | Secular One | OFL | Michal Sahar | Copyright 2016 The Secular One Project Authors (https://github.com/googlefonts/secular) |
 | Sedan | OFL | Sebastián Salazar | Copyright 2023 The Sedan Project Authors (https://github.com/googlefonts/sedan) |
@@ -1864,6 +1867,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | UoqMunThenKhung | OFL | Moonlit Owen | Copyright 2025 The UoqMunThenKhung Project Authors (https://github.com/MoonlitOwen/ThenKhung) |
 | Updock | OFL | Robert Leuschke | Copyright 1991-2021 The Up Dock Project Authors (https://github.com/googlefonts/updock) |
 | Urbanist | OFL | Corey Hu | Copyright 2021 The Urbanist Project Authors (https://github.com/coreyhu/Urbanist) |
+| Valley Sans | OFL | Niklas Ekholm, Lari Mörö | Copyright 2026 The Valley Sans Project Authors (https://github.com/HelsinkiTypeStudio/valley-sans) |
 | Vampiro One | OFL | Riccardo De Franceschi | Copyright (c) 2012, Sorkin Type Co (www.sorkintype.com eben@eyebytes.com) with Reserved Font Name \'Vampiro\'. |
 | Varela | OFL | Joe Prince | Copyright (c) 2011 by Admix Designs (joe@admixdesigns.com). All rights reserved. |
 | Varela Round | OFL | Joe Prince | Copyright 2023 The Varela Round Project Authors (https://github.com/alefalefalef/Varela-Round-Hebrew/), with Reserved Font Names Varela and Varela Round. |
