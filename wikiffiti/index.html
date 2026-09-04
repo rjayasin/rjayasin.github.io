@@ -379,7 +379,7 @@
       function isQuotable(text) {
         const t = text.trim();
         if (t.length < 3 || MARKUP.test(t) || FILE_WORD.test(t)) return false;
-        return /[\p{L}]/u.test(t);
+        return /[\p{L}\p{N}]/u.test(t);
       }
 
       function cutAtMarkup(text, keepTail) {
