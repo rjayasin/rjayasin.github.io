@@ -349,7 +349,10 @@
         if (first === -1) return ' ';
         let last = first;
         while (last < fields.length - 1 && !fields[last].includes(CLOSE)) last++;
-        return ` | ${fields.slice(first, last + 1).join(' | ')} `;
+        const run = fields.slice(first, last + 1).join(' | ');
+        // A positional parameter has no name of its own, so the template's stands in.
+        const label = first && !run.includes('=') ? `${fields[0].trim()} = ` : '';
+        return ` | ${label}${run} `;
       }
 
       // Wikitext down to something readable: references, templates and link
@@ -529,14 +532,23 @@
         return out;
       }
 
+      // A run that ran into markup keeps the writing in front of it; a run that
+      // opens with markup is a line of the article's own, and stays context.
+      function quotableRuns(seg) {
+        if (!seg.vandal || isQuotable(seg.text)) return [seg];
+        const head = cutAtMarkup(seg.text, false);
+        if (!isQuotable(head)) return [{ ...seg, vandal: false }];
+        return [
+          { text: head, vandal: true },
+          { text: seg.text.slice(head.length), vandal: false },
+        ];
+      }
+
       function lineToSegments(marked) {
         const parsed = segmentsFrom(cleanWikitext(marked));
         if (!parsed) return null;
-        // Runs of pure markup are demoted to context rather than quoted; if that
-        // leaves nothing a person wrote, there is no graffiti on this line.
-        const demoted = parsed.map((s) =>
-          s.vandal && !isQuotable(s.text) ? { ...s, vandal: false } : s
-        );
+        // A line left with nothing a person wrote has no graffiti on it.
+        const demoted = parsed.flatMap(quotableRuns);
         const segments = mergeRuns(unpadRuns(demoted));
         const quoted = segments.filter((s) => s.vandal).length;
         if (!quoted || quoted > MAX_RUNS) return null;
