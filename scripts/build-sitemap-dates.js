@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Parses ../sitemap/index.html, looks up the last-updated date and commit URL
 // for every link (git log for internal paths, the GitHub commits API for
-// links into other rjayasin.github.io repos), and writes ../sitemap/dates.json
+// links into other rjayasin.github.io repos, skipping bot commits for the
+// hrefs in HUMAN_COMMITS_ONLY), and writes ../sitemap/dates.json
 // mapping each href to { date, url }. Skips hrefs whose dates can't be
 // determined so the page can render them last in the "recent" view.
 //
@@ -90,8 +91,19 @@ function parseUserHost(href) {
   return { repo, path: subPath };
 }
 
-async function ghCommitEntry(repo, subPath) {
-  const params = new URLSearchParams({ per_page: '1' });
+// Dated by their last human commit, so a repo's own scheduled bot commits
+// don't keep marking the page as freshly updated.
+const HUMAN_COMMITS_ONLY = new Set(['https://rjayasin.github.io/dodgers-notifier/']);
+
+function isBotCommit(commit) {
+  if (commit?.author?.type === 'Bot') return true;
+  return /\[bot\]$/.test(commit?.commit?.author?.name || '');
+}
+
+const HUMAN_COMMIT_MAX_PAGES = 3;
+
+async function ghCommits(repo, subPath, { perPage = 1, page = 1 } = {}) {
+  const params = new URLSearchParams({ per_page: String(perPage), page: String(page) });
   if (subPath) params.set('path', subPath);
   const url = `https://api.github.com/repos/rjayasin/${repo}/commits?${params}`;
   const headers = { Accept: 'application/vnd.github+json' };
@@ -101,11 +113,29 @@ async function ghCommitEntry(repo, subPath) {
     process.stderr.write(`  ${res.status} ${url}\n`);
     return null;
   }
-  const data = await res.json();
-  const commit = data?.[0];
+  return res.json();
+}
+
+function commitEntry(commit) {
   const date = commit?.commit?.committer?.date || commit?.commit?.author?.date;
   if (!date) return null;
   return { date, url: commit.html_url || null };
+}
+
+async function ghCommitEntry(repo, subPath, humanOnly) {
+  if (!humanOnly) {
+    const data = await ghCommits(repo, subPath);
+    return commitEntry(data?.[0]);
+  }
+  const perPage = 100;
+  for (let page = 1; page <= HUMAN_COMMIT_MAX_PAGES; page++) {
+    const data = await ghCommits(repo, subPath, { perPage, page });
+    if (!data?.length) return null;
+    const commit = data.find((c) => !isBotCommit(c));
+    if (commit) return commitEntry(commit);
+    if (data.length < perPage) return null;
+  }
+  return null;
 }
 
 function asEntry(v) {
@@ -129,7 +159,7 @@ async function main() {
       const ext = parseUserHost(href);
       if (ext) {
         try {
-          entry = await ghCommitEntry(ext.repo, ext.path);
+          entry = await ghCommitEntry(ext.repo, ext.path, HUMAN_COMMITS_ONLY.has(href));
         } catch (e) {
           process.stderr.write(`  ${e.message}\n`);
         }
