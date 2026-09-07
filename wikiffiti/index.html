@@ -341,6 +341,17 @@
         return out;
       }
 
+      // A template the vandal edited keeps the parameter their run landed in;
+      // dropping the whole template would take the edit with it.
+      function markedField(inner) {
+        const fields = inner.split('|');
+        const first = fields.findIndex((f) => f.includes(OPEN) || f.includes(CLOSE));
+        if (first === -1) return ' ';
+        let last = first;
+        while (last < fields.length - 1 && !fields[last].includes(CLOSE)) last++;
+        return ` | ${fields.slice(first, last + 1).join(' | ')} `;
+      }
+
       // Wikitext down to something readable: references, templates and link
       // plumbing are the article's, not the vandal's.
       function cleanWikitext(s) {
@@ -348,7 +359,8 @@
         t = t.replace(/<ref[^>]*\/>/gi, '').replace(/<ref[^>]*>[\s\S]*?<\/ref>/gi, '');
         t = t.replace(/<!--[\s\S]*?-->/g, '');
         // Nested templates unwrap from the inside out; four passes is plenty.
-        for (let i = 0; i < 4; i++) t = t.replace(/\{\{[^{}]*\}\}/g, ' ');
+        for (let i = 0; i < 4; i++)
+          t = t.replace(/\{\{([^{}]*)\}\}/g, (m, inner) => markedField(inner));
         t = t.replace(/\[\[(?:[Ff]ile|[Ii]mage|[Cc]ategory):[^\]]*\]\]/g, ' ');
         t = t.replace(/\[\[([^\]|]*)\|([^\]]*)\]\]/g, '$2').replace(/\[\[([^\]]*)\]\]/g, '$1');
         t = t.replace(/\[(?:https?:)?\/\/\S+?\s+([^\]]*)\]/g, '$1');
