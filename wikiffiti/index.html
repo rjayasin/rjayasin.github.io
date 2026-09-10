@@ -66,17 +66,19 @@
       a:visited {
         color: var(--visited);
       }
+      /* Title and standfirst read as one block, so the rule sits under both
+         rather than between them. */
       header {
+        padding-bottom: 4px;
         margin-bottom: 12px;
+        border-bottom: 1px solid var(--border);
       }
       h1 {
         font-family: 'Linux Libertine', Georgia, 'Times New Roman', Times, serif;
         font-size: 28px;
         font-weight: normal;
         line-height: 1.3;
-        padding-bottom: 4px;
         margin-bottom: 6px;
-        border-bottom: 1px solid var(--border);
       }
       .subtitle {
         font-size: 13px;
