@@ -134,6 +134,10 @@
       .more::after {
         content: ']';
       }
+      .more.lines {
+        display: block;
+        margin-left: 0;
+      }
       .more:hover {
         text-decoration: underline;
       }
@@ -208,6 +212,7 @@
       const CONTRIB_LIMIT = 50;
       const DIFFS_PER_LOAD = 12;
       const CONCURRENCY = 3;
+      // Lines shown before the rest of an entry folds behind a button.
       const MAX_LINES = 4;
       const MAX_RUNS = 6;
       const MAX_CHARS = 400;
@@ -568,7 +573,6 @@
           if (seen.has(key)) continue;
           seen.add(key);
           out.push(segments);
-          if (out.length === MAX_LINES) break;
         }
         return out;
       }
@@ -656,13 +660,36 @@
         return button;
       }
 
+      function lineExpander(folded) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'more lines';
+        let open = false;
+        const sync = () => {
+          for (const p of folded) p.hidden = !open;
+          button.textContent = open ? 'fewer edits' : `${folded.length} more edits`;
+          button.setAttribute('aria-expanded', String(open));
+        };
+        button.addEventListener('click', () => {
+          open = !open;
+          sync();
+        });
+        sync();
+        return button;
+      }
+
       function render({ contrib, lines }, order = 0) {
         const article = document.createElement('article');
         article.className = 'hit';
         article.style.animationDelay = `${Math.min(order, FADE_STEPS) * FADE_STEP}ms`;
-        for (const segments of lines) {
+        const folded = [];
+        for (const [i, segments] of lines.entries()) {
           const p = document.createElement('p');
           p.className = 'text';
+          if (i >= MAX_LINES) {
+            p.hidden = true;
+            folded.push(p);
+          }
           for (const seg of segments) {
             if (!seg.vandal) {
               p.append(document.createTextNode(seg.text));
@@ -675,6 +702,7 @@
           }
           article.append(p);
         }
+        if (folded.length) article.append(lineExpander(folded));
         const title = contrib.title;
         const slug = encodeURIComponent(title.replace(/ /g, '_'));
         const wiki = `https://en.wikipedia.org/wiki/${slug}`;
