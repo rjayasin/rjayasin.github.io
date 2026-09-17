@@ -78,16 +78,13 @@
         min-height: 0;
         overflow-y: auto;
         padding: 16px;
-        /* Columns keep long result lists scannable without a grid of cells. */
-        column-width: 160px;
         column-gap: 24px;
       }
-      /* Dropping out of multicol entirely, not column-count: 1 — a multicol
-         box with a definite height spills into extra columns sideways instead
-         of growing, so a single column has to be plain block flow to scroll. */
-      body.one-col #results {
-        column-width: auto;
-        column-count: auto;
+      /* The multi-column view (hint-bar toggle) fills the fixed height and then
+         spills into further columns sideways, so it pans horizontally; the
+         default single column is plain block flow and scrolls down. */
+      body:not(.one-col) #results {
+        column-width: 160px;
       }
       #results a {
         display: block;
@@ -168,7 +165,7 @@
     </style>
     <script src="/common.js"></script>
   </head>
-  <body>
+  <body class="one-col">
     <div id="top">
       <input
         id="q"
@@ -187,7 +184,7 @@
       <span id="hint-inner"
         ><span style="white-space: nowrap">regex ok (^ $ . * [])</span> ·
         <span style="white-space: nowrap"
-          ><span class="hint-btn" id="hb-cols"><span id="cols-label">1 column</span></span></span
+          ><span class="hint-btn" id="hb-cols"><span id="cols-label">columns</span></span></span
         >
         ·
         <span style="white-space: nowrap"
