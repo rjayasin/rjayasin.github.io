@@ -82,6 +82,13 @@
         column-width: 160px;
         column-gap: 24px;
       }
+      /* Dropping out of multicol entirely, not column-count: 1 — a multicol
+         box with a definite height spills into extra columns sideways instead
+         of growing, so a single column has to be plain block flow to scroll. */
+      body.one-col #results {
+        column-width: auto;
+        column-count: auto;
+      }
       #results a {
         display: block;
         color: inherit;
@@ -180,6 +187,10 @@
       <span id="hint-inner"
         ><span style="white-space: nowrap">regex ok (^ $ . * [])</span> ·
         <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-cols"><span id="cols-label">1 column</span></span></span
+        >
+        ·
+        <span style="white-space: nowrap"
           ><span class="hint-btn" id="hb-dark"><span class="hb-dark-label">dark</span></span></span
         >
         ·
@@ -239,7 +250,7 @@
         const frag = document.createDocumentFragment();
         for (const w of hits) {
           const a = document.createElement('a');
-          a.href = '/explorer/?' + encodeURIComponent(w);
+          a.href = 'https://en.wiktionary.org/wiki/' + encodeURIComponent(w);
           a.target = '_blank';
           a.rel = 'noopener';
           a.textContent = w;
@@ -279,6 +290,12 @@
       const { show: showHint } = Common.initHintBar({
         hintEl,
         hintZoneEl: document.getElementById('hint-zone'),
+      });
+      const colsLabel = document.getElementById('cols-label');
+      document.getElementById('hb-cols').addEventListener('click', () => {
+        const oneCol = document.body.classList.toggle('one-col');
+        colsLabel.textContent = oneCol ? 'columns' : '1 column';
+        showHint();
       });
       document.getElementById('hb-dark').addEventListener('click', () => {
         Common.toggleDark();
