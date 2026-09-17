@@ -34,6 +34,8 @@
       body {
         display: flex;
         flex-direction: column;
+        /* dvh so iOS browser chrome can't push the results scroller off-screen. */
+        height: 100dvh;
         overflow: hidden;
         font-family:
           ui-monospace,
@@ -55,7 +57,7 @@
         max-width: 560px;
         margin: 0 auto;
         font: inherit;
-        font-size: 28px;
+        font-size: clamp(20px, 6vw, 28px);
         text-align: center;
         background: transparent;
         color: inherit;
@@ -78,6 +80,10 @@
         text-decoration: underline;
         text-decoration-style: dotted;
         text-underline-offset: 2px;
+        /* padding, not margin: a bigger tap target without moving the dots */
+        display: inline-block;
+        padding: 6px 4px;
+        margin: -6px 0;
       }
       #status .sort-btn.active {
         color: inherit;
@@ -89,7 +95,9 @@
         flex: 1;
         min-height: 0;
         overflow-y: auto;
-        padding: 16px;
+        -webkit-overflow-scrolling: touch;
+        /* the extra bottom padding keeps the last rows clear of the hint bar */
+        padding: 16px 16px 48px;
         column-gap: 24px;
       }
       /* Multicol at a fixed height pans sideways; the default single column is
@@ -201,7 +209,7 @@
     <div id="results"></div>
     <div id="hint">
       <span id="hint-inner"
-        ><span style="white-space: nowrap">regex ok (^ $ . * [])</span> ·
+        ><span style="white-space: nowrap">regex ok</span> ·
         <span style="white-space: nowrap"
           ><span class="hint-btn" id="hb-cols"><span id="cols-label">columns</span></span></span
         >
@@ -221,7 +229,7 @@
       Common.initDarkMode();
 
       const WORDS_URL = 'https://raw.githubusercontent.com/dolph/dictionary/master/enable1.txt';
-      const MAX_SHOWN = 600;
+      const PAGE = 300;
 
       const qEl = document.getElementById('q');
       const countEl = document.getElementById('count');
@@ -231,6 +239,8 @@
       let words = null;
       let sortKey = 'alpha'; // 'alpha' | 'length'
       let sortAsc = true;
+      let ordering = []; // every match, in sort order
+      let shown = 0; // how much of it is in the DOM
 
       function escapeRe(s) {
         return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -245,30 +255,21 @@
         }
       }
 
-      // Matches arrive alphabetical, so a–z needs no sorting; length buckets
-      // instead of comparing, keeping each band a–z. All paths stop at
-      // MAX_SHOWN.
+      // Matches arrive alphabetical, so a–z ascending needs no sorting; length
+      // buckets instead of comparing, keeping each band a–z.
       function ordered(matches) {
-        const out = [];
-        if (sortKey === 'alpha') {
-          if (sortAsc) {
-            for (let i = 0; i < matches.length && out.length < MAX_SHOWN; i++) out.push(matches[i]);
-          } else {
-            for (let i = matches.length - 1; i >= 0 && out.length < MAX_SHOWN; i--)
-              out.push(matches[i]);
-          }
-          return out;
-        }
+        if (sortKey === 'alpha') return sortAsc ? matches : matches.slice().reverse();
         const byLength = [];
         let longest = 0;
         for (const w of matches) {
           (byLength[w.length] ||= []).push(w);
           if (w.length > longest) longest = w.length;
         }
-        for (let n = 0; n <= longest && out.length < MAX_SHOWN; n++) {
+        const out = [];
+        for (let n = 0; n <= longest; n++) {
           const band = byLength[sortAsc ? n : longest - n];
           if (!band) continue;
-          for (let i = 0; i < band.length && out.length < MAX_SHOWN; i++) out.push(band[i]);
+          for (const w of band) out.push(w);
         }
         return out;
       }
@@ -283,10 +284,48 @@
         lengthEl.classList.toggle('active', sortKey === 'length');
       }
 
+      function appendPage() {
+        const end = Math.min(shown + PAGE, ordering.length);
+        if (end === shown) return;
+        const frag = document.createDocumentFragment();
+        for (let i = shown; i < end; i++) {
+          const a = document.createElement('a');
+          a.href = 'https://en.wiktionary.org/wiki/' + encodeURIComponent(ordering[i]);
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.textContent = ordering[i];
+          frag.appendChild(a);
+        }
+        resultsEl.appendChild(frag);
+        shown = end;
+      }
+
+      // Whichever axis overflows is the one being scrolled: the default single
+      // column grows downward, the multi-column view sideways.
+      function nearEnd() {
+        const r = resultsEl;
+        const room = 600;
+        if (r.scrollHeight > r.clientHeight)
+          return r.scrollHeight - r.clientHeight - r.scrollTop < room;
+        if (r.scrollWidth > r.clientWidth)
+          return r.scrollWidth - r.clientWidth - r.scrollLeft < room;
+        return true; // nothing to scroll yet — keep filling
+      }
+
+      // Pages have to keep coming until something overflows, or there is no
+      // scrollbar to pull the rest in with.
+      function fill() {
+        let guard = 40;
+        while (guard-- > 0 && shown < ordering.length && nearEnd()) appendPage();
+      }
+
       function render() {
         const q = qEl.value.trim();
         resultsEl.textContent = '';
         resultsEl.scrollTop = 0;
+        resultsEl.scrollLeft = 0;
+        ordering = [];
+        shown = 0;
         sortsEl.hidden = true;
         if (!words) {
           countEl.textContent = 'loading enable1…';
@@ -301,25 +340,18 @@
         for (const w of words) {
           if (re.test(w)) matches.push(w);
         }
-        const total = matches.length;
-        const hits = ordered(matches);
-        const frag = document.createDocumentFragment();
-        for (const w of hits) {
-          const a = document.createElement('a');
-          a.href = 'https://en.wiktionary.org/wiki/' + encodeURIComponent(w);
-          a.target = '_blank';
-          a.rel = 'noopener';
-          a.textContent = w;
-          frag.appendChild(a);
-        }
-        resultsEl.appendChild(frag);
-        let msg = total.toLocaleString() + (total === 1 ? ' match' : ' matches');
-        if (total > hits.length) msg += ' · showing ' + hits.length.toLocaleString();
+        ordering = ordered(matches);
+        fill();
+        let msg =
+          ordering.length.toLocaleString() + (ordering.length === 1 ? ' match' : ' matches');
         if (literal) msg += ' · literal (invalid regex)';
         countEl.textContent = msg;
         sortsEl.hidden = false;
         paintSorts();
       }
+
+      resultsEl.addEventListener('scroll', fill, { passive: true });
+      window.addEventListener('resize', fill);
 
       // ?<regex>[&sort=length-desc]. Encoding escapes any "&" in the regex, so
       // the first one starts the options. Not Common.parseQueryItems: it splits
