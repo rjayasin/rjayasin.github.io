@@ -73,6 +73,18 @@
         color: var(--muted);
         min-height: 15px;
       }
+      #status .sort-btn {
+        cursor: pointer;
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        text-underline-offset: 2px;
+      }
+      #status .sort-btn.active {
+        color: inherit;
+      }
+      #sorts[hidden] {
+        display: none;
+      }
       #results {
         flex: 1;
         min-height: 0;
@@ -80,9 +92,8 @@
         padding: 16px;
         column-gap: 24px;
       }
-      /* The multi-column view (hint-bar toggle) fills the fixed height and then
-         spills into further columns sideways, so it pans horizontally; the
-         default single column is plain block flow and scrolls down. */
+      /* Multicol at a fixed height pans sideways; the default single column is
+         block flow and scrolls down. */
       body:not(.one-col) #results {
         column-width: 160px;
       }
@@ -177,7 +188,15 @@
         placeholder="search"
         aria-label="search words"
       />
-      <div id="status"></div>
+      <div id="status">
+        <span id="count"></span
+        ><span id="sorts" hidden>
+          ·
+          <span class="sort-btn" id="sort-alpha">a–z</span>
+          ·
+          <span class="sort-btn" id="sort-length">length</span></span
+        >
+      </div>
     </div>
     <div id="results"></div>
     <div id="hint">
@@ -205,17 +224,19 @@
       const MAX_SHOWN = 600;
 
       const qEl = document.getElementById('q');
-      const statusEl = document.getElementById('status');
+      const countEl = document.getElementById('count');
+      const sortsEl = document.getElementById('sorts');
       const resultsEl = document.getElementById('results');
 
       let words = null;
+      let sortKey = 'alpha'; // 'alpha' | 'length'
+      let sortAsc = true;
 
       function escapeRe(s) {
         return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       }
 
-      // The query is a regex when it compiles; anything that doesn't (a lone
-      // "[", a stray "+") is matched literally instead of showing an error.
+      // A query that doesn't compile is matched literally rather than erroring.
       function matcher(q) {
         try {
           return { re: new RegExp(q, 'i'), literal: false };
@@ -224,26 +245,64 @@
         }
       }
 
+      // Matches arrive alphabetical, so a–z needs no sorting; length buckets
+      // instead of comparing, keeping each band a–z. All paths stop at
+      // MAX_SHOWN.
+      function ordered(matches) {
+        const out = [];
+        if (sortKey === 'alpha') {
+          if (sortAsc) {
+            for (let i = 0; i < matches.length && out.length < MAX_SHOWN; i++) out.push(matches[i]);
+          } else {
+            for (let i = matches.length - 1; i >= 0 && out.length < MAX_SHOWN; i--)
+              out.push(matches[i]);
+          }
+          return out;
+        }
+        const byLength = [];
+        let longest = 0;
+        for (const w of matches) {
+          (byLength[w.length] ||= []).push(w);
+          if (w.length > longest) longest = w.length;
+        }
+        for (let n = 0; n <= longest && out.length < MAX_SHOWN; n++) {
+          const band = byLength[sortAsc ? n : longest - n];
+          if (!band) continue;
+          for (let i = 0; i < band.length && out.length < MAX_SHOWN; i++) out.push(band[i]);
+        }
+        return out;
+      }
+
+      function paintSorts() {
+        const arrow = sortAsc ? ' ↑' : ' ↓';
+        const alphaEl = document.getElementById('sort-alpha');
+        const lengthEl = document.getElementById('sort-length');
+        alphaEl.textContent = 'a–z' + (sortKey === 'alpha' ? arrow : '');
+        lengthEl.textContent = 'length' + (sortKey === 'length' ? arrow : '');
+        alphaEl.classList.toggle('active', sortKey === 'alpha');
+        lengthEl.classList.toggle('active', sortKey === 'length');
+      }
+
       function render() {
         const q = qEl.value.trim();
         resultsEl.textContent = '';
         resultsEl.scrollTop = 0;
+        sortsEl.hidden = true;
         if (!words) {
-          statusEl.textContent = 'loading enable1…';
+          countEl.textContent = 'loading enable1…';
           return;
         }
         if (!q) {
-          statusEl.textContent = words.length.toLocaleString() + ' words';
+          countEl.textContent = words.length.toLocaleString() + ' words';
           return;
         }
         const { re, literal } = matcher(q);
-        const hits = [];
-        let total = 0;
+        const matches = [];
         for (const w of words) {
-          if (!re.test(w)) continue;
-          total++;
-          if (hits.length < MAX_SHOWN) hits.push(w);
+          if (re.test(w)) matches.push(w);
         }
+        const total = matches.length;
+        const hits = ordered(matches);
         const frag = document.createDocumentFragment();
         for (const w of hits) {
           const a = document.createElement('a');
@@ -257,26 +316,44 @@
         let msg = total.toLocaleString() + (total === 1 ? ' match' : ' matches');
         if (total > hits.length) msg += ' · showing ' + hits.length.toLocaleString();
         if (literal) msg += ' · literal (invalid regex)';
-        statusEl.textContent = msg;
+        countEl.textContent = msg;
+        sortsEl.hidden = false;
+        paintSorts();
       }
 
-      // The query lives in the bare query string (/word-search/?%5Ezo.*o%24),
-      // matching across/explorer/etymology. Replaced rather than pushed so
-      // typing doesn't bury the previous page under a keystroke of history.
-      // Read whole, not via Common.parseQueryItems: that splits on "/", and a
-      // regex can legitimately contain one (hand-written, unencoded).
-      function queryFromUrl() {
+      // ?<regex>[&sort=length-desc]. Encoding escapes any "&" in the regex, so
+      // the first one starts the options. Not Common.parseQueryItems: it splits
+      // on "/", which a regex can contain.
+      const DEFAULT_SORT = 'alpha-asc';
+
+      function readUrl() {
         const raw = location.search.replace(/^\?/, '');
+        const amp = raw.indexOf('&');
+        const rawQuery = amp === -1 ? raw : raw.slice(0, amp);
+        let query;
         try {
-          return decodeURIComponent(raw);
+          query = decodeURIComponent(rawQuery);
         } catch {
-          return raw;
+          query = rawQuery;
         }
+        const sort = amp === -1 ? '' : new URLSearchParams(raw.slice(amp + 1)).get('sort') || '';
+        const [key, dir] = sort.split('-');
+        return {
+          query,
+          sortKey: key === 'length' ? 'length' : 'alpha',
+          sortAsc: dir !== 'desc',
+        };
       }
 
+      // Sort is dropped with an empty box, keeping the leading value unambiguous.
       function syncUrl() {
         const q = qEl.value.trim();
-        const search = q ? '?' + encodeURIComponent(q) : '';
+        const sort = sortKey + (sortAsc ? '-asc' : '-desc');
+        let search = '';
+        if (q) {
+          search = '?' + encodeURIComponent(q);
+          if (sort !== DEFAULT_SORT) search += '&sort=' + sort;
+        }
         if (location.search === search) return;
         history.replaceState(null, '', location.pathname + search + location.hash);
       }
@@ -292,14 +369,32 @@
           render();
         }
       });
-      window.addEventListener('popstate', () => {
-        qEl.value = queryFromUrl();
+      // Clicking the active sort reverses it; the other switches, ascending.
+      function chooseSort(key) {
+        if (sortKey === key) sortAsc = !sortAsc;
+        else {
+          sortKey = key;
+          sortAsc = true;
+        }
+        syncUrl();
         render();
-      });
+      }
 
-      qEl.value = queryFromUrl();
+      document.getElementById('sort-alpha').addEventListener('click', () => chooseSort('alpha'));
+      document.getElementById('sort-length').addEventListener('click', () => chooseSort('length'));
+
+      function applyUrl() {
+        const state = readUrl();
+        qEl.value = state.query;
+        sortKey = state.sortKey;
+        sortAsc = state.sortAsc;
+        render();
+      }
+
+      window.addEventListener('popstate', applyUrl);
+
+      applyUrl();
       qEl.focus();
-      render();
 
       fetch(WORDS_URL)
         .then((r) => {
@@ -311,7 +406,7 @@
           render();
         })
         .catch(() => {
-          statusEl.textContent = 'could not load enable1';
+          countEl.textContent = 'could not load enable1';
         });
 
       const hintEl = document.getElementById('hint');
