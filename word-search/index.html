@@ -263,13 +263,44 @@
         statusEl.textContent = msg;
       }
 
-      qEl.addEventListener('input', render);
+      // The query lives in the bare query string (/word-search/?%5Ezo.*o%24),
+      // matching across/explorer/etymology. Replaced rather than pushed so
+      // typing doesn't bury the previous page under a keystroke of history.
+      // Read whole, not via Common.parseQueryItems: that splits on "/", and a
+      // regex can legitimately contain one (hand-written, unencoded).
+      function queryFromUrl() {
+        const raw = location.search.replace(/^\?/, '');
+        try {
+          return decodeURIComponent(raw);
+        } catch {
+          return raw;
+        }
+      }
+
+      function syncUrl() {
+        const q = qEl.value.trim();
+        const search = q ? '?' + encodeURIComponent(q) : '';
+        if (location.search === search) return;
+        history.replaceState(null, '', location.pathname + search + location.hash);
+      }
+
+      qEl.addEventListener('input', () => {
+        syncUrl();
+        render();
+      });
       qEl.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
           qEl.value = '';
+          syncUrl();
           render();
         }
       });
+      window.addEventListener('popstate', () => {
+        qEl.value = queryFromUrl();
+        render();
+      });
+
+      qEl.value = queryFromUrl();
       qEl.focus();
       render();
 
