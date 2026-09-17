@@ -19,6 +19,7 @@
   - [`tree-explorer`](https://rjayasin.github.io/etymology/)
   - [`etymology-game`](https://rjayasin.github.io/etymology/game/)
 - [`explorer`](https://rjayasin.github.io/explorer/)
+- [`word-search`](https://rjayasin.github.io/word-search/)
 
 `text`
 

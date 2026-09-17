@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ruvan / word-search</title>
+    <link rel="icon" id="favicon" />
+    <link rel="stylesheet" href="/common.css" />
+    <style>
+      :root {
+        --muted: rgba(0, 0, 0, 0.45);
+        --faint: rgba(0, 0, 0, 0.3);
+        --line: rgba(0, 0, 0, 0.12);
+        --hover: rgba(0, 0, 0, 0.05);
+      }
+      body.dark {
+        --muted: rgba(255, 255, 255, 0.5);
+        --faint: rgba(255, 255, 255, 0.35);
+        --line: rgba(255, 255, 255, 0.16);
+        --hover: rgba(255, 255, 255, 0.07);
+      }
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) {
+          --muted: rgba(255, 255, 255, 0.5);
+          --faint: rgba(255, 255, 255, 0.35);
+          --line: rgba(255, 255, 255, 0.16);
+          --hover: rgba(255, 255, 255, 0.07);
+        }
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+      }
+      #top {
+        flex: 0 0 auto;
+        padding: 20px 16px 12px;
+        border-bottom: 1px solid var(--line);
+      }
+      #q {
+        display: block;
+        width: 100%;
+        max-width: 560px;
+        margin: 0 auto;
+        font: inherit;
+        font-size: 28px;
+        text-align: center;
+        background: transparent;
+        color: inherit;
+        border: none;
+        outline: none;
+      }
+      #q::placeholder {
+        color: var(--faint);
+      }
+      #status {
+        max-width: 560px;
+        margin: 8px auto 0;
+        text-align: center;
+        font-size: 12px;
+        color: var(--muted);
+        min-height: 15px;
+      }
+      #results {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 16px;
+        /* Columns keep long result lists scannable without a grid of cells. */
+        column-width: 160px;
+        column-gap: 24px;
+      }
+      #results a {
+        display: block;
+        color: inherit;
+        text-decoration: none;
+        padding: 1px 4px;
+        border-radius: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      #results a:hover {
+        background: var(--hover);
+      }
+      #hint {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 12px;
+        display: flex;
+        overflow-x: auto;
+        scrollbar-width: none;
+        font-size: 12px;
+        color: #888;
+        opacity: 1;
+        transition: opacity 0.4s ease;
+        user-select: none;
+        z-index: 3;
+      }
+      #hint::-webkit-scrollbar {
+        display: none;
+      }
+      #hint::before,
+      #hint::after {
+        content: '';
+        flex: 0 0 8px;
+      }
+      #hint-inner {
+        flex: 0 0 auto;
+        margin: 0 auto;
+        white-space: nowrap;
+        padding: 6px 10px;
+        border-radius: 6px;
+        background: #ffffff;
+      }
+      body.dark #hint-inner {
+        background: #111111;
+      }
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) #hint-inner {
+          background: #111111;
+        }
+      }
+      #hint.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #hint .hint-btn {
+        cursor: pointer;
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        text-underline-offset: 2px;
+      }
+      #hint .hint-btn:hover {
+        color: #333;
+      }
+      body.dark #hint .hint-btn:hover {
+        color: #ccc;
+      }
+      #hint-zone {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 60px;
+        z-index: 2;
+      }
+    </style>
+    <script src="/common.js"></script>
+  </head>
+  <body>
+    <div id="top">
+      <input
+        id="q"
+        type="text"
+        autocomplete="off"
+        autocapitalize="off"
+        autocorrect="off"
+        spellcheck="false"
+        placeholder="search"
+        aria-label="search words"
+      />
+      <div id="status"></div>
+    </div>
+    <div id="results"></div>
+    <div id="hint">
+      <span id="hint-inner"
+        ><span style="white-space: nowrap">regex ok (^ $ . * [])</span> ·
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-dark"><span class="hb-dark-label">dark</span></span></span
+        >
+        ·
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-sitemap">sitemap</span></span
+        ></span
+      >
+    </div>
+    <div id="hint-zone"></div>
+    <script>
+      Common.paintFaviconR();
+      Common.initDarkMode();
+
+      const WORDS_URL = 'https://raw.githubusercontent.com/dolph/dictionary/master/enable1.txt';
+      const MAX_SHOWN = 600;
+
+      const qEl = document.getElementById('q');
+      const statusEl = document.getElementById('status');
+      const resultsEl = document.getElementById('results');
+
+      let words = null;
+
+      function escapeRe(s) {
+        return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }
+
+      // The query is a regex when it compiles; anything that doesn't (a lone
+      // "[", a stray "+") is matched literally instead of showing an error.
+      function matcher(q) {
+        try {
+          return { re: new RegExp(q, 'i'), literal: false };
+        } catch {
+          return { re: new RegExp(escapeRe(q), 'i'), literal: true };
+        }
+      }
+
+      function render() {
+        const q = qEl.value.trim();
+        resultsEl.textContent = '';
+        resultsEl.scrollTop = 0;
+        if (!words) {
+          statusEl.textContent = 'loading enable1…';
+          return;
+        }
+        if (!q) {
+          statusEl.textContent = words.length.toLocaleString() + ' words';
+          return;
+        }
+        const { re, literal } = matcher(q);
+        const hits = [];
+        let total = 0;
+        for (const w of words) {
+          if (!re.test(w)) continue;
+          total++;
+          if (hits.length < MAX_SHOWN) hits.push(w);
+        }
+        const frag = document.createDocumentFragment();
+        for (const w of hits) {
+          const a = document.createElement('a');
+          a.href = '/explorer/?' + encodeURIComponent(w);
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.textContent = w;
+          frag.appendChild(a);
+        }
+        resultsEl.appendChild(frag);
+        let msg = total.toLocaleString() + (total === 1 ? ' match' : ' matches');
+        if (total > hits.length) msg += ' · showing ' + hits.length.toLocaleString();
+        if (literal) msg += ' · literal (invalid regex)';
+        statusEl.textContent = msg;
+      }
+
+      qEl.addEventListener('input', render);
+      qEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          qEl.value = '';
+          render();
+        }
+      });
+      qEl.focus();
+      render();
+
+      fetch(WORDS_URL)
+        .then((r) => {
+          if (!r.ok) throw new Error(r.status);
+          return r.text();
+        })
+        .then((text) => {
+          words = text.split('\n').filter(Boolean);
+          render();
+        })
+        .catch(() => {
+          statusEl.textContent = 'could not load enable1';
+        });
+
+      const hintEl = document.getElementById('hint');
+      const { show: showHint } = Common.initHintBar({
+        hintEl,
+        hintZoneEl: document.getElementById('hint-zone'),
+      });
+      document.getElementById('hb-dark').addEventListener('click', () => {
+        Common.toggleDark();
+        showHint();
+      });
+      document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
+    </script>
+  </body>
+</html>
