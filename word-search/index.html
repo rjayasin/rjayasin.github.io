@@ -393,16 +393,16 @@
         render();
       });
       qEl.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-          qEl.value = '';
-          syncUrl();
-          render();
+        if (e.key === 'Enter' || e.key === 'Escape') {
+          e.preventDefault();
+          qEl.blur();
         }
       });
       document.addEventListener('keydown', (e) => {
         if (e.key !== '/' || e.target === qEl || e.metaKey || e.ctrlKey || e.altKey) return;
         e.preventDefault();
         qEl.focus();
+        qEl.select();
       });
 
       // Clicking the active sort reverses it; the other switches, ascending.
