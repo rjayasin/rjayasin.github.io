@@ -399,6 +399,12 @@
           render();
         }
       });
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== '/' || e.target === qEl || e.metaKey || e.ctrlKey || e.altKey) return;
+        e.preventDefault();
+        qEl.focus();
+      });
+
       // Clicking the active sort reverses it; the other switches, ascending.
       function chooseSort(key) {
         if (sortKey === key) sortAsc = !sortAsc;
