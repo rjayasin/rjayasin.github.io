@@ -12,12 +12,14 @@
         --faint: rgba(0, 0, 0, 0.3);
         --line: rgba(0, 0, 0, 0.12);
         --hover: rgba(0, 0, 0, 0.05);
+        --pop-bg: #ffffff;
       }
       body.dark {
         --muted: rgba(255, 255, 255, 0.5);
         --faint: rgba(255, 255, 255, 0.35);
         --line: rgba(255, 255, 255, 0.16);
         --hover: rgba(255, 255, 255, 0.07);
+        --pop-bg: #1c1c1c;
       }
       @media (prefers-color-scheme: dark) {
         body:not(.light) {
@@ -25,6 +27,7 @@
           --faint: rgba(255, 255, 255, 0.35);
           --line: rgba(255, 255, 255, 0.16);
           --hover: rgba(255, 255, 255, 0.07);
+          --pop-bg: #1c1c1c;
         }
       }
       html,
@@ -96,6 +99,8 @@
         -webkit-overflow-scrolling: touch;
         /* the extra bottom padding keeps the last rows clear of the hint bar */
         padding: 16px 16px 48px;
+        /* arrow-key picks scroll into view clear of the hint bar */
+        scroll-padding: 16px 16px 48px;
         column-gap: 24px;
       }
       /* Multicol at a fixed height pans sideways; the default single column is
@@ -103,18 +108,77 @@
       body:not(.one-col) #results {
         column-width: 160px;
       }
-      #results a {
-        display: block;
-        color: inherit;
-        text-decoration: none;
+      /* The row opens the definition; only the word itself is the link. */
+      #results .row {
         padding: 1px 4px;
         border-radius: 3px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
       }
-      #results a:hover {
+      #results .row.cur {
         background: var(--hover);
+      }
+      #results a {
+        color: inherit;
+        text-decoration: none;
+      }
+      @media (hover: hover) {
+        #results .row:hover {
+          background: var(--hover);
+        }
+        #results a:hover {
+          text-decoration: underline;
+          text-underline-offset: 2px;
+        }
+      }
+      #link {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 4;
+        pointer-events: none;
+      }
+      #link[hidden] {
+        display: none;
+      }
+      #link path {
+        fill: none;
+        stroke: var(--faint);
+        stroke-width: 1;
+      }
+      #pop {
+        position: fixed;
+        z-index: 4;
+        width: min(360px, calc(100vw - 32px));
+        max-height: min(320px, calc(100dvh - 32px));
+        overflow: hidden;
+        padding: 10px 12px;
+        font-size: 12px;
+        line-height: 1.45;
+        background: var(--pop-bg);
+        border: 1px solid var(--faint);
+        border-radius: 6px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+      }
+      #pop[hidden] {
+        display: none;
+      }
+      #pop .pos {
+        color: var(--muted);
+        font-style: italic;
+      }
+      #pop .pos:not(:first-child) {
+        margin-top: 8px;
+      }
+      #pop ol {
+        padding-left: 20px;
+      }
+      #pop .note {
+        color: var(--muted);
       }
       #hint {
         position: fixed;
@@ -205,11 +269,17 @@
       </div>
     </div>
     <div id="results"></div>
+    <svg id="link" hidden aria-hidden="true"><path /></svg>
+    <div id="pop" hidden></div>
     <div id="hint">
       <span id="hint-inner"
         ><span style="white-space: nowrap">regex ok</span> ·
         <span style="white-space: nowrap"
           ><span class="hint-btn" id="hb-cols"><span id="cols-label">columns</span></span></span
+        >
+        ·
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-defs"><span id="defs-label">hide defs</span></span></span
         >
         ·
         <span style="white-space: nowrap"
@@ -287,12 +357,15 @@
         if (end === shown) return;
         const frag = document.createDocumentFragment();
         for (let i = shown; i < end; i++) {
+          const row = document.createElement('div');
+          row.className = 'row';
           const a = document.createElement('a');
           a.href = 'https://en.wiktionary.org/wiki/' + encodeURIComponent(ordering[i]);
           a.target = '_blank';
           a.rel = 'noopener';
           a.textContent = ordering[i];
-          frag.appendChild(a);
+          row.appendChild(a);
+          frag.appendChild(row);
         }
         resultsEl.appendChild(frag);
         shown = end;
@@ -319,6 +392,7 @@
 
       function render() {
         const q = qEl.value.trim();
+        hidePop();
         resultsEl.textContent = '';
         resultsEl.scrollTop = 0;
         resultsEl.scrollLeft = 0;
@@ -350,6 +424,322 @@
 
       resultsEl.addEventListener('scroll', fill, { passive: true });
       window.addEventListener('resize', fill);
+
+      const DEF_URL = 'https://en.wiktionary.org/api/rest_v1/page/definition/';
+      const popEl = document.getElementById('pop');
+      const linkEl = document.getElementById('link');
+      const DEFS_KEY = 'word-search-defs';
+      const SHOW_DELAY = 150; // resting on an arrow-key pick before its popover opens
+      const QUERY_DELAY = 400; // ...and before asking wiktionary
+      const defs = new Map(); // word -> Promise of [{ pos, senses }], or null if no page
+      const known = new Map(); // the same, once settled
+      let popAnchor = null; // the picked word, popover or not
+      let popTimer = 0;
+      let queryTimer = 0;
+      let defsOn = true;
+      try {
+        defsOn = localStorage.getItem(DEFS_KEY) !== 'off';
+      } catch {}
+
+      function plainText(html) {
+        return new DOMParser().parseFromString(html, 'text/html').body.textContent.trim();
+      }
+
+      function lookup(word) {
+        if (!defs.has(word)) {
+          const p = fetch(DEF_URL + encodeURIComponent(word))
+            .then((r) => {
+              if (r.status === 404) return null;
+              if (!r.ok) throw new Error(r.status);
+              return r.json();
+            })
+            .then(
+              (data) =>
+                data &&
+                (data.en || [])
+                  .filter((e) => e.language === 'English')
+                  .map((e) => ({
+                    pos: e.partOfSpeech,
+                    senses: e.definitions.map((d) => plainText(d.definition)).filter(Boolean),
+                  }))
+                  .filter((e) => e.senses.length)
+            )
+            .then((entries) => {
+              known.set(word, entries);
+              return entries;
+            })
+            .catch((err) => {
+              defs.delete(word);
+              throw err;
+            });
+          defs.set(word, p);
+        }
+        return defs.get(word);
+      }
+
+      function note(text) {
+        const el = document.createElement('div');
+        el.className = 'note';
+        el.textContent = text;
+        return el;
+      }
+
+      function entryNodes(entries) {
+        const out = [];
+        for (const { pos, senses } of entries.slice(0, 3)) {
+          const head = document.createElement('div');
+          head.className = 'pos';
+          head.textContent = pos.toLowerCase();
+          const ol = document.createElement('ol');
+          for (const s of senses.slice(0, 2)) {
+            const li = document.createElement('li');
+            li.textContent = s;
+            ol.appendChild(li);
+          }
+          out.push(head, ol);
+        }
+        return out;
+      }
+
+      const GAP = 40; // from the words to the popover
+      const STEM = 12; // straight run past the words before the line forks
+
+      // Where the text ends: the link itself spans the whole column.
+      function textRight(a) {
+        const range = document.createRange();
+        range.selectNodeContents(a);
+        return Math.min(range.getBoundingClientRect().right, a.getBoundingClientRect().right);
+      }
+
+      // The furthest any word in a's column reaches between top and bottom.
+      // Neighbours in the DOM are the rows above and below until the column
+      // breaks.
+      function bandRight(a, top, bottom) {
+        const kids = resultsEl.children;
+        const i = Array.prototype.indexOf.call(kids, a);
+        const left = a.getBoundingClientRect().left;
+        let right = 0;
+        for (const d of [-1, 1]) {
+          for (let j = d === 1 ? i : i - 1; j >= 0 && j < kids.length; j += d) {
+            const r = kids[j].getBoundingClientRect();
+            if (r.left !== left || r.bottom < top || r.top > bottom) break;
+            right = Math.max(right, textRight(kids[j]));
+          }
+        }
+        return right;
+      }
+
+      // Right of the words beside it (left if the right has no room), centred
+      // on the word, and joined by a line that forks into curves meeting the
+      // popover's near edge.
+      function layout() {
+        popEl.style.height = '';
+        const box = popAnchor.getBoundingClientRect();
+        const w = popEl.offsetWidth;
+        const h = popEl.offsetHeight;
+        const y = (box.top + box.bottom) / 2;
+        const top = Math.max(16, Math.min(y - h / 2, innerHeight - 16 - h));
+        let x = textRight(popAnchor) + 4;
+        let clear = bandRight(popAnchor, top, top + h) + 4;
+        let dir = 1;
+        if (clear + GAP + w > innerWidth - 16) {
+          if (box.left - GAP - w < 16) return stackedLayout(box, w, h);
+          x = clear = box.left;
+          dir = -1;
+        }
+        const edge = clear + dir * GAP;
+        const left = dir === 1 ? edge : edge - w;
+        return { x, y, fork: clear + dir * STEM, edge, left, top, h };
+      }
+
+      // No room either side (phones): drop down under the row, or above it
+      // near the bottom, without the line.
+      function stackedLayout(box, w, h) {
+        const left = Math.max(16, Math.min(box.left, innerWidth - 16 - w));
+        let top = box.bottom + 4;
+        if (top + h > innerHeight - 16) top = Math.max(16, box.top - 4 - h);
+        return { stacked: true, left, top, h };
+      }
+
+      let drawn = null; // the geometry on screen, which a morph starts from
+      let morphFrame = 0;
+
+      function draw(g, fixHeight) {
+        popEl.style.left = g.left + 'px';
+        popEl.style.top = g.top + 'px';
+        popEl.style.height = fixHeight ? g.h + 'px' : '';
+        drawn = g;
+        if (g.stacked) {
+          linkEl.setAttribute('hidden', '');
+          return;
+        }
+        const { x, y, fork, edge, top, h } = g;
+        const mid = (fork + edge) / 2;
+        const inset = Math.min(10, h / 4);
+        const curve = (ey) => `M${fork} ${y}C${mid} ${y} ${mid} ${ey} ${edge} ${ey}`;
+        linkEl.firstElementChild.setAttribute(
+          'd',
+          `M${x} ${y}H${fork}` + curve(top + inset) + curve(top + h - inset)
+        );
+        linkEl.removeAttribute('hidden');
+      }
+
+      function placePop() {
+        cancelAnimationFrame(morphFrame);
+        const g = layout();
+        draw(g, false);
+        return g;
+      }
+
+      // Tweens the box and its line from what's on screen to the new layout,
+      // redrawing both each frame so the curves stay on the popover's corners.
+      function morph(from) {
+        cancelAnimationFrame(morphFrame);
+        const to = layout();
+        const start = performance.now();
+        const frame = (now) => {
+          const t = Math.min(1, (now - start) / 200);
+          const e = 1 - (1 - t) ** 3;
+          const g = {};
+          for (const k in to) {
+            const tweens = typeof to[k] === 'number' && typeof from[k] === 'number';
+            g[k] = tweens ? from[k] + (to[k] - from[k]) * e : to[k];
+          }
+          draw(g, t < 1);
+          if (t < 1) morphFrame = requestAnimationFrame(frame);
+        };
+        frame(start);
+      }
+
+      // The line wipes out from the word, then the popover fades in behind it.
+      function reveal({ stacked, x, edge }) {
+        const w = innerWidth;
+        const clip = (at) => (x < edge ? `inset(0 ${w - at}px 0 0)` : `inset(0 0 0 ${at}px)`);
+        if (!stacked) {
+          linkEl.animate(
+            { clipPath: [clip(x), clip(edge)], opacity: [0, 1] },
+            { duration: 150, easing: 'ease-out' }
+          );
+        }
+        popEl.animate(
+          { opacity: [0, 1] },
+          { duration: 150, delay: 80, easing: 'ease-out', fill: 'backwards' }
+        );
+      }
+
+      // A new word's popover lands in place; the same word's (loading to
+      // loaded) grows into its new size, the text fading in as it does.
+      let paintedFor = null;
+      function paintPop(nodes) {
+        const appearing = popEl.hidden;
+        const hydrating = !appearing && paintedFor === popAnchor;
+        paintedFor = popAnchor;
+        popEl.replaceChildren(...nodes);
+        popEl.hidden = false;
+        if (hydrating) {
+          morph(drawn);
+          for (const n of nodes) {
+            n.animate(
+              { opacity: [0, 1] },
+              { duration: 180, delay: 60, easing: 'ease-out', fill: 'backwards' }
+            );
+          }
+        } else {
+          const g = placePop();
+          if (appearing) reveal(g);
+        }
+      }
+
+      function resultNodes(entries) {
+        if (!entries) return [note('not on wiktionary')];
+        if (!entries.length) return [note('no English entry')];
+        return entryNodes(entries);
+      }
+
+      function closePop() {
+        clearTimeout(popTimer);
+        clearTimeout(queryTimer);
+        cancelAnimationFrame(morphFrame);
+        popEl.hidden = true;
+        linkEl.setAttribute('hidden', '');
+      }
+
+      function hidePop() {
+        closePop();
+        popAnchor?.classList.remove('cur');
+        popAnchor = null;
+      }
+
+      // Arrow keys wait before opening and longer before querying, so holding
+      // one down doesn't fire a request per word; a click (eager) doesn't. An
+      // open popover follows the pick straight away, so stepping doesn't
+      // flicker.
+      function point(a, eager) {
+        if (a === popAnchor && !popEl.hidden) return;
+        clearTimeout(popTimer);
+        clearTimeout(queryTimer);
+        popAnchor?.classList.remove('cur');
+        popAnchor = a;
+        a.classList.add('cur');
+        if (!defsOn) return;
+        const word = a.textContent;
+        const show = () => paintPop(known.has(word) ? resultNodes(known.get(word)) : [note('…')]);
+        if (popEl.hidden && !eager) popTimer = setTimeout(show, SHOW_DELAY);
+        else show();
+        if (known.has(word)) return;
+        const settle = (nodes) => {
+          if (popAnchor === a && !popEl.hidden) paintPop(nodes);
+        };
+        queryTimer = setTimeout(
+          () => {
+            lookup(word).then(
+              (entries) => settle(resultNodes(entries)),
+              () => settle([note('could not reach wiktionary')])
+            );
+          },
+          eager ? 0 : QUERY_DELAY
+        );
+      }
+
+      // From the top when nothing is picked yet.
+      function step(by) {
+        const i = popAnchor ? Array.prototype.indexOf.call(resultsEl.children, popAnchor) : -1;
+        const next = Math.max(0, Math.min(i + by, ordering.length - 1));
+        while (next >= shown) appendPage();
+        const a = resultsEl.children[next];
+        a.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        point(a);
+      }
+
+      document.addEventListener('keydown', (e) => {
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && ordering.length) {
+          e.preventDefault();
+          step(e.key === 'ArrowDown' ? 1 : -1);
+        } else if (e.key === 'Escape') hidePop();
+      });
+
+      resultsEl.addEventListener(
+        'scroll',
+        () => {
+          if (!popAnchor) return;
+          const r = popAnchor.getBoundingClientRect();
+          const v = resultsEl.getBoundingClientRect();
+          const gone = r.bottom < v.top || r.top > v.bottom || r.right < v.left || r.left > v.right;
+          if (gone) hidePop();
+          else if (!popEl.hidden) placePop();
+        },
+        { passive: true }
+      );
+
+      // The word is a plain link; the rest of its row toggles the popover.
+      // Any other click, bar the hint bar and the popover itself, closes it.
+      document.addEventListener('click', (e) => {
+        if (e.target.closest('#pop, #hint, #results a')) return;
+        const row = e.target.closest('#results .row');
+        if (row && !(row === popAnchor && !popEl.hidden)) point(row, true);
+        else hidePop();
+      });
 
       // ?<regex>[&sort=length-desc]. Encoding escapes any "&" in the regex, so
       // the first one starts the options. Not Common.parseQueryItems: it splits
@@ -454,6 +844,17 @@
       document.getElementById('hb-cols').addEventListener('click', () => {
         const oneCol = document.body.classList.toggle('one-col');
         colsLabel.textContent = oneCol ? 'columns' : '1 column';
+        showHint();
+      });
+      const defsLabel = document.getElementById('defs-label');
+      defsLabel.textContent = defsOn ? 'hide defs' : 'show defs';
+      document.getElementById('hb-defs').addEventListener('click', () => {
+        defsOn = !defsOn;
+        try {
+          localStorage.setItem(DEFS_KEY, defsOn ? 'on' : 'off');
+        } catch {}
+        if (!defsOn) closePop();
+        defsLabel.textContent = defsOn ? 'hide defs' : 'show defs';
         showHint();
       });
       document.getElementById('hb-dark').addEventListener('click', () => {
