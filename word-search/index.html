@@ -716,10 +716,11 @@
 
       // Arrow keys wait before opening and longer before querying, so holding
       // one down doesn't fire a request per word; a click (eager) doesn't. An
-      // open popover follows the pick straight away, so stepping doesn't
-      // flicker.
+      // open popover follows an arrow-key pick straight away, so stepping
+      // doesn't flicker; a click reopens it so the reveal plays again.
       function point(a, eager) {
         if (a === popAnchor && !popEl.hidden) return;
+        if (eager) closePop();
         clearTimeout(popTimer);
         clearTimeout(queryTimer);
         popAnchor?.classList.remove('cur');
