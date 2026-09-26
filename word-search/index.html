@@ -786,6 +786,28 @@
         else hidePop();
       });
 
+      // On touch, a tap off an open popover only dismisses it, without also
+      // opening another row or following a link. Pointerdown, because iOS
+      // sends no click for taps on plain elements like the list's margins.
+      let swallowClick = false;
+      document.addEventListener('pointerdown', (e) => {
+        swallowClick = false;
+        if (e.pointerType !== 'touch' || popEl.hidden) return;
+        if (e.target.closest('#pop, #hint')) return;
+        hidePop();
+        swallowClick = true;
+      });
+      document.addEventListener(
+        'click',
+        (e) => {
+          if (!swallowClick) return;
+          swallowClick = false;
+          e.preventDefault();
+          e.stopPropagation();
+        },
+        true
+      );
+
       // ?<regex>[&sort=length-desc]. Encoding escapes any "&" in the regex, so
       // the first one starts the options. Not Common.parseQueryItems: it splits
       // on "/", which a regex can contain.
@@ -885,7 +907,7 @@
         examplesEl.appendChild(b);
       }
       exBtn.addEventListener('click', () => showExamples(examplesEl.hidden));
-      document.addEventListener('click', (e) => {
+      document.addEventListener('pointerdown', (e) => {
         if (!e.target.closest('#examples, #ex-btn')) showExamples(false);
       });
       document.addEventListener('keydown', (e) => {
