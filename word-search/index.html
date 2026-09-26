@@ -50,6 +50,7 @@
           monospace;
       }
       #top {
+        position: relative;
         flex: 0 0 auto;
         padding: 20px 16px 12px;
         border-bottom: 1px solid var(--line);
@@ -91,6 +92,47 @@
       }
       #sorts[hidden] {
         display: none;
+      }
+      /* Floats under the header rather than pushing the results down. */
+      #examples {
+        position: absolute;
+        top: calc(100% - 4px);
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 5;
+        width: min(560px, calc(100vw - 32px));
+        padding: 4px;
+        font-size: 12px;
+        background: var(--pop-bg);
+        border: 1px solid var(--faint);
+        border-radius: 6px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+      }
+      #examples[hidden] {
+        display: none;
+      }
+      #examples button {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        width: 100%;
+        padding: 4px 8px;
+        font: inherit;
+        color: inherit;
+        text-align: left;
+        background: none;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+      #examples button:hover {
+        background: var(--hover);
+      }
+      #examples code {
+        font: inherit;
+        color: var(--muted);
+        overflow-wrap: anywhere;
+        text-align: right;
       }
       #results {
         flex: 1;
@@ -266,7 +308,9 @@
           ·
           <span class="sort-btn" id="sort-length">length</span></span
         >
+        · <span class="sort-btn" id="ex-btn">examples</span>
       </div>
+      <div id="examples" hidden></div>
     </div>
     <div id="results"></div>
     <svg id="link" hidden aria-hidden="true"><path /></svg>
@@ -808,6 +852,44 @@
 
       document.getElementById('sort-alpha').addEventListener('click', () => chooseSort('alpha'));
       document.getElementById('sort-length').addEventListener('click', () => chooseSort('length'));
+
+      const EXAMPLES = [
+        ['words with a q not followed by u', 'q(?!u)'],
+        ['words containing r, u, v, a and n, in any order', '(?=.*r)(?=.*u)(?=.*v)(?=.*a)(?=.*n)'],
+      ];
+      const examplesEl = document.getElementById('examples');
+      const exBtn = document.getElementById('ex-btn');
+
+      function showExamples(open) {
+        if (open === !examplesEl.hidden) return;
+        examplesEl.hidden = !open;
+        exBtn.classList.toggle('active', open);
+        if (open) {
+          examplesEl.animate({ opacity: [0, 1] }, { duration: 150, easing: 'ease-out' });
+        }
+      }
+
+      for (const [label, q] of EXAMPLES) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        const code = document.createElement('code');
+        code.textContent = q;
+        b.append(label, code);
+        b.addEventListener('click', () => {
+          qEl.value = q;
+          showExamples(false);
+          syncUrl();
+          render();
+        });
+        examplesEl.appendChild(b);
+      }
+      exBtn.addEventListener('click', () => showExamples(examplesEl.hidden));
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('#examples, #ex-btn')) showExamples(false);
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') showExamples(false);
+      });
 
       function applyUrl() {
         const state = readUrl();
