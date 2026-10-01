@@ -5,14 +5,12 @@ tags: [cli, go, freeze, screenshots]
 
 # Make terminal screenshots of a TUI from with freeze
 
-I wanted a nice looking screenshot of [rtr](https://github.com/rjayasin/rtr), my TUI for moving files over SSH, for its README. a terminal window on a gradient background, like other repos have.
+I wanted a nice looking screenshot of [rtr](https://github.com/rjayasin/rtr), my TUI for moving files over SSH, for its README. 
 
-The trick is to not screenshot the running app at all. A test fills the app's model with fabricated hosts, files and transfers and writes its rendered frame out as ANSI. Then [freeze](https://github.com/charmbracelet/freeze) from Charm turns that ANSI into an image of a terminal window.
+Claude wrote a test that fills the app's model with fabricated hosts, files and transfers and writes its rendered frame out as ANSI. Then [freeze](https://github.com/charmbracelet/freeze) turns that ANSI into an image of a terminal window.
 
-```
-$ RTR_SCREENSHOT=frame.ansi go test ./internal/ui -run TestScreenshot
-$ go run github.com/charmbracelet/freeze@v0.2.2 --language ansi --window -o window.svg frame.ansi
-```
+Claude then wrote a script that renders the image on a gradient background using headless chrome. 
+
 
 You can see the result at the top of [rtr's README](https://github.com/rjayasin/rtr#readme). It took a few workarounds to get there, which claude wrote up:
 
