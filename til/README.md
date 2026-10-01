@@ -61,6 +61,9 @@ TILs simple:
   opening fence is ignored)
 - `inline code`, `[links](https://...)`, `**bold**`, `*italic*`
 - flat `-` or `1.` lists — no nesting, no multi-line list items
+- `![alt](file.png)` images, alone on their own line. Put the image file in
+  this folder next to the post and link it by bare filename, so the path
+  works both on the site and in GitHub's view of the markdown.
 
-Not supported: tables, images, footnotes, nested lists, raw HTML (it gets
+Not supported: tables, inline images, footnotes, nested lists, raw HTML (it gets
 escaped and shown literally).
