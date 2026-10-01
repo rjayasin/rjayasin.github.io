@@ -167,6 +167,11 @@
         background: none;
         padding: 0;
       }
+      #post img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+      }
       #post blockquote {
         border-left: 2px solid #ccc;
         padding-left: 10px;
@@ -332,7 +337,7 @@
       const post = document.getElementById('post');
 
       // --- minimal markdown renderer (headings, fenced code, inline code,
-      // links, bold/italic, lists, blockquotes, hr, paragraphs) ---
+      // links, images, bold/italic, lists, blockquotes, hr, paragraphs) ---
 
       function renderInline(text) {
         // Rendered fragments are stashed behind placeholders (a NUL sentinel
@@ -406,6 +411,20 @@
             i++;
             while (i < lines.length && !/^```/.test(lines[i])) buf.push(lines[i++]);
             html.push('<pre><code>' + Common.escHtml(buf.join('\n')) + '</code></pre>');
+            continue;
+          }
+          // An image must be alone on its line. Any URL scheme other than
+          // http(s) is left as text.
+          const image = line.match(/^!\[([^\]]*)\]\(([^)\s]+)\)\s*$/);
+          if (image && !/^(?!https?:)[a-z][\w+.-]*:/i.test(image[2])) {
+            flushAll();
+            html.push(
+              '<p><img src="' +
+                Common.escHtml(image[2]) +
+                '" alt="' +
+                Common.escHtml(image[1]) +
+                '" /></p>'
+            );
             continue;
           }
           const heading = line.match(/^(#{1,4})\s+(.*)$/);
