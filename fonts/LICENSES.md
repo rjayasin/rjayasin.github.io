@@ -361,6 +361,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Chonburi | OFL | Cadson Demak | Copyright (c) 2015, Cadson Demak (info@cadsondemak.com) |
 | Cinzel | OFL | Natanael Gama | Copyright 2020 The Cinzel Project Authors (https://github.com/NDISCOVER/Cinzel) |
 | Cinzel Decorative | OFL | Natanael Gama | Copyright  2012 Natanael Gama (info@ndiscovered.com), with Reserved Font Name \'Cinzel\' |
+| Clarity City | OFL | VMware, Chris Simpson | Copyright 2019 The Clarity City Project Authors (https://github.com/googlefonts/clarity-city) |
 | Clicker Script | OFL | Astigmatic | Copyright (c) 2012 by Brian J. Bonislawsky and Jim Lyles for Astigmatic (AOETI) (astigma@astigmatic.com), with Reserved Font Name "Clicker Script" |
 | Climate Crisis | OFL | Daniel Coull, Eino Korkala | Copyright 2020 The Climate Crisis Project Authors (https://github.com/dancoull/ClimateCrisis) |
 | Coda | OFL | Vernon Adams | Copyright (c) 2010-2012, Vernon Adams (vern@newtypography.co.uk), with Reserved Font Names "Coda" |
@@ -724,6 +725,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Iosevka Charon Mono | OFL | Juliette Pluto | Copyright 2015-2025 The Iosevka Project Authors (https://github.com/be5invis/Iosevka) |
 | Irish Grover | APACHE2 | Sideshow | Copyright (c) 2010 by Font Diner, Inc DBA Sideshow. All rights reserved. |
 | Island Moments | OFL | Robert Leuschke | Copyright 2013-2021 The Island Moments Project Authors (https://github.com/googlefonts/island-moments) |
+| Isometra | OFL | Ben Dunkle | Copyright 2025 The Isometra Project Authors (https://github.com/field2/isometra) |
 | Istok Web | OFL | Andrey V. Panov | Copyright (c) 2008-2014, Andrey V. Panov (panov@canopus.iacp.dvo.ru), with Reserved Font Name Istok |
 | Italiana | OFL | Santiago Orozco | Copyright (c) 2011 by Santiago Orozco (hi@typemade.mx) with reserved name Italiana |
 | Italianno | OFL | Robert Leuschke | Copyright 2009 The Italianno Project Authors (https://github.com/googlefonts/italianno) |
@@ -818,6 +820,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Koulen | OFL | Danh Hong | Copyright 2019 The Koulen Project Authors (https://github.com/danhhong/Koulen) |
 | Kranky | APACHE2 | Sideshow | Copyright (c) 2010 by Font Diner, Inc DBA Sideshow. All rights reserved. |
 | Kreon | OFL | Julia Petretta | Copyright 2018 The Kreon Project Authors (https://github.com/googlefonts/kreon), with Reserved Font Name "Kreon" |
+| Kripa | OFL | Kedar Gadge | Copyright 2026 The Kripa Type Project Authors (https://github.com/kedar9/kripa) |
 | Kristi | OFL | Birgit Pulk | Copyright (c) 2010, Birgit Pulk (birgitpulk@gmail.com). All rights reserved. Licenced under SIL OFL v1.1 |
 | Krona One | OFL | Yvonne Schüttler | Copyright (c) 2011, Sorkin Type Co (www.sorkintype.com eben@eyebytes.com) with Reserved Font Name "Krona". |
 | Krub | OFL | Cadson Demak | Copyright 2018 The Krub Project Authors (https://github.com/cadsondemak/Krub) |
@@ -869,6 +872,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Libre Barcode EAN13 Text | OFL | Lasse Fister | Copyright 2017-2020 The Libre Barcode Project Authors (https://github.com/graphicore/librebarcode) |
 | Libre Baskerville | OFL | Impallari Type | Copyright 2012 The Libre Baskerville Project Authors (https://github.com/impallari/Libre-Baskerville) |
 | Libre Bodoni | OFL | Pablo Impallari, Rodrigo Fuenzalida | Copyright 2012 The Libre Bodoni Project Authors (https://github.com/googlefonts/Libre-Bodoni/) |
+| Libre Caslon Condensed | OFL | Pablo Impallari, Rodrigo Fuenzalida, Ertekin Erdin | Copyright 2020 The Libre Caslon Condensed Project Authors (https://github.com/ertekinno/libre-caslon-condensed) |
 | Libre Caslon Display | OFL | Impallari Type | Copyright 2012 The Libre Caslon Display Authors (https://github.com/impallari/Libre-Caslon-Display) |
 | Libre Caslon Text | OFL | Pablo Impallari | Copyright 2020 The Libre Caslon Text Project Authors (https://github.com/thundernixon/Libre-Caslon) |
 | Libre Franklin | OFL | Impallari Type | Copyright 2020 The Libre Franklin Project Authors (https://github.com/googlefonts/Libre-Franklin) |

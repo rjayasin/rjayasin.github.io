@@ -2792,6 +2792,14 @@
       "copyright": "Copyright  2012 Natanael Gama (info@ndiscovered.com), with Reserved Font Name \\'Cinzel\\'",
       "resolved": true
     },
+    "Clarity City": {
+      "family": "Clarity City",
+      "slug": "claritycity",
+      "licenseCode": "OFL",
+      "designer": "VMware, Chris Simpson",
+      "copyright": "Copyright 2019 The Clarity City Project Authors (https://github.com/googlefonts/clarity-city)",
+      "resolved": true
+    },
     "Clicker Script": {
       "family": "Clicker Script",
       "slug": "clickerscript",
@@ -5696,6 +5704,14 @@
       "copyright": "Copyright 2013-2021 The Island Moments Project Authors (https://github.com/googlefonts/island-moments)",
       "resolved": true
     },
+    "Isometra": {
+      "family": "Isometra",
+      "slug": "isometra",
+      "licenseCode": "OFL",
+      "designer": "Ben Dunkle",
+      "copyright": "Copyright 2025 The Isometra Project Authors (https://github.com/field2/isometra)",
+      "resolved": true
+    },
     "Istok Web": {
       "family": "Istok Web",
       "slug": "istokweb",
@@ -6448,6 +6464,14 @@
       "copyright": "Copyright 2018 The Kreon Project Authors (https://github.com/googlefonts/kreon), with Reserved Font Name \"Kreon\"",
       "resolved": true
     },
+    "Kripa": {
+      "family": "Kripa",
+      "slug": "kripa",
+      "licenseCode": "OFL",
+      "designer": "Kedar Gadge",
+      "copyright": "Copyright 2026 The Kripa Type Project Authors (https://github.com/kedar9/kripa)",
+      "resolved": true
+    },
     "Kristi": {
       "family": "Kristi",
       "slug": "kristi",
@@ -6886,6 +6910,14 @@
       "licenseCode": "OFL",
       "designer": "Pablo Impallari, Rodrigo Fuenzalida",
       "copyright": "Copyright 2012 The Libre Bodoni Project Authors (https://github.com/googlefonts/Libre-Bodoni/)",
+      "resolved": true
+    },
+    "Libre Caslon Condensed": {
+      "family": "Libre Caslon Condensed",
+      "slug": "librecasloncondensed",
+      "licenseCode": "OFL",
+      "designer": "Pablo Impallari, Rodrigo Fuenzalida, Ertekin Erdin",
+      "copyright": "Copyright 2020 The Libre Caslon Condensed Project Authors (https://github.com/ertekinno/libre-caslon-condensed)",
       "resolved": true
     },
     "Libre Caslon Display": {
