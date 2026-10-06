@@ -250,6 +250,38 @@
         font-size: 20px;
       }
 
+      .caption .recipe-match {
+        margin-bottom: 10px;
+      }
+
+      .caption .recipe-match .rm-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      .caption .recipe-match .rm-name {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 24px;
+        line-height: 1.25;
+      }
+
+      .caption .recipe-match a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .caption .recipe-match a:hover {
+        text-decoration: underline;
+      }
+
+      .caption .recipe-match .rm-note {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
       .caption .cam {
         font-size: 12px;
         color: var(--muted);
@@ -505,6 +537,7 @@
     </style>
     <script src="/common.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.umd.js"></script>
+    <script src="/fuji-viewer/recipes.js"></script>
   </head>
   <body>
     <header>
@@ -846,6 +879,199 @@
         return t[0x1050] != null ? SHUTTER_TYPES[t[0x1050]] || null : null;
       }
 
+      // ---- Named recipe matching (recipes.js, from fujixweekly.com) ---------
+      // Recipes are only matched against photos from cameras of the sensor
+      // generation fujixweekly lists them for. X-T3 / X-T30 share recipes
+      // with both neighbouring generations.
+
+      const SENSORS_BY_MODEL = {
+        'X-Trans V': ['X-H2S', 'X-H2', 'X-T5', 'X-S20', 'X100VI', 'X-T50', 'X-M5', 'X-E5'],
+        'X-Trans IV': ['X-PRO3', 'X100V', 'X-T4', 'X-S10', 'X-E4', 'X-T30 II', 'X-T3', 'X-T30'],
+        'X-Trans III': ['X-PRO2', 'X-T2', 'X-T20', 'X-E3', 'X100F', 'X-H1', 'X-T3', 'X-T30'],
+        'X-Trans II': [
+          'X-T1',
+          'X-T10',
+          'X-E2',
+          'X-E2S',
+          'X100S',
+          'X100T',
+          'X70',
+          'X30',
+          'XQ1',
+          'XQ2',
+        ],
+        'X-Trans I': ['X-PRO1', 'X-E1', 'X-M1'],
+      };
+
+      function sensorsFor(model) {
+        const m = String(model || '')
+          .toUpperCase()
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (m === 'X-T30 III') return ['X-Trans V'];
+        return Object.keys(SENSORS_BY_MODEL).filter((s) => SENSORS_BY_MODEL[s].includes(m));
+      }
+
+      const FILM_KEY = {
+        0x000: 'provia',
+        0x120: 'astia',
+        0x200: 'velvia',
+        0x400: 'velvia',
+        0x500: 'pro-neg-std',
+        0x501: 'pro-neg-hi',
+        0x600: 'classic-chrome',
+        0x700: 'eterna',
+        0x800: 'classic-neg',
+        0x900: 'bleach-bypass',
+        0xa00: 'nostalgic-neg',
+        0xb00: 'reala-ace',
+      };
+      const MONO_FILM_KEY = {
+        0x300: 'mono',
+        0x301: 'mono-r',
+        0x302: 'mono-ye',
+        0x303: 'mono-g',
+        0x310: 'sepia',
+        0x500: 'acros',
+        0x501: 'acros-r',
+        0x502: 'acros-ye',
+        0x503: 'acros-g',
+      };
+      const COLOR_NUM = {
+        0x0: 0,
+        0x080: 1,
+        0x100: 2,
+        0x0c0: 3,
+        0x0e0: 4,
+        0x180: -1,
+        0x400: -2,
+        0x4c0: -3,
+        0x4e0: -4,
+      };
+      const SHARPNESS_NUM = { 0: -4, 1: -3, 2: -2, 3: 0, 4: 2, 5: 3, 6: 4, 0x82: -1, 0x84: 1 };
+      const NR_NUM = {
+        0x000: 0,
+        0x100: 2,
+        0x180: 1,
+        0x1c0: 3,
+        0x1e0: 4,
+        0x200: -2,
+        0x280: -1,
+        0x2c0: -3,
+        0x2e0: -4,
+      };
+      const STRENGTH_KEY = { 0: 'off', 32: 'weak', 64: 'strong' };
+      const WB_KEY = {
+        0x0: 'auto',
+        0x1: 'auto-white',
+        0x2: 'auto-ambience',
+        0x100: 'daylight',
+        0x200: 'shade',
+        0x300: 'fluorescent1',
+        0x301: 'fluorescent2',
+        0x302: 'fluorescent3',
+        0x400: 'incandescent',
+        0x600: 'underwater',
+      };
+
+      // The photo's settings in the same normalised shape recipes.js uses.
+      // Anything the camera didn't record stays undefined and is not compared.
+      function photoSettings(t) {
+        const satRaw = t[0x1003];
+        const mono = satRaw != null && satRaw >= 0x300;
+        const s8 = (v) => (v > 127 ? v - 256 : v);
+        const p = {
+          film: mono ? MONO_FILM_KEY[satRaw] : FILM_KEY[t[0x1401]],
+          highlight: t[0x1041] != null ? -t[0x1041] / 16 : undefined,
+          shadow: t[0x1040] != null ? -t[0x1040] / 16 : undefined,
+          color: mono ? undefined : COLOR_NUM[satRaw],
+          sharpness: SHARPNESS_NUM[t[0x1001]],
+          nr: NR_NUM[t[0x100e]],
+          clarity: t[0x100f] != null ? t[0x100f] / 1000 : undefined,
+          cce: STRENGTH_KEY[t[0x1048]],
+          ccfxb: STRENGTH_KEY[t[0x104e]],
+        };
+        if (t[0x1402] === 0) p.dr = 'auto';
+        else if (t[0x1403] != null) p.dr = 'DR' + t[0x1403];
+        if (t[0x1443] === 0) p.drp = 'auto';
+        else if (t[0x1443] === 1) p.drp = STRENGTH_KEY[{ 1: 32, 2: 64 }[t[0x1445]]];
+        const rough = STRENGTH_KEY[t[0x1047]];
+        if (rough) {
+          const size = { 16: 'small', 32: 'large' }[t[0x104c]];
+          p.grain = rough !== 'off' && size ? `${rough} ${size}` : rough;
+        }
+        const shift = t[0x100a];
+        if (t[0x1002] != null && Array.isArray(shift)) {
+          const scale = (x) => (x % 20 === 0 ? x / 20 : x);
+          p.wb = { r: scale(shift[0]), b: scale(shift[1]) };
+          if (t[0x1002] === 0xff0) p.wb.kelvin = t[0x1005];
+          else p.wb.mode = WB_KEY[t[0x1002]];
+        }
+        if (t[0x1049] != null || t[0x104b] != null) {
+          p.mono = { wc: s8(t[0x1049] || 0), mg: s8(t[0x104b] || 0) };
+        }
+        return p;
+      }
+
+      const SETTING_LABELS = {
+        film: 'Film Simulation',
+        dr: 'Dynamic Range',
+        drp: 'DR Priority',
+        highlight: 'Highlight Tone',
+        shadow: 'Shadow Tone',
+        color: 'Color',
+        sharpness: 'Sharpness',
+        nr: 'Noise Reduction',
+        clarity: 'Clarity',
+        grain: 'Grain Effect',
+        cce: 'Color Chrome Effect',
+        ccfxb: 'Color Chrome FX Blue',
+        wb: 'White Balance',
+        mono: 'Monochromatic Color',
+      };
+
+      function sameSetting(key, want, have) {
+        if (key === 'wb') {
+          return (
+            want.mode === have.mode &&
+            want.kelvin === have.kelvin &&
+            want.r === have.r &&
+            want.b === have.b
+          );
+        }
+        if (key === 'mono') return want.wc === have.wc && want.mg === have.mg;
+        // A recipe that only gives grain strength matches either size.
+        if (key === 'grain' && !want.includes(' ')) return have.split(' ')[0] === want;
+        return want === have;
+      }
+
+      // Exact matches (every setting the recipe specifies and the photo records
+      // agrees), or failing that, recipes that differ in a single setting.
+      function matchRecipes(model, t) {
+        const sensors = sensorsFor(model);
+        const recipes = window.fujiRecipes || [];
+        if (!sensors.length || !recipes.length || t[0x1401] == null) return null;
+        const photo = photoSettings(t);
+        const exact = [];
+        const close = [];
+        for (const r of recipes) {
+          if (!r.sensors.some((s) => sensors.includes(s))) continue;
+          let compared = 0;
+          const diffs = [];
+          for (const [key, want] of Object.entries(r.s)) {
+            if (photo[key] == null) continue;
+            compared++;
+            if (!sameSetting(key, want, photo[key])) diffs.push(SETTING_LABELS[key]);
+          }
+          if (diffs.length === 0 && compared >= 6) exact.push(r);
+          else if (diffs.length === 1 && compared >= 7) close.push({ ...r, diff: diffs[0] });
+        }
+        const uniq = (list) =>
+          list.filter((r, i) => list.findIndex((o) => o.name === r.name) === i);
+        if (exact.length) return { exact: uniq(exact), close: [] };
+        return close.length ? { exact: [], close: uniq(close).slice(0, 3) } : null;
+      }
+
       // ---- DOM refs ---------------------------------------------------------
 
       const stageEl = document.getElementById('stage');
@@ -958,6 +1184,7 @@
 
         return {
           recipeName: recipeName || std.Model || '',
+          match: matchRecipes(std.Model, t),
           camLine,
           sections: [
             { title: 'Recipe', rows: recipe },
@@ -986,10 +1213,30 @@
 
       const dashIfEmpty = (v) => (isEmpty(v) ? '<span class="dash">—</span>' : v);
 
+      function recipeMatchHTML(match) {
+        if (!match) return '';
+        const link = (r) =>
+          `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.name)}</a>`;
+        if (match.exact.length) {
+          return `<div class="recipe-match">
+              <div class="rm-label">Fuji X Weekly recipe</div>
+              <div class="rm-name">${match.exact.map(link).join(' / ')}</div>
+            </div>`;
+        }
+        const notes = match.close.map(
+          (r) => `${link(r)} <span class="rm-note">(${esc(r.diff)} differs)</span>`
+        );
+        return `<div class="recipe-match">
+            <div class="rm-label">Close to Fuji X Weekly recipe</div>
+            <div class="rm-name">${notes.join('<br />')}</div>
+          </div>`;
+      }
+
       function captionHTML(photo, slot, btnLabel) {
         const d = photo.data;
         const warn = photo.warn ? `<div class="warn">${esc(photo.warn)}</div>` : '';
         return `<div class="caption">
+            ${recipeMatchHTML(d.match)}
             <div class="recipe-name">${esc(d.recipeName)}</div>
             <div class="cam">${esc(d.camLine)}</div>
             <div class="filemeta">

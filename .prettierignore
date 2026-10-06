@@ -12,3 +12,4 @@ fonts/.licenses-cache.json
 # from reshaping what those writers produce.
 etymology/game/manifest.json
 etymology/game/trees/
+fuji-viewer/recipes.js
