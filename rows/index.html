@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ruvan / rows</title>
+    <link rel="icon" id="favicon" />
+    <link rel="stylesheet" href="/common.css" />
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      body {
+        background: #151517;
+        font-family: system-ui, sans-serif;
+      }
+      #scene {
+        position: fixed;
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+        cursor: grab;
+      }
+      #scene.dragging {
+        cursor: grabbing;
+      }
+      #controls {
+        position: fixed;
+        left: 50%;
+        bottom: 16px;
+        transform: translateX(-50%);
+        width: max-content;
+        max-width: calc(100% - 32px);
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 10px 28px;
+        padding: 10px 18px;
+        border-radius: 12px;
+        background: rgba(20, 20, 22, 0.55);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        color: rgba(255, 255, 255, 0.75);
+        font-size: 14px;
+      }
+      .ctl {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .ctl input[type='range'] {
+        width: min(240px, 50vw);
+        accent-color: #9bc47a;
+      }
+      .ctl output {
+        min-width: 4.5em;
+        font-variant-numeric: tabular-nums;
+        color: #fff;
+      }
+      .seg button,
+      #map-btn {
+        font: inherit;
+        color: rgba(255, 255, 255, 0.7);
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        padding: 4px 12px;
+        cursor: pointer;
+      }
+      .seg button:first-child {
+        border-radius: 6px 0 0 6px;
+      }
+      .seg button:last-child {
+        border-radius: 0 6px 6px 0;
+        border-left: none;
+      }
+      #map-btn {
+        border-radius: 6px;
+      }
+      .seg button.on,
+      #map-btn.on {
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+      }
+      #minimap {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        width: min(260px, calc(100vw - 32px));
+        aspect-ratio: 6 / 5;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+      }
+      #minimap[hidden] {
+        display: none;
+      }
+      #minimap canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      #minimap-grip {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 22px;
+        height: 22px;
+        cursor: nesw-resize;
+        touch-action: none;
+      }
+    </style>
+    <script src="/common.js"></script>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div id="minimap" hidden>
+      <canvas id="minimap-canvas"></canvas>
+      <div id="minimap-grip"></div>
+    </div>
+    <div id="controls">
+      <div class="ctl">
+        <label for="angle">row angle</label>
+        <input id="angle" type="range" min="0" max="180" step="1" value="60" />
+        <output id="angle-out" for="angle"></output>
+      </div>
+      <div class="ctl">
+        <label for="speed">speed</label>
+        <input id="speed" type="range" min="-150" max="150" step="1" value="10" />
+        <output id="speed-out" for="speed"></output>
+      </div>
+      <div class="ctl">
+        <label for="density">density</label>
+        <input id="density" type="range" min="25" max="200" step="5" value="100" />
+        <output id="density-out" for="density"></output>
+      </div>
+      <div class="ctl seg">
+        <button id="mode-trees" type="button" class="on">trees</button
+        ><button id="mode-stakes" type="button">stakes</button>
+      </div>
+      <button id="map-btn" type="button">map</button>
+    </div>
+    <script type="module">
+      import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
+
+      Common.paintFavicon({ glyph: '🌳', fontSize: 48, transparent: true });
+      Common.initSitemapShortcut();
+
+      const SKY = 0xbfd8ea;
+      const EYE_HEIGHT = 1.2;
+      const ROAD_LEFT = -12;
+      const ROAD_RIGHT = 3;
+      const FIELD_GAP = 9;
+      const FIELD_RIGHT = ROAD_RIGHT + FIELD_GAP;
+      const FIELD_LEFT = ROAD_LEFT - FIELD_GAP;
+      const inField = (x) => x >= FIELD_RIGHT || x <= FIELD_LEFT;
+
+      const MODES = {
+        trees: { s: 6, d: 7, radius: 400 },
+        stakes: { s: 2.4, d: 3.2, radius: 260 },
+      };
+
+      const canvas = document.getElementById('scene');
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(SKY);
+      scene.fog = new THREE.Fog(SKY, 40, 380);
+
+      const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 1000);
+      camera.rotation.order = 'YXZ';
+      camera.position.set(0, EYE_HEIGHT, 0);
+
+      scene.add(new THREE.HemisphereLight(0xdfefff, 0x5a6b3a, 1.6));
+      const sun = new THREE.DirectionalLight(0xfff2dd, 1.8);
+      sun.position.set(-40, 80, 30);
+      scene.add(sun);
+
+      function noiseTexture(base, hue, sat, spread, dots) {
+        const c = document.createElement('canvas');
+        c.width = c.height = 256;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = base;
+        ctx.fillRect(0, 0, 256, 256);
+        for (let k = 0; k < dots; k++) {
+          const l = 50 + (Math.random() - 0.5) * spread;
+          ctx.fillStyle = `hsla(${hue}, ${sat}%, ${l}%, 0.35)`;
+          ctx.fillRect(
+            Math.random() * 256,
+            Math.random() * 256,
+            1 + Math.random() * 3,
+            1 + Math.random() * 3
+          );
+        }
+        const t = new THREE.CanvasTexture(c);
+        t.wrapS = t.wrapT = THREE.RepeatWrapping;
+        t.colorSpace = THREE.SRGBColorSpace;
+        t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        return t;
+      }
+
+      // A ground strip pinned to the camera whose texture scrolls with the car.
+      const LENGTH = 1000;
+      const strips = [];
+      function strip(x0, x1, tex, tile, y = 0) {
+        const w = x1 - x0;
+        const t = tex.clone();
+        t.repeat.set(w / tile, LENGTH / tile);
+        const m = new THREE.Mesh(
+          new THREE.PlaneGeometry(w, LENGTH),
+          new THREE.MeshLambertMaterial({ map: t })
+        );
+        m.rotation.x = -Math.PI / 2;
+        m.position.set((x0 + x1) / 2, y, 0);
+        scene.add(m);
+        strips.push({ tex: t, tile });
+      }
+      strip(ROAD_LEFT, ROAD_RIGHT, noiseTexture('#4a4a4c', 0, 0, 40, 6000), 6, 0.01);
+      strip(-1000, 1000, noiseTexture('#5f7d3a', 90, 35, 60, 9000), 5);
+
+      for (const x of [ROAD_LEFT + 0.4, ROAD_RIGHT - 0.4]) {
+        const line = new THREE.Mesh(
+          new THREE.PlaneGeometry(0.15, LENGTH),
+          new THREE.MeshBasicMaterial({ color: 0xeeeeee, fog: true })
+        );
+        line.rotation.x = -Math.PI / 2;
+        line.position.set(x, 0.02, 0);
+        scene.add(line);
+      }
+
+      function instanced(geo, color, max) {
+        const m = new THREE.InstancedMesh(
+          geo,
+          new THREE.MeshLambertMaterial({ color, flatShading: true }),
+          max
+        );
+        m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        m.frustumCulled = false;
+        m.count = 0;
+        scene.add(m);
+        return m;
+      }
+      const MAX_DENSITY = 2;
+      function maxCount({ s, d, radius }) {
+        return Math.ceil(((Math.PI * radius * radius * MAX_DENSITY) / (s * d)) * 1.3) + 500;
+      }
+
+      const trunkGeo = new THREE.CylinderGeometry(0.12, 0.18, 1.6, 6).translate(0, 0.8, 0);
+      const canopyGeo = new THREE.IcosahedronGeometry(1.7, 1).scale(1, 0.9, 1).translate(0, 2.9, 0);
+      const stakeGeo = new THREE.BoxGeometry(0.09, 1.7, 0.09).translate(0, 0.85, 0);
+      const meshes = {
+        trees: [
+          instanced(trunkGeo, 0x5b4331, maxCount(MODES.trees)),
+          instanced(canopyGeo, 0x3f6b2a, maxCount(MODES.trees)),
+        ],
+        stakes: [instanced(stakeGeo, 0x8a6e4b, maxCount(MODES.stakes))],
+      };
+
+      const angleEl = document.getElementById('angle');
+      const speedEl = document.getElementById('speed');
+      const angleOut = document.getElementById('angle-out');
+      const speedOut = document.getElementById('speed-out');
+      const densityEl = document.getElementById('density');
+      const densityOut = document.getElementById('density-out');
+      let mode = 'trees';
+
+      let paused = false;
+      function syncLabels() {
+        angleOut.textContent = `${angleEl.value}°`;
+        speedOut.textContent = paused ? 'paused' : `${speedEl.value} mph`;
+        densityOut.textContent = `${densityEl.value}%`;
+      }
+      angleEl.addEventListener('input', syncLabels);
+      speedEl.addEventListener('input', syncLabels);
+      densityEl.addEventListener('input', syncLabels);
+      syncLabels();
+
+      for (const m of Object.keys(MODES)) {
+        document.getElementById(`mode-${m}`).addEventListener('click', () => {
+          mode = m;
+          for (const k of Object.keys(MODES)) {
+            document.getElementById(`mode-${k}`).classList.toggle('on', k === m);
+            for (const mesh of meshes[k]) mesh.visible = k === m;
+          }
+        });
+      }
+      meshes.stakes[0].visible = false;
+
+      // Space is caught before the focus check so it never clicks a focused button.
+      document.addEventListener('keydown', (e) => {
+        if (e.key === ' ') {
+          e.preventDefault();
+          if (!e.repeat) paused = !paused;
+          syncLabels();
+          return;
+        }
+        if (e.target.tagName === 'INPUT') return;
+        const step = e.shiftKey ? 10 : 1;
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+          angleEl.value = +angleEl.value + (e.key === 'ArrowRight' ? step : -step);
+        } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          speedEl.value = +speedEl.value + (e.key === 'ArrowUp' ? step : -step);
+        } else return;
+        e.preventDefault();
+        syncLabels();
+      });
+
+      // Drag to turn your head; it eases back to looking straight out the window.
+      let yaw = 0;
+      let dragX = null;
+      canvas.addEventListener('pointerdown', (e) => {
+        dragX = e.clientX;
+        canvas.setPointerCapture(e.pointerId);
+        canvas.classList.add('dragging');
+      });
+      canvas.addEventListener('pointermove', (e) => {
+        if (dragX === null) return;
+        yaw = Math.max(-1.2, Math.min(1.2, yaw + (e.clientX - dragX) * 0.004));
+        dragX = e.clientX;
+      });
+      const endDrag = () => {
+        dragX = null;
+        canvas.classList.remove('dragging');
+      };
+      canvas.addEventListener('pointerup', endDrag);
+      canvas.addEventListener('pointercancel', endDrag);
+
+      function hash(i, j) {
+        let h = Math.imul(i, 73856093) ^ Math.imul(j, 19349663);
+        h = Math.imul(h ^ (h >>> 13), 1274126177);
+        return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+      }
+
+      // The field is a fixed lattice in world space. The camera stays at z = 0 and
+      // everything is placed relative to carZ, so precision never degrades.
+      let carZ = 0;
+      // Lattice point (i, j) sits at i * s * r + j * d * n, where r runs along a row
+      // and n across rows. Returns the index ranges covering the given world box.
+      function lattice(xMin, xMax, zLo, zHi) {
+        // Density scales both spacings so the grid keeps its proportions.
+        const f = 1 / Math.sqrt(+densityEl.value / 100);
+        const s = MODES[mode].s * f;
+        const d = MODES[mode].d * f;
+        const th = (+angleEl.value * Math.PI) / 180;
+        const L = { s, d, rx: Math.sin(th), rz: Math.cos(th) };
+        L.nx = L.rz;
+        L.nz = -L.rx;
+        L.iMin = L.jMin = Infinity;
+        L.iMax = L.jMax = -Infinity;
+        for (const x of [xMin, xMax]) {
+          for (const z of [carZ + zLo, carZ + zHi]) {
+            const i = (x * L.rx + z * L.rz) / s;
+            const j = (x * L.nx + z * L.nz) / d;
+            L.iMin = Math.min(L.iMin, Math.floor(i));
+            L.iMax = Math.max(L.iMax, Math.ceil(i));
+            L.jMin = Math.min(L.jMin, Math.floor(j));
+            L.jMax = Math.max(L.jMax, Math.ceil(j));
+          }
+        }
+        return L;
+      }
+
+      function layoutField() {
+        const R = MODES[mode].radius;
+        const { s, d, rx, rz, nx, nz, iMin, iMax, jMin, jMax } = lattice(-R, R, -R, R);
+
+        const list = meshes[mode];
+        const arr = list[0].instanceMatrix.array;
+        const cap = list[0].instanceMatrix.count;
+        const R2 = R * R;
+        const trees = mode === 'trees';
+        let n = 0;
+        for (let j = jMin; j <= jMax; j++) {
+          for (let i = iMin; i <= iMax; i++) {
+            const px = i * s * rx + j * d * nx;
+            if (!inField(px)) continue;
+            const pz = i * s * rz + j * d * nz - carZ;
+            if (px * px + pz * pz > R2 || n >= cap) continue;
+            const sc = trees ? 0.85 + 0.3 * hash(i, j) : 1;
+            const o = n * 16;
+            arr[o] = sc;
+            arr[o + 5] = sc;
+            arr[o + 10] = sc;
+            arr[o + 12] = px;
+            arr[o + 14] = pz;
+            arr[o + 15] = 1;
+            n++;
+          }
+        }
+        for (const mesh of list) {
+          if (mesh !== list[0]) mesh.instanceMatrix.array.set(arr.subarray(0, n * 16));
+          mesh.count = n;
+          mesh.instanceMatrix.clearUpdateRanges();
+          mesh.instanceMatrix.addUpdateRange(0, n * 16);
+          mesh.instanceMatrix.needsUpdate = true;
+        }
+      }
+
+      // Top-down view centered on the road: forward is to the right, the passenger side below.
+      // The scale stays fixed, so a bigger map shows more of the field.
+      const minimap = document.getElementById('minimap');
+      const mapCanvas = document.getElementById('minimap-canvas');
+      const mapCtx = mapCanvas.getContext('2d');
+      const mapBtn = document.getElementById('map-btn');
+      const METERS_PER_PX = 100 / 260;
+      function toggleMap() {
+        minimap.hidden = !minimap.hidden;
+        mapBtn.classList.toggle('on', !minimap.hidden);
+      }
+      mapBtn.addEventListener('click', toggleMap);
+      document.addEventListener('keydown', (e) => {
+        if (
+          (e.key === 'm' || e.key === 'M') &&
+          !e.repeat &&
+          !e.metaKey &&
+          !e.ctrlKey &&
+          !e.altKey
+        ) {
+          toggleMap();
+        }
+      });
+
+      // Anchored top-right, so the grip sits bottom-left and dragging out grows it.
+      const grip = document.getElementById('minimap-grip');
+      let gripStart = null;
+      function setMapWidth(w) {
+        const maxW = Math.min(innerWidth - 32, ((innerHeight - 140) * 6) / 5);
+        minimap.style.width = `${Math.round(Math.max(140, Math.min(maxW, w)))}px`;
+      }
+      try {
+        const saved = +localStorage.getItem('rows-map-width');
+        if (saved) setMapWidth(saved);
+      } catch {}
+      grip.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        gripStart = { x: e.clientX, y: e.clientY, w: minimap.clientWidth };
+        grip.setPointerCapture(e.pointerId);
+      });
+      grip.addEventListener('pointermove', (e) => {
+        if (!gripStart) return;
+        const dx = gripStart.x - e.clientX;
+        const dy = ((e.clientY - gripStart.y) * 6) / 5;
+        setMapWidth(gripStart.w + Math.max(dx, dy));
+      });
+      const endGrip = () => {
+        if (!gripStart) return;
+        gripStart = null;
+        try {
+          localStorage.setItem('rows-map-width', minimap.clientWidth);
+        } catch {}
+      };
+      grip.addEventListener('pointerup', endGrip);
+      grip.addEventListener('pointercancel', endGrip);
+
+      function drawMinimap() {
+        const dpr = Math.min(devicePixelRatio, 2);
+        const W = Math.round(mapCanvas.clientWidth * dpr);
+        const H = Math.round(mapCanvas.clientHeight * dpr);
+        if (mapCanvas.width !== W || mapCanvas.height !== H) {
+          mapCanvas.width = W;
+          mapCanvas.height = H;
+        }
+        const k = dpr / METERS_PER_PX;
+        const cx = W / 2;
+        const zHalf = cx / k;
+        const xTop = (ROAD_LEFT + ROAD_RIGHT) / 2 - H / k / 2;
+        const xBottom = xTop + H / k;
+        const mx = (relZ) => cx - relZ * k;
+        const my = (x) => (x - xTop) * k;
+        const c = mapCtx;
+
+        c.fillStyle = '#5f7d3a';
+        c.fillRect(0, 0, W, H);
+        c.fillStyle = '#4a4a4c';
+        c.fillRect(0, my(ROAD_LEFT), W, (ROAD_RIGHT - ROAD_LEFT) * k);
+        c.strokeStyle = '#eee';
+        c.lineWidth = Math.max(1, 0.2 * k);
+        c.beginPath();
+        for (const x of [ROAD_LEFT + 0.4, ROAD_RIGHT - 0.4]) {
+          c.moveTo(0, my(x));
+          c.lineTo(W, my(x));
+        }
+        c.stroke();
+        c.setLineDash([3 * k, 9 * k]);
+        c.lineDashOffset = -(((cx + carZ * k) % (12 * k)) + 12 * k);
+        c.beginPath();
+        for (const x of [-1, -4.6, -8.2]) {
+          c.moveTo(0, my(x));
+          c.lineTo(W, my(x));
+        }
+        c.stroke();
+        c.setLineDash([]);
+
+        const { s, d, rx, rz, nx, nz, iMin, iMax, jMin, jMax } = lattice(
+          xTop - 5,
+          xBottom + 5,
+          -zHalf - 5,
+          zHalf + 5
+        );
+        const pos = (i, j) => [mx(i * s * rz + j * d * nz - carZ), my(i * s * rx + j * d * nx)];
+        c.save();
+        c.beginPath();
+        c.rect(0, 0, W, my(FIELD_LEFT) + 2 * k);
+        c.rect(0, my(FIELD_RIGHT) - 2 * k, W, H);
+        c.clip();
+        c.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+        c.lineWidth = Math.max(1, 0.15 * k);
+        c.beginPath();
+        for (let j = jMin; j <= jMax; j++) {
+          c.moveTo(...pos(iMin, j));
+          c.lineTo(...pos(iMax, j));
+        }
+        c.stroke();
+        const trees = mode === 'trees';
+        c.fillStyle = trees ? '#2f5420' : '#fff3c4';
+        c.strokeStyle = '#1e1a12';
+        c.lineWidth = dpr;
+        const r = trees ? 1.5 * k : Math.max(4 * dpr, 0.8 * k);
+        c.beginPath();
+        for (let j = jMin; j <= jMax; j++) {
+          for (let i = iMin; i <= iMax; i++) {
+            const x = i * s * rx + j * d * nx;
+            if (!inField(x)) continue;
+            const [px, py] = pos(i, j);
+            if (px < -r || px > W + r || py < -r || py > H + r) continue;
+            if (trees) {
+              c.moveTo(px + r, py);
+              c.arc(px, py, r, 0, Math.PI * 2);
+            } else c.rect(px - r / 2, py - r / 2, r, r);
+          }
+        }
+        c.fill();
+        if (!trees) c.stroke();
+        c.restore();
+
+        const half = Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
+        const ex = cx;
+        const ey = my(0);
+        c.fillStyle = 'rgba(255, 245, 190, 0.22)';
+        c.beginPath();
+        c.moveTo(ex, ey);
+        const a = Math.PI / 2 - yaw;
+        c.arc(ex, ey, Math.hypot(W, H), a - half, a + half);
+        c.closePath();
+        c.fill();
+        c.fillStyle = '#d64541';
+        c.fillRect(cx - 2.3 * k, my(-1.4), 4.6 * k, 1.9 * k);
+        c.fillStyle = '#fff';
+        c.beginPath();
+        c.arc(ex, ey, Math.max(2, 0.35 * k), 0, Math.PI * 2);
+        c.fill();
+      }
+
+      function resize() {
+        const w = innerWidth;
+        const h = innerHeight;
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+      }
+      addEventListener('resize', resize);
+      resize();
+
+      const MPH_TO_MS = 0.44704;
+      let last = performance.now();
+      function frame(now) {
+        const dt = Math.min(0.1, (now - last) / 1000);
+        last = now;
+
+        // Facing +x out the passenger window, so forward travel is -z.
+        const v = +speedEl.value * MPH_TO_MS;
+        if (!paused) carZ -= v * dt;
+        for (const { tex, tile } of strips) tex.offset.y = (((-carZ / tile) % 1) + 1) % 1;
+
+        if (dragX === null) yaw *= Math.pow(0.15, dt);
+        camera.rotation.y = -Math.PI / 2 + yaw;
+        camera.rotation.x = -0.04;
+
+        layoutField();
+        renderer.render(scene, camera);
+        if (!minimap.hidden) drawMinimap();
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>
