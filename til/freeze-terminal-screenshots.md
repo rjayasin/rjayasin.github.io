@@ -7,7 +7,7 @@ tags: [cli, go, freeze, screenshots]
 
 I wanted a nice looking screenshot of [rtr](https://github.com/rjayasin/rtr), my TUI for moving files over SSH, for its README.
 
-Claude wrote a test that fills the app's model with fabricated hosts, files and transfers and writes its rendered frame out as ANSI. Then [freeze](https://github.com/charmbracelet/freeze) turns that ANSI into an image of a terminal window.
+Claude wrote a test that fills the app's model with a fake host, files, and transfers and writes its rendered frame out as ANSI. Then [freeze](https://github.com/charmbracelet/freeze) turns that ANSI into an image of a terminal window.
 
 Claude then wrote a script that renders the image on a gradient background using headless chrome.
 
