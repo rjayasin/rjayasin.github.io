@@ -879,6 +879,10 @@
       const EXAMPLES = [
         ['words with a q not followed by u', 'q(?!u)'],
         ['words containing r, u, v, a and n, in any order', '(?=.*r)(?=.*u)(?=.*v)(?=.*a)(?=.*n)'],
+        [
+          'words with letters in alphabetical order',
+          '^a*b*c*d*e*f*g*h*i*j*k*l*m*n*o*p*q*r*s*t*u*v*w*x*y*z*$',
+        ],
       ];
       const examplesEl = document.getElementById('examples');
       const exBtn = document.getElementById('ex-btn');
