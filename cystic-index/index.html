@@ -653,8 +653,15 @@
         </span>
       </div>
       <div class="view-bar" id="edit-bar" role="group" aria-label="edit" hidden>
-        <button type="button" data-target="organoid" class="active">organoid</button>
-        <button type="button" data-target="cyst">cyst</button>
+        <button
+          type="button"
+          data-target="organoid"
+          class="active"
+          title="Edit the organoid (space)"
+        >
+          organoid
+        </button>
+        <button type="button" data-target="cyst" title="Edit the cyst (space)">cyst</button>
         <span class="sep"></span>
         <button type="button" data-tool="brush" class="active">brush</button>
         <button type="button" data-tool="lasso">lasso</button>
@@ -1831,7 +1838,11 @@
         if (drag?.path) {
           drag.path.forEach((p, k) => (k ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
           ctx.closePath();
-          ctx.fillStyle = drag.add ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.3)';
+          ctx.fillStyle = !drag.add
+            ? 'rgba(0,0,0,0.3)'
+            : state.editCyst
+              ? 'rgba(255,212,0,0.2)'
+              : 'rgba(255,255,255,0.2)';
           ctx.fill();
         } else if (state.cursor && state.tool === 'brush') {
           ctx.arc(state.cursor.x, state.cursor.y, state.brush, 0, 2 * Math.PI);
@@ -1842,7 +1853,7 @@
         ctx.strokeStyle = 'rgba(0,0,0,0.7)';
         ctx.stroke();
         ctx.lineWidth = lw;
-        ctx.strokeStyle = '#fff';
+        ctx.strokeStyle = state.editCyst ? '#ffd400' : '#fff';
         ctx.stroke();
       }
 
@@ -2359,6 +2370,7 @@
         btn.addEventListener('click', () => {
           state.editCyst = btn.dataset.target === 'cyst';
           syncEditBar();
+          render();
         });
       });
 
@@ -2380,6 +2392,18 @@
         ) {
           e.preventDefault();
           undo();
+          return;
+        }
+        if (
+          e.key === ' ' &&
+          state.editing &&
+          !drag &&
+          !e.target.closest('input, textarea, select')
+        ) {
+          e.preventDefault();
+          state.editCyst = !state.editCyst;
+          syncEditBar();
+          render();
           return;
         }
         if (e.key !== 'Escape' || !state.editing || !state.selected) return;
