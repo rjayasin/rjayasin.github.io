@@ -1639,12 +1639,22 @@
           state.box = state.editing && state.selected ? boxAround(state.selected) : viewBox();
         }
         const box = state.box;
-        if (canvas.width !== box.w || canvas.height !== box.h) {
-          canvas.width = box.w;
-          canvas.height = box.h;
+        // Size the canvas to the screen rather than the working image, so a
+        // close crop stays sharp: the original image is drawn at full
+        // resolution and outlines, brush and lasso are drawn as vectors.
+        const dpr = window.devicePixelRatio || 1;
+        const cw = Math.max(1, Math.round($('canvas-wrap').clientWidth * dpr));
+        const chh = Math.max(1, Math.round((cw * box.h) / box.w));
+        if (canvas.width !== cw || canvas.height !== chh) {
+          canvas.width = cw;
+          canvas.height = chh;
         }
-        ctx.setTransform(1, 0, 0, 1, -box.x, -box.y);
-        ctx.drawImage(state.work, 0, 0);
+        const s = cw / box.w;
+        state.px = dpr / s; // one CSS pixel in working-image pixels
+        ctx.setTransform(s, 0, 0, s, -box.x * s, -box.y * s);
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(state.img || state.work, 0, 0, state.work.width, state.work.height);
+        ctx.imageSmoothingEnabled = false;
         if (!state.result || state.peek) return;
 
         // Editing one organoid: leave the image alone apart from its borders.
@@ -1654,15 +1664,15 @@
         const blank = sel && !state.result.organoids[sel - 1].areaWork;
         if (sel && !blank) {
           outlineOrganoid(sel, '#fff', 2);
-          outlineCyst(sel, '#ffd400');
-          drawBrush(box);
+          outlineCyst(sel, '#ffd400', 1.5);
+          drawBrush();
           return;
         }
         if (state.view === 'original' && !blank) return;
         ctx.drawImage(state.view === 'outline' ? state.overlay.outline : state.overlay.fill, 0, 0);
 
         const { organoids } = state.result;
-        if (state.hover) outlineOrganoid(state.hover, '#fff', 3);
+        if (state.hover) outlineOrganoid(state.hover, '#fff', 2.5);
 
         const size = Math.max(10, Math.round(Math.max(box.w, box.h) / 45));
         ctx.font = `600 ${size}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
@@ -1678,11 +1688,12 @@
           ctx.strokeText(o.id, o.cx, o.cy);
           ctx.fillText(o.id, o.cx, o.cy);
         }
-        if (blank) drawBrush(box);
+        if (blank) drawBrush();
       }
 
-      function drawBrush(box) {
-        const lw = Math.max(1, Math.max(box.w, box.h) / 600);
+      function drawBrush() {
+        const lw = state.px;
+        ctx.lineJoin = 'round';
         ctx.beginPath();
         if (drag?.path) {
           drag.path.forEach((p, k) => (k ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
@@ -1702,38 +1713,81 @@
         ctx.stroke();
       }
 
-      // Outline one organoid, `w` px thick.
+      // Outline one organoid, `w` CSS px thick.
       function outlineOrganoid(l, colour, w) {
-        const W = state.work.width;
         const { labels } = state.result;
-        ctx.fillStyle = colour;
-        for (let i = 0; i < labels.length; i++) {
-          if (labels[i] !== l) continue;
-          const x = i % W;
-          if (
-            x === 0 ||
-            x === W - 1 ||
-            labels[i - 1] !== l ||
-            labels[i + 1] !== l ||
-            labels[i - W] !== l ||
-            labels[i + W] !== l
-          ) {
-            ctx.fillRect(x - (w >> 1), ((i / W) | 0) - (w >> 1), w, w);
-          }
-        }
+        strokeContour((i) => labels[i] === l, colour, w);
       }
 
-      function outlineCyst(l, colour) {
-        const W = state.work.width;
+      function outlineCyst(l, colour, w) {
         const { labels } = state.result;
         const c = state.cyst;
-        ctx.fillStyle = colour;
-        for (let i = 0; i < labels.length; i++) {
-          if (labels[i] !== l || !c[i]) continue;
-          if (!c[i - 1] || !c[i + 1] || !c[i - W] || !c[i + W]) {
-            ctx.fillRect(i % W, (i / W) | 0, 1, 1);
+        strokeContour((i) => c[i] && labels[i] === l, colour, w);
+      }
+
+      // Marching squares through pixel centres: the border of a pixel mask
+      // with 45° corners instead of a staircase of squares.
+      // Cell corners are tl, tr, br, bl (bits 8, 4, 2, 1); each case lists
+      // the pairs of cell edges (0 top, 1 right, 2 bottom, 3 left) to join.
+      const MARCH = [
+        [],
+        [3, 2],
+        [2, 1],
+        [3, 1],
+        [0, 1],
+        [3, 0, 2, 1],
+        [0, 2],
+        [3, 0],
+        [3, 0],
+        [0, 2],
+        [0, 1, 3, 2],
+        [0, 1],
+        [3, 1],
+        [2, 1],
+        [3, 2],
+        [],
+      ];
+
+      function strokeContour(inside, colour, w) {
+        const { width: W, height: H } = state.work;
+        const N = W * H;
+        let x0 = W,
+          y0 = H,
+          x1 = -1,
+          y1 = -1;
+        for (let i = 0; i < N; i++) {
+          if (!inside(i)) continue;
+          const x = i % W;
+          const y = (i / W) | 0;
+          if (x < x0) x0 = x;
+          if (x > x1) x1 = x;
+          if (y < y0) y0 = y;
+          if (y > y1) y1 = y;
+        }
+        if (x1 < 0) return;
+        const at = (x, y) => (x >= 0 && y >= 0 && x < W && y < H && inside(y * W + x) ? 1 : 0);
+        // Edge midpoints of the cell whose top-left pixel is (x, y).
+        const mid = [
+          (x, y) => [x + 1, y + 0.5],
+          (x, y) => [x + 1.5, y + 1],
+          (x, y) => [x + 1, y + 1.5],
+          (x, y) => [x + 0.5, y + 1],
+        ];
+        ctx.beginPath();
+        for (let y = y0 - 1; y <= y1; y++) {
+          for (let x = x0 - 1; x <= x1; x++) {
+            const k = 8 * at(x, y) + 4 * at(x + 1, y) + 2 * at(x + 1, y + 1) + at(x, y + 1);
+            const segs = MARCH[k];
+            for (let j = 0; j < segs.length; j += 2) {
+              ctx.moveTo(...mid[segs[j]](x, y));
+              ctx.lineTo(...mid[segs[j + 1]](x, y));
+            }
           }
         }
+        ctx.lineCap = 'round';
+        ctx.lineWidth = w * state.px;
+        ctx.strokeStyle = colour;
+        ctx.stroke();
       }
 
       // ---- Table and summary ----------------------------------------------
@@ -1891,6 +1945,7 @@
       });
 
       canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+      window.addEventListener('resize', render);
 
       canvas.addEventListener('mousedown', (e) => {
         if (!state.result || (e.button !== 0 && e.button !== 2)) return;
