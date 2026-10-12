@@ -2049,7 +2049,7 @@
       function showTip(e) {
         const id = labelAt(e);
         setHover(id);
-        if (!id) {
+        if (!id || state.editing) {
           tipEl.hidden = true;
           return;
         }
