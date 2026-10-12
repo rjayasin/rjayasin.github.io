@@ -13,6 +13,7 @@
         --card: #f9fafb;
         --border: #e5e7eb;
         --accent: #00a2ff;
+        --edited: #16a34a;
       }
 
       body {
@@ -31,6 +32,7 @@
         --fg: #f5f5f5;
         --card: #1a1a1a;
         --border: #2a2a2a;
+        --edited: #4ade80;
       }
 
       @media (prefers-color-scheme: dark) {
@@ -39,6 +41,7 @@
           --fg: #f5f5f5;
           --card: #1a1a1a;
           --border: #2a2a2a;
+          --edited: #4ade80;
         }
       }
 
@@ -515,6 +518,11 @@
       tbody tr.excluded td {
         color: var(--muted);
         text-decoration: line-through;
+      }
+
+      td.edited {
+        color: var(--edited);
+        font-weight: 600;
       }
 
       .swatch {
@@ -1809,7 +1817,7 @@
           if (!o.areaWork) continue;
           const off = state.excluded.has(o.id);
           ctx.strokeStyle = 'rgba(0,0,0,0.85)';
-          ctx.fillStyle = off ? '#aaa' : '#fff';
+          ctx.fillStyle = off ? '#aaa' : o.edits ? '#4ade80' : '#fff';
           ctx.strokeText(o.id, o.cx, o.cy);
           ctx.fillText(o.id, o.cx, o.cy);
         }
@@ -1960,7 +1968,7 @@
           if (state.hover === o.id) tr.classList.add('hot');
           const [r, g, b] = PALETTE[o.colour];
           tr.innerHTML =
-            `<td><span class="swatch" style="background:rgb(${r},${g},${b})"></span>${o.id}</td>` +
+            `<td${o.edits ? ' class="edited" title="Edited by hand"' : ''}><span class="swatch" style="background:rgb(${r},${g},${b})"></span>${o.id}</td>` +
             `<td>${areaNum(o.area)}</td>` +
             `<td>${areaNum(o.cyst)}</td>` +
             `<td>${fmtPct(o.ci)}<span class="bar"><span style="width:${(100 * o.ci).toFixed(1)}%"></span></span></td>`;
@@ -2135,13 +2143,15 @@
         }
         if (drag) {
           if (drag.path) fillLasso(drag.path, drag.add);
-          remeasure();
-          buildOverlays();
-          render();
           if (drag.prev.size) {
+            drag.prev.id = state.selected;
+            markEdited(drag.prev.id, 1);
             undoStack.push(drag.prev);
             if (undoStack.length > 50) undoStack.shift();
           }
+          remeasure();
+          buildOverlays();
+          render();
           drag = null;
           syncEditBar();
           renderTable();
@@ -2252,6 +2262,12 @@
         drag.last = p;
       }
 
+      // Count the strokes on each organoid so undo can clear its green label.
+      function markEdited(id, d) {
+        const o = state.result.organoids[id - 1];
+        o.edits = Math.max(0, (o.edits || 0) + d);
+      }
+
       function undo() {
         const prev = undoStack.pop();
         if (!prev) return;
@@ -2261,6 +2277,7 @@
           state.cyst[i] = c;
           state.cystEdit[i] = ce;
         }
+        if (prev.id) markEdited(prev.id, -1);
         remeasure();
         buildOverlays();
         syncEditBar();
