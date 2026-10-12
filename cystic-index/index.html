@@ -1,0 +1,1679 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ruvan / cystic-index</title>
+    <link rel="icon" id="favicon" />
+    <link rel="stylesheet" href="/common.css" />
+    <style>
+      :root {
+        --muted: #6b7280;
+        --fg: #111827;
+        --card: #f9fafb;
+        --border: #e5e7eb;
+        --accent: #00a2ff;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+          sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+        padding: 40px 24px 80px;
+        max-width: 960px;
+        margin: 0 auto;
+        color: var(--fg);
+      }
+
+      body.dark {
+        --muted: #9ca3af;
+        --fg: #f5f5f5;
+        --card: #1a1a1a;
+        --border: #2a2a2a;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) {
+          --muted: #9ca3af;
+          --fg: #f5f5f5;
+          --card: #1a1a1a;
+          --border: #2a2a2a;
+        }
+      }
+
+      header {
+        margin-bottom: 20px;
+      }
+
+      header a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      header a:hover {
+        text-decoration: underline;
+      }
+
+      h1 {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 28px;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+      }
+
+      h1 .crumb {
+        color: var(--muted);
+        font-weight: 400;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 4px;
+        max-width: 680px;
+      }
+
+      section {
+        margin-top: 22px;
+      }
+
+      section > h2,
+      .table-head h2 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px 16px;
+      }
+
+      button,
+      .button {
+        font: inherit;
+        color: inherit;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 6px 12px;
+        cursor: pointer;
+        transition:
+          border-color 0.15s ease,
+          background-color 0.15s ease,
+          color 0.15s ease;
+      }
+
+      button:hover,
+      .button:hover {
+        border-color: var(--accent);
+      }
+
+      button.active {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ---- Drop zone --------------------------------------------------- */
+
+      #drop {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        min-height: 160px;
+        border: 1.5px dashed var(--border);
+        border-radius: 10px;
+        color: var(--muted);
+        text-align: center;
+        padding: 20px;
+        transition:
+          border-color 0.15s ease,
+          color 0.15s ease;
+      }
+
+      body.dragging #drop {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      #drop.compact {
+        min-height: 0;
+        flex-direction: row;
+        flex-wrap: wrap;
+        padding: 10px 14px;
+        justify-content: flex-start;
+      }
+
+      #file {
+        display: none;
+      }
+
+      #file-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
+        flex: 1;
+        text-align: left;
+      }
+
+      #error {
+        color: #dc2626;
+        margin-top: 10px;
+        font-size: 13px;
+      }
+
+      body.dark #error {
+        color: #f87171;
+      }
+
+      /* ---- Summary ----------------------------------------------------- */
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+      }
+
+      .stat {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 14px;
+      }
+
+      .stat .label {
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .stat .value {
+        font-size: 22px;
+        font-variant-numeric: tabular-nums;
+        margin-top: 2px;
+      }
+
+      .stat .sub {
+        color: var(--muted);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ---- Image ------------------------------------------------------- */
+
+      .view-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+
+      .view-bar button {
+        padding: 3px 10px;
+        font-size: 12px;
+      }
+
+      .view-bar .hint {
+        color: var(--muted);
+        font-size: 12px;
+        margin-left: auto;
+      }
+
+      #canvas-wrap {
+        position: relative;
+        background: #000;
+        border-radius: 10px;
+        overflow: hidden;
+        line-height: 0;
+      }
+
+      #canvas {
+        width: 100%;
+        height: auto;
+        display: block;
+        cursor: crosshair;
+      }
+
+      #tip {
+        position: absolute;
+        pointer-events: none;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        font-size: 12px;
+        line-height: 1.4;
+        padding: 4px 8px;
+        border-radius: 6px;
+        white-space: nowrap;
+        transform: translate(12px, 12px);
+      }
+
+      #busy {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        color: #fff;
+        font-size: 12px;
+        line-height: 1.4;
+        padding: 4px 10px;
+        border-radius: 6px;
+      }
+
+      /* ---- Tuning ------------------------------------------------------ */
+
+      .knob {
+        display: grid;
+        grid-template-columns: 170px 1fr 70px 46px;
+        align-items: center;
+        gap: 10px;
+        padding: 4px 0;
+      }
+
+      .knob + .knob {
+        border-top: 1px solid var(--border);
+      }
+
+      .knob label {
+        font-size: 13px;
+      }
+
+      .knob .why {
+        display: block;
+        color: var(--muted);
+        font-size: 11.5px;
+        line-height: 1.3;
+      }
+
+      .knob input[type='range'] {
+        width: 100%;
+        accent-color: var(--accent);
+      }
+
+      .knob output {
+        text-align: right;
+        font-size: 12.5px;
+      }
+
+      .knob button {
+        padding: 2px 6px;
+        font-size: 11px;
+      }
+
+      /* ---- Table ------------------------------------------------------- */
+
+      .table-head {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+      }
+
+      .table-head .actions {
+        margin-left: auto;
+        display: flex;
+        gap: 6px;
+      }
+
+      .table-head .actions button {
+        padding: 3px 10px;
+        font-size: 12px;
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-variant-numeric: tabular-nums;
+      }
+
+      th,
+      td {
+        padding: 6px 12px;
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      th {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        font-weight: 600;
+        background: var(--card);
+        border-bottom: 1px solid var(--border);
+      }
+
+      th:first-child,
+      td:first-child {
+        text-align: left;
+      }
+
+      tbody tr {
+        cursor: pointer;
+        border-top: 1px solid var(--border);
+      }
+
+      tbody tr:first-child {
+        border-top: none;
+      }
+
+      tbody tr.hot {
+        background: var(--card);
+      }
+
+      tbody tr.excluded td {
+        color: var(--muted);
+        text-decoration: line-through;
+      }
+
+      .swatch {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        vertical-align: -1px;
+        margin-right: 6px;
+      }
+
+      .bar {
+        display: inline-block;
+        width: 80px;
+        height: 6px;
+        border-radius: 3px;
+        background: var(--border);
+        vertical-align: 1px;
+        margin-left: 8px;
+        overflow: hidden;
+      }
+
+      .bar span {
+        display: block;
+        height: 100%;
+        background: var(--accent);
+      }
+
+      .note {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 8px;
+      }
+
+      @media (max-width: 640px) {
+        body {
+          padding: 32px 16px 64px;
+        }
+
+        .knob {
+          grid-template-columns: 1fr 64px 40px;
+        }
+
+        .knob input[type='range'] {
+          grid-column: 1 / -1;
+          grid-row: 2;
+        }
+
+        .bar {
+          display: none;
+        }
+      }
+    </style>
+    <script src="/common.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">Ruvan</a> <span class="crumb">/ cystic-index</span></h1>
+      <p class="subtitle">
+        Drop in a micrograph of collecting duct organoids. Each organoid is outlined and coloured,
+        the light, grainy cyst inside it is shaded, and the cystic index — the share of the organoid
+        the cyst takes up — is measured from pixel areas. Everything runs in your browser; the image
+        is never uploaded.
+      </p>
+    </header>
+
+    <div id="drop">
+      <span id="drop-text">Drop an image here, paste one, or</span>
+      <label class="button" for="file">choose a file</label>
+      <input type="file" id="file" accept="image/*" />
+      <span id="file-name" class="mono" hidden></span>
+    </div>
+    <div id="error"></div>
+
+    <section id="summary-section" hidden>
+      <h2>Summary</h2>
+      <div class="stats">
+        <div class="stat">
+          <div class="label">Organoids</div>
+          <div class="value" id="s-count">–</div>
+          <div class="sub" id="s-count-sub"></div>
+        </div>
+        <div class="stat">
+          <div class="label">Cystic index</div>
+          <div class="value" id="s-ci">–</div>
+          <div class="sub">all cyst px ÷ all organoid px</div>
+        </div>
+        <div class="stat">
+          <div class="label">Mean per organoid</div>
+          <div class="value" id="s-mean">–</div>
+          <div class="sub" id="s-mean-sub"></div>
+        </div>
+        <div class="stat">
+          <div class="label">Total area</div>
+          <div class="value" id="s-area">–</div>
+          <div class="sub" id="s-area-sub"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="image-section" hidden>
+      <h2>Segmentation</h2>
+      <div class="view-bar" role="group" aria-label="view">
+        <button type="button" data-view="fill" class="active">fill</button>
+        <button type="button" data-view="outline">outline</button>
+        <button type="button" data-view="original">original</button>
+        <button type="button" id="zoom" class="active" title="Crop to the organoids">zoom</button>
+        <span class="hint">hover to inspect · click an organoid to exclude it</span>
+      </div>
+      <div id="canvas-wrap">
+        <canvas id="canvas"></canvas>
+        <div id="tip" hidden></div>
+        <div id="busy" hidden>analysing…</div>
+      </div>
+    </section>
+
+    <section id="tune-section" hidden>
+      <h2>Tuning</h2>
+      <div class="card" id="knobs"></div>
+    </section>
+
+    <section id="table-section" hidden>
+      <div class="table-head">
+        <h2>Organoids</h2>
+        <div class="actions">
+          <button type="button" id="include-all">include all</button>
+          <button type="button" id="csv">download csv</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>organoid px</th>
+              <th>cyst px</th>
+              <th>cystic index</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <p class="note" id="res-note"></p>
+    </section>
+
+    <script>
+      Common.paintFavicon({ glyph: '🧫', fontSize: 48, transparent: true, dy: 3 });
+      Common.initDarkMode();
+      Common.initSitemapShortcut();
+
+      // ======================================================================
+      // Image analysis
+      //
+      // Pipeline, all on a copy of the image scaled to at most WORK_MAX px:
+      //   1. Organoids are grainy and the dish background is smooth, so local
+      //      texture (the standard deviation of brightness in a small window)
+      //      finds tissue — even dark tissue that is no brighter than the
+      //      background — while ignoring the smooth orange glow of the well
+      //      wall. Hysteresis drops faint texture that never gets strong.
+      //   2. That window bleeds past each edge and bridges the thin gaps
+      //      between neighbours, so pixels that look like the local background
+      //      (about as dark, and less brown than tissue) are carved back out.
+      //   3. Touching organoids are split with a watershed on the distance to
+      //      the nearest edge: two round organoids pinched together make two
+      //      peaks with a low saddle between them.
+      //   4. Cysts are the light, colourless lumen: bright pixels that are not
+      //      brown, averaged over the organoid only so the thin bright rim
+      //      around each organoid washes out.
+      // ======================================================================
+
+      const WORK_MAX = 1200;
+
+      const DEFAULTS = {
+        texture: null, // null = pick from the image's background noise
+        gap: 18,
+        split: 0.85,
+        minSize: 0.04, // percent of the image
+        cyst: 120,
+      };
+
+      // Pixel radii are tuned for a 1200 px working image; scale them so a
+      // smaller upload behaves the same.
+      function radiusFor(W, H) {
+        const s = Math.max(W, H) / WORK_MAX;
+        return (n) => Math.max(1, Math.round(n * s));
+      }
+
+      // ---- Stage 1: per-pixel features (only depends on the image) --------
+
+      function computeFeatures(rgba, W, H) {
+        const N = W * H;
+        const R = radiusFor(W, H);
+        const L = new Float32Array(N); // luma
+        const RB = new Float32Array(N); // red minus blue: how brown
+        const S = new Float32Array(N); // cyst score: bright and colourless
+        for (let i = 0, j = 0; i < N; i++, j += 4) {
+          const r = rgba[j],
+            g = rgba[j + 1],
+            b = rgba[j + 2];
+          L[i] = 0.299 * r + 0.587 * g + 0.114 * b;
+          RB[i] = r - b;
+          S[i] = L[i] - 1.5 * Math.max(0, r - b);
+        }
+        const tex = boxBlur(localStd(L, W, H, R(2)), W, H, R(2));
+        const noise = median(tex);
+        return {
+          W,
+          H,
+          N,
+          L,
+          RB,
+          S,
+          tex,
+          autoTexture: Math.min(7, Math.max(3, 4.5 * noise)),
+          Ls: boxBlur(L, W, H, 1),
+          RBs: boxBlur(RB, W, H, 1),
+          medL: median(L),
+          medRB: median(RB),
+        };
+      }
+
+      // ---- Stage 2: organoid mask and labels -------------------------------
+
+      function segmentOrganoids(F, p) {
+        const { W, H, N, L, RB, tex } = F;
+        const R = radiusFor(W, H);
+        const tThr = p.texture ?? F.autoTexture;
+
+        const lo = new Uint8Array(N);
+        const hi = new Uint8Array(N);
+        for (let i = 0; i < N; i++) {
+          lo[i] = tex[i] > tThr ? 1 : 0;
+          hi[i] = tex[i] > 2 * tThr ? 1 : 0;
+        }
+        let m = hysteresis(lo, hi, W, H);
+
+        // Local background level, from the smooth pixels around each point.
+        const bw = new Float32Array(N);
+        const bl = new Float32Array(N);
+        const brb = new Float32Array(N);
+        for (let i = 0; i < N; i++) {
+          if (tex[i] < 0.6 * tThr) {
+            bw[i] = 1;
+            bl[i] = L[i];
+            brb[i] = RB[i];
+          }
+        }
+        const big = R(40);
+        const wS = boxBlur(boxBlur(bw, W, H, big), W, H, big);
+        const lS = boxBlur(boxBlur(bl, W, H, big), W, H, big);
+        const rbS = boxBlur(boxBlur(brb, W, H, big), W, H, big);
+        const gapRB = (p.gap * 8) / 18;
+        const gap = new Uint8Array(N);
+        for (let i = 0; i < N; i++) {
+          const w = wS[i];
+          const bgL = w > 0.02 ? lS[i] / w : F.medL;
+          const bgRB = w > 0.02 ? rbS[i] / w : F.medRB;
+          if (F.Ls[i] < bgL + p.gap && F.RBs[i] < bgRB + gapRB) {
+            gap[i] = 1;
+            m[i] = 0;
+          }
+        }
+        m = open(m, W, H, 1);
+        m = fillHoles(m, W, H, R(3) * R(3) * 3, gap);
+        const minPx = Math.max(20, Math.round((N * p.minSize) / 100));
+        m = dropSmall(m, W, H, minPx);
+        // Anything cut off by the frame can't be measured whole (and is
+        // usually debris or the well wall), so leave it out.
+        m = dropEdgeTouching(m, W, H);
+
+        const dt = edt(m, W, H);
+        const dts = boxBlur(boxBlur(dt, W, H, 1), W, H, 1);
+        for (let i = 0; i < N; i++) if (!m[i]) dts[i] = 0;
+        let labels = floodDistance(dts, m, W, H, p.split);
+        labels = absorbFragments(labels, W, H, minPx);
+        labels = roundSeams(labels, m, dts, W, H);
+        return { labels, minPx, tThr };
+      }
+
+      // ---- Stage 3: cysts --------------------------------------------------
+
+      function findCysts(F, seg, p) {
+        const { W, H, N, S } = F;
+        const R = radiusFor(W, H);
+        const { labels, minPx } = seg;
+        const om = new Float32Array(N);
+        const sm = new Float32Array(N);
+        for (let i = 0; i < N; i++) {
+          if (labels[i]) {
+            om[i] = 1;
+            sm[i] = S[i];
+          }
+        }
+        const cr = R(4);
+        const omB = boxBlur(om, W, H, cr);
+        const smB = boxBlur(sm, W, H, cr);
+        const inner = erode(om, W, H, R(2));
+        let cyst = new Uint8Array(N);
+        for (let i = 0; i < N; i++) {
+          cyst[i] = inner[i] && smB[i] / Math.max(1e-6, omB[i]) > p.cyst ? 1 : 0;
+        }
+        cyst = open(cyst, W, H, R(2));
+        cyst = dropSmall(cyst, W, H, Math.max(10, minPx >> 2));
+        for (let i = 0; i < N; i++) if (!labels[i]) cyst[i] = 0;
+        return cyst;
+      }
+
+      // ---- Image helpers ---------------------------------------------------
+
+      // Separable box blur with clamped edges; O(1) per pixel for any radius.
+      function boxBlur(src, W, H, r) {
+        const tmp = new Float32Array(W * H);
+        const out = new Float32Array(W * H);
+        const k = 2 * r + 1;
+        for (let y = 0; y < H; y++) {
+          const row = y * W;
+          let acc = 0;
+          for (let x = -r; x <= r; x++) acc += src[row + Math.min(W - 1, Math.max(0, x))];
+          for (let x = 0; x < W; x++) {
+            tmp[row + x] = acc / k;
+            acc += src[row + Math.min(W - 1, x + r + 1)] - src[row + Math.max(0, x - r)];
+          }
+        }
+        for (let x = 0; x < W; x++) {
+          let acc = 0;
+          for (let y = -r; y <= r; y++) acc += tmp[Math.min(H - 1, Math.max(0, y)) * W + x];
+          for (let y = 0; y < H; y++) {
+            out[y * W + x] = acc / k;
+            acc += tmp[Math.min(H - 1, y + r + 1) * W + x] - tmp[Math.max(0, y - r) * W + x];
+          }
+        }
+        return out;
+      }
+
+      function localStd(L, W, H, r) {
+        const sq = new Float32Array(L.length);
+        for (let i = 0; i < L.length; i++) sq[i] = L[i] * L[i];
+        const m1 = boxBlur(L, W, H, r);
+        const m2 = boxBlur(sq, W, H, r);
+        const out = new Float32Array(L.length);
+        for (let i = 0; i < L.length; i++) out[i] = Math.sqrt(Math.max(0, m2[i] - m1[i] * m1[i]));
+        return out;
+      }
+
+      function median(a) {
+        const step = Math.max(1, Math.floor(a.length / 50000));
+        const s = [];
+        for (let i = 0; i < a.length; i += step) s.push(a[i]);
+        s.sort((x, y) => x - y);
+        return s[s.length >> 1];
+      }
+
+      // Square structuring elements via box sums.
+      function dilate(m, W, H, r) {
+        const b = boxBlur(Float32Array.from(m), W, H, r);
+        const out = new Uint8Array(m.length);
+        for (let i = 0; i < m.length; i++) out[i] = b[i] > 1e-4 ? 1 : 0;
+        return out;
+      }
+
+      function erode(m, W, H, r) {
+        const b = boxBlur(Float32Array.from(m), W, H, r);
+        const out = new Uint8Array(m.length);
+        for (let i = 0; i < m.length; i++) out[i] = b[i] > 1 - 1e-4 ? 1 : 0;
+        return out;
+      }
+
+      function open(m, W, H, r) {
+        return dilate(erode(m, W, H, r), W, H, r);
+      }
+
+      // 4-connected components: { lab, sizes } with sizes[0] unused.
+      function components(m, W, H) {
+        const N = W * H;
+        const lab = new Int32Array(N);
+        const stack = new Int32Array(N);
+        const sizes = [0];
+        let count = 0;
+        for (let s = 0; s < N; s++) {
+          if (!m[s] || lab[s]) continue;
+          count++;
+          let sp = 0;
+          let size = 0;
+          stack[sp++] = s;
+          lab[s] = count;
+          while (sp) {
+            const q = stack[--sp];
+            size++;
+            const x = q % W;
+            if (x > 0 && m[q - 1] && !lab[q - 1]) (lab[q - 1] = count), (stack[sp++] = q - 1);
+            if (x < W - 1 && m[q + 1] && !lab[q + 1]) (lab[q + 1] = count), (stack[sp++] = q + 1);
+            if (q >= W && m[q - W] && !lab[q - W]) (lab[q - W] = count), (stack[sp++] = q - W);
+            if (q < N - W && m[q + W] && !lab[q + W]) (lab[q + W] = count), (stack[sp++] = q + W);
+          }
+          sizes.push(size);
+        }
+        return { lab, sizes };
+      }
+
+      // Keep the weak-texture components that contain some strong texture.
+      function hysteresis(lo, hi, W, H) {
+        const { lab, sizes } = components(lo, W, H);
+        const keep = new Uint8Array(sizes.length);
+        for (let i = 0; i < lo.length; i++) if (hi[i]) keep[lab[i]] = 1;
+        const out = new Uint8Array(lo.length);
+        for (let i = 0; i < lo.length; i++) if (lab[i] && keep[lab[i]]) out[i] = 1;
+        return out;
+      }
+
+      // Fill enclosed holes that are tiny or mostly not background-coloured
+      // (dark tissue inside an organoid), but leave real background pockets
+      // between touching organoids open.
+      function fillHoles(m, W, H, maxHole, gap) {
+        const inv = new Uint8Array(m.length);
+        for (let i = 0; i < m.length; i++) inv[i] = m[i] ? 0 : 1;
+        const { lab, sizes } = components(inv, W, H);
+        const edge = new Uint8Array(sizes.length);
+        for (let x = 0; x < W; x++) edge[lab[x]] = edge[lab[(H - 1) * W + x]] = 1;
+        for (let y = 0; y < H; y++) edge[lab[y * W]] = edge[lab[y * W + W - 1]] = 1;
+        const g = new Float64Array(sizes.length);
+        for (let i = 0; i < m.length; i++) g[lab[i]] += gap[i];
+        const out = new Uint8Array(m);
+        for (let i = 0; i < m.length; i++) {
+          const l = lab[i];
+          if (!l || edge[l]) continue;
+          if (sizes[l] <= maxHole || g[l] / sizes[l] < 0.5) out[i] = 1;
+        }
+        return out;
+      }
+
+      function dropSmall(m, W, H, minPx) {
+        const { lab, sizes } = components(m, W, H);
+        const out = new Uint8Array(m.length);
+        for (let i = 0; i < m.length; i++) if (lab[i] && sizes[lab[i]] >= minPx) out[i] = 1;
+        return out;
+      }
+
+      function dropEdgeTouching(m, W, H) {
+        const { lab, sizes } = components(m, W, H);
+        const edge = new Uint8Array(sizes.length);
+        for (let x = 0; x < W; x++) edge[lab[x]] = edge[lab[(H - 1) * W + x]] = 1;
+        for (let y = 0; y < H; y++) edge[lab[y * W]] = edge[lab[y * W + W - 1]] = 1;
+        const out = new Uint8Array(m.length);
+        for (let i = 0; i < m.length; i++) if (lab[i] && !edge[lab[i]]) out[i] = 1;
+        return out;
+      }
+
+      // Exact Euclidean distance transform (Felzenszwalb & Huttenlocher).
+      function edt(m, W, H) {
+        const INF = 1e20;
+        const n = Math.max(W, H);
+        const f = new Float64Array(n);
+        const d = new Float64Array(n);
+        const v = new Int32Array(n);
+        const z = new Float64Array(n + 1);
+        const g = new Float64Array(W * H);
+        for (let i = 0; i < W * H; i++) g[i] = m[i] ? INF : 0;
+        function pass(len) {
+          let k = 0;
+          v[0] = 0;
+          z[0] = -INF;
+          z[1] = INF;
+          for (let q = 1; q < len; q++) {
+            let s;
+            for (;;) {
+              const r = v[k];
+              s = (f[q] + q * q - (f[r] + r * r)) / (2 * q - 2 * r);
+              if (s <= z[k]) k--;
+              else break;
+            }
+            k++;
+            v[k] = q;
+            z[k] = s;
+            z[k + 1] = INF;
+          }
+          k = 0;
+          for (let q = 0; q < len; q++) {
+            while (z[k + 1] < q) k++;
+            d[q] = (q - v[k]) * (q - v[k]) + f[v[k]];
+          }
+        }
+        for (let x = 0; x < W; x++) {
+          for (let y = 0; y < H; y++) f[y] = g[y * W + x];
+          pass(H);
+          for (let y = 0; y < H; y++) g[y * W + x] = d[y];
+        }
+        const out = new Float32Array(W * H);
+        for (let y = 0; y < H; y++) {
+          for (let x = 0; x < W; x++) f[x] = g[y * W + x];
+          pass(W);
+          for (let x = 0; x < W; x++) out[y * W + x] = Math.sqrt(d[x]);
+        }
+        return out;
+      }
+
+      // Flood the distance map from its peaks downward with a union-find.
+      // When two basins meet, they merge if the saddle is at least `ratio` of
+      // the lower peak (a dent in one organoid) and stay apart otherwise (a
+      // pinch between two). Saddles only get lower as the flood continues,
+      // so basins that stay apart once stay apart for good.
+      function floodDistance(dt, m, W, H, ratio) {
+        const N = W * H;
+        let count = 0;
+        for (let i = 0; i < N; i++) if (m[i]) count++;
+        const order = new Int32Array(count);
+        for (let i = 0, k = 0; i < N; i++) if (m[i]) order[k++] = i;
+        order.sort((a, b) => dt[b] - dt[a]);
+        const parent = new Int32Array(N).fill(-1);
+        const peak = new Float32Array(N);
+        const find = (a) => {
+          while (parent[a] !== a) a = parent[a] = parent[parent[a]];
+          return a;
+        };
+        const roots = [];
+        for (const q of order) {
+          const level = dt[q];
+          const x = q % W;
+          roots.length = 0;
+          for (const nb of [x > 0 ? q - 1 : -1, x < W - 1 ? q + 1 : -1, q - W, q + W]) {
+            if (nb < 0 || nb >= N || parent[nb] < 0) continue;
+            const r = find(nb);
+            if (!roots.includes(r)) roots.push(r);
+          }
+          if (!roots.length) {
+            parent[q] = q;
+            peak[q] = level;
+            continue;
+          }
+          roots.sort((a, b) => peak[b] - peak[a]);
+          const main = roots[0];
+          for (let k = 1; k < roots.length; k++) {
+            if (level >= ratio * peak[roots[k]]) parent[roots[k]] = main;
+          }
+          parent[q] = main;
+        }
+        const lab = new Int32Array(N);
+        const ids = new Map();
+        for (let i = 0; i < N; i++) {
+          if (parent[i] < 0) continue;
+          const r = find(i);
+          if (!ids.has(r)) ids.set(r, ids.size + 1);
+          lab[i] = ids.get(r);
+        }
+        return lab;
+      }
+
+      // Fold regions smaller than minPx into the neighbour they share the
+      // longest border with (or drop them if they touch nothing).
+      function absorbFragments(lab, W, H, minPx) {
+        const N = W * H;
+        let n = 0;
+        for (let i = 0; i < N; i++) n = Math.max(n, lab[i]);
+        const size = new Int32Array(n + 1);
+        for (let i = 0; i < N; i++) size[lab[i]]++;
+        const shared = new Map();
+        for (let q = 0; q < N; q++) {
+          const a = lab[q];
+          if (!a || size[a] >= minPx) continue;
+          const x = q % W;
+          for (const nb of [x > 0 ? q - 1 : -1, x < W - 1 ? q + 1 : -1, q - W, q + W]) {
+            if (nb < 0 || nb >= N) continue;
+            const b = lab[nb];
+            if (!b || b === a) continue;
+            const key = a * (n + 1) + b;
+            shared.set(key, (shared.get(key) || 0) + 1);
+          }
+        }
+        const target = new Int32Array(n + 1);
+        const best = new Int32Array(n + 1);
+        for (let l = 1; l <= n; l++) target[l] = size[l] >= minPx ? l : 0;
+        for (const [key, c] of shared) {
+          const a = Math.floor(key / (n + 1));
+          if (c > best[a]) {
+            best[a] = c;
+            target[a] = key % (n + 1);
+          }
+        }
+        const resolve = (l) => {
+          for (let hops = 0; l && target[l] !== l && hops < 64; hops++) l = target[l];
+          return l && target[l] === l ? l : 0;
+        };
+        const ids = new Map();
+        const out = new Int32Array(N);
+        for (let i = 0; i < N; i++) {
+          const r = resolve(lab[i]);
+          if (!r) continue;
+          if (!ids.has(r)) ids.set(r, ids.size + 1);
+          out[i] = ids.get(r);
+        }
+        return out;
+      }
+
+      // The flood leaves blocky, axis-aligned seams between touching
+      // organoids. Organoids are roughly round, so redraw each seam by giving
+      // every pixel to the organoid whose centre is nearest relative to its
+      // radius.
+      function roundSeams(lab, m, dt, W, H) {
+        const N = W * H;
+        let n = 0;
+        for (let i = 0; i < N; i++) n = Math.max(n, lab[i]);
+        const cx = new Float64Array(n + 1);
+        const cy = new Float64Array(n + 1);
+        const rad = new Float64Array(n + 1);
+        for (let i = 0; i < N; i++) {
+          const l = lab[i];
+          if (l && dt[i] > rad[l]) {
+            rad[l] = dt[i];
+            cx[l] = i % W;
+            cy[l] = (i / W) | 0;
+          }
+        }
+        const { lab: comp, sizes } = components(m, W, H);
+        const members = Array.from({ length: sizes.length }, () => new Set());
+        for (let i = 0; i < N; i++) if (lab[i]) members[comp[i]].add(lab[i]);
+        const out = new Int32Array(lab);
+        for (let i = 0; i < N; i++) {
+          if (!lab[i]) continue;
+          const set = members[comp[i]];
+          if (set.size < 2) continue;
+          const x = i % W;
+          const y = (i / W) | 0;
+          let best = lab[i];
+          let bd = Infinity;
+          for (const l of set) {
+            const d = Math.hypot(x - cx[l], y - cy[l]) / Math.max(1, rad[l]);
+            if (d < bd) {
+              bd = d;
+              best = l;
+            }
+          }
+          out[i] = best;
+        }
+        return out;
+      }
+
+      // ======================================================================
+      // Measurements
+      // ======================================================================
+
+      // Number organoids in reading order and give touching ones different
+      // colours.
+      function measure(F, labels, cyst, scale) {
+        const { W, H, N } = F;
+        let n = 0;
+        for (let i = 0; i < N; i++) n = Math.max(n, labels[i]);
+        const acc = Array.from({ length: n + 1 }, () => ({ area: 0, cyst: 0, sx: 0, sy: 0 }));
+        const touch = Array.from({ length: n + 1 }, () => new Set());
+        for (let i = 0; i < N; i++) {
+          const l = labels[i];
+          if (!l) continue;
+          const a = acc[l];
+          a.area++;
+          if (cyst[i]) a.cyst++;
+          a.sx += i % W;
+          a.sy += (i / W) | 0;
+          const r = (i % W) + 1 < W ? labels[i + 1] : 0;
+          const d = i + W < N ? labels[i + W] : 0;
+          if (r && r !== l) touch[l].add(r), touch[r].add(l);
+          if (d && d !== l) touch[l].add(d), touch[d].add(l);
+        }
+        const rowH = Math.max(W, H) / 12;
+        const old = [];
+        for (let l = 1; l <= n; l++) {
+          const a = acc[l];
+          old.push({ l, cx: a.sx / a.area, cy: a.sy / a.area, area: a.area, cyst: a.cyst });
+        }
+        old.sort((a, b) => Math.round(a.cy / rowH) - Math.round(b.cy / rowH) || a.cx - b.cx);
+        const remap = new Int32Array(n + 1);
+        old.forEach((o, k) => (remap[o.l] = k + 1));
+        const out = new Int32Array(N);
+        for (let i = 0; i < N; i++) out[i] = remap[labels[i]];
+
+        const organoids = old.map((o, k) => ({
+          id: k + 1,
+          cx: o.cx,
+          cy: o.cy,
+          areaWork: o.area,
+          area: Math.round(o.area * scale),
+          cyst: Math.round(o.cyst * scale),
+          ci: o.cyst / o.area,
+          neighbours: [...touch[o.l]].map((t) => remap[t]),
+          colour: 0,
+        }));
+        // Greedy colouring, biggest first.
+        const byArea = [...organoids].sort((a, b) => b.areaWork - a.areaWork);
+        for (const o of byArea) {
+          const used = new Set(o.neighbours.map((id) => organoids[id - 1].colour));
+          let c = 0;
+          while (used.has(c)) c++;
+          // Spread non-adjacent organoids over the palette too, so the image
+          // doesn't end up all one colour.
+          const free = PALETTE.map((_, k) => k).filter((k) => !used.has(k));
+          o.colour = free.length ? free[(o.id * 7) % free.length] : c % PALETTE.length;
+        }
+        return { labels: out, organoids };
+      }
+
+      // ======================================================================
+      // UI
+      // ======================================================================
+
+      const PALETTE = [
+        [255, 99, 132],
+        [54, 162, 235],
+        [255, 206, 86],
+        [75, 192, 140],
+        [153, 102, 255],
+        [255, 159, 64],
+        [0, 200, 220],
+        [230, 90, 230],
+        [140, 210, 60],
+        [255, 120, 90],
+      ];
+
+      const $ = (id) => document.getElementById(id);
+      const dropEl = $('drop');
+      const fileInput = $('file');
+      const fileNameEl = $('file-name');
+      const errorEl = $('error');
+      const canvas = $('canvas');
+      const ctx = canvas.getContext('2d');
+      const tipEl = $('tip');
+      const busyEl = $('busy');
+      const rowsEl = $('rows');
+
+      const state = {
+        name: '',
+        img: null, // decoded source image
+        origW: 0,
+        origH: 0,
+        work: null, // canvas holding the working-size copy
+        F: null,
+        seg: null,
+        cyst: null,
+        result: null, // { labels, organoids }
+        excluded: new Set(),
+        hover: 0,
+        view: 'fill',
+        zoom: true,
+        params: { ...DEFAULTS },
+        overlay: { fill: null, outline: null },
+      };
+
+      // ---- Tuning knobs ----------------------------------------------------
+
+      const KNOBS = [
+        {
+          key: 'texture',
+          label: 'tissue texture',
+          why: 'lower picks up fainter, smoother tissue',
+          min: 1.5,
+          max: 12,
+          step: 0.1,
+          stage: 'seg',
+          fmt: (v) => v.toFixed(1),
+          auto: () => state.F && state.F.autoTexture,
+        },
+        {
+          key: 'gap',
+          label: 'background margin',
+          why: 'higher carves more dark gaps between organoids',
+          min: 4,
+          max: 40,
+          step: 1,
+          stage: 'seg',
+          fmt: (v) => String(v),
+        },
+        {
+          key: 'split',
+          label: 'split touching',
+          why: 'higher splits clumps into more organoids',
+          min: 0.4,
+          max: 0.95,
+          step: 0.01,
+          stage: 'seg',
+          fmt: (v) => v.toFixed(2),
+        },
+        {
+          key: 'minSize',
+          label: 'smallest organoid',
+          why: 'smaller blobs count as debris',
+          min: 0.005,
+          max: 0.5,
+          step: 0.005,
+          stage: 'seg',
+          fmt: (v) => {
+            if (!state.F) return v + '%';
+            const px = (state.F.N * v * workScale()) / 100;
+            return fmtPx(px);
+          },
+        },
+        {
+          key: 'cyst',
+          label: 'cyst brightness',
+          why: 'lower counts dimmer, browner areas as cyst',
+          min: 40,
+          max: 220,
+          step: 1,
+          stage: 'cyst',
+          fmt: (v) => String(v),
+        },
+      ];
+
+      function buildKnobs() {
+        const host = $('knobs');
+        for (const k of KNOBS) {
+          const row = document.createElement('div');
+          row.className = 'knob';
+          const id = 'k-' + k.key;
+          row.innerHTML =
+            `<label for="${id}">${k.label}<span class="why">${k.why}</span></label>` +
+            `<input type="range" id="${id}" min="${k.min}" max="${k.max}" step="${k.step}" />` +
+            `<output class="mono" for="${id}"></output>` +
+            `<button type="button" title="Back to the default">reset</button>`;
+          const input = row.querySelector('input');
+          const out = row.querySelector('output');
+          k.input = input;
+          k.out = out;
+          input.addEventListener('input', () => {
+            state.params[k.key] = +input.value;
+            syncKnob(k);
+            schedule(k.stage);
+          });
+          row.querySelector('button').addEventListener('click', () => {
+            state.params[k.key] = DEFAULTS[k.key];
+            syncKnob(k);
+            schedule(k.stage);
+          });
+          host.appendChild(row);
+        }
+      }
+
+      function knobValue(k) {
+        const v = state.params[k.key];
+        return v == null && k.auto ? k.auto() : v;
+      }
+
+      function syncKnob(k) {
+        const v = knobValue(k);
+        if (v == null) return;
+        k.input.value = v;
+        k.out.textContent = k.fmt(v) + (state.params[k.key] == null ? ' auto' : '');
+      }
+
+      function syncKnobs() {
+        KNOBS.forEach(syncKnob);
+      }
+
+      // ---- Running the analysis -------------------------------------------
+
+      let pending = null;
+      let timer = null;
+
+      // Re-run from `stage` onward after the sliders settle. Stages: 'all'
+      // (new image), 'seg' (organoid knobs), 'cyst' (cyst knob only).
+      function schedule(stage) {
+        const rank = { cyst: 0, seg: 1, all: 2 };
+        if (!pending || rank[stage] > rank[pending]) pending = stage;
+        busyEl.hidden = false;
+        clearTimeout(timer);
+        // Two frames: let the "analysing…" badge paint before blocking.
+        timer = setTimeout(() => requestAnimationFrame(() => setTimeout(run, 0)), 120);
+      }
+
+      function run() {
+        const stage = pending;
+        pending = null;
+        if (!state.work) return;
+        const t0 = performance.now();
+        try {
+          if (stage === 'all') {
+            const { width: W, height: H } = state.work;
+            const rgba = state.work.getContext('2d').getImageData(0, 0, W, H).data;
+            state.F = computeFeatures(rgba, W, H);
+            state.excluded.clear();
+          }
+          if (stage !== 'cyst') {
+            state.seg = segmentOrganoids(state.F, state.params);
+            state.excluded.clear();
+          }
+          state.cyst = findCysts(state.F, state.seg, state.params);
+          state.result = measure(state.F, state.seg.labels, state.cyst, workScale());
+        } catch (err) {
+          console.error(err);
+          errorEl.textContent = 'Analysis failed: ' + err.message;
+          busyEl.hidden = true;
+          return;
+        }
+        state.ms = performance.now() - t0;
+        buildOverlays();
+        syncKnobs();
+        render();
+        renderTable();
+        renderSummary();
+        busyEl.hidden = !pending;
+      }
+
+      // Original pixels per working pixel (area).
+      function workScale() {
+        if (!state.work) return 1;
+        return (state.origW / state.work.width) * (state.origH / state.work.height);
+      }
+
+      // ---- Drawing ---------------------------------------------------------
+
+      function buildOverlays() {
+        const { W, H, N } = state.F;
+        const { labels, organoids } = state.result;
+        const fill = new ImageData(W, H);
+        const line = new ImageData(W, H);
+        const cyst = state.cyst;
+        for (let i = 0; i < N; i++) {
+          const l = labels[i];
+          if (!l) continue;
+          const o = organoids[l - 1];
+          const off = state.excluded.has(l);
+          const [r, g, b] = off ? [128, 128, 128] : PALETTE[o.colour];
+          const x = i % W;
+          const edge =
+            x === 0 ||
+            x === W - 1 ||
+            labels[i - 1] !== l ||
+            labels[i + 1] !== l ||
+            labels[i - W] !== l ||
+            labels[i + W] !== l;
+          const isCyst = cyst[i];
+          const cystEdge = isCyst && (!cyst[i - 1] || !cyst[i + 1] || !cyst[i - W] || !cyst[i + W]);
+          const j = i * 4;
+          // Fill view: tissue tinted in the organoid's colour, cyst in a pale
+          // tint of the same colour so each cyst reads as part of its organoid.
+          if (edge) {
+            set(fill, j, r, g, b, 255);
+            set(line, j, r, g, b, 255);
+          } else if (cystEdge) {
+            set(fill, j, 255, 255, 255, 230);
+            set(line, j, 255, 255, 255, 230);
+          } else if (isCyst) {
+            set(fill, j, (r + 255 * 2) / 3, (g + 255 * 2) / 3, (b + 255 * 2) / 3, off ? 70 : 150);
+          } else {
+            set(fill, j, r, g, b, off ? 50 : 110);
+          }
+        }
+        state.overlay.fill = toCanvas(fill);
+        state.overlay.outline = toCanvas(line);
+      }
+
+      function set(img, j, r, g, b, a) {
+        img.data[j] = r;
+        img.data[j + 1] = g;
+        img.data[j + 2] = b;
+        img.data[j + 3] = a;
+      }
+
+      function toCanvas(img) {
+        const c = document.createElement('canvas');
+        c.width = img.width;
+        c.height = img.height;
+        c.getContext('2d').putImageData(img, 0, 0);
+        return c;
+      }
+
+      // The part of the working image on screen: everything, or a crop around
+      // the organoids (they often fill only the middle of the well).
+      function viewBox() {
+        const { width: W, height: H } = state.work;
+        const all = { x: 0, y: 0, w: W, h: H };
+        if (!state.zoom || !state.result || !state.result.organoids.length) return all;
+        const { labels } = state.result;
+        let x0 = W,
+          y0 = H,
+          x1 = 0,
+          y1 = 0;
+        for (let i = 0; i < labels.length; i++) {
+          if (!labels[i]) continue;
+          const x = i % W;
+          const y = (i / W) | 0;
+          if (x < x0) x0 = x;
+          if (x > x1) x1 = x;
+          if (y < y0) y0 = y;
+          if (y > y1) y1 = y;
+        }
+        const pad = Math.round(Math.max(W, H) / 30);
+        x0 = Math.max(0, x0 - pad);
+        y0 = Math.max(0, y0 - pad);
+        x1 = Math.min(W, x1 + pad);
+        y1 = Math.min(H, y1 + pad);
+        // Not worth zooming in for a crop that is most of the image.
+        if ((x1 - x0) * (y1 - y0) > 0.7 * W * H) return all;
+        return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+      }
+
+      function render() {
+        if (!state.work) return;
+        const W = state.work.width;
+        const box = (state.box = viewBox());
+        if (canvas.width !== box.w || canvas.height !== box.h) {
+          canvas.width = box.w;
+          canvas.height = box.h;
+        }
+        ctx.setTransform(1, 0, 0, 1, -box.x, -box.y);
+        ctx.drawImage(state.work, 0, 0);
+        if (!state.result || state.view === 'original') return;
+        ctx.drawImage(state.view === 'fill' ? state.overlay.fill : state.overlay.outline, 0, 0);
+
+        const { labels, organoids } = state.result;
+        if (state.hover) {
+          // Thicker outline around the hovered organoid.
+          ctx.fillStyle = '#fff';
+          const l = state.hover;
+          for (let i = 0; i < labels.length; i++) {
+            if (labels[i] !== l) continue;
+            const x = i % W;
+            if (
+              x === 0 ||
+              x === W - 1 ||
+              labels[i - 1] !== l ||
+              labels[i + 1] !== l ||
+              labels[i - W] !== l ||
+              labels[i + W] !== l
+            ) {
+              ctx.fillRect(x - 1, ((i / W) | 0) - 1, 3, 3);
+            }
+          }
+        }
+
+        const size = Math.max(10, Math.round(Math.max(box.w, box.h) / 45));
+        ctx.font = `600 ${size}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = Math.max(2, size / 4);
+        for (const o of organoids) {
+          const off = state.excluded.has(o.id);
+          ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+          ctx.fillStyle = off ? '#aaa' : '#fff';
+          ctx.strokeText(o.id, o.cx, o.cy);
+          ctx.fillText(o.id, o.cx, o.cy);
+        }
+      }
+
+      // ---- Table and summary ----------------------------------------------
+
+      function fmtPx(n) {
+        return Math.round(n).toLocaleString() + ' px';
+      }
+
+      function fmtPct(x) {
+        return (100 * x).toFixed(1) + '%';
+      }
+
+      function included() {
+        return state.result.organoids.filter((o) => !state.excluded.has(o.id));
+      }
+
+      function renderTable() {
+        rowsEl.textContent = '';
+        for (const o of state.result.organoids) {
+          const tr = document.createElement('tr');
+          tr.dataset.id = o.id;
+          if (state.excluded.has(o.id)) tr.classList.add('excluded');
+          if (state.hover === o.id) tr.classList.add('hot');
+          const [r, g, b] = PALETTE[o.colour];
+          tr.innerHTML =
+            `<td><span class="swatch" style="background:rgb(${r},${g},${b})"></span>${o.id}</td>` +
+            `<td>${o.area.toLocaleString()}</td>` +
+            `<td>${o.cyst.toLocaleString()}</td>` +
+            `<td>${fmtPct(o.ci)}<span class="bar"><span style="width:${(100 * o.ci).toFixed(1)}%"></span></span></td>`;
+          tr.addEventListener('click', () => toggle(o.id));
+          tr.addEventListener('mouseenter', () => setHover(o.id));
+          tr.addEventListener('mouseleave', () => setHover(0));
+          rowsEl.appendChild(tr);
+        }
+        const { width: W, height: H } = state.work;
+        const scaled =
+          W === state.origW
+            ? ''
+            : `, then scaled up to pixels of the ${state.origW} × ${state.origH} original`;
+        $('res-note').textContent =
+          `Areas measured on a ${W} × ${H} copy${scaled}. ` +
+          `Analysis took ${Math.round(state.ms)} ms.`;
+      }
+
+      function renderSummary() {
+        const list = included();
+        const all = state.result.organoids.length;
+        $('s-count').textContent = list.length;
+        $('s-count-sub').textContent =
+          all === list.length ? 'found in the image' : `${all - list.length} excluded`;
+        const area = list.reduce((s, o) => s + o.area, 0);
+        const cyst = list.reduce((s, o) => s + o.cyst, 0);
+        $('s-ci').textContent = area ? fmtPct(cyst / area) : '–';
+        if (list.length) {
+          const mean = list.reduce((s, o) => s + o.ci, 0) / list.length;
+          const sd = Math.sqrt(list.reduce((s, o) => s + (o.ci - mean) ** 2, 0) / list.length);
+          const cystic = list.filter((o) => o.cyst > 0).length;
+          $('s-mean').textContent = fmtPct(mean);
+          $('s-mean-sub').textContent = `± ${fmtPct(sd)} sd · ${cystic} with a cyst`;
+        } else {
+          $('s-mean').textContent = '–';
+          $('s-mean-sub').textContent = '';
+        }
+        $('s-area').textContent = fmtPx(area);
+        $('s-area-sub').textContent = `${fmtPx(cyst)} of it cyst`;
+      }
+
+      function toggle(id) {
+        if (state.excluded.has(id)) state.excluded.delete(id);
+        else state.excluded.add(id);
+        buildOverlays();
+        render();
+        renderTable();
+        renderSummary();
+      }
+
+      function setHover(id) {
+        if (state.hover === id) return;
+        state.hover = id;
+        render();
+        for (const tr of rowsEl.children) tr.classList.toggle('hot', +tr.dataset.id === id);
+      }
+
+      // ---- Canvas interaction ---------------------------------------------
+
+      function labelAt(e) {
+        if (!state.result) return 0;
+        const rect = canvas.getBoundingClientRect();
+        const box = state.box;
+        const x = box.x + Math.floor(((e.clientX - rect.left) / rect.width) * box.w);
+        const y = box.y + Math.floor(((e.clientY - rect.top) / rect.height) * box.h);
+        const W = state.work.width;
+        if (x < 0 || y < 0 || x >= W || y >= state.work.height) return 0;
+        return state.result.labels[y * W + x];
+      }
+
+      function showTip(e) {
+        const id = labelAt(e);
+        setHover(id);
+        if (!id) {
+          tipEl.hidden = true;
+          return;
+        }
+        const o = state.result.organoids[id - 1];
+        const wrap = $('canvas-wrap').getBoundingClientRect();
+        tipEl.hidden = false;
+        tipEl.textContent =
+          `#${id} · ${o.area.toLocaleString()} px · cyst ${o.cyst.toLocaleString()} px · ${fmtPct(o.ci)}` +
+          (state.excluded.has(id) ? ' · excluded' : '');
+        const left = e.clientX - wrap.left;
+        // Keep the tip inside the image near the right edge.
+        tipEl.style.left = Math.min(left, wrap.width - tipEl.offsetWidth - 24) + 'px';
+        tipEl.style.top = e.clientY - wrap.top + 'px';
+      }
+
+      canvas.addEventListener('mousemove', showTip);
+
+      canvas.addEventListener('mouseleave', () => {
+        tipEl.hidden = true;
+        setHover(0);
+      });
+
+      canvas.addEventListener('click', (e) => {
+        const id = labelAt(e);
+        if (!id) return;
+        toggle(id);
+        showTip(e);
+      });
+
+      document.querySelectorAll('.view-bar button[data-view]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.view = btn.dataset.view;
+          document
+            .querySelectorAll('.view-bar button[data-view]')
+            .forEach((b) => b.classList.toggle('active', b === btn));
+          render();
+        });
+      });
+
+      $('zoom').addEventListener('click', () => {
+        state.zoom = !state.zoom;
+        $('zoom').classList.toggle('active', state.zoom);
+        render();
+      });
+
+      $('include-all').addEventListener('click', () => {
+        state.excluded.clear();
+        buildOverlays();
+        render();
+        renderTable();
+        renderSummary();
+      });
+
+      $('csv').addEventListener('click', () => {
+        const lines = [
+          ['organoid', 'organoid_px', 'cyst_px', 'cystic_index', 'excluded'].join(','),
+        ];
+        for (const o of state.result.organoids) {
+          lines.push(
+            [o.id, o.area, o.cyst, o.ci.toFixed(4), state.excluded.has(o.id) ? 1 : 0].join(',')
+          );
+        }
+        const blob = new Blob([lines.join('\n') + '\n'], { type: 'text/csv' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = (state.name.replace(/\.[^.]+$/, '') || 'organoids') + '-cystic-index.csv';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      });
+
+      // ---- Loading images --------------------------------------------------
+
+      function loadFile(file) {
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+          errorEl.textContent = "That isn't an image file.";
+          return;
+        }
+        errorEl.textContent = '';
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          state.name = file.name || 'pasted image';
+          useImage(img);
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          errorEl.textContent =
+            "Couldn't decode that image. Browsers can't read most TIFFs — export a PNG or JPEG.";
+        };
+        img.src = url;
+      }
+
+      function useImage(img) {
+        const origW = img.naturalWidth;
+        const origH = img.naturalHeight;
+        const s = Math.min(1, WORK_MAX / Math.max(origW, origH));
+        const work = document.createElement('canvas');
+        work.width = Math.round(origW * s);
+        work.height = Math.round(origH * s);
+        const wctx = work.getContext('2d', { willReadFrequently: true });
+        wctx.imageSmoothingQuality = 'high';
+        wctx.drawImage(img, 0, 0, work.width, work.height);
+        Object.assign(state, { img, origW, origH, work, result: null, hover: 0 });
+
+        fileNameEl.textContent = `${state.name} · ${origW} × ${origH}`;
+        fileNameEl.hidden = false;
+        dropEl.classList.add('compact');
+        $('drop-text').textContent = 'Drop or paste another image, or';
+        for (const id of ['summary-section', 'image-section', 'tune-section', 'table-section']) {
+          $(id).hidden = false;
+        }
+        render();
+        schedule('all');
+      }
+
+      fileInput.addEventListener('change', () => {
+        loadFile(fileInput.files[0]);
+        fileInput.value = '';
+      });
+
+      let dragDepth = 0;
+      document.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        dragDepth++;
+        document.body.classList.add('dragging');
+      });
+      document.addEventListener('dragleave', () => {
+        dragDepth = Math.max(0, dragDepth - 1);
+        if (!dragDepth) document.body.classList.remove('dragging');
+      });
+      document.addEventListener('dragover', (e) => e.preventDefault());
+      document.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dragDepth = 0;
+        document.body.classList.remove('dragging');
+        loadFile(e.dataTransfer.files[0]);
+      });
+
+      document.addEventListener('paste', (e) => {
+        const item = [...(e.clipboardData?.items || [])].find((it) => it.type.startsWith('image/'));
+        if (!item) return;
+        e.preventDefault();
+        loadFile(item.getAsFile());
+      });
+
+      buildKnobs();
+    </script>
+  </body>
+</html>
