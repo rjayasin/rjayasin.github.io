@@ -560,6 +560,7 @@
       const DEFAULTS = {
         texture: null, // null = pick from the image's background noise
         gap: 18,
+        seams: 25, // 0 turns seam detection off
         split: 0.85,
         minSize: 0.04, // percent of the image
         cyst: 120,
@@ -638,13 +639,27 @@
         const rbS = boxBlur(boxBlur(brb, W, H, big), W, H, big);
         const gapRB = (p.gap * 8) / 18;
         const gap = new Uint8Array(N);
+        const bgLs = new Float32Array(N);
         for (let i = 0; i < N; i++) {
           const w = wS[i];
-          const bgL = w > 0.02 ? lS[i] / w : F.medL;
+          const bgL = (bgLs[i] = w > 0.02 ? lS[i] / w : F.medL);
           const bgRB = w > 0.02 ? rbS[i] / w : F.medRB;
           if (F.Ls[i] < bgL + p.gap && F.RBs[i] < bgRB + gapRB) {
             gap[i] = 1;
             m[i] = 0;
+          }
+        }
+        // Seams only steer where clumps split; their pixels are handed back
+        // to the organoids on either side once the split is done.
+        let giveBack = null;
+        if (p.seams) {
+          const seam = seamLines(L, bgLs, W, H, R, p.seams);
+          // The opening below also nibbles a pixel around each cut; give
+          // that back too.
+          giveBack = dilate(seam, W, H, 1);
+          for (let i = 0; i < N; i++) {
+            if (!m[i]) giveBack[i] = 0;
+            if (seam[i]) m[i] = 0;
           }
         }
         m = open(m, W, H, 1);
@@ -661,7 +676,71 @@
         let labels = floodDistance(dts, m, W, H, p.split);
         labels = absorbFragments(labels, W, H, minPx);
         labels = roundSeams(labels, m, dts, W, H);
+        if (giveBack) labels = growInto(labels, giveBack, W, H, R(3) + 1);
         return { labels, minPx, tThr };
+      }
+
+      // Where two organoids press together, the gap between them is often too
+      // thin to reach background darkness at this scale, but it still shows
+      // as a narrow dark line with each organoid's bright rim on either side.
+      // Find pixels that are `depth` darker than bright rims within a few
+      // pixels on both sides, along any of four directions, and keep only
+      // runs long enough to be a seam rather than a dark speck of grain.
+      function seamLines(L, bgL, W, H, R, depth) {
+        const N = W * H;
+        const k = R(3);
+        const v = new Uint8Array(N);
+        const steps = [1, W, W + 1, W - 1];
+        for (let y = k; y < H - k; y++) {
+          for (let x = k; x < W - k; x++) {
+            const i = y * W + x;
+            const c = L[i];
+            const rim = bgL[i] + 60;
+            for (const d of steps) {
+              let a = 0;
+              let b = 0;
+              for (let j = 1; j <= k; j++) {
+                if (L[i - j * d] > a) a = L[i - j * d];
+                if (L[i + j * d] > b) b = L[i + j * d];
+              }
+              const lo = Math.min(a, b);
+              if (lo > rim && lo - c > depth) {
+                v[i] = 1;
+                break;
+              }
+            }
+          }
+        }
+        const { lab, sizes } = components8(v, W, H);
+        const minRun = R(6);
+        for (let i = 0; i < N; i++) if (v[i] && sizes[lab[i]] < minRun) v[i] = 0;
+        return v;
+      }
+
+      // Grow labels into the unlabelled pixels of `allowed`, one ring per step.
+      function growInto(lab, allowed, W, H, steps) {
+        const N = W * H;
+        let cur = lab;
+        for (let s = 0; s < steps; s++) {
+          const next = new Int32Array(cur);
+          let grew = false;
+          for (let i = 0; i < N; i++) {
+            if (cur[i] || !allowed[i]) continue;
+            const x = i % W;
+            const l =
+              (x > 0 && cur[i - 1]) ||
+              (x < W - 1 && cur[i + 1]) ||
+              (i >= W && cur[i - W]) ||
+              (i < N - W && cur[i + W]);
+            if (l) {
+              next[i] = l;
+              grew = true;
+            }
+          }
+          cur = next;
+          if (!grew) break;
+        }
+        return cur;
       }
 
       // ---- Stage 3: cysts --------------------------------------------------
@@ -778,6 +857,39 @@
             if (x < W - 1 && m[q + 1] && !lab[q + 1]) (lab[q + 1] = count), (stack[sp++] = q + 1);
             if (q >= W && m[q - W] && !lab[q - W]) (lab[q - W] = count), (stack[sp++] = q - W);
             if (q < N - W && m[q + W] && !lab[q + W]) (lab[q + W] = count), (stack[sp++] = q + W);
+          }
+          sizes.push(size);
+        }
+        return { lab, sizes };
+      }
+
+      // 8-connected components, for thin diagonal lines.
+      function components8(m, W, H) {
+        const N = W * H;
+        const lab = new Int32Array(N);
+        const stack = new Int32Array(N);
+        const sizes = [0];
+        let count = 0;
+        for (let s = 0; s < N; s++) {
+          if (!m[s] || lab[s]) continue;
+          count++;
+          let sp = 0;
+          let size = 0;
+          stack[sp++] = s;
+          lab[s] = count;
+          while (sp) {
+            const q = stack[--sp];
+            size++;
+            const x = q % W;
+            for (let dy = -W; dy <= W; dy += W) {
+              for (let dx = -1; dx <= 1; dx++) {
+                if ((dx < 0 && x === 0) || (dx > 0 && x === W - 1)) continue;
+                const r = q + dy + dx;
+                if (r < 0 || r >= N || !m[r] || lab[r]) continue;
+                lab[r] = count;
+                stack[sp++] = r;
+              }
+            }
           }
           sizes.push(size);
         }
@@ -1151,6 +1263,16 @@
           step: 1,
           stage: 'seg',
           fmt: (v) => String(v),
+        },
+        {
+          key: 'seams',
+          label: 'seam contrast',
+          why: 'lower cuts along fainter dark lines between organoids; 0 is off',
+          min: 0,
+          max: 80,
+          step: 1,
+          stage: 'seg',
+          fmt: (v) => (v ? String(v) : 'off'),
         },
         {
           key: 'split',
