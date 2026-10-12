@@ -1556,6 +1556,37 @@
 
       // The part of the working image on screen: everything, or a crop around
       // the organoids (they often fill only the middle of the well).
+      // A close crop around one organoid with room to paint outward, shaped
+      // like the image so it doesn't get very tall on screen.
+      function boxAround(l) {
+        const { width: W, height: H } = state.work;
+        const { labels } = state.result;
+        let x0 = W,
+          y0 = H,
+          x1 = 0,
+          y1 = 0;
+        for (let i = 0; i < labels.length; i++) {
+          if (labels[i] !== l) continue;
+          const x = i % W;
+          const y = (i / W) | 0;
+          if (x < x0) x0 = x;
+          if (x > x1) x1 = x;
+          if (y < y0) y0 = y;
+          if (y > y1) y1 = y;
+        }
+        if (x1 < x0) return viewBox();
+        const pad = Math.max(20, 0.3 * Math.max(x1 - x0, y1 - y0));
+        let w = x1 - x0 + 2 * pad;
+        let h = y1 - y0 + 2 * pad;
+        if (w / h < W / H) w = (h * W) / H;
+        else h = (w * H) / W;
+        w = Math.min(W, Math.round(w));
+        h = Math.min(H, Math.round(h));
+        const x = Math.round(Math.min(W - w, Math.max(0, (x0 + x1 - w) / 2)));
+        const y = Math.round(Math.min(H - h, Math.max(0, (y0 + y1 - h) / 2)));
+        return { x, y, w, h };
+      }
+
       function viewBox() {
         const { width: W, height: H } = state.work;
         const all = { x: 0, y: 0, w: W, h: H };
@@ -1587,7 +1618,10 @@
       function render() {
         if (!state.work) return;
         // Hold the crop still while editing, or it would shift under the brush.
-        const box = (state.box = state.editing && state.box ? state.box : viewBox());
+        if (!state.editing || !state.box) {
+          state.box = state.editing && state.selected ? boxAround(state.selected) : viewBox();
+        }
+        const box = state.box;
         if (canvas.width !== box.w || canvas.height !== box.h) {
           canvas.width = box.w;
           canvas.height = box.h;
@@ -1840,6 +1874,8 @@
         const id = labelAt(e);
         if (e.button === 0 && id && id !== state.selected) {
           state.selected = id;
+          state.box = null;
+          state.cursor = null;
           syncEditBar();
           render();
           return;
@@ -1969,13 +2005,14 @@
           );
         const what = state.editCyst ? `#${state.selected}'s cyst` : `#${state.selected}`;
         $('edit-hint').textContent = state.selected
-          ? `left drag adds to ${what} · right drag removes · click another organoid to switch`
+          ? `left drag adds to ${what} · right drag removes · esc to pick another`
           : 'click an organoid to edit it';
       }
 
       $('edit').addEventListener('click', () => {
         state.editing = !state.editing;
         state.selected = 0;
+        state.box = null;
         if (state.editing && state.view === 'original') {
           document.querySelector('.view-bar button[data-view="fill"]').click();
         }
@@ -2012,6 +2049,7 @@
         }
         if (e.key !== 'Escape' || !state.editing || !state.selected) return;
         state.selected = 0;
+        state.box = null;
         syncEditBar();
         render();
       });
