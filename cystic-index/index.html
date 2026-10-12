@@ -1594,15 +1594,21 @@
         }
         ctx.setTransform(1, 0, 0, 1, -box.x, -box.y);
         ctx.drawImage(state.work, 0, 0);
-        if (!state.result || state.view === 'original' || state.peek) return;
+        if (!state.result || state.peek) return;
+
+        // Editing one organoid: leave the image alone apart from its borders.
+        const sel = state.editing ? state.selected : 0;
+        if (sel) {
+          outlineOrganoid(sel, '#fff', 2);
+          outlineCyst(sel, '#ffd400');
+          drawBrush(box);
+          return;
+        }
+        if (state.view === 'original') return;
         ctx.drawImage(state.view === 'fill' ? state.overlay.fill : state.overlay.outline, 0, 0);
 
         const { organoids } = state.result;
-        const sel = state.editing ? state.selected : 0;
-        if (state.hover && state.hover !== sel) {
-          outlineOrganoid(state.hover, sel ? 'rgba(255,255,255,0.5)' : '#fff');
-        }
-        if (sel) outlineOrganoid(sel, '#fff');
+        if (state.hover) outlineOrganoid(state.hover, '#fff', 3);
 
         const size = Math.max(10, Math.round(Math.max(box.w, box.h) / 45));
         ctx.font = `600 ${size}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
@@ -1618,23 +1624,24 @@
           ctx.strokeText(o.id, o.cx, o.cy);
           ctx.fillText(o.id, o.cx, o.cy);
         }
-
-        if (sel && state.cursor) {
-          const { x, y } = state.cursor;
-          const lw = Math.max(1, Math.max(box.w, box.h) / 600);
-          ctx.beginPath();
-          ctx.arc(x, y, state.brush, 0, 2 * Math.PI);
-          ctx.lineWidth = 3 * lw;
-          ctx.strokeStyle = 'rgba(0,0,0,0.7)';
-          ctx.stroke();
-          ctx.lineWidth = lw;
-          ctx.strokeStyle = '#fff';
-          ctx.stroke();
-        }
       }
 
-      // Thicker outline around one organoid.
-      function outlineOrganoid(l, colour) {
+      function drawBrush(box) {
+        if (!state.cursor) return;
+        const { x, y } = state.cursor;
+        const lw = Math.max(1, Math.max(box.w, box.h) / 600);
+        ctx.beginPath();
+        ctx.arc(x, y, state.brush, 0, 2 * Math.PI);
+        ctx.lineWidth = 3 * lw;
+        ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+        ctx.stroke();
+        ctx.lineWidth = lw;
+        ctx.strokeStyle = '#fff';
+        ctx.stroke();
+      }
+
+      // Outline one organoid, `w` px thick.
+      function outlineOrganoid(l, colour, w) {
         const W = state.work.width;
         const { labels } = state.result;
         ctx.fillStyle = colour;
@@ -1649,7 +1656,20 @@
             labels[i - W] !== l ||
             labels[i + W] !== l
           ) {
-            ctx.fillRect(x - 1, ((i / W) | 0) - 1, 3, 3);
+            ctx.fillRect(x - (w >> 1), ((i / W) | 0) - (w >> 1), w, w);
+          }
+        }
+      }
+
+      function outlineCyst(l, colour) {
+        const W = state.work.width;
+        const { labels } = state.result;
+        const c = state.cyst;
+        ctx.fillStyle = colour;
+        for (let i = 0; i < labels.length; i++) {
+          if (labels[i] !== l || !c[i]) continue;
+          if (!c[i - 1] || !c[i + 1] || !c[i - W] || !c[i + W]) {
+            ctx.fillRect(i % W, (i / W) | 0, 1, 1);
           }
         }
       }
