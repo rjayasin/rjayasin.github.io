@@ -224,6 +224,39 @@
         font-variant-numeric: tabular-nums;
       }
 
+      .scale-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 10px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .scale-row input {
+        width: 90px;
+        font-size: 12.5px;
+        color: var(--fg);
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 3px 6px;
+      }
+
+      .scale-row.missing input {
+        border-color: var(--accent);
+      }
+
+      .scale-row.missing .scale-note {
+        color: var(--accent);
+      }
+
+      .scale-row button {
+        padding: 2px 8px;
+        font-size: 11px;
+      }
+
       /* ---- Image ------------------------------------------------------- */
 
       .view-bar {
@@ -488,6 +521,13 @@
 
     <section id="summary-section" hidden>
       <h2>Summary</h2>
+      <div class="scale-row" id="scale-row">
+        <label for="um-per-px">pixel size</label>
+        <input type="number" id="um-per-px" class="mono" min="0" step="any" placeholder="?" />
+        <span>µm / px</span>
+        <span class="scale-note" id="scale-note"></span>
+        <button type="button" id="scale-reset" hidden>use metadata</button>
+      </div>
       <div class="stats">
         <div class="stat">
           <div class="label">Organoids</div>
@@ -497,7 +537,7 @@
         <div class="stat">
           <div class="label">Cystic index</div>
           <div class="value" id="s-ci">–</div>
-          <div class="sub">all cyst px ÷ all organoid px</div>
+          <div class="sub">all cyst area ÷ all organoid area</div>
         </div>
         <div class="stat">
           <div class="label">Mean per organoid</div>
@@ -566,8 +606,8 @@
           <thead>
             <tr>
               <th>#</th>
-              <th>organoid px</th>
-              <th>cyst px</th>
+              <th id="th-area">organoid px</th>
+              <th id="th-cyst">cyst px</th>
               <th>cystic index</th>
             </tr>
           </thead>
@@ -1295,6 +1335,8 @@
         edited: false,
         cystEdit: null, // +1 / -1 where cyst was painted on / off by hand
         restore: null, // saved session to put back once the reloaded image is analysed
+        calMeta: null, // pixel size read from the image's metadata
+        umPerPx: null, // pixel size typed in, overriding the metadata
       };
 
       // ---- Tuning knobs ----------------------------------------------------
@@ -1352,7 +1394,7 @@
           fmt: (v) => {
             if (!state.F) return v + '%';
             const px = (state.F.N * v * workScale()) / 100;
-            return fmtPx(px);
+            return fmtArea(px);
           },
         },
         {
@@ -1796,6 +1838,23 @@
         return Math.round(n).toLocaleString() + ' px';
       }
 
+      // µm² per original-image pixel, or null when the pixel size is unknown.
+      function umPerPx2() {
+        if (state.umPerPx) return state.umPerPx ** 2;
+        const meta = metaPixel();
+        return meta ? meta.x * meta.y : null;
+      }
+
+      // An area in original pixels, as µm² when the pixel size is known.
+      function areaNum(px) {
+        const k = umPerPx2();
+        return Math.round(k ? px * k : px).toLocaleString();
+      }
+
+      function fmtArea(px) {
+        return areaNum(px) + (umPerPx2() ? ' µm²' : ' px');
+      }
+
       function fmtPct(x) {
         return (100 * x).toFixed(1) + '%';
       }
@@ -1819,14 +1878,17 @@
           const [r, g, b] = PALETTE[o.colour];
           tr.innerHTML =
             `<td><span class="swatch" style="background:rgb(${r},${g},${b})"></span>${o.id}</td>` +
-            `<td>${o.area.toLocaleString()}</td>` +
-            `<td>${o.cyst.toLocaleString()}</td>` +
+            `<td>${areaNum(o.area)}</td>` +
+            `<td>${areaNum(o.cyst)}</td>` +
             `<td>${fmtPct(o.ci)}<span class="bar"><span style="width:${(100 * o.ci).toFixed(1)}%"></span></span></td>`;
           tr.addEventListener('click', () => toggle(o.id));
           tr.addEventListener('mouseenter', () => setHover(o.id));
           tr.addEventListener('mouseleave', () => setHover(0));
           rowsEl.appendChild(tr);
         }
+        const unit = umPerPx2() ? 'µm²' : 'px';
+        $('th-area').textContent = `organoid ${unit}`;
+        $('th-cyst').textContent = `cyst ${unit}`;
         const { width: W, height: H } = state.work;
         const scaled =
           W === state.origW
@@ -1856,8 +1918,8 @@
           $('s-mean').textContent = '–';
           $('s-mean-sub').textContent = '';
         }
-        $('s-area').textContent = fmtPx(area);
-        $('s-area-sub').textContent = `${fmtPx(cyst)} of it cyst`;
+        $('s-area').textContent = fmtArea(area);
+        $('s-area-sub').textContent = `${fmtArea(cyst)} of it cyst`;
         // Every change to the numbers ends up here, so save from here too.
         saveSession();
       }
@@ -1911,7 +1973,7 @@
         const wrap = $('canvas-wrap').getBoundingClientRect();
         tipEl.hidden = false;
         tipEl.textContent =
-          `#${id} · ${o.area.toLocaleString()} px · cyst ${o.cyst.toLocaleString()} px · ${fmtPct(o.ci)}` +
+          `#${id} · ${fmtArea(o.area)} · cyst ${fmtArea(o.cyst)} · ${fmtPct(o.ci)}` +
           (state.excluded.has(id) ? ' · excluded' : '');
         const left = e.clientX - wrap.left;
         // Keep the tip inside the image near the right edge.
@@ -2252,13 +2314,14 @@
       });
 
       $('csv').addEventListener('click', () => {
-        const lines = [
-          ['organoid', 'organoid_px', 'cyst_px', 'cystic_index', 'excluded'].join(','),
-        ];
+        const k = umPerPx2();
+        const head = ['organoid', 'organoid_px', 'cyst_px', 'cystic_index', 'excluded'];
+        if (k) head.push('organoid_um2', 'cyst_um2');
+        const lines = [head.join(',')];
         for (const o of present()) {
-          lines.push(
-            [o.id, o.area, o.cyst, o.ci.toFixed(4), state.excluded.has(o.id) ? 1 : 0].join(',')
-          );
+          const row = [o.id, o.area, o.cyst, o.ci.toFixed(4), state.excluded.has(o.id) ? 1 : 0];
+          if (k) row.push((o.area * k).toFixed(1), (o.cyst * k).toFixed(1));
+          lines.push(row.join(','));
         }
         const blob = new Blob([lines.join('\n') + '\n'], { type: 'text/csv' });
         const a = document.createElement('a');
@@ -2277,6 +2340,8 @@
           return;
         }
         errorEl.textContent = '';
+        state.umPerPx = null;
+        state.calMeta = null;
         const url = URL.createObjectURL(file);
         const img = new Image();
         img.onload = () => {
@@ -2284,6 +2349,11 @@
           state.name = name || file.name || 'pasted image';
           useImage(img);
           saveLast(file, state.name);
+          readCalibration(file).then((cal) => {
+            if (state.img !== img) return;
+            state.calMeta = cal;
+            refreshUnits(true);
+          });
         };
         img.onerror = () => {
           URL.revokeObjectURL(url);
@@ -2292,6 +2362,131 @@
         };
         img.src = url;
       }
+
+      // ---- Pixel size --------------------------------------------------------
+      // cellSens (Olympus / Evident) saves its calibration as zlib-compressed
+      // JSON in the EXIF MakerNote, behind an "OLYXV" header. Anything else
+      // needs the pixel size typed in.
+
+      async function readCalibration(blob) {
+        try {
+          const note = makerNote(new DataView(await blob.arrayBuffer()));
+          if (!note || String.fromCharCode(...note.subarray(0, 5)) !== 'OLYXV') return null;
+          const z = note.indexOf(0x78, 5);
+          const stream = new Blob([note.subarray(z)])
+            .stream()
+            .pipeThrough(new DecompressionStream('deflate'));
+          const doc = JSON.parse(await new Response(stream).text());
+          const layer = doc.layer?.[0] || {};
+          const [cx, cy] = layer.calibration || [];
+          const sx = cx?.scale || doc.canvas?.scale?.x;
+          const sy = cy?.scale || doc.canvas?.scale?.y;
+          const x = toMicrons(sx);
+          const y = toMicrons(sy);
+          if (!x || !y) return null;
+          return {
+            x,
+            y,
+            // The calibration covers `length` pixels; rescale if the image was
+            // saved at a different size.
+            lenX: cx?.length || doc.canvas?.size?.width,
+            lenY: cy?.length || doc.canvas?.size?.height,
+            mag: layer.calibratedMagnification ?? layer.nominalMagnification,
+          };
+        } catch (err) {
+          console.warn('Could not read the calibration', err);
+          return null;
+        }
+      }
+
+      // { unit: '10^-6m^1', value } -> µm
+      function toMicrons(q) {
+        const m = /^10\^(-?\d+)m\^1$/.exec(q?.unit || '');
+        return m && q.value > 0 ? q.value * 10 ** (+m[1] + 6) : null;
+      }
+
+      function makerNote(dv) {
+        if (dv.getUint16(0) !== 0xffd8) return null;
+        let p = 2;
+        while (p + 10 < dv.byteLength) {
+          const marker = dv.getUint16(p);
+          if (marker === 0xffda) break;
+          // APP1 starting "Exif"
+          if (marker === 0xffe1 && dv.getUint32(p + 4) === 0x45786966) {
+            return tiffTag(dv, p + 10, 0x927c);
+          }
+          p += 2 + dv.getUint16(p + 2);
+        }
+        return null;
+      }
+
+      // The bytes of an Exif-IFD tag in the TIFF block starting at `t`.
+      function tiffTag(dv, t, want) {
+        const le = dv.getUint16(t) === 0x4949;
+        const u16 = (o) => dv.getUint16(t + o, le);
+        const u32 = (o) => dv.getUint32(t + o, le);
+        const find = (ifd, tag) => {
+          const n = u16(ifd);
+          for (let k = 0; k < n; k++) {
+            const e = ifd + 2 + 12 * k;
+            if (u16(e) === tag) return { count: u32(e + 4), offset: u32(e + 8) };
+          }
+          return null;
+        };
+        const exif = find(u32(4), 0x8769);
+        const tag = exif && find(exif.offset, want);
+        return tag ? new Uint8Array(dv.buffer, t + tag.offset, tag.count) : null;
+      }
+
+      // Metadata pixel size for this image, rescaled if it was resized.
+      function metaPixel() {
+        const c = state.calMeta;
+        if (!c) return null;
+        return {
+          x: c.x * (c.lenX && state.origW ? c.lenX / state.origW : 1),
+          y: c.y * (c.lenY && state.origH ? c.lenY / state.origH : 1),
+        };
+      }
+
+      function syncScale(setInput) {
+        const meta = metaPixel();
+        const input = $('um-per-px');
+        if (setInput) {
+          const v = state.umPerPx || meta?.x;
+          input.value = v ? +v.toPrecision(4) : '';
+        }
+        const mag = state.calMeta?.mag ? `, calibrated for a ${state.calMeta.mag}× objective` : '';
+        $('scale-row').classList.toggle('missing', !umPerPx2());
+        $('scale-reset').hidden = !(meta && state.umPerPx);
+        $('scale-note').textContent = !umPerPx2()
+          ? 'No pixel size in this image’s metadata — enter one to see areas in µm².'
+          : state.umPerPx
+            ? meta
+              ? `entered by hand · metadata says ${+meta.x.toPrecision(4)} µm/px${mag}`
+              : 'entered by hand'
+            : `from cellSens metadata${mag}`;
+      }
+
+      function refreshUnits(setInput) {
+        syncScale(setInput);
+        if (!state.result) return;
+        syncKnobs();
+        renderTable();
+        renderSummary();
+      }
+
+      $('um-per-px').addEventListener('input', () => {
+        const v = parseFloat($('um-per-px').value);
+        const meta = metaPixel();
+        // Typing the metadata value back in is the same as using it.
+        state.umPerPx = v > 0 && !(meta && Math.abs(v - meta.x) < 1e-9) ? v : null;
+        refreshUnits(false);
+      });
+
+      $('scale-reset').addEventListener('click', () => {
+        state.umPerPx = null;
+        refreshUnits(true);
+      });
 
       function useImage(img) {
         const origW = img.naturalWidth;
@@ -2382,6 +2577,7 @@
             params: state.params,
             excluded: [...state.excluded],
             edited: state.edited,
+            umPerPx: state.umPerPx,
           };
           if (state.edited) {
             Object.assign(session, {
@@ -2428,6 +2624,7 @@
             state.restore = session;
           }
           loadFile(rec.blob, rec.name);
+          state.umPerPx = session?.umPerPx ?? null;
         } catch (err) {
           console.warn('Could not restore the last image', err);
         }
