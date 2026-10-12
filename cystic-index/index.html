@@ -1291,6 +1291,7 @@
         cursor: null,
         edited: false,
         cystEdit: null, // +1 / -1 where cyst was painted on / off by hand
+        restore: null, // saved session to put back once the reloaded image is analysed
       };
 
       // ---- Tuning knobs ----------------------------------------------------
@@ -1450,6 +1451,8 @@
           // keep the numbers so exclusions and the selection still line up.
           if (state.edited) remeasure();
           else state.result = measure(state.F, state.seg.labels, state.cyst, workScale());
+          if (stage === 'all' && state.restore) applySession(state.restore);
+          state.restore = null;
           state.box = null;
         } catch (err) {
           console.error(err);
@@ -1794,6 +1797,8 @@
         }
         $('s-area').textContent = fmtPx(area);
         $('s-area-sub').textContent = `${fmtPx(cyst)} of it cyst`;
+        // Every change to the numbers ends up here, so save from here too.
+        saveSession();
       }
 
       function toggle(id) {
@@ -2251,7 +2256,8 @@
 
       // ---- Remembering the last image -------------------------------------
       // Images are too big for localStorage, so the last one goes in
-      // IndexedDB and comes back on reload.
+      // IndexedDB and comes back on reload, with the slider settings,
+      // exclusions and hand edits made to it.
 
       function openDB() {
         return new Promise((resolve, reject) => {
@@ -2271,15 +2277,65 @@
         }
       }
 
+      let saveTimer = null;
+
+      function saveSession() {
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(async () => {
+          if (!state.result) return;
+          const { W, H } = state.F;
+          const session = {
+            W,
+            H,
+            params: state.params,
+            excluded: [...state.excluded],
+            edited: state.edited,
+          };
+          if (state.edited) {
+            Object.assign(session, {
+              labels: state.result.labels,
+              organoids: state.result.organoids,
+              cyst: state.cyst,
+              cystEdit: state.cystEdit,
+            });
+          }
+          try {
+            const db = await openDB();
+            db.transaction('images', 'readwrite').objectStore('images').put(session, 'session');
+          } catch (err) {
+            console.warn('Could not save the edits', err);
+          }
+        }, 500);
+      }
+
+      function applySession(s) {
+        if (s.W !== state.F.W || s.H !== state.F.H) return;
+        state.excluded = new Set(s.excluded);
+        if (!s.edited) return;
+        state.result = { labels: s.labels, organoids: s.organoids };
+        state.seg.labels = s.labels;
+        state.cyst = s.cyst;
+        state.cystEdit = s.cystEdit;
+        state.edited = true;
+      }
+
       async function loadLast() {
         try {
           const db = await openDB();
-          const rec = await new Promise((resolve, reject) => {
-            const req = db.transaction('images').objectStore('images').get('last');
-            req.onsuccess = () => resolve(req.result);
-            req.onerror = () => reject(req.error);
-          });
-          if (rec && !state.img) loadFile(rec.blob, rec.name);
+          const get = (key) =>
+            new Promise((resolve, reject) => {
+              const req = db.transaction('images').objectStore('images').get(key);
+              req.onsuccess = () => resolve(req.result);
+              req.onerror = () => reject(req.error);
+            });
+          const rec = await get('last');
+          const session = await get('session');
+          if (!rec || state.img) return;
+          if (session) {
+            state.params = { ...DEFAULTS, ...session.params };
+            state.restore = session;
+          }
+          loadFile(rec.blob, rec.name);
         } catch (err) {
           console.warn('Could not restore the last image', err);
         }
