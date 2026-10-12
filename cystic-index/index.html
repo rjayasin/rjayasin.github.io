@@ -2323,6 +2323,13 @@
           if (k) row.push((o.area * k).toFixed(1), (o.cyst * k).toFixed(1));
           lines.push(row.join(','));
         }
+        // The summary's cystic index: included organoids pooled together.
+        const list = included();
+        const area = list.reduce((s, o) => s + o.area, 0);
+        const cyst = list.reduce((s, o) => s + o.cyst, 0);
+        const total = ['total', area, cyst, area ? (cyst / area).toFixed(4) : '', ''];
+        if (k) total.push((area * k).toFixed(1), (cyst * k).toFixed(1));
+        lines.push(total.join(','));
         const blob = new Blob([lines.join('\n') + '\n'], { type: 'text/csv' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
