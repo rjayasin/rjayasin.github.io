@@ -1288,7 +1288,6 @@
         peek: false, // right button held: show just the image
         editing: false,
         editCyst: false,
-        drawingNew: false, // selected organoid came from "new organoid"; clicks don't switch
         tool: 'brush', // or 'lasso'
         selected: 0,
         brush: 8,
@@ -1446,7 +1445,6 @@
             state.excluded.clear();
             state.edited = false;
             state.selected = 0;
-            state.drawingNew = false;
             state.cystEdit = new Int8Array(state.F.N);
             undoStack = [];
           }
@@ -1904,9 +1902,11 @@
           }
           return;
         }
-        const id = labelAt(e);
-        // While drawing a new organoid, strokes may start on another one.
-        if (e.button === 0 && id && id !== state.selected && !state.drawingNew) {
+        // Clicks only pick an organoid when none is selected; after that every
+        // stroke edits the selected one, even if it starts on a neighbour.
+        if (!state.selected) {
+          const id = e.button === 0 && labelAt(e);
+          if (!id) return;
           state.selected = id;
           state.box = null;
           state.cursor = null;
@@ -1914,7 +1914,6 @@
           render();
           return;
         }
-        if (!state.selected) return;
         const p = pointAt(e);
         const lasso = state.tool === 'lasso';
         drag = { add: e.button === 0, last: p, prev: new Map(), path: lasso ? [p] : null };
@@ -2091,7 +2090,7 @@
           ? 'click an organoid to edit it'
           : empty && !state.editCyst
             ? `left ${how} to draw #${state.selected}`
-            : `left ${how} adds to ${what} · right ${how} removes · esc to ${state.drawingNew ? 'finish' : 'pick another'}`;
+            : `left ${how} adds to ${what} · right ${how} removes · esc to pick another`;
       }
 
       $('new-organoid').addEventListener('click', () => {
@@ -2113,7 +2112,6 @@
             colour: (id * 7) % PALETTE.length,
           });
         state.selected = id;
-        state.drawingNew = true;
         state.editCyst = false;
         state.box = null;
         syncEditBar();
@@ -2131,7 +2129,6 @@
       $('edit').addEventListener('click', () => {
         state.editing = !state.editing;
         state.selected = 0;
-        state.drawingNew = false;
         state.box = null;
         if (state.editing && state.view === 'original') {
           document.querySelector('.view-bar button[data-view="fill"]').click();
@@ -2169,7 +2166,6 @@
         }
         if (e.key !== 'Escape' || !state.editing || !state.selected) return;
         state.selected = 0;
-        state.drawingNew = false;
         state.box = null;
         syncEditBar();
         render();
