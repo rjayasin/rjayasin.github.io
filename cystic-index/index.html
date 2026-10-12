@@ -254,6 +254,13 @@
         margin-left: 6px;
       }
 
+      .view-bar .sep {
+        width: 1px;
+        align-self: stretch;
+        background: var(--border);
+        margin: 0 4px;
+      }
+
       .view-bar .brush input {
         width: 100px;
         accent-color: var(--accent);
@@ -520,8 +527,11 @@
       <div class="view-bar" id="edit-bar" role="group" aria-label="edit" hidden>
         <button type="button" data-target="organoid" class="active">organoid</button>
         <button type="button" data-target="cyst">cyst</button>
-        <span class="brush">
-          <label for="brush">brush</label>
+        <span class="sep"></span>
+        <button type="button" data-tool="brush" class="active">brush</button>
+        <button type="button" data-tool="lasso">lasso</button>
+        <span class="brush" id="brush-size">
+          <label for="brush">size</label>
           <input type="range" id="brush" min="1" max="40" step="1" value="8" />
           <output class="mono" for="brush">8</output>
         </span>
@@ -1275,6 +1285,7 @@
         peek: false, // right button held: show just the image
         editing: false,
         editCyst: false,
+        tool: 'brush', // or 'lasso'
         selected: 0,
         brush: 8,
         cursor: null,
@@ -1661,11 +1672,18 @@
       }
 
       function drawBrush(box) {
-        if (!state.cursor) return;
-        const { x, y } = state.cursor;
         const lw = Math.max(1, Math.max(box.w, box.h) / 600);
         ctx.beginPath();
-        ctx.arc(x, y, state.brush, 0, 2 * Math.PI);
+        if (drag?.path) {
+          drag.path.forEach((p, k) => (k ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+          ctx.closePath();
+          ctx.fillStyle = drag.add ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.3)';
+          ctx.fill();
+        } else if (state.cursor && state.tool === 'brush') {
+          ctx.arc(state.cursor.x, state.cursor.y, state.brush, 0, 2 * Math.PI);
+        } else {
+          return;
+        }
         ctx.lineWidth = 3 * lw;
         ctx.strokeStyle = 'rgba(0,0,0,0.7)';
         ctx.stroke();
@@ -1838,8 +1856,9 @@
       canvas.addEventListener('mousemove', (e) => {
         if (state.editing && state.result) {
           state.cursor = pointAt(e);
-          if (drag) strokeTo(state.cursor);
-          refresh(!!drag);
+          if (drag?.path) drag.path.push(state.cursor);
+          else if (drag) strokeTo(state.cursor);
+          refresh(!!drag && !drag.path);
         }
         showTip(e);
       });
@@ -1882,9 +1901,14 @@
         }
         if (!state.selected) return;
         const p = pointAt(e);
-        drag = { add: e.button === 0, last: p, prev: new Map() };
+        const lasso = state.tool === 'lasso';
+        drag = { add: e.button === 0, last: p, prev: new Map(), path: lasso ? [p] : null };
         state.edited = true;
         state.seg.labels = state.result.labels;
+        if (lasso) {
+          render();
+          return;
+        }
         stamp(p.x, p.y, drag.add);
         refresh(true);
       });
@@ -1895,6 +1919,10 @@
           render();
         }
         if (drag) {
+          if (drag.path) {
+            fillLasso(drag.path, drag.add);
+            refresh(true);
+          }
           if (drag.prev.size) {
             undoStack.push(drag.prev);
             if (undoStack.length > 50) undoStack.shift();
@@ -1911,7 +1939,7 @@
 
       // ---- Editing ---------------------------------------------------------
 
-      let drag = null; // { add, last, prev } while a brush stroke is under way
+      let drag = null; // { add, last, prev, path } while a stroke is under way
       // One Map per stroke: pixel index -> [label, cyst, cystEdit] before it.
       let undoStack = [];
       let frame = 0;
@@ -1932,34 +1960,67 @@
         });
       }
 
-      // Paint one brush dab. Organoid mode can take pixels from a neighbour
-      // but only erases the selected organoid; cyst mode stays inside it.
+      // Paint one pixel. Organoid mode can take pixels from a neighbour but
+      // only erases the selected organoid; cyst mode stays inside it.
+      function paint(i, add) {
+        const { labels } = state.result;
+        const { cyst, cystEdit, selected: sel } = state;
+        if (!drag.prev.has(i)) drag.prev.set(i, [labels[i], cyst[i], cystEdit[i]]);
+        if (state.editCyst) {
+          if (labels[i] !== sel) return;
+          cyst[i] = add ? 1 : 0;
+          cystEdit[i] = add ? 1 : -1;
+        } else if (add) {
+          if (labels[i] === sel) return;
+          labels[i] = sel;
+          cyst[i] = 0;
+          cystEdit[i] = 0;
+        } else if (labels[i] === sel) {
+          labels[i] = 0;
+          cyst[i] = 0;
+        }
+      }
+
       function stamp(cx, cy, add) {
         const { W, H } = state.F;
-        const { labels } = state.result;
-        const { cyst, cystEdit, selected: sel, brush: r } = state;
+        const r = state.brush;
         const x0 = Math.max(0, Math.floor(cx - r));
         const x1 = Math.min(W - 1, Math.ceil(cx + r));
         const y0 = Math.max(0, Math.floor(cy - r));
         const y1 = Math.min(H - 1, Math.ceil(cy + r));
         for (let y = y0; y <= y1; y++) {
           for (let x = x0; x <= x1; x++) {
-            if ((x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2 > r * r) continue;
-            const i = y * W + x;
-            if (!drag.prev.has(i)) drag.prev.set(i, [labels[i], cyst[i], cystEdit[i]]);
-            if (state.editCyst) {
-              if (labels[i] !== sel) continue;
-              cyst[i] = add ? 1 : 0;
-              cystEdit[i] = add ? 1 : -1;
-            } else if (add) {
-              if (labels[i] === sel) continue;
-              labels[i] = sel;
-              cyst[i] = 0;
-              cystEdit[i] = 0;
-            } else if (labels[i] === sel) {
-              labels[i] = 0;
-              cyst[i] = 0;
-            }
+            if ((x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2 <= r * r) paint(y * W + x, add);
+          }
+        }
+      }
+
+      // Paint everything inside the closed loop, rasterised by a canvas.
+      function fillLasso(path, add) {
+        if (path.length < 3) return;
+        const { W, H } = state.F;
+        const xs = path.map((p) => p.x);
+        const ys = path.map((p) => p.y);
+        const x0 = Math.max(0, Math.floor(Math.min(...xs)));
+        const y0 = Math.max(0, Math.floor(Math.min(...ys)));
+        const x1 = Math.min(W, Math.ceil(Math.max(...xs)) + 1);
+        const y1 = Math.min(H, Math.ceil(Math.max(...ys)) + 1);
+        const w = x1 - x0;
+        const h = y1 - y0;
+        if (w <= 0 || h <= 0) return;
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        const g = c.getContext('2d', { willReadFrequently: true });
+        g.translate(-x0, -y0);
+        g.beginPath();
+        path.forEach((p, k) => (k ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)));
+        g.closePath();
+        g.fill();
+        const a = g.getImageData(0, 0, w, h).data;
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            if (a[(y * w + x) * 4 + 3] > 127) paint((y + y0) * W + x + x0, add);
           }
         }
       }
@@ -2003,11 +2064,25 @@
           .forEach((b) =>
             b.classList.toggle('active', (b.dataset.target === 'cyst') === state.editCyst)
           );
+        const lasso = state.tool === 'lasso';
+        document
+          .querySelectorAll('#edit-bar button[data-tool]')
+          .forEach((b) => b.classList.toggle('active', b.dataset.tool === state.tool));
+        $('brush-size').hidden = lasso;
         const what = state.editCyst ? `#${state.selected}'s cyst` : `#${state.selected}`;
+        const how = lasso ? 'loop' : 'drag';
         $('edit-hint').textContent = state.selected
-          ? `left drag adds to ${what} · right drag removes · esc to pick another`
+          ? `left ${how} adds to ${what} · right ${how} removes · esc to pick another`
           : 'click an organoid to edit it';
       }
+
+      document.querySelectorAll('#edit-bar button[data-tool]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.tool = btn.dataset.tool;
+          syncEditBar();
+          render();
+        });
+      });
 
       $('edit').addEventListener('click', () => {
         state.editing = !state.editing;
