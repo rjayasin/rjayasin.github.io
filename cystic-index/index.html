@@ -535,6 +535,9 @@
           <input type="range" id="brush" min="1" max="40" step="1" value="8" />
           <output class="mono" for="brush">8</output>
         </span>
+        <button type="button" id="new-organoid" title="Draw an organoid the analysis missed">
+          new organoid
+        </button>
         <button type="button" id="undo" title="Undo the last stroke (⌘Z)" disabled>undo</button>
         <span class="hint" id="edit-hint"></span>
       </div>
@@ -1645,15 +1648,18 @@
         if (!state.result || state.peek) return;
 
         // Editing one organoid: leave the image alone apart from its borders.
+        // A new organoid with nothing drawn yet keeps the usual overlay, so
+        // the existing ones show while drawing next to them.
         const sel = state.editing ? state.selected : 0;
-        if (sel) {
+        const blank = sel && !state.result.organoids[sel - 1].areaWork;
+        if (sel && !blank) {
           outlineOrganoid(sel, '#fff', 2);
           outlineCyst(sel, '#ffd400');
           drawBrush(box);
           return;
         }
-        if (state.view === 'original') return;
-        ctx.drawImage(state.view === 'fill' ? state.overlay.fill : state.overlay.outline, 0, 0);
+        if (state.view === 'original' && !blank) return;
+        ctx.drawImage(state.view === 'outline' ? state.overlay.outline : state.overlay.fill, 0, 0);
 
         const { organoids } = state.result;
         if (state.hover) outlineOrganoid(state.hover, '#fff', 3);
@@ -1672,6 +1678,7 @@
           ctx.strokeText(o.id, o.cx, o.cy);
           ctx.fillText(o.id, o.cx, o.cy);
         }
+        if (blank) drawBrush(box);
       }
 
       function drawBrush(box) {
@@ -1924,10 +1931,10 @@
           render();
         }
         if (drag) {
-          if (drag.path) {
-            fillLasso(drag.path, drag.add);
-            refresh(true);
-          }
+          if (drag.path) fillLasso(drag.path, drag.add);
+          remeasure();
+          buildOverlays();
+          render();
           if (drag.prev.size) {
             undoStack.push(drag.prev);
             if (undoStack.length > 50) undoStack.shift();
@@ -2076,10 +2083,38 @@
         $('brush-size').hidden = lasso;
         const what = state.editCyst ? `#${state.selected}'s cyst` : `#${state.selected}`;
         const how = lasso ? 'loop' : 'drag';
-        $('edit-hint').textContent = state.selected
-          ? `left ${how} adds to ${what} · right ${how} removes · esc to pick another`
-          : 'click an organoid to edit it';
+        const empty = state.selected && !state.result.organoids[state.selected - 1].areaWork;
+        $('edit-hint').textContent = !state.selected
+          ? 'click an organoid to edit it'
+          : empty && !state.editCyst
+            ? `left ${how} to draw #${state.selected}`
+            : `left ${how} adds to ${what} · right ${how} removes · esc to pick another`;
       }
+
+      $('new-organoid').addEventListener('click', () => {
+        if (!state.result) return;
+        const { organoids } = state.result;
+        const last = organoids[organoids.length - 1];
+        // Reuse a new organoid that never got drawn.
+        const id = last && !last.areaWork && !last.cx ? last.id : organoids.length + 1;
+        if (id > organoids.length)
+          organoids.push({
+            id,
+            cx: 0,
+            cy: 0,
+            areaWork: 0,
+            area: 0,
+            cyst: 0,
+            ci: 0,
+            neighbours: [],
+            colour: (id * 7) % PALETTE.length,
+          });
+        state.selected = id;
+        state.editCyst = false;
+        state.box = null;
+        syncEditBar();
+        render();
+      });
 
       document.querySelectorAll('#edit-bar button[data-tool]').forEach((btn) => {
         btn.addEventListener('click', () => {
