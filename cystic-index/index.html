@@ -224,6 +224,73 @@
         font-variant-numeric: tabular-nums;
       }
 
+      #images .note {
+        margin-top: 0;
+      }
+
+      #image-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+        gap: 6px;
+      }
+
+      .image-chip {
+        display: flex;
+        align-items: stretch;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        min-width: 0;
+      }
+
+      .image-chip.active {
+        border-color: var(--accent);
+      }
+
+      .image-chip button {
+        border: none;
+        background: none;
+        border-radius: 8px;
+      }
+
+      .image-chip .pick {
+        flex: 1;
+        min-width: 0;
+        text-align: left;
+        padding: 5px 4px 5px 10px;
+      }
+
+      .image-chip .nm,
+      .image-chip .st {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .image-chip .nm {
+        font-size: 12px;
+      }
+
+      .image-chip.active .nm {
+        color: var(--accent);
+      }
+
+      .image-chip .st {
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .image-chip .rm {
+        color: var(--muted);
+        padding: 0 10px;
+        font-size: 15px;
+      }
+
+      .image-chip .rm:hover {
+        color: var(--fg);
+      }
+
       .scale-row {
         display: flex;
         align-items: center;
@@ -512,12 +579,24 @@
     </header>
 
     <div id="drop">
-      <span id="drop-text">Drop an image here, paste one, or</span>
-      <label class="button" for="file">choose a file</label>
-      <input type="file" id="file" accept="image/*" />
+      <span id="drop-text">Drop images here, paste one, or</span>
+      <label class="button" for="file">choose files</label>
+      <input type="file" id="file" accept="image/*" multiple />
       <span id="file-name" class="mono" hidden></span>
     </div>
     <div id="error"></div>
+
+    <section id="images" hidden>
+      <div class="table-head">
+        <h2>Images</h2>
+        <span class="note" id="images-count"></span>
+        <div class="actions">
+          <button type="button" id="csv-all">download all csv</button>
+          <button type="button" id="clear-all">clear all</button>
+        </div>
+      </div>
+      <div id="image-list"></div>
+    </section>
 
     <section id="summary-section" hidden>
       <h2>Summary</h2>
@@ -527,6 +606,7 @@
         <span>µm / px</span>
         <span class="scale-note" id="scale-note"></span>
         <button type="button" id="scale-reset" hidden>use metadata</button>
+        <button type="button" id="scale-all" hidden>use for all images</button>
       </div>
       <div class="stats">
         <div class="stat">
@@ -1496,7 +1576,7 @@
           // keep the numbers so exclusions and the selection still line up.
           if (state.edited) remeasure();
           else state.result = measure(state.F, state.seg.labels, state.cyst, workScale());
-          if (stage === 'all' && state.restore) applySession(state.restore);
+          if (stage === 'all' && state.restore) applySession(state, state.restore);
           state.restore = null;
           state.box = null;
         } catch (err) {
@@ -1510,15 +1590,18 @@
         syncKnobs();
         syncEditBar();
         render();
+        if (current) current.status = 'done';
         renderTable();
         renderSummary();
         busyEl.hidden = !pending;
+        queueBackground();
       }
 
       // Original pixels per working pixel (area).
-      function workScale() {
-        if (!state.work) return 1;
-        return (state.origW / state.work.width) * (state.origH / state.work.height);
+      // `t` is `state` (the image on screen) or a stored image record.
+      function workScale(t = state) {
+        if (!t.work) return 1;
+        return (t.origW / t.work.width) * (t.origH / t.work.height);
       }
 
       function applyCystEdits() {
@@ -1839,9 +1922,9 @@
       }
 
       // µm² per original-image pixel, or null when the pixel size is unknown.
-      function umPerPx2() {
-        if (state.umPerPx) return state.umPerPx ** 2;
-        const meta = metaPixel();
+      function umPerPx2(t = state) {
+        if (t.umPerPx) return t.umPerPx ** 2;
+        const meta = metaPixel(t);
         return meta ? meta.x * meta.y : null;
       }
 
@@ -1922,6 +2005,7 @@
         $('s-area-sub').textContent = `${fmtArea(cyst)} of it cyst`;
         // Every change to the numbers ends up here, so save from here too.
         saveSession();
+        renderImageList();
       }
 
       function toggle(id) {
@@ -2313,62 +2397,407 @@
         renderSummary();
       });
 
-      $('csv').addEventListener('click', () => {
-        const k = umPerPx2();
-        const head = ['organoid', 'organoid_px', 'cyst_px', 'cystic_index', 'excluded'];
-        if (k) head.push('organoid_um2', 'cyst_um2');
-        const lines = [head.join(',')];
-        for (const o of present()) {
-          const row = [o.id, o.area, o.cyst, o.ci.toFixed(4), state.excluded.has(o.id) ? 1 : 0];
-          if (k) row.push((o.area * k).toFixed(1), (o.cyst * k).toFixed(1));
-          lines.push(row.join(','));
-        }
-        // The summary's cystic index: included organoids pooled together.
-        const list = included();
+      // ---- CSV ----------------------------------------------------------------
+
+      // Pooled totals over the included organoids: the summary's cystic index.
+      function totals(t) {
+        const list = t.result.organoids.filter((o) => o.areaWork && !t.excluded.has(o.id));
         const area = list.reduce((s, o) => s + o.area, 0);
         const cyst = list.reduce((s, o) => s + o.cyst, 0);
-        const total = ['total', area, cyst, area ? (cyst / area).toFixed(4) : '', ''];
-        if (k) total.push((area * k).toFixed(1), (cyst * k).toFixed(1));
-        lines.push(total.join(','));
-        const blob = new Blob([lines.join('\n') + '\n'], { type: 'text/csv' });
+        return { count: list.length, area, cyst, ci: area ? cyst / area : null };
+      }
+
+      // One row per organoid, then the image's total row. Each row is
+      // [organoid, organoid_px, cyst_px, cystic_index, excluded, organoid_um2, cyst_um2].
+      function csvRows(t) {
+        const k = umPerPx2(t);
+        const um = (px) => (k ? (px * k).toFixed(1) : '');
+        const rows = t.result.organoids
+          .filter((o) => o.areaWork)
+          .map((o) => [
+            o.id,
+            o.area,
+            o.cyst,
+            o.ci.toFixed(4),
+            t.excluded.has(o.id) ? 1 : 0,
+            um(o.area),
+            um(o.cyst),
+          ]);
+        const tot = totals(t);
+        rows.push([
+          'total',
+          tot.area,
+          tot.cyst,
+          tot.ci?.toFixed(4) ?? '',
+          '',
+          um(tot.area),
+          um(tot.cyst),
+        ]);
+        return rows;
+      }
+
+      const csvCell = (v) => (/[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v);
+
+      function download(lines, name) {
+        const blob = new Blob([lines.map((r) => r.map(csvCell).join(',')).join('\n') + '\n'], {
+          type: 'text/csv',
+        });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = (state.name.replace(/\.[^.]+$/, '') || 'organoids') + '-cystic-index.csv';
+        a.download = name;
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      }
+
+      const CSV_HEAD = ['organoid', 'organoid_px', 'cyst_px', 'cystic_index', 'excluded'];
+
+      $('csv').addEventListener('click', () => {
+        const k = umPerPx2();
+        const head = k ? [...CSV_HEAD, 'organoid_um2', 'cyst_um2'] : CSV_HEAD;
+        const rows = csvRows(state).map((r) => r.slice(0, head.length));
+        download(
+          [head, ...rows],
+          (state.name.replace(/\.[^.]+$/, '') || 'organoids') + '-cystic-index.csv'
+        );
       });
 
-      // ---- Loading images --------------------------------------------------
-
-      function loadFile(file, name) {
-        if (!file) return;
-        if (!file.type.startsWith('image/')) {
-          errorEl.textContent = "That isn't an image file.";
-          return;
+      // Every image: its organoids and total, then a total across images.
+      $('csv-all').addEventListener('click', () => {
+        stash();
+        const done = images.filter((r) => r.result);
+        const lines = [['image', ...CSV_HEAD, 'um_per_px', 'organoid_um2', 'cyst_um2']];
+        let area = 0;
+        let cyst = 0;
+        let areaUm = 0;
+        let cystUm = 0;
+        let allUm = true;
+        for (const r of done) {
+          const k = umPerPx2(r);
+          const px = k ? +Math.sqrt(k).toPrecision(6) : '';
+          for (const row of csvRows(r)) {
+            lines.push([r.name, ...row.slice(0, 5), px, row[5], row[6]]);
+          }
+          const tot = totals(r);
+          area += tot.area;
+          cyst += tot.cyst;
+          if (k) {
+            areaUm += tot.area * k;
+            cystUm += tot.cyst * k;
+          } else allUm = false;
         }
-        errorEl.textContent = '';
-        state.umPerPx = null;
-        state.calMeta = null;
-        const url = URL.createObjectURL(file);
+        // Pool in µm² when every image has a pixel size, so images taken at
+        // different magnifications are weighted by real area.
+        const ci = allUm ? (areaUm ? cystUm / areaUm : null) : area ? cyst / area : null;
+        lines.push([
+          'all images',
+          'total',
+          area,
+          cyst,
+          ci?.toFixed(4) ?? '',
+          '',
+          '',
+          allUm ? areaUm.toFixed(1) : '',
+          allUm ? cystUm.toFixed(1) : '',
+        ]);
+        download(lines, 'cystic-index-all-images.csv');
+      });
+
+      // ---- Images ----------------------------------------------------------
+      // Every dropped image gets a record. The one on screen lives in `state`
+      // (copied back to its record by stash()); the rest are analysed in the
+      // background one at a time. Only the image on screen keeps its
+      // per-pixel features, which are large.
+
+      const PER_IMAGE = [
+        'name',
+        'blob',
+        'img',
+        'origW',
+        'origH',
+        'work',
+        'F',
+        'seg',
+        'cyst',
+        'result',
+        'excluded',
+        'params',
+        'edited',
+        'cystEdit',
+        'calMeta',
+        'umPerPx',
+        'ms',
+        'restore',
+      ];
+      const images = [];
+      let current = null;
+
+      function stash() {
+        if (!current) return;
+        for (const k of PER_IMAGE) current[k] = state[k];
+        current.undo = undoStack;
+      }
+
+      // Add image files; show the first of them. `saved` restores records
+      // from IndexedDB: [{ id, blob, name, session }].
+      function addImages(files, saved, showId) {
+        const bad = [];
+        const recs = [];
+        for (const f of files) {
+          if (!f.type.startsWith('image/')) {
+            bad.push(f.name);
+            continue;
+          }
+          recs.push({ id: crypto.randomUUID(), blob: f, name: f.name || 'pasted image' });
+        }
+        for (const s of saved || []) {
+          const p = s.session;
+          recs.push({ id: s.id, blob: s.blob, name: s.name, session: p });
+        }
+        errorEl.textContent = bad.length
+          ? `Skipped files that aren't images: ${bad.join(', ')}`
+          : '';
+        if (!recs.length) return;
+        const show = recs.find((r) => r.id === showId) || recs[0];
+        for (const r of recs) {
+          Object.assign(r, {
+            img: null,
+            result: null,
+            excluded: new Set(),
+            params: r.session ? { ...DEFAULTS, ...r.session.params } : { ...state.params },
+            edited: false,
+            calMeta: null,
+            umPerPx: r.session?.umPerPx ?? null,
+            restore: r.session || null,
+            status: 'loading',
+          });
+          delete r.session;
+          images.push(r);
+          decode(r, r === show);
+          readCalibration(r.blob).then((cal) => {
+            r.calMeta = cal;
+            if (r === current) {
+              state.calMeta = cal;
+              refreshUnits(true);
+            }
+            renderImageList();
+          });
+          if (!saved) dbPut('img:' + r.id, { blob: r.blob, name: r.name });
+        }
+        saveImageList();
+        renderImageList();
+      }
+
+      function decode(r, show) {
+        const url = URL.createObjectURL(r.blob);
         const img = new Image();
         img.onload = () => {
           URL.revokeObjectURL(url);
-          state.name = name || file.name || 'pasted image';
-          useImage(img);
-          saveLast(file, state.name);
-          readCalibration(file).then((cal) => {
-            if (state.img !== img) return;
-            state.calMeta = cal;
-            refreshUnits(true);
-          });
+          if (!images.includes(r)) return;
+          Object.assign(r, makeWork(img), { img, status: 'queued' });
+          if (show || !current) switchTo(r);
+          else queueBackground();
+          renderImageList();
         };
         img.onerror = () => {
           URL.revokeObjectURL(url);
-          errorEl.textContent =
-            "Couldn't decode that image. Browsers can't read most TIFFs — export a PNG or JPEG.";
+          r.status = 'error';
+          r.error = "couldn't decode — browsers can't read most TIFFs";
+          renderImageList();
         };
         img.src = url;
       }
+
+      function makeWork(img) {
+        const origW = img.naturalWidth;
+        const origH = img.naturalHeight;
+        const s = Math.min(1, WORK_MAX / Math.max(origW, origH));
+        const work = document.createElement('canvas');
+        work.width = Math.round(origW * s);
+        work.height = Math.round(origH * s);
+        const wctx = work.getContext('2d', { willReadFrequently: true });
+        wctx.imageSmoothingQuality = 'high';
+        wctx.drawImage(img, 0, 0, work.width, work.height);
+        return { origW, origH, work };
+      }
+
+      function switchTo(r) {
+        if (r === current || !r.work) return;
+        // A re-run queued for the old image must not land on this one.
+        clearTimeout(timer);
+        pending = null;
+        busyEl.hidden = true;
+        if (current) {
+          stash();
+          current.F = null;
+        }
+        current = r;
+        for (const k of PER_IMAGE) state[k] = r[k];
+        undoStack = r.undo || [];
+        Object.assign(state, { selected: 0, hover: 0, box: null, cursor: null });
+        drag = null;
+
+        fileNameEl.textContent = `${r.name} · ${r.origW} × ${r.origH}`;
+        fileNameEl.hidden = false;
+        dropEl.classList.add('compact');
+        $('drop-text').textContent = 'Drop or paste more images, or';
+        for (const id of ['summary-section', 'image-section', 'tune-section', 'table-section']) {
+          $(id).hidden = false;
+        }
+        syncScale(true);
+        if (r.result) {
+          const { width: W, height: H } = r.work;
+          state.F = computeFeatures(r.work.getContext('2d').getImageData(0, 0, W, H).data, W, H);
+          buildOverlays();
+          syncKnobs();
+          syncEditBar();
+          render();
+          renderTable();
+          renderSummary();
+        } else {
+          r.status = 'analysing';
+          render();
+          schedule('all');
+        }
+        renderImageList();
+      }
+
+      function removeImage(r) {
+        const i = images.indexOf(r);
+        if (i < 0) return;
+        images.splice(i, 1);
+        dbDel('img:' + r.id);
+        dbDel('session:' + r.id);
+        if (r === current) {
+          current = null;
+          const next = images[Math.min(i, images.length - 1)];
+          if (next?.work) switchTo(next);
+          else if (!images.length) showEmpty();
+        }
+        saveImageList();
+        renderImageList();
+      }
+
+      function showEmpty() {
+        clearTimeout(timer);
+        pending = null;
+        busyEl.hidden = true;
+        Object.assign(state, { img: null, work: null, result: null, F: null, selected: 0 });
+        state.editing = false;
+        fileNameEl.hidden = true;
+        dropEl.classList.remove('compact');
+        $('drop-text').textContent = 'Drop images here, paste one, or';
+        for (const id of ['summary-section', 'image-section', 'tune-section', 'table-section']) {
+          $(id).hidden = true;
+        }
+        syncEditBar();
+      }
+
+      // Analyse the next waiting image while nothing else is going on.
+      let bgTimer = null;
+
+      function queueBackground() {
+        clearTimeout(bgTimer);
+        bgTimer = setTimeout(() => {
+          if (pending || drag) return queueBackground();
+          const r = images.find(
+            (r) => r !== current && r.work && !r.result && r.status !== 'error'
+          );
+          if (!r) return;
+          r.status = 'analysing';
+          renderImageList();
+          // Let the "analysing" label paint before blocking.
+          requestAnimationFrame(() =>
+            setTimeout(() => {
+              if (r !== current && !r.result && images.includes(r)) analyseRecord(r);
+              renderImageList();
+              queueBackground();
+            }, 0)
+          );
+        }, 150);
+      }
+
+      function analyseRecord(r) {
+        try {
+          const t0 = performance.now();
+          const { width: W, height: H } = r.work;
+          const F = computeFeatures(r.work.getContext('2d').getImageData(0, 0, W, H).data, W, H);
+          r.seg = segmentOrganoids(F, r.params);
+          r.cystEdit = new Int8Array(F.N);
+          r.edited = false;
+          r.excluded = new Set();
+          r.cyst = findCysts(F, r.seg, r.params);
+          r.result = measure(F, r.seg.labels, r.cyst, workScale(r));
+          if (r.restore) applySession(r, r.restore);
+          r.restore = null;
+          r.ms = performance.now() - t0;
+          r.status = 'done';
+          saveRecordSession(r);
+        } catch (err) {
+          console.error(err);
+          r.status = 'error';
+          r.error = 'analysis failed: ' + err.message;
+        }
+      }
+
+      function renderImageList() {
+        const host = $('image-list');
+        $('images').hidden = images.length < 2;
+        const waiting = images.filter(
+          (r) => !(r === current ? state : r).result && r.status !== 'error'
+        ).length;
+        $('images-count').textContent =
+          `${images.length} images` + (waiting ? ` · analysing ${waiting}…` : '');
+        $('csv-all').disabled = !!waiting;
+        $('csv-all').title = waiting ? 'Waiting for every image to be analysed' : '';
+        $('scale-all').hidden = images.length < 2 || !umPerPx2();
+        host.textContent = '';
+        for (const r of images) {
+          const t = r === current ? state : r;
+          let sub;
+          if (r.status === 'error') sub = r.error;
+          else if (!t.result) sub = r.status === 'analysing' ? 'analysing…' : 'waiting';
+          else {
+            const tot = totals(t);
+            sub = `${tot.count} organoids · ${tot.ci == null ? '–' : fmtPct(tot.ci)}`;
+          }
+          const chip = document.createElement('div');
+          chip.className = 'image-chip' + (r === current ? ' active' : '');
+          chip.innerHTML =
+            '<button type="button" class="pick"><span class="nm mono"></span><span class="st"></span></button>' +
+            '<button type="button" class="rm" title="Remove this image">×</button>';
+          chip.querySelector('.nm').textContent = r.name;
+          chip.querySelector('.st').textContent = sub;
+          chip.querySelector('.pick').addEventListener('click', () => switchTo(r));
+          chip.querySelector('.rm').addEventListener('click', () => removeImage(r));
+          host.appendChild(chip);
+        }
+      }
+
+      $('clear-all').addEventListener('click', () => {
+        for (const r of images) {
+          dbDel('img:' + r.id);
+          dbDel('session:' + r.id);
+        }
+        images.length = 0;
+        current = null;
+        showEmpty();
+        saveImageList();
+        renderImageList();
+      });
+
+      // Give every image the pixel size of the one on screen.
+      $('scale-all').addEventListener('click', () => {
+        const k = umPerPx2();
+        if (!k) return;
+        const v = Math.sqrt(k);
+        for (const r of images) {
+          if (r === current) continue;
+          const meta = metaPixel(r);
+          r.umPerPx = meta && Math.abs(meta.x - v) < 1e-9 ? null : v;
+          if (r.result) saveRecordSession(r);
+        }
+        renderImageList();
+      });
 
       // ---- Pixel size --------------------------------------------------------
       // cellSens (Olympus / Evident) saves its calibration as zlib-compressed
@@ -2446,12 +2875,12 @@
       }
 
       // Metadata pixel size for this image, rescaled if it was resized.
-      function metaPixel() {
-        const c = state.calMeta;
+      function metaPixel(t = state) {
+        const c = t.calMeta;
         if (!c) return null;
         return {
-          x: c.x * (c.lenX && state.origW ? c.lenX / state.origW : 1),
-          y: c.y * (c.lenY && state.origH ? c.lenY / state.origH : 1),
+          x: c.x * (c.lenX && t.origW ? c.lenX / t.origW : 1),
+          y: c.y * (c.lenY && t.origH ? c.lenY / t.origH : 1),
         };
       }
 
@@ -2495,31 +2924,8 @@
         refreshUnits(true);
       });
 
-      function useImage(img) {
-        const origW = img.naturalWidth;
-        const origH = img.naturalHeight;
-        const s = Math.min(1, WORK_MAX / Math.max(origW, origH));
-        const work = document.createElement('canvas');
-        work.width = Math.round(origW * s);
-        work.height = Math.round(origH * s);
-        const wctx = work.getContext('2d', { willReadFrequently: true });
-        wctx.imageSmoothingQuality = 'high';
-        wctx.drawImage(img, 0, 0, work.width, work.height);
-        Object.assign(state, { img, origW, origH, work, result: null, hover: 0, box: null });
-
-        fileNameEl.textContent = `${state.name} · ${origW} × ${origH}`;
-        fileNameEl.hidden = false;
-        dropEl.classList.add('compact');
-        $('drop-text').textContent = 'Drop or paste another image, or';
-        for (const id of ['summary-section', 'image-section', 'tune-section', 'table-section']) {
-          $(id).hidden = false;
-        }
-        render();
-        schedule('all');
-      }
-
       fileInput.addEventListener('change', () => {
-        loadFile(fileInput.files[0]);
+        addImages([...fileInput.files]);
         fileInput.value = '';
       });
 
@@ -2538,107 +2944,142 @@
         e.preventDefault();
         dragDepth = 0;
         document.body.classList.remove('dragging');
-        loadFile(e.dataTransfer.files[0]);
+        addImages([...e.dataTransfer.files]);
       });
 
       document.addEventListener('paste', (e) => {
-        const item = [...(e.clipboardData?.items || [])].find((it) => it.type.startsWith('image/'));
-        if (!item) return;
+        const files = [...(e.clipboardData?.items || [])]
+          .filter((it) => it.type.startsWith('image/'))
+          .map((it) => it.getAsFile());
+        if (!files.length) return;
         e.preventDefault();
-        loadFile(item.getAsFile());
+        addImages(files);
       });
 
-      // ---- Remembering the last image -------------------------------------
-      // Images are too big for localStorage, so the last one goes in
-      // IndexedDB and comes back on reload, with the slider settings,
-      // exclusions and hand edits made to it.
+      // ---- Remembering the images -------------------------------------------
+      // Images are too big for localStorage, so they go in IndexedDB and come
+      // back on reload, each with its slider settings, exclusions, pixel size
+      // and hand edits. Keys: 'list' -> { ids, current }, 'img:<id>' ->
+      // { blob, name }, 'session:<id>' -> the analysis state.
+
+      let dbPromise = null;
 
       function openDB() {
-        return new Promise((resolve, reject) => {
+        dbPromise ||= new Promise((resolve, reject) => {
           const req = indexedDB.open('cystic-index', 1);
           req.onupgradeneeded = () => req.result.createObjectStore('images');
           req.onsuccess = () => resolve(req.result);
           req.onerror = () => reject(req.error);
         });
+        return dbPromise;
       }
 
-      async function saveLast(blob, name) {
+      async function dbPut(key, value) {
         try {
           const db = await openDB();
-          db.transaction('images', 'readwrite').objectStore('images').put({ blob, name }, 'last');
+          db.transaction('images', 'readwrite').objectStore('images').put(value, key);
         } catch (err) {
-          console.warn('Could not remember the image', err);
+          console.warn('Could not save', key, err);
         }
+      }
+
+      async function dbDel(key) {
+        try {
+          const db = await openDB();
+          db.transaction('images', 'readwrite').objectStore('images').delete(key);
+        } catch (err) {
+          console.warn('Could not delete', key, err);
+        }
+      }
+
+      async function dbGet(key) {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const req = db.transaction('images').objectStore('images').get(key);
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      function saveImageList() {
+        dbPut('list', { ids: images.map((r) => r.id), current: current?.id });
+      }
+
+      function sessionOf(t) {
+        const session = {
+          W: t.work.width,
+          H: t.work.height,
+          params: t.params,
+          excluded: [...t.excluded],
+          edited: t.edited,
+          umPerPx: t.umPerPx,
+        };
+        if (t.edited) {
+          Object.assign(session, {
+            labels: t.result.labels,
+            organoids: t.result.organoids,
+            cyst: t.cyst,
+            cystEdit: t.cystEdit,
+          });
+        }
+        return session;
+      }
+
+      function saveRecordSession(r) {
+        dbPut('session:' + r.id, sessionOf(r));
       }
 
       let saveTimer = null;
 
+      // The image on screen, a moment after it last changed.
       function saveSession() {
         clearTimeout(saveTimer);
-        saveTimer = setTimeout(async () => {
-          if (!state.result) return;
-          const { W, H } = state.F;
-          const session = {
-            W,
-            H,
-            params: state.params,
-            excluded: [...state.excluded],
-            edited: state.edited,
-            umPerPx: state.umPerPx,
-          };
-          if (state.edited) {
-            Object.assign(session, {
-              labels: state.result.labels,
-              organoids: state.result.organoids,
-              cyst: state.cyst,
-              cystEdit: state.cystEdit,
-            });
-          }
-          try {
-            const db = await openDB();
-            db.transaction('images', 'readwrite').objectStore('images').put(session, 'session');
-          } catch (err) {
-            console.warn('Could not save the edits', err);
-          }
+        saveTimer = setTimeout(() => {
+          if (!current || !state.result) return;
+          dbPut('session:' + current.id, sessionOf(state));
+          saveImageList();
         }, 500);
       }
 
-      function applySession(s) {
-        if (s.W !== state.F.W || s.H !== state.F.H) return;
-        state.excluded = new Set(s.excluded);
+      function applySession(t, s) {
+        if (s.W !== t.work.width || s.H !== t.work.height) return;
+        t.excluded = new Set(s.excluded);
         if (!s.edited) return;
-        state.result = { labels: s.labels, organoids: s.organoids };
-        state.seg.labels = s.labels;
-        state.cyst = s.cyst;
-        state.cystEdit = s.cystEdit;
-        state.edited = true;
+        t.result = { labels: s.labels, organoids: s.organoids };
+        t.seg.labels = s.labels;
+        t.cyst = s.cyst;
+        t.cystEdit = s.cystEdit;
+        t.edited = true;
       }
 
-      async function loadLast() {
+      async function loadSaved() {
         try {
-          const db = await openDB();
-          const get = (key) =>
-            new Promise((resolve, reject) => {
-              const req = db.transaction('images').objectStore('images').get(key);
-              req.onsuccess = () => resolve(req.result);
-              req.onerror = () => reject(req.error);
-            });
-          const rec = await get('last');
-          const session = await get('session');
-          if (!rec || state.img) return;
-          if (session) {
-            state.params = { ...DEFAULTS, ...session.params };
-            state.restore = session;
+          let list = await dbGet('list');
+          // Before multiple images, one image was kept under 'last'.
+          if (!list) {
+            const last = await dbGet('last');
+            if (!last) return;
+            const id = crypto.randomUUID();
+            await dbPut('img:' + id, last);
+            const session = await dbGet('session');
+            if (session) await dbPut('session:' + id, session);
+            list = { ids: [id], current: id };
+            dbDel('last');
+            dbDel('session');
           }
-          loadFile(rec.blob, rec.name);
-          state.umPerPx = session?.umPerPx ?? null;
+          const saved = [];
+          for (const id of list.ids) {
+            const im = await dbGet('img:' + id);
+            if (im) saved.push({ id, ...im, session: await dbGet('session:' + id) });
+          }
+          if (!images.length) addImages([], saved, list.current);
         } catch (err) {
-          console.warn('Could not restore the last image', err);
+          console.warn('Could not restore the saved images', err);
         }
       }
 
       buildKnobs();
-      loadLast();
+      loadSaved();
     </script>
   </body>
 </html>
