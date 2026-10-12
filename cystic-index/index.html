@@ -2407,31 +2407,31 @@
         return { count: list.length, area, cyst, ci: area ? cyst / area : null };
       }
 
-      // One row per organoid, then the image's total row. Each row is
-      // [organoid, organoid_px, cyst_px, cystic_index, excluded, organoid_um2, cyst_um2].
+      const mean = (xs) => (xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : null);
+      const fix = (v, d) => (v == null ? '' : v.toFixed(d));
+
+      // Per-organoid rows plus total and mean rows over the included organoids.
+      // Each row is [organoid, cystic_index, excluded, organoid_um2, cyst_um2].
       function csvRows(t) {
         const k = umPerPx2(t);
         const um = (px) => (k ? (px * k).toFixed(1) : '');
-        const rows = t.result.organoids
-          .filter((o) => o.areaWork)
-          .map((o) => [
-            o.id,
-            o.area,
-            o.cyst,
-            o.ci.toFixed(4),
-            t.excluded.has(o.id) ? 1 : 0,
-            um(o.area),
-            um(o.cyst),
-          ]);
+        const all = t.result.organoids.filter((o) => o.areaWork);
+        const rows = all.map((o) => [
+          o.id,
+          o.ci.toFixed(4),
+          t.excluded.has(o.id) ? 1 : 0,
+          um(o.area),
+          um(o.cyst),
+        ]);
+        const inc = all.filter((o) => !t.excluded.has(o.id));
         const tot = totals(t);
+        rows.push(['total', fix(tot.ci, 4), '', um(tot.area), um(tot.cyst)]);
         rows.push([
-          'total',
-          tot.area,
-          tot.cyst,
-          tot.ci?.toFixed(4) ?? '',
+          'mean',
+          fix(mean(inc.map((o) => o.ci)), 4),
           '',
-          um(tot.area),
-          um(tot.cyst),
+          k ? fix(mean(inc.map((o) => o.area * k)), 1) : '',
+          k ? fix(mean(inc.map((o) => o.cyst * k)), 1) : '',
         ]);
         return rows;
       }
@@ -2449,34 +2449,32 @@
         setTimeout(() => URL.revokeObjectURL(a.href), 1000);
       }
 
-      const CSV_HEAD = ['organoid', 'organoid_px', 'cyst_px', 'cystic_index', 'excluded'];
+      const CSV_HEAD = ['organoid', 'cystic_index', 'excluded', 'organoid_um2', 'cyst_um2'];
 
       $('csv').addEventListener('click', () => {
-        const k = umPerPx2();
-        const head = k ? [...CSV_HEAD, 'organoid_um2', 'cyst_um2'] : CSV_HEAD;
-        const rows = csvRows(state).map((r) => r.slice(0, head.length));
         download(
-          [head, ...rows],
+          [CSV_HEAD, ...csvRows(state)],
           (state.name.replace(/\.[^.]+$/, '') || 'organoids') + '-cystic-index.csv'
         );
       });
 
-      // Every image: its organoids and total, then a total across images.
+      // Every image: its organoids, total and mean, then the same across images.
       $('csv-all').addEventListener('click', () => {
         stash();
         const done = images.filter((r) => r.result);
-        const lines = [['image', ...CSV_HEAD, 'um_per_px', 'organoid_um2', 'cyst_um2']];
+        const lines = [['image', ...CSV_HEAD, 'um_per_px']];
         let area = 0;
         let cyst = 0;
         let areaUm = 0;
         let cystUm = 0;
         let allUm = true;
+        const cis = [];
+        const areasUm = [];
+        const cystsUm = [];
         for (const r of done) {
           const k = umPerPx2(r);
           const px = k ? +Math.sqrt(k).toPrecision(6) : '';
-          for (const row of csvRows(r)) {
-            lines.push([r.name, ...row.slice(0, 5), px, row[5], row[6]]);
-          }
+          for (const row of csvRows(r)) lines.push([r.name, ...row, px]);
           const tot = totals(r);
           area += tot.area;
           cyst += tot.cyst;
@@ -2484,6 +2482,14 @@
             areaUm += tot.area * k;
             cystUm += tot.cyst * k;
           } else allUm = false;
+          for (const o of r.result.organoids) {
+            if (!o.areaWork || r.excluded.has(o.id)) continue;
+            cis.push(o.ci);
+            if (k) {
+              areasUm.push(o.area * k);
+              cystsUm.push(o.cyst * k);
+            }
+          }
         }
         // Pool in µm² when every image has a pixel size, so images taken at
         // different magnifications are weighted by real area.
@@ -2491,13 +2497,20 @@
         lines.push([
           'all images',
           'total',
-          area,
-          cyst,
-          ci?.toFixed(4) ?? '',
-          '',
+          fix(ci, 4),
           '',
           allUm ? areaUm.toFixed(1) : '',
           allUm ? cystUm.toFixed(1) : '',
+          '',
+        ]);
+        lines.push([
+          'all images',
+          'mean',
+          fix(mean(cis), 4),
+          '',
+          allUm ? fix(mean(areasUm), 1) : '',
+          allUm ? fix(mean(cystsUm), 1) : '',
+          '',
         ]);
         download(lines, 'cystic-index-all-images.csv');
       });
