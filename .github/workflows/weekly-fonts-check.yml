@@ -20,6 +20,9 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '20'
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
 
       - name: Configure git identity
         run: |
@@ -32,6 +35,14 @@ jobs:
       - name: Download missing .woff2 files
         run: node scripts/fetch-fonts.js
 
+      # Drops new fonts that look the same in English as one already cached
+      # (or have no English letters) and records them in culled-fonts.json
+      # so check-new-fonts.js won't add them again.
+      - name: Drop near-duplicate new fonts
+        run: |
+          pip install --quiet -r scripts/requirements-fonts.txt
+          python scripts/cull-new-fonts.py
+
       - name: Refresh font licenses & attribution
         run: node scripts/fetch-licenses.js
 
@@ -40,10 +51,10 @@ jobs:
 
       - name: Commit font updates
         run: |
-          if git diff --quiet -- fonts.js fonts-meta.js fonts/; then
+          if git diff --quiet -- fonts.js fonts-meta.js fonts/ scripts/culled-fonts.json; then
             echo "No font changes."
           else
-            git add fonts.js fonts-meta.js fonts/
+            git add fonts.js fonts-meta.js fonts/ scripts/culled-fonts.json
             git commit -m "🤖 add new google fonts ($RUN_LABEL)"
           fi
 
