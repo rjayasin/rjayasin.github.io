@@ -3050,28 +3050,43 @@
           });
           delete r.session;
           images.push(r);
-          if (saved) decode(r, r === show);
-          else {
-            readEdits(r.blob).then((e) => {
-              if (e) {
-                Object.assign(r, {
-                  params: { ...DEFAULTS, ...e.params },
-                  umPerPx: e.umPerPx ?? null,
-                  restore: e,
+          // Copy a dropped file into memory so later saves don't depend on the
+          // original staying where it was.
+          const ready = saved
+            ? Promise.resolve()
+            : r.blob
+                .arrayBuffer()
+                .then((buf) => {
+                  r.blob = new Blob([buf], { type: r.blob.type });
+                  dbPut('img:' + r.id, { blob: r.blob, name: r.name });
+                  return readEdits(r.blob);
+                })
+                .then((e) => {
+                  if (!e) return;
+                  Object.assign(r, {
+                    params: { ...DEFAULTS, ...e.params },
+                    umPerPx: e.umPerPx ?? null,
+                    restore: e,
+                  });
                 });
-              }
+          ready.then(
+            () => {
               decode(r, r === show);
-            });
-          }
-          readCalibration(r.blob).then((cal) => {
-            r.calMeta = cal;
-            if (r === current) {
-              state.calMeta = cal;
-              refreshUnits(true);
+              readCalibration(r.blob).then((cal) => {
+                r.calMeta = cal;
+                if (r === current) {
+                  state.calMeta = cal;
+                  refreshUnits(true);
+                }
+                renderImageList();
+              });
+            },
+            () => {
+              r.status = 'error';
+              r.error = "couldn't read the file";
+              renderImageList();
             }
-            renderImageList();
-          });
-          if (!saved) dbPut('img:' + r.id, { blob: r.blob, name: r.name });
+          );
         }
         saveImageList();
         renderImageList();
