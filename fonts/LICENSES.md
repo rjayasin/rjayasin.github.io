@@ -59,7 +59,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Allerta | OFL | Matt McInerney | Copyright (c) 2009, Matt McInerney <matt@pixelspread.com> |
 | Allerta Stencil | OFL | Matt McInerney | Copyright (c) 2009, Matt McInerney <matt@pixelspread.com> with Reserved Font Name Allerta. |
 | Allison | OFL | Robert Leuschke | Copyright 2020 The Allison Project Authors (https://github.com/googlefonts/allison) |
-| Allkin | OFL | Monotype Imaging Inc. | Copyright 2025 The Allkin Project Authors (https://github.com/googlefonts/allkin), with Reserved Font Name "Allkin". |
 | Allura | OFL | Robert Leuschke | Copyright 2010 The Allura Project Authors (https://github.com/googlefonts/allura) |
 | Almarai | OFL | Boutros Fonts, Mourad Boutros | Copyright (c) 2019 by Almarai. All rights reserved. |
 | Almendra | OFL | Ana Sanfelippo | Copyright (c) 2011-2012, Ana Sanfelippo (anasanfe@gmail.com), with Reserved Font Name \'Almendra\' |
@@ -311,7 +310,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Chau Philomene One | OFL | Vicente Lamónaca | Copyright (c) 2010-2012, TipoType (produccion.taller@gmail.com), with Reserved Font Name "Chau Philomene" |
 | Chela One | OFL | Miguel Hernandez | Copyright (c) 2012, LatinoType (luciano@latinotype.com), with Reserved Font Names \'Chela\' |
 | Chelsea Market | OFL | Tart Workshop | Copyright (c) 2011 by Font Diner, Inc DBA Tart Workshop (diner@fontdiner.com) with Reseved Font Name "Chelsea Market" |
-| Chenla | OFL | Danh Hong | Copyright (c) 2010, Danh Hong (khmertype.blogspot.com danhhong@gmail.com), with Reserved Font Name NiDA Chenla. This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL |
 | Cherish | OFL | Robert Leuschke | Copyright 2004-2021 The Cherish Project Authors (https://github.com/googlefonts/cherish) |
 | Cherry Bomb One | OFL | Satsuyako | Copyright 2019 The Cherry Bomb Project Authors (https://github.com/satsuyako/CherryBomb) |
 | Cherry Cream Soda | APACHE2 | Font Diner | Copyright (c) 2010 by Font Diner, Inc. All rights reserved. |
@@ -716,8 +714,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Kapakana | OFL | Kousuke Nagai | Copyright 2020 The Kapakana Project Authors (https://github.com/nagamaki008/kapakana) |
 | Karantina | OFL | Rony Koch | Copyright 2020 The Karantina Project Authors (https://github.com/ronykoch/Karantina) |
 | Karla | OFL | Jonny Pinhorn | Copyright 2019 The Karla Project Authors (https://github.com/googlefonts/karla) |
-| Karla Tamil Inclined | OFL | Jonathan Pinhorn | Copyright (c) 2011-2012, Jonathan Pinhorn (jonpinhorn.typedesign@gmail.com), with Reserved Font Names \'Karla\' |
-| Karla Tamil Upright | OFL | Jonathan Pinhorn | Copyright (c) 2011-2012, Jonathan Pinhorn (jonpinhorn.typedesign@gmail.com), with Reserved Font Names \'Karla\' |
 | Karma | OFL | Indian Type Foundry | Copyright 2014 Indian Type Foundry. All rights reserved. |
 | Katibeh | OFL | KB Studio | Copyright 2015, 2016 KB-Studio (www.k-b-studio.com\|tarobish@gmail.com). Copyright 2015, 2016 Lasse Fister (lasse@graphicore.de). Copyright 2015, 2016 Eduardo Tunni(edu@tipo.net.ar). |
 | Kaushan Script | OFL | Impallari Type | Copyright (c) 2011, Pablo Impallari (www.impallari.com\|impallari@gmail.com), Copyright (c) 2011, Igino Marini. (www.ikern.com\|mail@iginomarini.com), with Reserved Font Name Kaushan Script. |
@@ -730,7 +726,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Kelly Slab | OFL | Denis Masharov | Copyright (c) 2011, Denis Masharov <denis.masharov@gmail.com>, with Reserved Font Names "Kelly", "Kelly Slab". |
 | Kenia | OFL | Julia Petretta | Copyright (c) 2010, Julia Petretta (julia.petretta@googlemail.com), with Reserved Font Name Kenia |
 | Khand | OFL | Indian Type Foundry | Copyright (c) 2014 Indian Type Foundry (info@indiantypefoundry.com) |
-| Khmer | OFL | Danh Hong | Copyright (c) 2010, Danh Hong (khmertype.blogspot.com danhhong@gmail.com), with Reserved Font Name Khmer OS. This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL |
 | Khula | OFL | Erin McLaughlin | Copyright (c) 2014, Erin McLaughlin (hello@erinmclaughlin.com). Digitized data copyright 2010, Google Corporation. |
 | Kings | OFL | Robert Leuschke | Copyright 2013-2021 The Kings Project Authors (https://github.com/googlefonts/kings) |
 | Kirang Haerang | OFL | Woowahan Brothers | Copyright 2018 The Kirang Haerang Project Authors |
@@ -985,8 +980,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Notable | OFL | Eli Block, Hana Tanimura, Noemie Le Coz | Copyright 2018 The Notable Project Authors (https://github.com/googlefonts/notable) |
 | Nothing You Could Do | OFL | Kimberly Geswein | Copyright (c) 2010, Kimberly Geswein (kimberlygeswein.com kimberlygeswein@gmail.com). This Font Software is licensed under the SIL Open Font License, Version 1.1. This license available with a FAQ at: http://scripts.sil.org/OFL |
 | Noticia Text | OFL | JM Solé | Copyright (c) 2011 JM Sole (info@jmsole.cl), with Reserved Font Name "Noticia Text". |
-| Noto Color Emoji | OFL | Google | Copyright 2021 Google Inc. All Rights Reserved. |
-| Noto Emoji | OFL | Google | Copyright 2013, 2022 Google Inc. All Rights Reserved. |
 | Noto Kufi Arabic | OFL | Google | Copyright 2019-2022 Google LLC. All Rights Reserved. |
 | Noto Music | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/music) |
 | Noto Nastaliq Urdu | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/nastaliq) |
@@ -997,7 +990,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Noto Sans Hebrew | OFL | Google | Copyright 2024 The Noto Project Authors (https://github.com/notofonts/hebrew) |
 | Noto Sans JP | OFL | Google | (c) 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'. |
 | Noto Sans Khojki | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/khojki) |
-| Noto Sans Lycian | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/lycian) |
 | Noto Sans Mongolian | OFL | Google | Copyright 2023 The Noto Project Authors (https://github.com/notofonts/mongolian) |
 | Noto Sans Mono | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic) |
 | Noto Sans Nag Mundari | OFL | Google | Copyright 2023 The Noto Project Authors (https://github.com/notofonts/nag-mundari) |
@@ -1011,7 +1003,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Noto Serif JP | OFL | Google | (c) 2017-2024 Adobe (http://www.adobe.com/). |
 | Noto Serif Khitan Small Script | OFL | Google | Copyright 2022 Google LLC. All Rights Reserved. |
 | Noto Serif Khojki | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/khojki) |
-| Noto Serif Myanmar | OFL | Google | Copyright 2016 Google Inc. All Rights Reserved. |
 | Noto Serif Tibetan | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/tibetan) |
 | Noto Serif Todhri | OFL | Google | Copyright 2024 The Noto Project Authors (https://github.com/notofonts/todhri) |
 | Nova Cut | OFL | Wojciech Kalinowski | Copyright (c) 2011, wmk69 (wmk69@o2.pl) with Reserved Font Names \'NovaCut\' and \'Nova Cut\'. This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL |
@@ -1085,7 +1076,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Petemoss | OFL | Robert Leuschke | Copyright 2008-2021 The Petemoss Project Authors (https://github.com/googlefonts/petemoss) |
 | Petit Formal Script | OFL | Impallari Type | Copyright (c) 2011, Pablo Impallari (www.impallari.com\|impallari@gmail.com), Copyright (c) 2011, Brenda Gallo. (gbrenda1987@gmail.com), Copyright (c) 2011, Rodrigo Fuenzalida (www.rfuenzalida.com\|hello@rfuenzalida.com),   with Reserved Font Name Petit Formal Script. |
 | Petrona | OFL | Ringo R. Seeber | Copyright 2019 The Petrona Project Authors (https://github.com/RingoSeeber/Petrona) |
-| Phetsarath | OFL | Danh Hong | Copyright (c) 2010-2012, Ministry of Posts and Telecommunications, Laos (www.phetsarath.gov.la) |
 | Philosopher | OFL | Jovanny Lemonad | Copyright 2011 The Philosopher Project Authors (https://github.com/alexeiva/philosopher) |
 | Phudu | OFL | Dương Trần | Copyright 2022 The Phudu Project Authors (https://github.com/duongtrtype/DTPhudu) |
 | Piazzolla | OFL | Juan Pablo del Peral, Huerta Tipográfica | Copyright 2018 The Piazzolla Project Authors (https://github.com/huertatipografica/piazzolla) |
@@ -1123,7 +1113,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Poltawski Nowy | OFL | Adam Półtawski, Mateusz Machalski, Borys Kosmynka, Ania Wieluńska | Copyright 2020 The Poltawski Nowy Project Authors (https://github.com/kosmynkab/Poltawski-Nowy) |
 | Poly | OFL | Nicolás Silva | Copyright (c) 2010 by Jos Nicols Silva Schwarzenberg.<info@nsilva.com>, with Reserved Font Names "Poly". |
 | Pompiere | OFL | Karolina Lach | Copyright (c) 2011, Sorkin Type Co (www.sorkintype.com eben@eyebytes.com) with Reserved Font Name "Pompiere". |
-| Ponnala | OFL | Appaji Ambarisha Darbha | Copyright (c) 2012 Silicon Andhra (fonts.siliconandhra.org) |
 | Ponomar | OFL | Aleksandr Andreev | Copyright 2025 The Ponomar Project Authors (https://github.com/slavonic/ponomar) |
 | Pontano Sans | OFL | Vernon Adams | Copyright 2012 The Pontano Sans Project Authors (https://github.com/googlefonts/PontanoSansFont) |
 | Poor Story | OFL | Yoon Design | Copyright (c) YoonDesign Inc. All Rights Reserved. |
@@ -1329,7 +1318,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Signika | OFL | Anna Giedryś | Copyright 2018 The Signika Project Authors (https://github.com/googlefonts/Signika). |
 | Silkscreen | OFL | Jason Kottke | Copyright 2001 The Silkscreen Project Authors (https://github.com/googlefonts/silkscreen) |
 | Simonetta | OFL | Brownfox | Copyright (c) 2011-2012, Brownfox (www.brownfox.org gayaneh.b@gmail.com), with Reserved Font Name "Simonetta" |
-| Single Day | OFL | DXKorea Inc | Copyright 2015 DXKorea Inc. All rights reserved. |
 | Sintony | OFL | Eduardo Rodriguez Tunni | Copyright (c) 2013, Eduardo Tunni (http://www.tipo.net.ar edu@tipo.net.ar), with Reserved Font Name \'Sintony\' |
 | Sirin Stencil | OFL | Cyreal | Copyright (c) 2011, Cyreal (www.cyreal.org a@cyreal.org) with Reserved Font Name "Sirin" and "Sirin Stencil". This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL |
 | Sirivennela | OFL | Appaji Ambarisha Darbha | Copyright 2021 The Sirivennela Font Project Authors (https://github.com/appajid/Sirivennela) |
@@ -1358,7 +1346,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Solitreo | OFL | Nathan Gross, Bryan Kirschen | Copyright 2019 The Solitreo Project Authors (https://github.com/ladinoprojects/solitreo) |
 | Solway | OFL | Mariya Lish, The Northern Block | Copyright 2018 The Solway Project Authors (https://github.com/mashavp/Solway) |
 | Sometype Mono | OFL | Ryoichi Tsunekawa | Copyright 2018 The Sometype Mono Project Authors (https://github.com/googlefonts/sometype-mono) |
-| Song Myung | OFL | JIKJI | Copyright 2018 The Song Myung Project Authors |
 | Sono | OFL | Tyler Finck | Copyright 2020 The Sono Project Authors (https://github.com/sursly/sono) |
 | Sonsie One | OFL | Riccardo De Franceschi | Copyright (c) 2011, Sorkin Type Co (www.sorkintype.com eben@eyebytes.com) with Reserved Font Name "Sonsie One". |
 | Sora | OFL | Jonathan Barnbrook, Julián Moncada | Copyright 2019 The Sora Project Authors (https://github.com/sora-xor/sora-font) |
@@ -1400,12 +1387,10 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Strait | OFL | Eduardo Tunni | Copyright 2012 The Strait Project Authors (https://github.com/etunni/strait), with Reserved Font Name \'Strait\' |
 | Strichpunkt Sans | OFL | René Bieder | Copyright 2026 The Strichpunkt Sans Project Authors (https://github.com/strichpunkt-design/Strichpunkt_Sans) |
 | Style Script | OFL | Robert Leuschke | Copyright 2013 The Style Script Project Authors (https://github.com/googlefonts/style-script) |
-| Stylish | OFL | AsiaSoft Inc | Copyright (c) 1992-2018 AsiaSoft Inc. Seoul Korea All Rights Reserved. |
 | Sue Ellen Francisco | OFL | Kimberly Geswein | Copyright (c) 2010, Kimberly Geswein (kimberlygeswein.com kimberlygeswein@gmail.com) |
 | Suez One | OFL | Michal Sahar | Copyright 2016 Michal Sahar. All rights reserved. |
 | Sulphur Point | OFL | Dale Sattler | Copyright 2019 The Sulphur Point Project Authors (https://github.com/noponies) |
 | Sumana | OFL | Cyreal | Copyright © 2015 by Cyreal. All rights reserved. |
-| Sunflower | OFL | JIKJISOFT | Copyright 2008 The Sunflower Project Authors |
 | Sunshiney | APACHE2 | Sideshow | Copyright (c) 2010 by Font Diner, Inc DBA Sideshow. All rights reserved. |
 | Supermercado One | OFL | James Grieshaber | Copyright (c) 2011, Sorkin Type Co (www.sorkintype.com eben@eyebytes.com) with Reserved Font Name "Supermercado One". |
 | Sura | OFL | Carolina Giovagnoli | Copyright 2015 by Carolina Giovagnoli. All rights reserved. |

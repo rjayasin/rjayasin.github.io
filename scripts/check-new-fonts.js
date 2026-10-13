@@ -2,7 +2,8 @@
 // Fetches the live Google Fonts family list from fonts.google.com's metadata
 // endpoint and appends any families missing from ../fonts.js. Preserves the
 // file's existing codepoint sort order and formatting. Families listed in
-// culled-fonts.json (near-duplicates of a family we keep) are never re-added.
+// culled-fonts.json (near-duplicates of a family we keep, or families with no
+// English letters) are never re-added.
 // Exits non-zero on network/parse failures; exits 0 with no file changes when
 // nothing is new.
 
@@ -11,7 +12,8 @@ const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..');
 const FONTS_JS = path.join(ROOT, 'fonts.js');
-// Maps each culled family to the kept family it's indistinguishable from.
+// Maps each culled family to the kept family it's indistinguishable from, or
+// to null when its Latin subset has no English letters to show.
 const CULLED_JSON = path.join(__dirname, 'culled-fonts.json');
 const METADATA_URL = 'https://fonts.google.com/metadata/fonts';
 const UA =
