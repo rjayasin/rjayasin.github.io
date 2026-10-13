@@ -600,6 +600,13 @@
         <span class="note" id="images-count"></span>
         <div class="actions">
           <button type="button" id="csv-all">download all xlsx</button>
+          <button
+            type="button"
+            id="save-all"
+            title="Download a zip of every image with its edits stored inside"
+          >
+            save all with edits
+          </button>
           <button type="button" id="clear-all">clear all</button>
         </div>
       </div>
@@ -668,7 +675,7 @@
         <button type="button" data-tool="lasso">lasso</button>
         <span class="brush" id="brush-size" title="Brush size ([ and ])">
           <label for="brush">size</label>
-          <input type="range" id="brush" min="1" max="40" step="1" value="8" />
+          <input type="range" id="brush" min="1" max="60" step="0.5" value="8" />
           <output class="mono" for="brush">8</output>
         </span>
         <span class="brush" id="zoom-size">
@@ -700,6 +707,13 @@
         <div class="actions">
           <button type="button" id="include-all">include all</button>
           <button type="button" id="csv">download csv</button>
+          <button
+            type="button"
+            id="save-edits"
+            title="Download a copy of the image with its edits, exclusions and settings stored inside; drop it back in to carry on"
+          >
+            save with edits
+          </button>
         </div>
       </div>
       <div class="table-wrap">
@@ -2377,7 +2391,7 @@
       });
 
       function setBrush(v) {
-        state.brush = Math.min(40, Math.max(1, v));
+        state.brush = Math.min(60, Math.max(1, v));
         $('brush').value = state.brush;
         $('brush').nextElementSibling.textContent = state.brush;
         render();
@@ -2413,7 +2427,7 @@
           return;
         }
         if ((e.key === '[' || e.key === ']') && state.editing) {
-          setBrush(state.brush + (e.key === ']' ? 2 : -2));
+          setBrush(state.brush + (e.key === ']' ? 1 : -1));
           return;
         }
         if (e.key === ' ' && state.editing) {
@@ -2540,7 +2554,7 @@
         let offset = 0;
         for (const [path, text] of Object.entries(files)) {
           const name = enc.encode(path);
-          const data = enc.encode(text);
+          const data = typeof text === 'string' ? enc.encode(text) : text;
           const crc = crc32(data);
           const head = (sig, size) => {
             const v = new DataView(new ArrayBuffer(size));
@@ -2717,6 +2731,206 @@
         save(xlsx(sheets), 'cystic-index-all-images.xlsx');
       });
 
+      // ---- Edits stored in the image file --------------------------------------
+
+      // JPEG: APP15 segments of [id, part, parts, data]. PNG: one private chunk.
+      // Either way the pixels and the rest of the metadata are left as they are.
+      const EDIT_ID = new TextEncoder().encode('cystic-index\0');
+      const EDIT_CHUNK = 'cyIx';
+      const EDIT_PART = 65535 - 2 - EDIT_ID.length - 4;
+
+      const through = async (bytes, stream) =>
+        new Uint8Array(
+          await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer()
+        );
+
+      async function packSession(session) {
+        const arrays = [];
+        let off = 0;
+        const json = JSON.stringify(session, (k, v) => {
+          if (!ArrayBuffer.isView(v)) return v;
+          arrays.push(new Uint8Array(v.buffer, v.byteOffset, v.byteLength));
+          off += v.byteLength;
+          return { $t: v.constructor.name, o: off - v.byteLength, n: v.length };
+        });
+        const text = new TextEncoder().encode(json);
+        const head = new DataView(new ArrayBuffer(4));
+        head.setUint32(0, text.length, true);
+        const raw = new Uint8Array(await new Blob([head, text, ...arrays]).arrayBuffer());
+        return through(raw, new CompressionStream('deflate'));
+      }
+
+      const TYPED = { Int32Array, Uint32Array, Int16Array, Uint16Array, Int8Array, Uint8Array };
+
+      async function unpackSession(bytes) {
+        const raw = await through(bytes, new DecompressionStream('deflate'));
+        const n = new DataView(raw.buffer).getUint32(0, true);
+        const base = 4 + n;
+        return JSON.parse(new TextDecoder().decode(raw.subarray(4, base)), (k, v) => {
+          const T = v && TYPED[v.$t];
+          if (!T) return v;
+          const start = base + v.o;
+          return new T(raw.buffer.slice(start, start + v.n * T.BYTES_PER_ELEMENT));
+        });
+      }
+
+      const isJpeg = (b) => b[0] === 0xff && b[1] === 0xd8;
+      const PNG_SIG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+      const isPng = (b) => PNG_SIG.every((x, i) => b[i] === x);
+
+      // The marker segments before the image data: [{ m, start, end }].
+      function jpegSegments(b) {
+        const v = new DataView(b.buffer, b.byteOffset);
+        const out = [];
+        let p = 2;
+        while (p + 4 <= b.length && b[p] === 0xff) {
+          const m = b[p + 1];
+          if (m === 0xff) {
+            p++;
+            continue;
+          }
+          if (m === 0xda || m === 0xd9) break;
+          const end = p + 2 + v.getUint16(p + 2);
+          out.push({ m, start: p, end });
+          p = end;
+        }
+        return { segments: out, rest: p };
+      }
+
+      const isEditSegment = (b, s) =>
+        s.m === 0xef && EDIT_ID.every((x, i) => b[s.start + 4 + i] === x);
+
+      function pngChunks(b) {
+        const v = new DataView(b.buffer, b.byteOffset);
+        const out = [];
+        for (let p = 8; p + 12 <= b.length; ) {
+          const len = v.getUint32(p);
+          const type = String.fromCharCode(...b.subarray(p + 4, p + 8));
+          out.push({ type, start: p, data: b.subarray(p + 8, p + 8 + len), end: p + 12 + len });
+          p += 12 + len;
+        }
+        return out;
+      }
+
+      async function readEdits(blob) {
+        try {
+          const b = new Uint8Array(await blob.arrayBuffer());
+          let data = null;
+          if (isJpeg(b)) {
+            const parts = jpegSegments(b)
+              .segments.filter((s) => isEditSegment(b, s))
+              .map((s) => b.subarray(s.start + 4 + EDIT_ID.length, s.end));
+            if (parts.length) {
+              parts.sort((x, y) => (x[0] << 8) + x[1] - ((y[0] << 8) + y[1]));
+              data = new Uint8Array(await new Blob(parts.map((p) => p.subarray(4))).arrayBuffer());
+            }
+          } else if (isPng(b)) {
+            data = pngChunks(b).find((c) => c.type === EDIT_CHUNK)?.data;
+          }
+          return data ? await unpackSession(data) : null;
+        } catch (err) {
+          console.warn('ignoring unreadable edits', err);
+          return null;
+        }
+      }
+
+      // The file with `t`'s session stored inside, replacing any already there.
+      async function withEdits(blob, t) {
+        const b = new Uint8Array(await blob.arrayBuffer());
+        const data = await packSession(sessionOf(t));
+        if (isJpeg(b)) {
+          const { segments, rest } = jpegSegments(b);
+          const keep = segments.filter((s) => !isEditSegment(b, s));
+          const parts = [];
+          const count = Math.ceil(data.length / EDIT_PART);
+          for (let k = 0; k < count; k++) {
+            const chunk = data.subarray(k * EDIT_PART, (k + 1) * EDIT_PART);
+            const head = new DataView(new ArrayBuffer(4));
+            head.setUint16(0, 0xffef);
+            head.setUint16(2, 2 + EDIT_ID.length + 4 + chunk.length);
+            const index = new DataView(new ArrayBuffer(4));
+            index.setUint16(0, k);
+            index.setUint16(2, count);
+            parts.push(head, EDIT_ID, index, chunk);
+          }
+          // After the leading APPn segments (JFIF, EXIF), before the tables.
+          let at = keep.findIndex((s) => s.m < 0xe0 || s.m > 0xef);
+          if (at < 0) at = keep.length;
+          const seg = (s) => b.subarray(s.start, s.end);
+          return new Blob(
+            [
+              b.subarray(0, 2),
+              ...keep.slice(0, at).map(seg),
+              ...parts,
+              ...keep.slice(at).map(seg),
+              b.subarray(rest),
+            ],
+            { type: 'image/jpeg' }
+          );
+        }
+        if (isPng(b)) {
+          const chunks = pngChunks(b).filter((c) => c.type !== EDIT_CHUNK);
+          const type = new TextEncoder().encode(EDIT_CHUNK);
+          const body = new Uint8Array(4 + data.length);
+          body.set(type);
+          body.set(data, 4);
+          const len = new DataView(new ArrayBuffer(4));
+          len.setUint32(0, data.length);
+          const crc = new DataView(new ArrayBuffer(4));
+          crc.setUint32(0, crc32(body));
+          const parts = [b.subarray(0, 8)];
+          for (const c of chunks) {
+            if (c.type === 'IEND') parts.push(len, body, crc);
+            parts.push(b.subarray(c.start, c.end));
+          }
+          return new Blob(parts, { type: 'image/png' });
+        }
+        return null;
+      }
+
+      function editedName(name) {
+        if (/\.edited\.[^.]+$/.test(name)) return name;
+        const m = name.match(/^(.*?)(\.[^.]+)?$/);
+        return `${m[1] || 'image'}.edited${m[2] || ''}`;
+      }
+
+      const UNSUPPORTED = 'Only JPEG and PNG images can carry edits';
+
+      $('save-edits').addEventListener('click', async () => {
+        if (!current || !state.result) return;
+        const blob = await withEdits(current.blob, state);
+        if (!blob) {
+          errorEl.textContent = UNSUPPORTED + '.';
+          return;
+        }
+        save(blob, editedName(current.name));
+      });
+
+      $('save-all').addEventListener('click', async () => {
+        stash();
+        const files = {};
+        const skipped = [];
+        const used = new Set();
+        for (const r of images) {
+          const t = r === current ? state : r;
+          const blob = t.result && (await withEdits(r.blob, t));
+          if (!blob) {
+            skipped.push(r.name);
+            continue;
+          }
+          let name = editedName(r.name);
+          for (let n = 2; used.has(name.toLowerCase()); n++) {
+            name = editedName(r.name).replace(/(\.[^.]+)$/, ` (${n})$1`);
+          }
+          used.add(name.toLowerCase());
+          files[name] = new Uint8Array(await blob.arrayBuffer());
+        }
+        errorEl.textContent = skipped.length
+          ? `${UNSUPPORTED}; skipped ${skipped.join(', ')}.`
+          : '';
+        if (Object.keys(files).length) save(zip(files), 'cystic-index-images-with-edits.zip');
+      });
+
       // ---- Images ----------------------------------------------------------
       // Every dropped image gets a record. The one on screen lives in `state`
       // (copied back to its record by stash()); the rest are analysed in the
@@ -2787,7 +3001,19 @@
           });
           delete r.session;
           images.push(r);
-          decode(r, r === show);
+          if (saved) decode(r, r === show);
+          else {
+            readEdits(r.blob).then((e) => {
+              if (e) {
+                Object.assign(r, {
+                  params: { ...DEFAULTS, ...e.params },
+                  umPerPx: e.umPerPx ?? null,
+                  restore: e,
+                });
+              }
+              decode(r, r === show);
+            });
+          }
           readCalibration(r.blob).then((cal) => {
             r.calMeta = cal;
             if (r === current) {
@@ -2963,6 +3189,7 @@
         $('images-count').textContent =
           `${images.length} images` + (waiting ? ` · analysing ${waiting}…` : '');
         $('csv-all').disabled = !!waiting;
+        $('save-all').disabled = !!waiting;
         $('csv-all').title = waiting ? 'Waiting for every image to be analysed' : '';
         $('scale-all').hidden = images.length < 2 || !umPerPx2();
         host.textContent = '';
