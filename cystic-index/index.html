@@ -656,8 +656,8 @@
         <button type="button" id="zoom" class="active" title="Crop to the organoids">zoom</button>
         <button type="button" id="edit" title="Redraw organoid and cyst borders (E)">edit</button>
         <span class="hint" id="view-hint">
-          hover to inspect · click a table row to exclude it · hold right click for the original · e
-          to edit
+          hover to inspect · click a table row to exclude it · hold right click for the original ·
+          double click or e to edit
         </span>
       </div>
       <div class="view-bar" id="edit-bar" role="group" aria-label="edit" hidden>
@@ -2120,6 +2120,18 @@
         tipEl.hidden = true;
         state.cursor = null;
         setHover(0);
+        render();
+      });
+
+      // Double click outside edit mode: start editing the organoid under it.
+      canvas.addEventListener('dblclick', (e) => {
+        if (state.editing || !state.result) return;
+        const id = labelAt(e);
+        $('edit').click();
+        if (!id) return;
+        state.selected = id;
+        state.box = null;
+        syncEditBar();
         render();
       });
 
