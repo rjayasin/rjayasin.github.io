@@ -23,6 +23,32 @@
         <button type="button" id="filters-toggle" class="active" title="hide filters">▴</button>
       </div>
       <nav id="filters">
+        <span class="group" id="search">
+          <button
+            type="button"
+            id="search-toggle"
+            title="search font names"
+            aria-label="search font names"
+            aria-expanded="false"
+            aria-controls="search-input"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <circle cx="6.5" cy="6.5" r="4.5" />
+              <path d="M10 10l4.5 4.5" />
+            </svg>
+          </button>
+          <input
+            id="search-input"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            enterkeyhint="search"
+            placeholder="font name"
+            aria-label="search font names"
+            tabindex="-1"
+          />
+        </span>
+        <span class="sep">|</span>
         <span class="group" id="sort-buttons">
           <button type="button" data-sort="random" class="active">random</button>
           <span class="dot">·</span>

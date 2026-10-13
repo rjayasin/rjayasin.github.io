@@ -17,8 +17,14 @@
   const sizeButtonsEl = document.getElementById('size-buttons');
   const minimalToggleEl = document.getElementById('minimal-toggle');
 
+  const searchEl = document.getElementById('search');
+  const searchToggleEl = document.getElementById('search-toggle');
+  const searchInputEl = document.getElementById('search-input');
+
   const BATCH = 24;
-  const state = { cat: 'all', sort: 'random', text: '' };
+  const state = { cat: 'all', sort: 'random', text: '', query: [] };
+  // Every font in the current sort order; filtered is the visible subset.
+  let ordered = [];
   let filtered = [];
   let rendered = 0;
 
@@ -38,14 +44,14 @@
     }
   }
 
-  function buildFiltered() {
-    filtered = allFonts.filter((f) => state.cat === 'all' || catOf(f) === state.cat);
+  function sortFonts() {
+    ordered = allFonts.slice();
     if (state.sort === 'random') {
-      shuffle(filtered);
+      shuffle(ordered);
     } else if (state.sort === 'new') {
       // fonts.js is alphabetical, so the stable sort keeps same-day fonts in
       // name order; dateless (delisted) families sink to the end.
-      filtered.sort((a, b) => {
+      ordered.sort((a, b) => {
         const da = dateOf(a);
         const db = dateOf(b);
         if (da === db) return 0;
@@ -54,6 +60,19 @@
         return da < db ? 1 : -1;
       });
     }
+  }
+
+  // A font matches when its name contains every word of the query.
+  function matchesQuery(font) {
+    if (!state.query.length) return true;
+    const name = font.toLowerCase();
+    return state.query.every((word) => name.includes(word));
+  }
+
+  function buildFiltered() {
+    filtered = ordered.filter(
+      (f) => (state.cat === 'all' || catOf(f) === state.cat) && matchesQuery(f)
+    );
     countEl.textContent = `${filtered.length} font${filtered.length === 1 ? '' : 's'}`;
   }
 
@@ -123,7 +142,10 @@
     }
   }
 
-  function reset() {
+  // Searching keeps the current order (no reshuffle on every keystroke);
+  // changing the sort or category deals a fresh one.
+  function reset({ reorder = true } = {}) {
+    if (reorder) sortFonts();
     buildFiltered();
     listEl.textContent = '';
     rendered = 0;
@@ -178,6 +200,36 @@
     filtersToggleEl.classList.toggle('active', !collapsed);
     filtersToggleEl.textContent = collapsed ? '▾' : '▴';
     filtersToggleEl.title = collapsed ? 'show filters' : 'hide filters';
+  });
+
+  // Search: the magnifier expands into a name filter that applies as you type.
+  function setSearchOpen(open) {
+    searchEl.classList.toggle('open', open);
+    searchToggleEl.classList.toggle('active', open);
+    searchToggleEl.setAttribute('aria-expanded', String(open));
+    searchInputEl.tabIndex = open ? 0 : -1;
+    if (open) {
+      searchInputEl.focus();
+    } else if (searchInputEl.value) {
+      searchInputEl.value = '';
+      applyQuery();
+    }
+  }
+
+  function applyQuery() {
+    state.query = searchInputEl.value.toLowerCase().split(/\s+/).filter(Boolean);
+    reset({ reorder: false });
+  }
+
+  // Keep focus in the field when the toggle is pressed, so the blur handler
+  // below doesn't close it a moment before the click toggles it.
+  searchToggleEl.addEventListener('mousedown', (e) => e.preventDefault());
+  searchToggleEl.addEventListener('click', () =>
+    setSearchOpen(!searchEl.classList.contains('open'))
+  );
+  searchInputEl.addEventListener('input', applyQuery);
+  searchInputEl.addEventListener('blur', () => {
+    if (!searchInputEl.value.trim()) setSearchOpen(false);
   });
 
   sizeButtonsEl.addEventListener('click', (e) => {

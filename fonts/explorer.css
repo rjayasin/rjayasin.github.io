@@ -87,6 +87,53 @@ body {
 #filters .dot {
   user-select: none;
 }
+/* Search: a magnifier that expands into a name filter. The field sits at
+   zero width (and out of the tab order) until opened. */
+#search {
+  align-items: baseline;
+  gap: 0;
+}
+#search-toggle svg {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.15em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+#search-input {
+  font: inherit;
+  letter-spacing: inherit;
+  color: #000;
+  background: transparent;
+  border: none;
+  border-bottom: 1px dotted currentColor;
+  border-radius: 0;
+  outline: none;
+  padding: 0;
+  width: 0;
+  min-width: 0;
+  visibility: hidden;
+  /* Stay visible until the collapse finishes... */
+  transition:
+    width 0.2s ease,
+    margin 0.2s ease,
+    visibility 0s 0.2s;
+}
+#search.open #search-input {
+  width: 14ch;
+  margin-left: 6px;
+  visibility: visible;
+  /* ...but turn visible at once on open, so focus() can land on it. */
+  transition:
+    width 0.2s ease,
+    margin 0.2s ease,
+    visibility 0s;
+}
+#search-input::placeholder {
+  color: #888;
+}
 /* Collapsed filters vanish entirely; the toggle lives on the input line so
    the header shrinks to a single row, with the trailing space tightened up. */
 #filters.collapsed {
@@ -242,7 +289,8 @@ body.dark #single-top {
 body.dark #single-close:hover {
   color: #fff;
 }
-body.dark #single-input {
+body.dark #single-input,
+body.dark #search-input {
   color: #fff;
 }
 @media (prefers-color-scheme: dark) {
@@ -271,7 +319,8 @@ body.dark #single-input {
   body:not(.light) #single-close:hover {
     color: #fff;
   }
-  body:not(.light) #single-input {
+  body:not(.light) #single-input,
+  body:not(.light) #search-input {
     color: #fff;
   }
 }
