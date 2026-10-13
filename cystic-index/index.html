@@ -3553,7 +3553,7 @@
           const v = state.umPerPx || meta?.x;
           input.value = v ? +v.toPrecision(4) : '';
         }
-        const mag = state.calMeta?.mag ? `, calibrated for a ${state.calMeta.mag}× objective` : '';
+        const mag = ', calibrated for a 2× objective';
         $('scale-row').classList.toggle('missing', !umPerPx2());
         $('scale-reset').hidden = !(meta && state.umPerPx);
         $('scale-note').textContent = !umPerPx2()
