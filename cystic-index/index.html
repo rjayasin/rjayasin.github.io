@@ -603,7 +603,7 @@
           <button
             type="button"
             id="save-all"
-            title="Download a zip of every image with its edits stored inside"
+            title="Download a zip of every image with its edits stored inside, plus a copy with the fill drawn over it"
           >
             save all with edits
           </button>
@@ -1677,16 +1677,20 @@
       // ---- Drawing ---------------------------------------------------------
 
       function buildOverlays() {
-        const { W, H, N } = state.F;
-        const { labels, organoids } = state.result;
+        state.overlay = overlaysFor(state);
+      }
+
+      function overlaysFor(t) {
+        const { width: W, height: H } = t.work;
+        const { labels, organoids } = t.result;
         const fill = new ImageData(W, H);
         const line = new ImageData(W, H);
-        const cyst = state.cyst;
-        for (let i = 0; i < N; i++) {
+        const cyst = t.cyst;
+        for (let i = 0; i < W * H; i++) {
           const l = labels[i];
           if (!l) continue;
           const o = organoids[l - 1];
-          const off = state.excluded.has(l);
+          const off = t.excluded.has(l);
           const [r, g, b] = off ? [128, 128, 128] : PALETTE[o.colour];
           const x = i % W;
           const edge =
@@ -1713,8 +1717,34 @@
             set(fill, j, r, g, b, off ? 50 : 110);
           }
         }
-        state.overlay.fill = toCanvas(fill);
-        state.overlay.outline = toCanvas(line);
+        return { fill: toCanvas(fill), outline: toCanvas(line) };
+      }
+
+      // The full-size image with the fill view and numbers drawn over it.
+      function overlayImage(t) {
+        const { width: W, height: H } = t.work;
+        const c = document.createElement('canvas');
+        c.width = t.origW;
+        c.height = t.origH;
+        const g = c.getContext('2d');
+        g.drawImage(t.img || t.work, 0, 0, c.width, c.height);
+        g.scale(c.width / W, c.height / H);
+        g.imageSmoothingEnabled = false;
+        g.drawImage(overlaysFor(t).fill, 0, 0);
+        const size = Math.max(10, Math.round(Math.max(W, H) / 45));
+        g.font = `600 ${size}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        g.lineJoin = 'round';
+        g.lineWidth = Math.max(2, size / 4);
+        g.strokeStyle = 'rgba(0,0,0,0.85)';
+        for (const o of t.result.organoids) {
+          if (!o.areaWork) continue;
+          g.fillStyle = t.excluded.has(o.id) ? '#aaa' : o.edits ? '#4ade80' : '#fff';
+          g.strokeText(o.id, o.cx, o.cy);
+          g.fillText(o.id, o.cx, o.cy);
+        }
+        return new Promise((done) => c.toBlob(done, 'image/jpeg', 0.92));
       }
 
       function set(img, j, r, g, b, a) {
@@ -2923,19 +2953,22 @@
         const files = {};
         const skipped = [];
         const used = new Set();
+        const add = async (name, blob) => {
+          let out = name;
+          for (let n = 2; used.has(out.toLowerCase()); n++) {
+            out = name.replace(/(\.[^.]+)$/, ` (${n})$1`);
+          }
+          used.add(out.toLowerCase());
+          files[out] = new Uint8Array(await blob.arrayBuffer());
+        };
         for (const r of images) {
           const t = r === current ? state : r;
-          const blob = t.result && (await withEdits(r.blob, t));
-          if (!blob) {
-            skipped.push(r.name);
-            continue;
-          }
-          let name = editedName(r.name);
-          for (let n = 2; used.has(name.toLowerCase()); n++) {
-            name = editedName(r.name).replace(/(\.[^.]+)$/, ` (${n})$1`);
-          }
-          used.add(name.toLowerCase());
-          files[name] = new Uint8Array(await blob.arrayBuffer());
+          if (!t.result) continue;
+          const blob = await withEdits(r.blob, t);
+          if (blob) await add(editedName(r.name), blob);
+          else skipped.push(r.name);
+          const base = r.name.replace(/(\.edited)?\.[^.]+$/, '') || 'image';
+          await add(base + '.overlay.jpg', await overlayImage(t));
         }
         errorEl.textContent = skipped.length
           ? `${UNSUPPORTED}; skipped ${skipped.join(', ')}.`
