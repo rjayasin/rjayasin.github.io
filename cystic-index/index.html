@@ -675,7 +675,7 @@
         <button type="button" data-tool="lasso">lasso</button>
         <span class="brush" id="brush-size" title="Brush size ([ and ])">
           <label for="brush">size</label>
-          <input type="range" id="brush" min="1" max="60" step="0.5" value="8" />
+          <input type="range" id="brush" min="1" max="20" step="0.5" value="8" />
           <output class="mono" for="brush">8</output>
         </span>
         <span class="brush" id="zoom-size">
@@ -2403,7 +2403,7 @@
       });
 
       function setBrush(v) {
-        state.brush = Math.min(60, Math.max(1, v));
+        state.brush = Math.min(20, Math.max(1, v));
         $('brush').value = state.brush;
         $('brush').nextElementSibling.textContent = state.brush;
         render();
