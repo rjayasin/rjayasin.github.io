@@ -647,9 +647,10 @@
         <button type="button" data-view="outline">outline</button>
         <button type="button" data-view="original">original</button>
         <button type="button" id="zoom" class="active" title="Crop to the organoids">zoom</button>
-        <button type="button" id="edit" title="Redraw organoid and cyst borders">edit</button>
+        <button type="button" id="edit" title="Redraw organoid and cyst borders (E)">edit</button>
         <span class="hint" id="view-hint">
-          hover to inspect · click an organoid to exclude it · hold right click for the original
+          hover to inspect · click a table row to exclude it · hold right click for the original · e
+          to edit
         </span>
       </div>
       <div class="view-bar" id="edit-bar" role="group" aria-label="edit" hidden>
@@ -665,7 +666,7 @@
         <span class="sep"></span>
         <button type="button" data-tool="brush" class="active">brush</button>
         <button type="button" data-tool="lasso">lasso</button>
-        <span class="brush" id="brush-size">
+        <span class="brush" id="brush-size" title="Brush size ([ and ])">
           <label for="brush">size</label>
           <input type="range" id="brush" min="1" max="40" step="1" value="8" />
           <output class="mono" for="brush">8</output>
@@ -2108,14 +2109,6 @@
         render();
       });
 
-      canvas.addEventListener('click', (e) => {
-        if (state.editing) return;
-        const id = labelAt(e);
-        if (!id) return;
-        toggle(id);
-        showTip(e);
-      });
-
       canvas.addEventListener('contextmenu', (e) => e.preventDefault());
       window.addEventListener('resize', render);
 
@@ -2365,6 +2358,7 @@
 
       $('edit').addEventListener('click', () => {
         state.editing = !state.editing;
+        tipEl.hidden = true;
         state.selected = 0;
         state.box = null;
         if (state.editing && state.view === 'original') {
@@ -2382,11 +2376,14 @@
         });
       });
 
-      $('brush').addEventListener('input', () => {
-        state.brush = +$('brush').value;
+      function setBrush(v) {
+        state.brush = Math.min(40, Math.max(1, v));
+        $('brush').value = state.brush;
         $('brush').nextElementSibling.textContent = state.brush;
         render();
-      });
+      }
+
+      $('brush').addEventListener('input', () => setBrush(+$('brush').value));
 
       $('edit-zoom').addEventListener('input', () => {
         state.editZoom = +$('edit-zoom').value;
@@ -2409,12 +2406,17 @@
           undo();
           return;
         }
-        if (
-          e.key === ' ' &&
-          state.editing &&
-          !drag &&
-          !e.target.closest('input, textarea, select')
-        ) {
+        if (e.target.closest('input:not([type=range]), textarea, select')) return;
+        if (e.metaKey || e.ctrlKey || e.altKey || drag) return;
+        if (e.key.toLowerCase() === 'e' && state.result) {
+          $('edit').click();
+          return;
+        }
+        if ((e.key === '[' || e.key === ']') && state.editing) {
+          setBrush(state.brush + (e.key === ']' ? 2 : -2));
+          return;
+        }
+        if (e.key === ' ' && state.editing) {
           e.preventDefault();
           state.editCyst = !state.editCyst;
           syncEditBar();
