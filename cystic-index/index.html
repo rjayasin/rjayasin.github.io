@@ -557,6 +557,10 @@
         margin-top: 8px;
       }
 
+      .note a {
+        color: inherit;
+      }
+
       @media (max-width: 640px) {
         body {
           padding: 32px 16px 64px;
@@ -729,13 +733,14 @@
           <tbody id="rows"></tbody>
         </table>
       </div>
-      <p class="note" id="res-note"></p>
+      <p class="note" id="res-note"><span id="res-text"></span></p>
     </section>
 
     <script>
       Common.paintFavicon({ glyph: '🧫', fontSize: 48, transparent: true, dy: 3 });
       Common.initDarkMode();
       Common.initSitemapShortcut();
+      Common.initHintUpdated({ hintEl: document.getElementById('res-note') });
 
       // ======================================================================
       // Image analysis
@@ -751,7 +756,9 @@
       //      (about as dark, and less brown than tissue) are carved back out.
       //   3. Touching organoids are split with a watershed on the distance to
       //      the nearest edge: two round organoids pinched together make two
-      //      peaks with a low saddle between them.
+      //      peaks with a low saddle between them. Seams are then redrawn by
+      //      fitting an ellipse to each organoid, and slivers well under the
+      //      typical organoid size are folded into a neighbour.
       //   4. Cysts are the light, colourless lumen: bright pixels that are not
       //      brown, averaged over the organoid only so the thin bright rim
       //      around each organoid washes out.
@@ -762,10 +769,10 @@
       const DEFAULTS = {
         texture: null, // null = pick from the image's background noise
         gap: 18,
-        seams: 25, // 0 turns seam detection off
-        split: 0.85,
+        seams: 35, // 0 turns seam detection off
+        split: 0.9,
         minSize: 0.04, // percent of the image
-        cyst: 120,
+        cyst: null, // null = pick from how bright the organoids are
       };
 
       // Pixel radii are tuned for a 1200 px working image; scale them so a
@@ -877,9 +884,13 @@
         for (let i = 0; i < N; i++) if (!m[i]) dts[i] = 0;
         let labels = floodDistance(dts, m, W, H, p.split);
         labels = absorbFragments(labels, W, H, minPx);
-        labels = roundSeams(labels, m, dts, W, H);
+        labels = fitSeams(roundSeams(labels, m, dts, W, H), m, W, H);
         if (giveBack) labels = growInto(labels, giveBack, W, H, R(3) + 1);
-        return { labels, minPx, tThr };
+        // A piece well under the typical organoid size is a sliver cut off a
+        // neighbour, not an organoid of its own.
+        labels = absorbFragments(labels, W, H, Math.max(minPx, 0.4 * medianArea(labels)));
+        labels = mergeStrays(labels, W, H);
+        return { labels, minPx, tThr, autoCyst: autoCyst(F, labels) };
       }
 
       // Where two organoids press together, the gap between them is often too
@@ -947,10 +958,21 @@
 
       // ---- Stage 3: cysts --------------------------------------------------
 
+      // 88 suits most images, but in a dim one even the lumen stays below it,
+      // so follow the organoids' median brightness down.
+      function autoCyst(F, labels) {
+        const v = [];
+        for (let i = 0; i < F.N; i += 2) if (labels[i]) v.push(F.Ls[i]);
+        if (!v.length) return 88;
+        v.sort((a, b) => a - b);
+        return Math.round(Math.min(88, 0.7 * v[v.length >> 1]));
+      }
+
       function findCysts(F, seg, p) {
         const { W, H, N, S } = F;
         const R = radiusFor(W, H);
         const { labels, minPx } = seg;
+        const thr = p.cyst ?? seg.autoCyst;
         const om = new Float32Array(N);
         const sm = new Float32Array(N);
         for (let i = 0; i < N; i++) {
@@ -962,12 +984,12 @@
         const cr = R(4);
         const omB = boxBlur(om, W, H, cr);
         const smB = boxBlur(sm, W, H, cr);
-        const inner = erode(om, W, H, R(2));
+        const inner = erode(om, W, H, R(1));
         let cyst = new Uint8Array(N);
         for (let i = 0; i < N; i++) {
-          cyst[i] = inner[i] && smB[i] / Math.max(1e-6, omB[i]) > p.cyst ? 1 : 0;
+          cyst[i] = inner[i] && smB[i] / Math.max(1e-6, omB[i]) > thr ? 1 : 0;
         }
-        cyst = open(cyst, W, H, R(2));
+        cyst = open(cyst, W, H, R(3));
         cyst = dropSmall(cyst, W, H, Math.max(10, minPx >> 2));
         for (let i = 0; i < N; i++) if (!labels[i]) cyst[i] = 0;
         return cyst;
@@ -1334,6 +1356,139 @@
         return out;
       }
 
+      // Circles from the distance peaks place seams well for round organoids
+      // but not elongated or partly hidden ones. Refine by giving every pixel
+      // to the organoid whose ellipse (from the second moments of its pixels)
+      // it sits deepest inside, refitting a few times.
+      function fitSeams(lab, m, W, H) {
+        const N = W * H;
+        const { lab: comp, sizes } = components(m, W, H);
+        let cur = lab;
+        for (let it = 0; it < 5; it++) {
+          let n = 0;
+          for (let i = 0; i < N; i++) n = Math.max(n, cur[i]);
+          const s = Array.from({ length: n + 1 }, () => [0, 0, 0, 0, 0, 0]);
+          for (let i = 0; i < N; i++) {
+            const l = cur[i];
+            if (!l) continue;
+            const x = i % W;
+            const y = (i / W) | 0;
+            const a = s[l];
+            a[0]++;
+            a[1] += x;
+            a[2] += y;
+            a[3] += x * x;
+            a[4] += y * y;
+            a[5] += x * y;
+          }
+          // Inverse covariance of each organoid, for its Mahalanobis distance.
+          const fit = s.map(([n, sx, sy, sxx, syy, sxy]) => {
+            if (!n) return null;
+            const cx = sx / n;
+            const cy = sy / n;
+            const vxx = sxx / n - cx * cx + 0.25;
+            const vyy = syy / n - cy * cy + 0.25;
+            const vxy = sxy / n - cx * cy;
+            const det = vxx * vyy - vxy * vxy;
+            return { cx, cy, ixx: vyy / det, iyy: vxx / det, ixy: -vxy / det };
+          });
+          const members = Array.from({ length: sizes.length }, () => new Set());
+          for (let i = 0; i < N; i++) if (cur[i]) members[comp[i]].add(cur[i]);
+          const out = new Int32Array(cur);
+          for (let i = 0; i < N; i++) {
+            if (!cur[i]) continue;
+            const set = members[comp[i]];
+            if (set.size < 2) continue;
+            const x = i % W;
+            const y = (i / W) | 0;
+            let best = cur[i];
+            let bd = Infinity;
+            for (const l of set) {
+              const f = fit[l];
+              const dx = x - f.cx;
+              const dy = y - f.cy;
+              const d = dx * dx * f.ixx + dy * dy * f.iyy + 2 * dx * dy * f.ixy;
+              if (d < bd) {
+                bd = d;
+                best = l;
+              }
+            }
+            out[i] = best;
+          }
+          cur = out;
+        }
+        return cur;
+      }
+
+      function medianArea(lab) {
+        const area = new Map();
+        for (const l of lab) if (l) area.set(l, (area.get(l) || 0) + 1);
+        const a = [...area.values()].sort((x, y) => x - y);
+        return a.length ? a[a.length >> 1] : 0;
+      }
+
+      // Keep the largest piece of each organoid and hand any detached bits to
+      // the neighbour they share the most border with.
+      function mergeStrays(lab, W, H) {
+        const N = W * H;
+        const piece = new Int32Array(N);
+        const stack = new Int32Array(N);
+        const size = [0];
+        const owner = [0];
+        for (let s = 0; s < N; s++) {
+          if (!lab[s] || piece[s]) continue;
+          const id = size.length;
+          const l = lab[s];
+          let sp = 0;
+          let n = 0;
+          stack[sp++] = s;
+          piece[s] = id;
+          while (sp) {
+            const q = stack[--sp];
+            n++;
+            const x = q % W;
+            for (const nb of [x > 0 ? q - 1 : -1, x < W - 1 ? q + 1 : -1, q - W, q + W]) {
+              if (nb < 0 || nb >= N || piece[nb] || lab[nb] !== l) continue;
+              piece[nb] = id;
+              stack[sp++] = nb;
+            }
+          }
+          size.push(n);
+          owner.push(l);
+        }
+        const biggest = new Map();
+        for (let id = 1; id < size.length; id++) {
+          const b = biggest.get(owner[id]);
+          if (!b || size[id] > size[b]) biggest.set(owner[id], id);
+        }
+        const shared = new Map();
+        for (let q = 0; q < N; q++) {
+          const id = piece[q];
+          if (!id || biggest.get(owner[id]) === id) continue;
+          const x = q % W;
+          for (const nb of [x > 0 ? q - 1 : -1, x < W - 1 ? q + 1 : -1, q - W, q + W]) {
+            if (nb < 0 || nb >= N || !lab[nb] || lab[nb] === owner[id]) continue;
+            const m = shared.get(id) || new Map();
+            m.set(lab[nb], (m.get(lab[nb]) || 0) + 1);
+            shared.set(id, m);
+          }
+        }
+        const to = new Int32Array(size.length);
+        for (let id = 1; id < size.length; id++) {
+          if (biggest.get(owner[id]) === id) {
+            to[id] = owner[id];
+            continue;
+          }
+          let best = 0;
+          let bc = 0;
+          for (const [l, c] of shared.get(id) || []) if (c > bc) (bc = c), (best = l);
+          to[id] = best;
+        }
+        const out = new Int32Array(N);
+        for (let i = 0; i < N; i++) if (piece[i]) out[i] = to[piece[i]];
+        return out;
+      }
+
       // ======================================================================
       // Measurements
       // ======================================================================
@@ -1522,6 +1677,7 @@
           step: 1,
           stage: 'cyst',
           fmt: (v) => String(v),
+          auto: () => state.seg && state.seg.autoCyst,
         },
       ];
 
@@ -2052,7 +2208,7 @@
           W === state.origW
             ? ''
             : `, then scaled up to pixels of the ${state.origW} × ${state.origH} original`;
-        $('res-note').textContent =
+        $('res-text').textContent =
           `Areas measured on a ${W} × ${H} copy${scaled}. ` +
           `Analysis took ${Math.round(state.ms)} ms.`;
       }
