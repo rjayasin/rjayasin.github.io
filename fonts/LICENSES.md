@@ -25,14 +25,12 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | ADLaM Display | OFL | Mark Jamra, Neil Patel, Andrew Footit | Copyright (c) 2022 by Microsoft. All rights reserved. |
 | Advent Pro | OFL | VivaRado | Copyright 2018 The Advent Pro Project Authors (https://github.com/googlefonts/Advent) |
 | Afacad | OFL | Kristian Möller, Dicotype | Copyright 2023 The Afacad Project Authors (https://github.com/Dicotype/Afacad) |
-| Afacad Flux | OFL | Kristian Möller, Dicotype | Copyright 2023 The Afacad Project Authors (https://github.com/Dicotype/Afacad) |
 | Agbalumo | OFL | Raphael Alẹ́gbẹ́lẹ́yẹ̀, Sorkin Type, Eben Sorkin | Copyright 2023 The Agbalumo Project Authors (https://github.com/SorkinType/Agbalumo) |
 | Agdasima | OFL | The DocRepair Project, Patric King | Copyright 2023 The Agdasima Project Authors (https://github.com/docrepair-fonts/agdasima-fonts). |
 | Agu Display | OFL | Seun Badejo | Copyright 2024 The Agu Display Project Authors (https://github.com/theseunbadejo/Agu-Display) |
 | Aguafina Script | OFL | Sudtipos | Copyright (c) 2007 Angel Koziupa (sudtipos@sudtipos.com), Copyright (c) 2007 Alejandro Paul (sudtipos@sudtipos.com), with Reserved Font Name "Aguafina Script" |
 | Akatab | OFL | SIL International | Copyright (c) 2010-2025, SIL Global (https://scripts.sil.org), with Reserved Font Name "Akatab", copyright 2010-2019 Adobe (http://www.adobe.com/), with Reserved Font Name "Source" (Latin glyphs). |
 | Akaya Kanadaka | OFL | Vaishnavi Murthy, Juan Luis Blanco | Copyright 2015 The Akaya Kanadaka Project Authors (https://github.com/vaishnavimurthy/Akaya-Kanadaka) |
-| Akaya Telivigala | OFL | Vaishnavi Murthy, Juan Luis Blanco | Copyright 2015 The Akaya Telivigala Project Authors (https://github.com/vaishnavimurthy/Akaya-Telivigala) |
 | Akronim | OFL | Grzegorz Klimczewski | Copyright (c) 2012 Grzegorz Klimczewski, Fonty.PL (www.fonty.pl), with Reserved Font Name \'Akronim\' |
 | Akshar | OFL | Tall Chai | Copyright 2022 The Akshar Type Project Authors (https://github.com/tallchai/akshar-type) |
 | Akt | OFL | Dmitry Grenev | Copyright 2024 The Akt Project Authors (https://github.com/dimgrenev/akt) |
@@ -84,20 +82,9 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Amita | OFL | Eduardo Tunni, Brian Bonislawsky | Copyright (c) 2014, Eduardo Rodriguez Tunni. Copyright (c) 2000, Modular Infotech, Pune, INDIA. All rights reserved. Copyright (c) 2011 by Brian J. Bonislawsky DBA Astigmatic (AOETI) (astigma@astigmatic.com). All rights reserved. |
 | Anaheim | OFL | Vernon Adams | Copyright 2012 The Anaheim Project Authors (https://github.com/googlefonts/anaheimFont) |
 | Ancizar Sans | OFL | Universidad Nacional de Colombia (UNAL), César Puertas, Viviana Monsalve, Julián Moncada | Copyright 2014 The Ancizar Sans Project Authors (https://github.com/UNAL-OMD/UNAL-Ancizar) |
-| Ancizar Serif | OFL | Universidad Nacional de Colombia (UNAL), César Puertas, Viviana Monsalve, Julián Moncada | Copyright 2014 The Ancizar Serif Project Authors (https://github.com/UNAL-OMD/UNAL-Ancizar) |
 | Andada Pro | OFL | Huerta Tipográfica, Carolina Giovagnoli | Copyright 2011 The Andada Pro Project Authors (https://github.com/huertatipografica/Andada) |
 | Andika | OFL | SIL International | Copyright (c) 2004-2022 SIL International |
-| Anek Bangla | OFL | Ek Type | Copyright 2021 The Anek Project Authors (https://github.com/EkType/Anek) |
-| Anek Devanagari | OFL | Ek Type | Copyright 2021 The Anek Project Authors (https://github.com/EkType/Anek) |
-| Anek Gujarati | OFL | Ek Type | Copyright 2021 The Anek Project Authors (https://github.com/EkType/Anek) |
-| Anek Gurmukhi | OFL | Ek Type | Copyright 2021 The Anek Project Authors (https://github.com/EkType/Anek) |
-| Anek Kannada | OFL | Ek Type | Copyright 2021 The Anek Project Authors (https://github.com/EkType/Anek) |
 | Anek Latin | OFL | Ek Type | Copyright 2021 The Anek Project Authors (https://github.com/EkType/Anek) |
-| Anek Malayalam | OFL | Ek Type | Copyright 2021 The Anek Project Authors (https://github.com/EkType/Anek) |
-| Anek Odia | OFL | Ek Type | Copyright 2021 The Anek Project Authors (https://github.com/EkType/Anek) |
-| Anek Tamil | OFL | Ek Type | Copyright 2021 The Anek Project Authors (https://github.com/EkType/Anek) |
-| Anek Telugu | OFL | Ek Type | Copyright 2021 The Anek Project Authors (https://github.com/EkType/Anek) |
-| Angkor | OFL | Danh Hong | Copyright 2020 The Angkor Project Authors (https://github.com/danhhong/Angkor) |
 | Annapurna SIL | OFL | SIL International | Copyright (c) 2007-2023 by SIL International |
 | Annie Use Your Telescope | OFL | Kimberly Geswein | Copyright (c) 2010, Kimberly Geswein (kimberlygeswein.com) |
 | Anonymous Pro | OFL | Mark Simonson | Copyright (c) Mark Simonson 2009-2010. All rights reserved. |
@@ -108,7 +95,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Anton | OFL | Vernon Adams | Copyright 2020 The Anton Project Authors (https://github.com/googlefonts/AntonFont.git) |
 | Anton SC | OFL | Vernon Adams | Copyright 2020 The Anton Project Authors (https://github.com/googlefonts/AntonFont.git) |
 | Antonio | OFL | Vernon Adams | Copyright 2013 The Antonio Project Authors (https://github.com/googlefonts/antonioFont) |
-| Anuphan | OFL | Cadson Demak | Copyright 2019 The Anuphan Project Authors (https://github.com/cadsondemak/Anuphan) |
 | Anybody | OFL | Tyler Finck | Copyright 2020 The Anybody Project Authors (https://github.com/Etcetera-Type-Co/Anybody) |
 | Aoboshi One | OFL | Natsumi Matsuba | Copyright 2020 The Aoboshi Font Project Authors (https://github.com/matsuba723/Aoboshi), all rights reserved. |
 | AR One Sans | OFL | Niteesh Yadav | Copyright 2018 The AR One Project Authors (https://github.com/niteeshy/ar-one-sans) |
@@ -144,7 +130,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Athiti | OFL | Cadson Demak | Copyright (c) 2015, Cadson Demak (info@cadsondemak.com) |
 | Atkinson Hyperlegible | OFL | Braille Institute, Applied Design Works, Elliott Scott, Megan Eiswerth, Linus Boman, Theodore Petrosky | Copyright 2020 Braille Institute of America, Inc. |
 | Atkinson Hyperlegible Mono | OFL | Braille Institute, Applied Design Works, Elliott Scott, Megan Eiswerth, Letters From Sweden | Copyright 2020-2024 The Atkinson Hyperlegible Mono Project Authors (https://github.com/googlefonts/atkinson-hyperlegible-next-mono) |
-| Atkinson Hyperlegible Next | OFL | Braille Institute, Applied Design Works, Elliott Scott, Megan Eiswerth, Letters From Sweden | Copyright 2020-2024 The Atkinson Hyperlegible Next Project Authors (https://github.com/googlefonts/atkinson-hyperlegible-next) |
 | Atma | OFL | Black Foundry | Copyright 2015 The Atma Project Authors (www.black-foundry.com) |
 | Atomic Age | OFL | James Grieshaber | Copyright (c) 2013 - 2016, Sorkin Type Co (www.sorkintype.com) with Reserved Font Name \'Atomic Age\'. |
 | Aubrey | OFL | Cyreal | Copyright 2011 The Aubrey Project Authors (https://github.com/cyrealtype/Aubrey) |
@@ -170,15 +155,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Bakbak One | OFL | Saumya Kishore, Sanchit Sawaria | Copyright 2021 The Bakbak One Project Authors (https://github.com/googlefonts/bakbak) |
 | Ballet | OFL | Omnibus-Type, Maximiliano Sproviero | Copyright 2020 The Ballet Project Authors (https://github.com/Omnibus-Type/Ballet) |
 | Baloo 2 | OFL | Ek Type | Copyright 2019 The Baloo 2 Project Authors (https://github.com/EkType/Baloo2) |
-| Baloo Bhai 2 | OFL | Ek Type | Copyright 2019 The Baloo 2 Project Authors (https://github.com/EkType/Baloo2) |
-| Baloo Bhaijaan 2 | OFL | Ek Type | Copyright 2019 The Baloo 2 Project Authors (https://github.com/EkType/Baloo2) |
-| Baloo Bhaina 2 | OFL | Ek Type | Copyright 2019 The Baloo 2 Project Authors (https://github.com/EkType/Baloo2) |
-| Baloo Chettan 2 | OFL | Ek Type | Copyright 2019 The Baloo 2 Project Authors (https://github.com/EkType/Baloo2) |
-| Baloo Da 2 | OFL | Ek Type | Copyright 2019 The Baloo 2 Project Authors (https://github.com/EkType/Baloo2) |
-| Baloo Paaji 2 | OFL | Ek Type | Copyright 2019 The Baloo 2 Project Authors (https://github.com/EkType/Baloo2) |
-| Baloo Tamma 2 | OFL | Ek Type | Copyright 2019 The Baloo 2 Project Authors (https://github.com/EkType/Baloo2) |
-| Baloo Tammudu 2 | OFL | Ek Type | Copyright 2019 The Baloo 2 Project Authors (https://github.com/EkType/Baloo2) |
-| Baloo Thambi 2 | OFL | Ek Type | Copyright 2019 The Baloo 2 Project Authors (https://github.com/EkType/Baloo2) |
 | Balsamiq Sans | OFL | Michael Angeles | Copyright 2011 The Balsamiq Sans Project Authors (https://github.com/balsamiq/balsamiqsans) |
 | Balthazar | OFL | Dario Manuel Muhafara | Copyright (c) 2011, Dario Manuel Muhafara (http://www.tipo.net.ar dario@tipo.net.ar), with Reserved Font Name "Balthazar". |
 | Bangers | OFL | Vernon Adams | Copyright 2010 The Bangers Project Authors (https://github.com/googlefonts/bangers) |
@@ -190,7 +166,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Basic | OFL | Magnus Gaarde | Copyright (c) 2011, Sorkin Type Co (www.sorkintype.com eben@eyebytes.com) with Reserved Font Name "Basic". |
 | Baskervville | OFL | ANRT | Copyright 2018 The Baskervville Project Authors (https://github.com/anrt-type/ANRT-Baskervville) |
 | Baskervville SC | OFL | ANRT | Copyright 2018 The Baskervville Project Authors (https://github.com/anrt-type/ANRT-Baskervville) |
-| Battambang | OFL | Danh Hong | Copyright 2019 The Battambang Khmer Project Authors (https://github.com/danhhong/Battambang) |
 | Baumans | OFL | Cyreal | Copyright (c) 2011, Cyreal (www.cyreal.org) with Reserved Font Name "Baumans".  This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL |
 | Bayon | OFL | Danh Hong | Copyright 2019 The Bayon Project Authors (https://github.com/danhhong/Bayon) |
 | BBH Bartle | OFL | Studio DRAMA | Copyright 2025 The BBH Project Authors (https://github.com/Studio-DRAMA/BBH) |
@@ -231,9 +206,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Birthstone Bounce | OFL | Robert Leuschke | Copyright 2019 The Birthstone Bounce Project Authors (https://github.com/googlefonts/birthstone-bounce) |
 | Biryani | OFL | Dan Reynolds, Mathieu Réguer | Copyright (c) 2015 Dan Reynolds. Copyright (c) 2015 Mathieu Réguer. |
 | Bitcount | OFL | Petr van Blokland | Copyright 2024 The Bitcount Project Authors (https://github.com/petrvanblokland/TYPETR-Bitcount) |
-| Bitcount Grid Double | OFL | Petr van Blokland | Copyright 2024 The Bitcount Project Authors (https://github.com/petrvanblokland/TYPETR-Bitcount) |
 | Bitcount Grid Double Ink | OFL | Petr van Blokland | Copyright 2024 The Bitcount Project Authors (https://github.com/petrvanblokland/TYPETR-Bitcount) |
-| Bitcount Grid Single | OFL | Petr van Blokland | Copyright 2024 The Bitcount Project Authors (https://github.com/petrvanblokland/TYPETR-Bitcount) |
 | Bitcount Grid Single Ink | OFL | Petr van Blokland | Copyright 2024 The Bitcount Project Authors (https://github.com/petrvanblokland/TYPETR-Bitcount) |
 | Bitcount Ink | OFL | Petr van Blokland | Copyright 2024 The Bitcount Project Authors (https://github.com/petrvanblokland/TYPETR-Bitcount) |
 | Bitcount Prop Double | OFL | Petr van Blokland | Copyright 2024 The Bitcount Project Authors (https://github.com/petrvanblokland/TYPETR-Bitcount) |
@@ -248,7 +221,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | BIZ UDPGothic | OFL | Type Bank Co., Morisawa Inc. | Copyright 2022 The BIZ UDGothic Project Authors (https://github.com/googlefonts/morisawa-biz-ud-gothic) |
 | BIZ UDPMincho | OFL | Type Bank Co., Morisawa Inc. | Copyright 2022 The BIZ UDMincho Project Authors (https://github.com/googlefonts/morisawa-biz-ud-mincho) |
 | BJ Cree | OFL | SIL International | Copyright (c) 2000-2026 SIL Global (https://www.sil.org). Latin glyphs originally copyright (c) 2014-2015 (URW)++ Design and Development, with modifications copyright (c) 2024-2026 SIL Global. |
-| BJCree | OFL | SIL International | Copyright (c) 2000-2026 SIL Global (https://www.sil.org). Latin glyphs originally copyright (c) 2014-2015 (URW)++ Design and Development, with modifications copyright (c) 2024-2026 SIL Global. |
 | Black And White Picture | OFL | AsiaSoft Inc. | Copyright (c) 1992-2018 AsiaSoft Inc. Seoul Korea All Rights Reserved. |
 | Black Han Sans | OFL | Zess Type | Copyright 2015 The Black Han Sans Project Authors (https://github.com/zesstype/Black-Han-Sans) |
 | Black Ops One | OFL | James Grieshaber, Eben Sorkin | Copyright 2022 The PinyonScript Project Authors (https://github.com/SorkinType/Black-Ops) |
@@ -258,7 +230,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Blinker | OFL | Juergen Huber | Copyright 2019 the Blinker project authors (https://github.com/supertype-de/Blinker) |
 | Bodoni Moda | OFL | Owen Earl | Copyright 2020 The Bodoni Moda Project Authors (https://github.com/indestructible-type/Bodoni) |
 | Bodoni Moda SC | OFL | Owen Earl | Copyright 2020 The Bodoni Moda Project Authors (https://github.com/indestructible-type/Bodoni) |
-| Bokor | OFL | Danh Hong | Copyright 2020 The Bokor Project Authors (https://github.com/danhhong/Bokor) |
 | Boldonse | OFL | Universitype | Copyright 2024 The Boldonse Project Authors (https://github.com/googlefonts/boldonse) |
 | Bona Nova | OFL | Capitalics, Mateusz Machalski, Andrzej Heidrich | Copyright 2017 The Bona Nova Project Authors (https://github.com/kosmynkab/Bona-Nova) |
 | Bona Nova SC | OFL | Capitalics, Mateusz Machalski, Andrzej Heidrich | Copyright 2017 The Bona Nova Project Authors (https://github.com/kosmynkab/Bona-Nova) |
@@ -268,8 +239,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Borel | OFL | Rosalie Wagner | Copyright 2023 The Borel Project Authors (https://github.com/RosaWagner/Borel) |
 | Bowlby One | OFL | Vernon Adams | Copyright (c) 2011 by vernon adams (vern@newtypography.co.uk), with Reserved Font Names "Bowlby" "Bowlby One" and "Bowlby One SC". This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL |
 | Bowlby One SC | OFL | Vernon Adams | Copyright (c) 2011, vernon adams (vern@newtypography.co.uk), with Reserved Font Names "Bowlby" |
-| Bpmf Huninn | OFL | But Ko, justfont | Copyright 2025 The Bpmf Project Authors (https://github.com/ButTaiwan/bpmfvs) |
-| Bpmf Iansui | OFL | But Ko | Copyright 2025 The Bpmf Project Authors (https://github.com/ButTaiwan/bpmfvs) |
 | Bpmf Zihi Kai Std | OFL | But Ko | Copyright 2025 The Bpmf Project Authors (https://github.com/ButTaiwan/bpmfvs) |
 | Braah One | OFL | Ashish Kumar | Copyright 2022 The Braah Project Authors (https://github.com/artandtype/Braah ) |
 | Brawler | OFL | Cyreal | Copyright 2011 The Brawler Project Authors (https://github.com/cyrealtype/Brawler) |
@@ -322,7 +291,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Carrois Gothic SC | OFL | Carrois Apostrophe | Copyright (c) 2011 by Ralph du Carrois, with Reserved Font Name \'Carrois\' |
 | Carter One | OFL | Vernon Adams | Copyright (c) 2011, Vernon Adams (vern@newtypography.co.uk) with Reserved Font Name \'Carter One\'. All rights reserved. |
 | Cascadia Code | OFL | Aaron Bell, Mohamad Dakak, Viktoriya Grabowska, Liron Lavi Turkenich | © 2021 Microsoft Corporation. All Rights Reserved. |
-| Cascadia Mono | OFL | Aaron Bell, Mohamad Dakak, Viktoriya Grabowska, Liron Lavi Turkenich | © 2021 Microsoft Corporation. All Rights Reserved. |
 | Castoro | OFL | Tiro Typeworks, John Hudson, Paul Hanslow, Kaja Słojewska | Copyright 2020 The Castoro Project Authors (https://github.com/TiroTypeworks/Castoro) |
 | Castoro Titling | OFL | Tiro Typeworks, John Hudson | Copyright 2020 The Castoro Project Authors (https://github.com/TiroTypeworks/Castoro) |
 | Catamaran | OFL | Pria Ravichandran | Copyright 2020 The Catamaran Project Authors (https://github.com/VanillaandCream/Catamaran-Tamil) |
@@ -356,7 +324,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Chiron Sung HK | OFL | Tamcy | Copyright 2025 The Chiron Sung HK Project Authors (https://github.com/chiron-fonts/chiron-sung-hk) |
 | Chivo | OFL | Omnibus-Type | Copyright 2019 The Chivo Project Authors (https://github.com/Omnibus-Type/Chivo) |
 | Chivo Mono | OFL | Omnibus-Type | Copyright 2018 The Chivo Project Authors (https://github.com/Omnibus-Type/Chivo) |
-| Chocolate Classical Sans | OFL | Moonlit Owen | Copyright 2024 The Chocolate Classical Sans Project Authors (https://github.com/MoonlitOwen/ChocolateSans) |
 | Chokokutai | OFL | Font Zone 108 | Copyright 2020 The Chokokutai Project Authors (https://github.com/go108go/Chokokutai), all rights reserved. |
 | Chonburi | OFL | Cadson Demak | Copyright (c) 2015, Cadson Demak (info@cadsondemak.com) |
 | Cinzel | OFL | Natanael Gama | Copyright 2020 The Cinzel Project Authors (https://github.com/NDISCOVER/Cinzel) |
@@ -378,7 +345,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Commissioner | OFL | Kostas Bartsokas | Copyright 2019 The Commissioner Project Authors (github.com/kosbarts/Commissioner) |
 | Concert One | OFL | Johan Kallas, Mihkel Virkus | Copyright (c) 2011, 2011 Johan Kallas (johankallas@gmail.com), Copyright (c) 2011, 2011 Mihkel Virkus (mihkelvirkus@gmail.com), with Reserved Font Name Concert. |
 | Condiment | OFL | Sudtipos | Copyright (c) 2010 Angel Koziupa (sudtipos@sudtipos.com), Copyright (c) 2010 Alejandro Paul (sudtipos@sudtipos.com), with Reserved Font Name "Condiment" |
-| Content | OFL | Danh Hong | Copyright (c) 2010, Danh Hong (khmertype.blogspot.com danhhong@gmail.com), with Reserved Font Name Khmer OS Content. This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL |
 | Contrail One | OFL | Riccardo De Franceschi | Copyright (c) 2011, Sorkin Type Co (www.sorkintype.com eben@eyebytes.com) with Reserved Font Names "Contrail" and "Contrail One". |
 | Convergence | OFL | Nicolás Silva, John Vargas Beltrán | Copyright (c) 2010 by Jos Nicols Silva Schwarzenberg.<info@nsilva.com> and John Vargas Beltran <http://www.johnvargasbeltran.com/>, with Reserved Font Names "Convergence". |
 | Cookie | OFL | Ania Kruk | Copyright (c) 2011 by Ania Kruk (hello@aniakruk.com), with Reserved Font Name Cookie. |
@@ -387,7 +353,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Corben | OFL | Vernon Adams | Copyright (c) 2010, 2011 by vernon adams (vern@newtypography.co.uk) with Reserved Font Name \'Corben\'. |
 | Corinthia | OFL | Robert Leuschke | Copyright 2010 The Corinthia Project Authors (https://github.com/googlefonts/corinthia) |
 | Cormorant | OFL | Christian Thalmann | Copyright 2015 The Cormorant Project Authors (github.com/CatharsisFonts/Cormorant) |
-| Cormorant Garamond | OFL | Christian Thalmann | Copyright 2015 The Cormorant Project Authors (github.com/CatharsisFonts/Cormorant) |
 | Cormorant Infant | OFL | Christian Thalmann | Copyright 2015 The Cormorant Project Authors (github.com/CatharsisFonts/Cormorant) |
 | Cormorant SC | OFL | Christian Thalmann | Copyright 2015 The Cormorant Project Authors (github.com/CatharsisFonts/Cormorant) |
 | Cormorant Unicase | OFL | Christian Thalmann | Copyright 2015 The Cormorant Project Authors (github.com/CatharsisFonts/Cormorant) |
@@ -414,7 +379,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Damion | OFL | Vernon Adams | Copyright 2014 The Damion Project Authors (https://github.com/googlefonts/damionFont) |
 | Dancing Script | OFL | Impallari Type | Copyright 2016 The Dancing Script Project Authors (https://github.com/googlefonts/DancingScript), with Reserved Font Name \'Dancing Script\'. |
 | Danfo | OFL | Afrotype, Seyi Olusanya, Eyiyemi Adegbite, David Udoh, Mirko Velimirović | Copyright 2024 The Tac Project Authors (https://github.com/Afrotype/Danfo) |
-| Dangrek | OFL | Danh Hong | Copyright 2020 The Dangrek Project Authors (https://github.com/danhhong/Dangrek) |
 | Darker Grotesque | OFL | Gabriel Lam, ViệtAnh Nguyễn | Copyright 2019 The Darker Grotesque Project Authors (https://github.com/bettergui/DarkerGrotesque) |
 | Darumadrop One | OFL | Maniackers Design | Copyright 2020 The Darumadrop Project Authors (https://github.com/ManiackersDesign/darumadrop), all rights reserved. |
 | Datatype | OFL | Frank Tisellano | Copyright 2026 The Datatype Project Authors (https://github.com/franktisellano/datatype) |
@@ -461,21 +425,11 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Eczar | OFL | Rosetta, Vaibhav Singh | Copyright 2014 The Eczar Project Authors (https://github.com/rosettatype/eczar) |
 | Edu AU VIC WA NT Arrows | OFL | Tina Anderson, Corey Anderson | Copyright 2023 The VIC WA NT School Hand Australia Project Authors (https://github.com/SorkinType/VICWANTSchoolhandAustralia) |
 | Edu AU VIC WA NT Dots | OFL | Tina Anderson, Corey Anderson | Copyright 2023 The VIC WA NT School Hand Australia Project Authors (https://github.com/SorkinType/VICWANTSchoolhandAustralia) |
-| Edu AU VIC WA NT Guides | OFL | Tina Anderson, Corey Anderson | Copyright 2023 The VIC WA NT School Hand Australia Project Authors (https://github.com/SorkinType/VICWANTSchoolhandAustralia) |
 | Edu AU VIC WA NT Hand | OFL | Tina Anderson, Corey Anderson | Copyright 2023 The VIC WA NT School Hand Australia Project Authors (https://github.com/SorkinType/VICWANTSchoolhandAustralia) |
-| Edu AU VIC WA NT Pre | OFL | Tina Anderson, Corey Anderson | Copyright 2023 The VIC WA NT School Hand Australia Project Authors (https://github.com/SorkinType/VICWANTSchoolhandAustralia) |
 | Edu NSW ACT Cursive | unknown |  |  |
 | Edu NSW ACT Foundation | OFL | Tina Anderson, Corey Anderson | Copyright 2022 The AU School Handwriting Fonts Project Authors (https://github.com/MezMerrit/AU-School-Handwriting-Fonts) |
-| Edu NSW ACT Hand Pre | unknown |  |  |
-| Edu QLD Beginner | OFL | Tina Anderson, Corey Anderson | Copyright 2022 The AU School Handwriting Fonts Project Authors (https://github.com/MezMerrit/AU-School-Handwriting-Fonts) |
-| Edu QLD Hand | unknown |  |  |
-| Edu SA Beginner | OFL | Tina Anderson, Corey Anderson | Copyright 2022 The AU School Handwriting Fonts Project Authors (https://github.com/MezMerrit/AU-School-Handwriting-Fonts) |
 | Edu SA Hand | unknown |  |  |
-| Edu TAS Beginner | OFL | Tina Anderson, Corey Anderson | Copyright 2022 The AU School Handwriting Fonts Project Authors (https://github.com/MezMerrit/AU-School-Handwriting-Fonts) |
 | Edu VIC WA NT Beginner | OFL | Tina Anderson, Corey Anderson | Copyright 2022 The AU School Handwriting Fonts Project Authors (https://github.com/MezMerrit/AU-School-Handwriting-Fonts) |
-| Edu VIC WA NT Hand | unknown |  |  |
-| Edu VIC WA NT Hand Pre | unknown |  |  |
-| El Messiri | OFL | Mohamed Gaber, Jovanny Lemonad | Copyright 2015 The El Messiri Project Authors (https://github.com/Gue3bara/El-Messiri) |
 | Electrolize | OFL | Gaslight | Copyright (c) 2011, Cyreal (www.cyreal.org a@cyreal.org) with Reserved Font Name "Electrolize" This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL |
 | Elms Sans | OFL | Amarachi Nwauwa, Gida Type Studio | Copyright 2025 The Elms Sans Project Authors (https://github.com/mara-aa/elms-sans.git) |
 | Elsie | OFL | Alejandro Inler | Copyright (c) 2010-2012, Alejandro Inler (alejandroinler@gmail.com), with Reserved Font Name \'Elsie\' |
@@ -515,7 +469,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Fascinate | OFL | Astigmatic | Copyright (c) 2011 by Brian J. Bonislawsky DBA Astigmatic (AOETI) (astigma@astigmatic.com), with Reserved Font Name "Fascinate" |
 | Fascinate Inline | OFL | Astigmatic | Copyright (c) 2011 by Brian J. Bonislawsky DBA Astigmatic (AOETI) (astigma@astigmatic.com), with Reserved Font Name "Fascinate Inline" |
 | Faster One | OFL | Eduardo Tunni | Copyright 2012 The Faster Project Authors (https://github.com/etunni/faster), with Reserved Font Name \'Faster\' |
-| Fasthand | OFL | Danh Hong, Neapolitan | Copyright 2020 The Fasthand Project Authors (https://github.com/danhhong/Fasthand) |
 | Fauna One | OFL | Eduardo Tunni | Copyright 2013 The Fauna One Project Authors (https://github.com/etunni/fauna-one) with Reserved Font Name \'Fauna\' |
 | Faustina | OFL | Omnibus-Type | Copyright 2019 The Faustina Project Authors (https://github.com/Omnibus-Type/Faustina) |
 | Federant | OFL | Cyreal | Copyright (c) 2011, Cyreal (www.cyreal.org), with Reserved Font Name \'Federant\'. |
@@ -529,7 +482,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Finlandica Headline | OFL | Helsinki Type Studio, Niklas Ekholm, Juho Hiilivirta, Jaakko Suomalainen | Copyright 2015 The Finlandica Project Authors (https://github.com/HelsinkiTypeStudio/Finlandica) |
 | Finlandica Text | OFL | Helsinki Type Studio, Niklas Ekholm, Juho Hiilivirta, Jaakko Suomalainen | Copyright 2015 The Finlandica Project Authors (https://github.com/HelsinkiTypeStudio/Finlandica) |
 | Fira Code | OFL | The Mozilla Foundation, Telefonica S.A., Nikita Prokopov | Copyright 2014-2020 The Fira Code Project Authors (https://github.com/tonsky/FiraCode) |
-| Fira Mono | OFL | Carrois Apostrophe | Digitized data copyright  2012-2015, The Mozilla Foundation and Telefonica S.A. |
 | Fira Sans | OFL | Carrois Apostrophe | Digitized data copyright 2012-2016, The Mozilla Foundation and Telefonica S.A. |
 | Fira Sans Condensed | OFL | Carrois Apostrophe | Digitized data copyright 2012-2016, The Mozilla Foundation and Telefonica S.A. |
 | Fira Sans Extra Condensed | OFL | Carrois Apostrophe | Digitized data copyright 2012-2016, The Mozilla Foundation and Telefonica S.A. |
@@ -552,7 +504,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Freckle Face | OFL | Astigmatic | Copyright (c) 2012 by Brian J. Bonislawsky DBA Astigmatic (AOETI) (astigma@astigmatic.com), with Reserved Font Name "Freckle Face" |
 | Fredericka the Great | OFL | Tart Workshop | Copyright (c) 2011 by Font Diner, Inc DBA Tart Workshop (diner@fontdiner.com) with Reseved Font Name "Fredericka the Great" |
 | Fredoka | OFL | Milena Brandão, Hafontia | Copyright 2016 The Fredoka Project Authors (https://github.com/hafontia/Fredoka-One) |
-| Freehand | OFL | Danh Hong | Copyright 2020 The Freehand Project Authors (https://github.com/danhhong/Freehand) |
 | Freeman | OFL | Rodrigo Fuenzalida, Aoife Mooney, Vernon Adams | Copyright 2023 The Freeman Project Authors (https://github.com/rfuenzalida/Freeman) |
 | Fresca | OFL | Fontstage | Copyright (c) 2011 Fontstage (info@fontstage.com), with Reserved Font Name "Fresca" |
 | Frijole | OFL | Sideshow | Copyright (c) 2011 by Font Diner, Inc DBA Sideshow (diner@fontdiner.com) with Reserved Font Name "Frijole" |
@@ -612,7 +563,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Golos Text | OFL | Alexandra Korolkova, Vitaly Kuzmin | Copyright 2019 The Golos Text Project Authors (https://github.com/googlefonts/golos-text) |
 | Google Sans | unknown |  |  |
 | Google Sans Code | OFL | Google, Universal Thirst | Copyright 2025 The Google Sans Code Project Authors (github.com/googlefonts/googlesans-code) |
-| Google Sans Flex | unknown |  |  |
 | Gorditas | OFL | Gustavo Dipre | Copyright (c) 2011, Gustavo Dipre (gbrenda1987@gmail.com), with Reserved Font Name "Gorditas". |
 | Gothic A1 | OFL | HanYang I&C Co | (C) Copyright HanYang I&C Co.,Ltd. All rights reserved. |
 | Gotu | OFL | Ek Type | Copyright (c) 2016, Ek Type. All rights reserved. |
@@ -649,25 +599,17 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Handjet | OFL | Rosetta, David Březina | Copyright 2018 The Handjet Project Authors (https://github.com/rosettatype/Handjet/) |
 | Handlee | OFL | Joe Prince | Copyright (c) 2011, Admix Designs (http://www.admixdesigns.com joe@admixdesigns.com) with Reserved Font Name Handlee. |
 | Hanken Grotesk | OFL | Alfredo Marco Pradil, Hanken Design Co. | Copyright 2021 The Hanken Grotesk Project Authors (https://github.com/marcologous/hanken-grotesk) |
-| Hanuman | OFL | Danh Hong | Copyright 2019 The Hanuman Project Authors (https://github.com/danhhong/Hanuman) |
 | Happy Monkey | OFL | Brenda Gallo | Copyright (c) 2011 by Brenda Gallo (gbrenda1987@gmail.com), with Reserved Font Name "Happy Monkey". |
 | Harmattan | OFL | SIL International | Copyright (c) 2007-2008, The C&MA Guinea Fulbe Team;\n\nCopyright renewed 2011-2012, George W. Nuss (http://www.fulbefouta.com),\nwith the Reserved Font Name "Fouta".\n\nCopyright (c) 2004-2025, SIL Global (https://www.sil.org),\nwith Reserved Font Names \'Andika\' and \'SIL\'.\n\nCopyright (c) 2014-2025, SIL Global (https://www.sil.org/).\nwith Reserved Font Names "Harmattan" and "SIL". |
 | Headland One | OFL | Gary Lonergan | Copyright (c) 2011-2012, Sorkin Type Co (www.sorkintype.com eben@eyebytes.com), with Reserved Font Name "Headland" |
 | Hedvig Letters Sans | OFL | Kanon Foundry, Alexander Örn, Tor Weibull, Hedvig | Copyright 2023 The Hedvig Letters Project Authors (https://github.com/KanonFoundry/HedvigLetters) |
 | Hedvig Letters Serif | OFL | Kanon Foundry, Alexander Örn, Tor Weibull, Hedvig | Copyright 2023 The Hedvig Letters Project Authors (https://github.com/KanonFoundry/HedvigLetters) |
-| Heebo | OFL | Oded Ezer | Copyright 2014 The Heebo Project Authors (https://github.com/OdedEzer/heebo) |
 | Henny Penny | OFL | Brownfox | Copyright (c) 2012, Brownfox (gayaneh.b@gmail.com), with Reserved Font Name "Henny Penny" |
 | Hepta Slab | OFL | Mike LaGattuta | Copyright 2018 The Hepta Slab Project Authors (https://github.com/mjlagattuta/Hepta-Slab) |
 | Herr Von Muellerhoff | OFL | Sudtipos | Copyright (c) 2004 Alejandro Paul (sudtipos@sudtipos.com), with Reserved Font Name "Herr Von Mullerhoff" |
 | Hi Melody | OFL | YoonDesign Inc | Copyright (c) YoonDesign Inc. All Rights Reserved. |
-| Hibur Mono | OFL | TypeHabesha, Behailu Berento | Copyright 2025-2026 The Hibur Mono Font Project Authors (https://github.com/typehabesha/HiburMono). |
 | Hina Mincho | OFL | Satsuyako | Copyright 2020 The Hina Mincho Project Authors (https://github.com/satsuyako/Hina-Mincho) |
 | Hind | OFL | Indian Type Foundry | Copyright (c) 2014 Indian Type Foundry (info@indiantypefoundry.com) |
-| Hind Guntur | OFL | Indian Type Foundry | Copyright (c) 2015 Indian Type Foundry (info@indiantypefoundry.com) |
-| Hind Madurai | OFL | Indian Type Foundry | Copyright (c) 2015 Indian Type Foundry (info@indiantypefoundry.com) |
-| Hind Mysuru | OFL | Indian Type Foundry | Copyright (c) 2015 Indian Type Foundry (info@indiantypefoundry.com) |
-| Hind Siliguri | OFL | Indian Type Foundry | Copyright (c) 2015 Indian Type Foundry (info@indiantypefoundry.com) |
-| Hind Vadodara | OFL | Indian Type Foundry | Copyright (c) 2015 Indian Type Foundry (info@indiantypefoundry.com) |
 | Holtwood One SC | OFL | Vernon Adams | Copyright 2011 The Holtwood Project Authors (https://github.com/googlefonts/HoltwoodFont) |
 | Homemade Apple | APACHE2 | Font Diner | Copyright (c) 2010 by Font Diner, Inc. All rights reserved. |
 | Homenaje | OFL | Constanza Artigas Preller, Agustina Mingote | Copyright 2016 The Homenaje Project Authors (https://github.com/googlefonts/Homenaje), with Reserved Font Name \'Homenaje. |
@@ -675,20 +617,13 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Host Grotesk | OFL | Element Type, Doğukan Karapınar, İbrahim Kaçtıoğlu | Copyright 2023 The Host Grotesk Project Authors (https://github.com/Element-Type/HostGrotesk) |
 | Hubballi | OFL | Erin McLaughlin | Copyright 2016 The Hubballi Project Authors (https://github.com/erinmclaughlin/Hubballi) |
 | Hubot Sans | OFL | Tobias Bjerrome Ahlin, GitHub, Degarism Studio, Sebastian Carewe | Copyright 2021 The Hubot Sans Project Authors (https://github.com/github/hubot-sans), with Reserved Font Name "Hubot" |
-| Huninn | OFL | justfont | Copyright 2025 The Huninn Project Authors (https://github.com/justfont/Huninn) |
 | Hurricane | OFL | Robert Leuschke | Copyright 2016-2021 The Hurricane Project Authors (https://github.com/googlefonts/hurricane) |
 | Iansui | OFL | But Ko | Copyright 2025 The Iansui Project Authors (https://github.com/ButTaiwan/iansui) |
 | Ibarra Real Nova | OFL | José María Ribagorda, Octavio Pardo | Copyright 2007 The Ibarra Real Nova Project Authors (https://github.com/googlefonts/ibarrareal) |
 | IBM Plex Mono | OFL | Mike Abbink, Bold Monday | Copyright 2017 IBM Corp. All rights reserved. |
 | IBM Plex Sans | OFL | Mike Abbink, Bold Monday | Copyright 2019 IBM Corp. All rights reserved. |
-| IBM Plex Sans Arabic | OFL | Mike Abbink, Bold Monday, Khajag Apelian, Wael Morcos | Copyright 2019 IBM Corp. All rights reserved. |
 | IBM Plex Sans Condensed | OFL | Mike Abbink, Bold Monday | Copyright 2019 IBM Corp. All rights reserved. |
-| IBM Plex Sans Devanagari | OFL | Mike Abbink, Bold Monday | Copyright 2019 IBM Corp. All rights reserved. |
-| IBM Plex Sans Hebrew | OFL | Mike Abbink, Bold Monday | Copyright 2019 IBM Corp. All rights reserved. |
 | IBM Plex Sans JP | OFL | Mike Abbink, Bold Monday | Copyright 2018 IBM Corp. All rights reserved. |
-| IBM Plex Sans KR | OFL | Mike Abbink, Bold Monday | Copyright 2018 IBM Corp. All rights reserved. |
-| IBM Plex Sans Thai | OFL | Mike Abbink, Bold Monday | Copyright 2019 IBM Corp. All rights reserved. |
-| IBM Plex Sans Thai Looped | OFL | Mike Abbink, Bold Monday | Copyright 2019 IBM Corp. All rights reserved. |
 | IBM Plex Serif | OFL | Mike Abbink, Bold Monday | Copyright 2020 IBM Corp. All rights reserved. |
 | Iceberg | OFL | Cyreal | Copyright (c) 2011, Cyreal (www.cyreal.org a@cyreal.org), with Reserved Font Name "Iceberg". |
 | Iceland | OFL | Cyreal | Copyright (c) 2011, Cyreal (www.cyreal.org a@cyreal.org) with Reserved Font Name "Iceland". This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL |
@@ -739,7 +674,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Jacques Francois | OFL | Cyreal | Copyright (c) 2011, Cyreal (www.cyreal.org a@cyreal.org) with Reserved Font Name \'Jacques Francois\' |
 | Jacques Francois Shadow | OFL | Cyreal | Copyright (c) 2011, Cyreal (www.cyreal.org a@cyreal.org) with Reserved Font Name \'Jacques Francois\' |
 | Jaini | OFL | Ek Type | Copyright 2023 The Jaini Project Authors (https://github.com/EkType/Jaini) |
-| Jaini Purva | OFL | Ek Type | Copyright 2023 The Jaini Project Authors (https://github.com/EkType/Jaini) |
 | Jaldi | OFL | Omnibus-Type | Copyright (c) 2011-2015, Omnibus-Type (www.omnibus-type.com omnibus.type@gmail.com) with Reserved Font Name \'Jaldi\' and \'Asap\' |
 | Jaro | OFL | Agyei Archer, Céline Hurka, Mirko Velimirović | Copyright 2023 The Jaro Project Authors (https://github.com/agyeiarcher/Jaro) |
 | Jersey 10 | OFL | Sarah Cadigan-Fried | Copyright 2023 The Soft Type Project Authors (https://github.com/scfried/soft-type-jersey) |
@@ -772,15 +706,11 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | K2D | OFL | Cadson Demak | Copyright 2018 The K2D Project Authors (https://github.com/cadsondemak/K2D) |
 | Kablammo | OFL | Vectro Type Foundry, Travis Kochel, Lizy Gershenzon, Daria Cohen, Ethan Cohen | Copyright 2023 The Kablammo Project Authors (https://github.com/Vectro-Type-Foundry/kablammo) |
 | Kadwa | OFL | Sol Matas | Copyright (c) 2014-2015, Sol Matas (www.huertatipografica.com - sol@huertatipografica.com) |
-| Kaisei Decol | OFL | Font-Kai | Copyright 2020 The Kaisei Project Authors (https://github.com/Font-Kai/Kaisei) |
-| Kaisei HarunoUmi | OFL | Font-Kai | Copyright 2020 The Kaisei Project Authors (https://github.com/Font-Kai/Kaisei) |
 | Kaisei Opti | OFL | Font-Kai | Copyright 2020 The Kaisei Project Authors (https://github.com/Font-Kai/Kaisei) |
-| Kaisei Tokumin | OFL | Font-Kai | Copyright 2020 The Kaisei Project Authors (https://github.com/Font-Kai/Kaisei) |
 | Kalam | OFL | Indian Type Foundry | Copyright (c) 2014 Indian Type Foundry (info@indiantypefoundry.com) |
 | Kalnia | OFL | Frida Medrano | Copyright 2022 The Kalnia Project Authors (https://github.com/fridamedrano/Kalnia-Typeface.git) |
 | Kalnia Glaze | OFL | Frida Medrano | Copyright 2022 The Kalnia Glaze Project Authors (https://github.com/fridamedrano/Kalnia-Glaze) |
 | Kameron | OFL | Vernon Adams | Copyright 2011 The Kameron Project Authors (https://github.com/googlefonts/kameronFont) |
-| Kanchenjunga | OFL | Becca Hirsbrunner Spalinger | Copyright (c) 2021-2024 SIL International |
 | Kanit | OFL | Cadson Demak | Copyright 2020 The Kanit Project Authors (https://github.com/cadsondemak/kanit) |
 | Kantumruy Pro | OFL | Tep Sovichet, Wei Huang | Copyright 2022 The Kantumruy Project Authors (https://www.github.com/sovichet/kantumruy-pro) |
 | Kapakana | OFL | Kousuke Nagai | Copyright 2020 The Kapakana Project Authors (https://github.com/nagamaki008/kapakana) |
@@ -810,14 +740,12 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Knewave | OFL | Tyler Finck | Copyright (c) 2011 by Tyler Finck (tylerfinck@gmail.com). All rights reserved. |
 | Kodchasan | OFL | Cadson Demak | Copyright 2018 The Kodchasan Project Authors (https://github.com/cadsondemak/Kodchasan) |
 | Kode Mono | OFL | Isa Ozler | Copyright 2023 The Kode Mono Project Authors (https://github.com/isaozler/kode-mono) |
-| Koh Santepheap | OFL | Danh Hong | Copyright 2020 The Koh Santepheap Project Authors (https://github.com/danhhong/KohSantepheap) |
 | KoHo | OFL | Cadson Demak | Copyright 2018 The KoHo Project Authors (https://github.com/cadsondemak/Koho) |
 | Kolker Brush | OFL | Robert Leuschke | Copyright 2004 The Kolker Brush Project Authors (https://github.com/googlefonts/kolker-brush) |
 | Konkhmer Sleokchher | OFL | Suon May Sophanith | Copyright 2022 The Konkhmer Sleokchher Project Authors (https://github.com/suonmaysophanith7/KonKhmer_SleokChher) |
 | Kosugi | APACHE2 | MOTOYA | Copyright 2010 The Kosugi Project Authors (https://github.com/googlefonts/kosugi) |
 | Kosugi Maru | APACHE2 | MOTOYA | Copyright 2010 The Kosugi Maru Project Authors (https://github.com/googlefonts/kosugi-maru) |
 | Kotta One | OFL | Ania Kruk | Copyright (c) 2012 by Ania Kruk (hello@aniakruk.com), with Reserved Font Name "Kotta" |
-| Koulen | OFL | Danh Hong | Copyright 2019 The Koulen Project Authors (https://github.com/danhhong/Koulen) |
 | Kranky | APACHE2 | Sideshow | Copyright (c) 2010 by Font Diner, Inc DBA Sideshow. All rights reserved. |
 | Kreon | OFL | Julia Petretta | Copyright 2018 The Kreon Project Authors (https://github.com/googlefonts/kreon), with Reserved Font Name "Kreon" |
 | Kripa | OFL | Kedar Gadge | Copyright 2026 The Kripa Type Project Authors (https://github.com/kedar9/kripa) |
@@ -834,7 +762,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Labrada | OFL | Mercedes Jáuregui, Omnibus-Type | Copyright 2022 The Labrada Project Authors (https://github.com/Omnibus-Type/Labrada) |
 | Lacquer | OFL | Niki Polyocan, Eli Block | Copyright 2019 The Lacquer Project Authors (https://github.com/Lacquer-Font/Lacquer) |
 | Laila | OFL | Indian Type Foundry | Copyright (c) 2014 Indian Type Foundry (info@indiantypefoundry.com) |
-| Lakki Reddy | OFL | Appaji Ambarisha Darbha | Copyright (c) 2011 Silicon Andhra (fonts.siliconandhra.org). Copyright (c) 2010 by Font Diner, Inc DBA Sideshow. |
 | Lalezar | OFL | Borna Izadpanah | Copyright 2015 The Lalezar Project Authors (https://github.com/BornaIz/Lalezar) |
 | Lancelot | OFL | Marion Kadi | Copyright (c) 2011 by Marion Kadi (marionkadi@gmail.com). All rights reserved. Licenced under SIL OFL v1.1 |
 | Langar | OFL | Typeland, Alessia Mazzarella | Copyright 2016 The Langar Project Authors (https://github.com/typeland/Langar) |
@@ -850,7 +777,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Lemon | OFL | Eduardo Tunni | Copyright 2011 The Lemon Project Authors (https://github.com/etunni/lemon) with Reserved Font Name "Lemon" |
 | Lemonada | OFL | Mohamed Gaber, Eduardo Tunni | Copyright 2011 The Lemonada Project Authors (https://github.com/Gue3bara/Lemonada) |
 | Lexend | OFL | Bonnie Shaver-Troup, Thomas Jockin, Santiago Orozco, Héctor Gómez, Superunion | Copyright 2019 The Lexend Project Authors (https://github.com/googlefonts/lexend) |
-| Lexend Deca | OFL | Bonnie Shaver-Troup, Thomas Jockin, Santiago Orozco, Héctor Gómez, Superunion | Copyright 2019 The Lexend Project Authors (https://github.com/googlefonts/lexend) |
 | Lexend Exa | OFL | Bonnie Shaver-Troup, Thomas Jockin, Santiago Orozco, Héctor Gómez, Superunion | Copyright 2019 The Lexend Project Authors (https://github.com/googlefonts/lexend) |
 | Lexend Giga | OFL | Bonnie Shaver-Troup, Thomas Jockin, Santiago Orozco, Héctor Gómez, Superunion | Copyright 2019 The Lexend Project Authors (https://github.com/googlefonts/lexend) |
 | Lexend Mega | OFL | Bonnie Shaver-Troup, Thomas Jockin, Santiago Orozco, Héctor Gómez, Superunion | Copyright 2019 The Lexend Project Authors (https://github.com/googlefonts/lexend) |
@@ -858,7 +784,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Lexend Tera | OFL | Bonnie Shaver-Troup, Thomas Jockin, Santiago Orozco, Héctor Gómez, Superunion | Copyright 2019 The Lexend Project Authors (https://github.com/googlefonts/lexend) |
 | Lexend Zetta | OFL | Bonnie Shaver-Troup, Thomas Jockin, Santiago Orozco, Héctor Gómez, Superunion | Copyright 2019 The Lexend Project Authors (https://github.com/googlefonts/lexend) |
 | Libertinus Keyboard | OFL | Philipp H. Poll | Copyright 2025 The Libertinus Keyboard Project Authors (https://github.com/googlefonts/libertinus) |
-| Libertinus Math | OFL | Philipp H. Poll | ???. |
 | Libertinus Mono | OFL | Philipp H. Poll | ???. |
 | Libertinus Sans | OFL | Philipp H. Poll | Copyright 2025 The Libertinus Sans Project Authors (https://github.com/googlefonts/libertinus) |
 | Libertinus Serif | OFL | Philipp H. Poll | ???. |
@@ -878,7 +803,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Libre Franklin | OFL | Impallari Type | Copyright 2020 The Libre Franklin Project Authors (https://github.com/googlefonts/Libre-Franklin) |
 | Licorice | OFL | Robert Leuschke | Copyright 2004 The Licorice Project Authors (https://github.com/googlefonts/licorice) |
 | Life Savers | OFL | Impallari Type | Copyright 2012 The Life Savers Project Authors (https://github.com/googlefonts/life-savers) |
-| Lilex | OFL | Mike Abbink, Paul van der Laan, Pieter van Rosmalen, Mikhael Khrustik | Copyright 2019 The Lilex Project Authors (https://github.com/mishamyrt/Lilex) |
 | Lilita One | OFL | Juan Montoreano | Copyright (c) 2011 Juan Montoreano (juan@remolacha.biz), with Reserved Font Names "Lilita One" |
 | Lily Script One | OFL | Julia Petretta | Copyright (c) 2012-2013, Julia Petretta (www.juliapetretta.com julia.petretta@googlemail.com), with Reserved Font Name \'Lily\' |
 | Limelight | OFL | Nicole Fally, Sorkin Type | Copyright (c) 2010 by Sorkin Type Co (eben@eyebytes.com) with Reserved Font Name Limelight. This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL |
@@ -912,18 +836,15 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Luxurious Script | OFL | Robert Leuschke | Copyright 2015-2021 The Luxurious Project Authors (https://github.com/googlefonts/luxurious) |
 | LXGW Marker Gothic | OFL | LXGW | Copyright 2024 The LXGW Marker Gothic Project Authors (https://github.com/lxgw/LxgwMarkerGothic) |
 | LXGW WenKai Mono TC | OFL | LXGW | Copyright 2024 The LXGW WenKai Project Authors (https://github.com/lxgw/LxgwWenkaiTC) |
-| LXGW WenKai TC | OFL | LXGW | Copyright 2024 The LXGW WenKai Project Authors (https://github.com/lxgw/LxgwWenkaiTC) |
 | M PLUS 1 | OFL | Coji Morishita | Copyright 2021 The M+ FONTS Project Authors (https://github.com/coz-m/MPLUS_FONTS) |
 | M PLUS 1 Code | OFL | Coji Morishita | Copyright 2021 The M+ FONTS Project Authors (https://github.com/coz-m/MPLUS_FONTS) |
 | M PLUS 1p | OFL | Coji Morishita, M+ Fonts Project | Copyright 2016 The M+ Project Authors. |
 | M PLUS 2 | OFL | Coji Morishita | Copyright 2021 The M+ FONTS Project Authors (https://github.com/coz-m/MPLUS_FONTS) |
-| M PLUS Code Latin | OFL | Coji Morishita | Copyright 2021 The M+ FONTS Project Authors (https://github.com/coz-m/MPLUS_FONTS) |
 | M PLUS Rounded 1c | OFL | Coji Morishita, M+ Fonts Project | Copyright 2016 The Rounded M+ Project Authors. |
 | M PLUS U | OFL | Coji Morishita | Copyright 2025 The M+ FONTS Project Authors (https://github.com/coz-m/MPLUS_FONTS) |
 | Ma Shan Zheng | OFL | Ma ShanZheng | Copyright 2018 The MaShanZheng Project Authors (https://github.com/googlefonts/mashanzheng) |
 | Macondo | OFL | John Vargas Beltrán | Copyright (c) 1997 - 2011, John Vargas Beltran. (www.johnvargasbeltran.com\|john.vargasbeltran@gmail.com), with Reserved Font Name "Macondo" |
 | Macondo Swash Caps | OFL | John Vargas Beltrán | Copyright (c) 1997 - 2011, John Vargas Beltran. (www.johnvargasbeltran.com\|john.vargasbeltran@gmail.com), with Reserved Font Name "Macondo" |
-| Mada | OFL | Khaled Hosny, Paul D. Hunt | Copyright 2015-2022 The Mada Project Authors (https://github.com/aliftype/mada), with Reserved Font Name "Source". |
 | Madimi One | OFL | Taurai Valerie Mtake, Mirko Velimirović | Copyright 2024 The Madimi One Project Authors (https://github.com/TaVaTake/madimi) |
 | Magra | OFL | FontFuror | Copyright (c) 2011, FontFuror (info@fontfuror.com), with Reserved Names "Magra" "Magra Pro" |
 | Maiden Orange | APACHE2 | Astigmatic | Copyright (c) 2010 by Brian J. Bonislawsky DBA Astigmatic (AOETI). All rights reserved. Available under the Apache 2.0 licence. http://www.apache.org/licenses/LICENSE-2.0.html |
@@ -988,7 +909,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Miss Fajardose | OFL | Sudtipos | Copyright (c) 2004 Alejandro Paul (sudtipos@sudtipos.com), with Reserved Font Name "MissFajardose" |
 | Mitr | OFL | Cadson Demak | Copyright (c) 2015, Cadson Demak (info@cadsondemak.com) |
 | Mochiy Pop One | OFL | FONTDASU | Copyright 2020 The MochiyPop Project Authors (https://github.com/fontdasu/Mochiypop) |
-| Mochiy Pop P One | OFL | FONTDASU | Copyright 2020 The MochiyPop Project Authors (https://github.com/fontdasu/Mochiypop) |
 | Modak | OFL | Ek Type | Copyright (c) 2015 Ek Type (www.ektype.in) |
 | Modern Antiqua | OFL | Wojciech Kalinowski | Copyright (c) 2011, wmk69, (wmk69@o2.pl), with Reserved Font Names \'ModernAntiqua\' and \'Modern Antiqua\'. This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL |
 | Moderustic | OFL | Tural Alisoy | Copyright 2021 The Moderustic Project Authors (https://github.com/Tural/Moderustic) |
@@ -1031,9 +951,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Mrs Sheppards | OFL | Sudtipos | Copyright (c) 2004 Alejandro Paul (sudtipos@sudtipos.com), with Reserved Font Name "Mrs Sheppards" |
 | Ms Madi | OFL | Robert Leuschke | Copyright 2018 The Ms Madi Project Authors (https://github.com/googlefonts/ms-madi) |
 | Mukta | OFL | Ek Type | Copyright (c) 2014, Girish Dalvi, Ek Type. All rights reserved. |
-| Mukta Mahee | OFL | Ek Type | Copyright (c) 2017, Ek Type. All rights reserved. |
-| Mukta Malar | OFL | Ek Type | Copyright (c) 2016, Ek Type. All rights reserved. |
-| Mukta Vaani | OFL | Ek Type | Copyright (c) 2016, Ek Type. All rights reserved. |
 | Mulish | OFL | Vernon Adams, Cyreal, Jacques Le Bailly | Copyright 2016 The Mulish Project Authors (https://github.com/googlefonts/mulish) |
 | Murecho | OFL | Neil Summerour | Copyright 2021 The Murecho Project Authors (https://github.com/positype/Murecho-Project) |
 | MuseoModerno | OFL | Omnibus-Type | Copyright 2020 The MuseoModerno Project Authors (https://github.com/Omnibus-Type/MuseoModerno) |
@@ -1063,7 +980,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Niramit | OFL | Cadson Demak | Copyright 2018 The Niramit Project Authors (https://github.com/cadsondemak/Niramit) |
 | Nixie One | OFL | Jovanny Lemonad | Copyright (c) 2011, Jovanny Lemonad (lemonad@jovanny.ru), with Reserved Font Name "Nixie" |
 | Nobile | OFL | Vernon Adams | Copyright (c) 2010 by vernon adams (vern@newtypography.co.uk) with Reserved Font Name \'Nobile\'. All rights reserved. |
-| Nokora | OFL | Danh Hong | Copyright 2019 The Nokora Project Authors (https://github.com/danhhong/Nokora) |
 | Norican | OFL | Vernon Adams | Copyright 2011 The Norican Project Authors (https://github.com/googlefonts/NoricanFont) |
 | Nosifer | OFL | Typomondo | Copyright (c) 2011, Vernon Adams DBA Typomondo (vern@newtypography.co.uk), with Reserved Font Name "Nosifer" |
 | Notable | OFL | Eli Block, Hana Tanimura, Noemie Le Coz | Copyright 2018 The Notable Project Authors (https://github.com/googlefonts/notable) |
@@ -1073,215 +989,31 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Noto Emoji | OFL | Google | Copyright 2013, 2022 Google Inc. All Rights Reserved. |
 | Noto Kufi Arabic | OFL | Google | Copyright 2019-2022 Google LLC. All Rights Reserved. |
 | Noto Music | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/music) |
-| Noto Naskh Arabic | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/arabic) |
 | Noto Nastaliq Urdu | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/nastaliq) |
-| Noto Rashi Hebrew | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/hebrew) |
 | Noto Sans | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic) |
-| Noto Sans Adlam | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/adlam) |
-| Noto Sans Adlam Unjoined | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/adlam) |
-| Noto Sans Anatolian Hieroglyphs | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/anatolian-hieroglyphs) |
-| Noto Sans Arabic | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/arabic) |
-| Noto Sans Armenian | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/armenian) |
-| Noto Sans Avestan | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/avestan) |
-| Noto Sans Balinese | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/balinese) |
-| Noto Sans Bamum | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/bamum) |
-| Noto Sans Bassa Vah | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/bassa-vah) |
-| Noto Sans Batak | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/batak) |
-| Noto Sans Bengali | OFL | Google | Copyright 2025 The Noto Project Authors (https://github.com/notofonts/bengali) |
-| Noto Sans Bhaiksuki | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/bhaiksuki) |
-| Noto Sans Brahmi | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/brahmi) |
-| Noto Sans Buginese | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/buginese) |
-| Noto Sans Buhid | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/buhid) |
-| Noto Sans Canadian Aboriginal | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/canadian-aboriginal) |
-| Noto Sans Carian | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/carian) |
-| Noto Sans Caucasian Albanian | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/caucasian-albanian) |
-| Noto Sans Chakma | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/chakma) |
-| Noto Sans Cham | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/cham) |
-| Noto Sans Cherokee | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/cherokee) |
-| Noto Sans Chorasmian | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/chorasmian) |
-| Noto Sans Coptic | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/coptic) |
 | Noto Sans Cuneiform | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/cuneiform) |
-| Noto Sans Cypriot | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/cypriot) |
-| Noto Sans Cypro Minoan | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/cypro-minoan) |
-| Noto Sans Deseret | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/deseret) |
-| Noto Sans Devanagari | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/devanagari) |
 | Noto Sans Display | OFL | Google | Copyright 2015 Google Inc. All Rights Reserved. |
 | Noto Sans Duployan | OFL | Google | Copyright 2018-2019, 2022-2023 David Corbett. Copyright 2019-2022 Google LLC. All Rights Reserved. |
-| Noto Sans Egyptian Hieroglyphs | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/egyptian-hieroglyphs) |
-| Noto Sans Elbasan | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/elbasan) |
-| Noto Sans Elymaic | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/elymaic) |
-| Noto Sans Ethiopic | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/ethiopic) |
-| Noto Sans Georgian | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/georgian) |
-| Noto Sans Glagolitic | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/glagolitic) |
-| Noto Sans Gothic | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/gothic) |
-| Noto Sans Grantha | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/grantha) |
-| Noto Sans Gujarati | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/gujarati) |
-| Noto Sans Gunjala Gondi | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/gunjala-gondi) |
-| Noto Sans Gurmukhi | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/gurmukhi) |
-| Noto Sans Hanifi Rohingya | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/hanifi-rohingya) |
-| Noto Sans Hanunoo | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/hanunoo) |
-| Noto Sans Hatran | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/hatran) |
 | Noto Sans Hebrew | OFL | Google | Copyright 2024 The Noto Project Authors (https://github.com/notofonts/hebrew) |
-| Noto Sans HK | OFL | Google | (c) 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'. |
-| Noto Sans Imperial Aramaic | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/imperial-aramaic) |
-| Noto Sans Indic Siyaq Numbers | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/indic-siyaq-numbers) |
-| Noto Sans Inscriptional Pahlavi | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/inscriptional-pahlavi) |
-| Noto Sans Inscriptional Parthian | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/inscriptional-parthian) |
-| Noto Sans Javanese | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/javanese) |
 | Noto Sans JP | OFL | Google | (c) 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'. |
-| Noto Sans Kaithi | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/kaithi) |
-| Noto Sans Kannada | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/kannada) |
-| Noto Sans Kawi | OFL | Google | Copyright 2023 The Noto Project Authors (https://github.com/notofonts/kawi) |
-| Noto Sans Kayah Li | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/kayah-li) |
-| Noto Sans Kharoshthi | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/kharoshthi) |
-| Noto Sans Khmer | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/khmer) |
 | Noto Sans Khojki | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/khojki) |
-| Noto Sans Khudawadi | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/khudawadi) |
-| Noto Sans KR | OFL | Google | (c) 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'. |
-| Noto Sans Lao | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/lao) |
-| Noto Sans Lao Looped | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/lao) |
-| Noto Sans Lepcha | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/lepcha) |
-| Noto Sans Limbu | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/limbu) |
-| Noto Sans Linear A | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/linear-a) |
-| Noto Sans Linear B | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/linear-b) |
-| Noto Sans Lisu | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/lisu) |
 | Noto Sans Lycian | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/lycian) |
-| Noto Sans Lydian | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/lydian) |
-| Noto Sans Mahajani | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/mahajani) |
-| Noto Sans Malayalam | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/malayalam) |
-| Noto Sans Mandaic | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/mandaic) |
-| Noto Sans Manichaean | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/manichaean) |
-| Noto Sans Marchen | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/marchen) |
-| Noto Sans Masaram Gondi | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/masaram-gondi) |
-| Noto Sans Math | OFL | Google | Copyright 2022 Google LLC. All Rights Reserved. |
-| Noto Sans Mayan Numerals | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/mayan-numerals) |
-| Noto Sans Medefaidrin | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/medefaidrin) |
-| Noto Sans Meetei Mayek | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/meetei-mayek) |
-| Noto Sans Mende Kikakui | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/mende-kikakui) |
-| Noto Sans Meroitic | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/meroitic) |
-| Noto Sans Miao | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/miao) |
-| Noto Sans Modi | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/modi) |
 | Noto Sans Mongolian | OFL | Google | Copyright 2023 The Noto Project Authors (https://github.com/notofonts/mongolian) |
 | Noto Sans Mono | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic) |
-| Noto Sans Mro | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/mro) |
-| Noto Sans Multani | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/multani) |
-| Noto Sans Myanmar | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/myanmar) |
-| Noto Sans Nabataean | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/nabataean) |
 | Noto Sans Nag Mundari | OFL | Google | Copyright 2023 The Noto Project Authors (https://github.com/notofonts/nag-mundari) |
-| Noto Sans Nandinagari | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/nandinagari) |
-| Noto Sans New Tai Lue | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/new-tai-lue) |
-| Noto Sans Newa | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/newa) |
-| Noto Sans NKo | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/nko) |
-| Noto Sans NKo Unjoined | OFL | Google | Copyright 2023 The Noto Project Authors (https://github.com/notofonts/nko) |
-| Noto Sans Nushu | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/nushu) |
-| Noto Sans Ogham | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/ogham) |
-| Noto Sans Ol Chiki | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/ol-chiki) |
-| Noto Sans Old Hungarian | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/old-hungarian) |
-| Noto Sans Old Italic | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/old-italic) |
-| Noto Sans Old North Arabian | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/old-north-arabian) |
-| Noto Sans Old Permic | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/old-permic) |
-| Noto Sans Old Persian | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/old-persian) |
-| Noto Sans Old Sogdian | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/old-sogdian) |
-| Noto Sans Old South Arabian | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/old-south-arabian) |
-| Noto Sans Old Turkic | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/old-turkic) |
-| Noto Sans Oriya | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/oriya) |
-| Noto Sans Osage | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/osage) |
-| Noto Sans Osmanya | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/osmanya) |
-| Noto Sans Pahawh Hmong | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/pahawh-hmong) |
-| Noto Sans Palmyrene | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/palmyrene) |
-| Noto Sans Pau Cin Hau | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/pau-cin-hau) |
-| Noto Sans PhagsPa | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/phags-pa) |
-| Noto Sans Phoenician | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/phoenician) |
-| Noto Sans Psalter Pahlavi | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/psalter-pahlavi) |
-| Noto Sans Rejang | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/rejang) |
-| Noto Sans Runic | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/runic) |
-| Noto Sans Samaritan | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/samaritan) |
-| Noto Sans Saurashtra | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/saurashtra) |
-| Noto Sans SC | OFL | Google | (c) 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'. |
-| Noto Sans Sharada | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/sharada) |
-| Noto Sans Shavian | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/shavian) |
-| Noto Sans Siddham | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/siddham) |
-| Noto Sans SignWriting | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/sign-writing) |
-| Noto Sans Sinhala | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/sinhala) |
-| Noto Sans Sogdian | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/sogdian) |
-| Noto Sans Sora Sompeng | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/sora-sompeng) |
-| Noto Sans Soyombo | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/soyombo) |
-| Noto Sans Sundanese | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/sundanese) |
-| Noto Sans Sunuwar | OFL | Google | Copyright 2021 The Noto Sunuwar Project Authors (https://github.com/ScriptEncodingInitiative/sunuwar) |
-| Noto Sans Syloti Nagri | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/syloti-nagri) |
 | Noto Sans Symbols | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/symbols) |
 | Noto Sans Symbols 2 | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/symbols) |
-| Noto Sans Syriac | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/syriac) |
-| Noto Sans Syriac Eastern | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/syriac) |
-| Noto Sans Syriac Western | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/syriac) |
-| Noto Sans Tagalog | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/tagalog) |
-| Noto Sans Tagbanwa | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/tagbanwa) |
-| Noto Sans Tai Le | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/tai-le) |
-| Noto Sans Tai Tham | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/tai-tham) |
-| Noto Sans Tai Viet | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/tai-viet) |
-| Noto Sans Takri | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/takri) |
-| Noto Sans Tamil | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/tamil) |
-| Noto Sans Tamil Supplement | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/tamil) |
-| Noto Sans Tangsa | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/tangsa) |
-| Noto Sans TC | OFL | Google | (c) 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'. |
-| Noto Sans Telugu | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/telugu) |
-| Noto Sans Thaana | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/thaana) |
-| Noto Sans Thai | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/thai) |
-| Noto Sans Thai Looped | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/thai) |
-| Noto Sans Tifinagh | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/tifinagh) |
-| Noto Sans Tirhuta | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/tirhuta) |
-| Noto Sans Ugaritic | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/ugaritic) |
-| Noto Sans Vai | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/vai) |
-| Noto Sans Vithkuqi | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/vithkuqi) |
-| Noto Sans Wancho | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/wancho) |
-| Noto Sans Warang Citi | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/warang-citi) |
-| Noto Sans Yi | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/yi) |
 | Noto Sans Zanabazar Square | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/zanabazar-square) |
 | Noto Serif | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic) |
-| Noto Serif Ahom | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/ahom) |
-| Noto Serif Armenian | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/armenian) |
-| Noto Serif Balinese | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/balinese) |
-| Noto Serif Bengali | OFL | Google | Copyright 2025 The Noto Project Authors (https://github.com/notofonts/bengali) |
-| Noto Serif Devanagari | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/devanagari) |
 | Noto Serif Display | OFL | Google | Copyright 2016 Google Inc. All Rights Reserved. |
-| Noto Serif Dives Akuru | OFL | Google | Copyright 2024 The Noto Project Authors (https://github.com/notofonts/dives-akuru) |
-| Noto Serif Dogra | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/dogra) |
-| Noto Serif Ethiopic | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/ethiopic) |
-| Noto Serif Georgian | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/georgian) |
 | Noto Serif Grantha | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/grantha) |
-| Noto Serif Gujarati | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/gujarati) |
-| Noto Serif Gurmukhi | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/gurmukhi) |
-| Noto Serif Hebrew | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/hebrew) |
 | Noto Serif Hentaigana | OFL | Google | Copyright 2023 The Noto Project Authors (https://github.com/notofonts/hentaigana) |
-| Noto Serif HK | OFL | Google | (c) 2017-2024 Adobe (http://www.adobe.com/). |
 | Noto Serif JP | OFL | Google | (c) 2017-2024 Adobe (http://www.adobe.com/). |
-| Noto Serif Kannada | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/kannada) |
 | Noto Serif Khitan Small Script | OFL | Google | Copyright 2022 Google LLC. All Rights Reserved. |
-| Noto Serif Khmer | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/khmer) |
 | Noto Serif Khojki | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/khojki) |
-| Noto Serif KR | OFL | Google | (c) 2017-2024 Adobe (http://www.adobe.com/). |
-| Noto Serif Lao | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/lao) |
-| Noto Serif Makasar | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/makasar) |
-| Noto Serif Malayalam | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/malayalam) |
 | Noto Serif Myanmar | OFL | Google | Copyright 2016 Google Inc. All Rights Reserved. |
-| Noto Serif NP Hmong | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/nyiakeng-puachue-hmong) |
-| Noto Serif Old Uyghur | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/old-uyghur) |
-| Noto Serif Oriya | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/oriya) |
-| Noto Serif Ottoman Siyaq | OFL | Google | Copyright 2022 Google LLC. All Rights Reserved. |
-| Noto Serif SC | OFL | Google | (c) 2017-2024 Adobe (http://www.adobe.com/). |
-| Noto Serif Sinhala | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/sinhala) |
-| Noto Serif Tamil | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/tamil) |
-| Noto Serif Tangut | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/tangut) |
-| Noto Serif TC | OFL | Google | (c) 2017-2024 Adobe (http://www.adobe.com/). |
-| Noto Serif Telugu | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/telugu) |
-| Noto Serif Thai | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/thai) |
 | Noto Serif Tibetan | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/tibetan) |
 | Noto Serif Todhri | OFL | Google | Copyright 2024 The Noto Project Authors (https://github.com/notofonts/todhri) |
-| Noto Serif Toto | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/toto) |
-| Noto Serif Vithkuqi | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/vithkuqi) |
-| Noto Serif Yezidi | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/yezidi) |
-| Noto Traditional Nushu | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/nushu) |
-| Noto Znamenny Musical Notation | OFL | Google | Copyright 2022 The Noto Project Authors (https://github.com/notofonts/znamenny) |
 | Nova Cut | OFL | Wojciech Kalinowski | Copyright (c) 2011, wmk69 (wmk69@o2.pl) with Reserved Font Names \'NovaCut\' and \'Nova Cut\'. This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL |
 | Nova Flat | OFL | Wojciech Kalinowski | Copyright (c) 2011, wmk69 (wmk69@o2.pl) with Reserved Font Names \'NovaFlat\' and \'Nova Flat\'. This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL |
 | Nova Mono | OFL | Wojciech Kalinowski | Copyright (c) 2011, Wojciech \'wmk69\' Kalinowski (wmk69@o2.pl) |
@@ -1328,7 +1060,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Oxygen Mono | OFL | Vernon Adams | Copyright (c) 2012, vernon adams (vern@newtypography.co.uk), with Reserved Font Names \'Oxygen\' |
 | Pacifico | OFL | Vernon Adams, Jacques Le Bailly, Botjo Nikoltchev, Ani Petrova | Copyright 2018 The Pacifico Project Authors (https://github.com/googlefonts/Pacifico) |
 | Padauk | OFL | SIL International | Copyright (c) 2002-2022 SIL International |
-| Padyakke Expanded One | OFL | James Puckett | Copyright 2015 The Padyakke Project Authors (https://github.com/DunwichType/Padyakke_Libre) |
 | Palanquin | OFL | Pria Ravichandran | Copyright 2014 Pria Ravichandran (pria.ravichandran@gmail.com) |
 | Palanquin Dark | OFL | Pria Ravichandran | Copyright 2014 Pria Ravichandran (pria.ravichandran@gmail.com) |
 | Palette Mosaic | OFL | Shibuya Font | Copyright 2020 The Palette Mosaic Project Authors (https://github.com/shibuyafont/Palette-mosaic-font-mono), all rights reserved. |
@@ -1370,117 +1101,21 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Playfair Display | OFL | Claus Eggers Sørensen | Copyright 2017 The Playfair Display Project Authors (https://github.com/clauseggers/Playfair-Display), with Reserved Font Name "Playfair Display". |
 | Playfair Display SC | OFL | Claus Eggers Sørensen | Copyright 2017 The Playfair Display Project Authors (https://github.com/clauseggers/Playfair-Display), with Reserved Font Name "Playfair Display". |
 | Playpen Sans | OFL | TypeTogether, Laura Meseguer, Veronika Burian, José Scaglione, Kostas Bartsokas, Vera Evstafieva, Tom Grace, Yorlmar Campos | Copyright 2023 The Playpen Sans Project Authors (https://github.com/TypeTogether/Playpen-Sans) |
-| Playpen Sans Arabic | OFL | TypeTogether, Azza Alameddine, Laura Meseguer, Veronika Burian, José Scaglione | Copyright 2023 The Playpen Sans Project Authors (https://github.com/TypeTogether/Playpen-Sans) |
 | Playpen Sans Deva | OFL | TypeTogether, Pooja Saxena, Gunjan Panchal, Laura Meseguer, Veronika Burian, José Scaglione | Copyright 2023 The Playpen Sans Project Authors (https://github.com/TypeTogether/Playpen-Sans) |
-| Playpen Sans Hebrew | OFL | TypeTogether, Tom Grace, Laura Meseguer, Veronika Burian, José Scaglione | Copyright 2023 The Playpen Sans Project Authors (https://github.com/TypeTogether/Playpen-Sans) |
 | Playpen Sans Thai | OFL | TypeTogether, Sirin Gunkloy, Laura Meseguer, Veronika Burian, José Scaglione | Copyright 2023 The Playpen Sans Project Authors (https://github.com/TypeTogether/Playpen-Sans) |
 | Playwrite AR | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite AR Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
 | Playwrite AT | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite AT Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
 | Playwrite AU NSW | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite AU NSW Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite AU QLD | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite AU QLD Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite AU SA | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite AU SA Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite AU TAS | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite AU TAS Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite AU VIC | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite AU VIC Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite BE VLG | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite BE VLG Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite BE WAL | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite BE WAL Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite BR | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite BR Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite CA | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite CA Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite CL | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite CL Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite CO | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite CO Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
 | Playwrite CU | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite CU Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite CZ | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite CZ Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
 | Playwrite DE Grund | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite DE Grund Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite DE LA | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite DE LA Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite DE SAS | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite DE SAS Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
 | Playwrite DE VA | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite DE VA Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite DK Loopet | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite DK Loopet Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite DK Uloopet | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite DK Uloopet Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite ES | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite ES Deco | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite ES Deco Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite ES Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite FR Moderne | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite FR Moderne Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
 | Playwrite FR Trad | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite FR Trad Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
 | Playwrite GB J | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite GB J Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite GB S | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite GB S Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite HR | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite HR Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite HR Lijeva | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite HR Lijeva Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite HU | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite HU Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite ID | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite ID Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite IE | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite IE Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite IN | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite IN Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite IS | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite IS Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite IT Moderna | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite IT Moderna Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
 | Playwrite IT Trad | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite IT Trad Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite MX | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite MX Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite NG Modern | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite NG Modern Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite NL | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite NL Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite NO | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite NO Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite NZ | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
 | Playwrite NZ Basic | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite NZ Basic Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite NZ Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite PE | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite PE Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite PL | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite PL Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite PT | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite PT Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite RO | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite RO Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite SK | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite SK Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite TZ | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite TZ Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite US Modern | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite US Modern Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
 | Playwrite US Trad | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite US Trad Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite VN | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite VN Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite ZA | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
-| Playwrite ZA Guides | OFL | TypeTogether, Veronika Burian, José Scaglione | Copyright 2023 The Playwrite Project Authors (https://github.com/TypeTogether/Playwrite) |
 | Pliant | OFL | Non Foundry, Jona Saucedo | Copyright 2025 The Pliant Project Authors (https://github.com/TheJonassss/Pliant) |
 | Plus Jakarta Sans | OFL | Tokotype | Copyright 2020 The Plus Jakarta Sans Project Authors (https://github.com/tokotype/PlusJakartaSans) |
-| Pochaevsk | OFL | Aleksandr Andreev | Copyright 2025 The Pochaevsk Project Authors (https://github.com/slavonic/pochaevsk). |
 | Podkova | OFL | Cyreal | Copyright 2011 The Podkova Project Authors (https://github.com/cyrealtype/Podkova) |
 | Poetsen One | OFL | Rodrigo Fuenzalida, Pablo Impallari | Copyright (c) 2012, Pablo Impallari (www.impallari.com\|impallari@gmail.com) and Rodrigo Fuenzalida (www.rfuenzalida.com), with Reserved Font Name Poetsen. |
 | Poiret One | OFL | Denis Masharov | Copyright 2011 The Poiret One Project Authors (https://github.com/alexeiva/poiretone) |
@@ -1551,7 +1186,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Rasa | OFL | Rosetta, Anna Giedryś, David Březina | Copyright 2015 The Yrsa-Rasa Project Authors (https://github.com/rosettatype/yrsa-rasa/) |
 | Rationale | OFL | Cyreal | Copyright (c) 2011, Cyreal (www.cyreal.org a@cyreal.org) with Reserved Font Name "Rationale". |
 | Ravi Prakash | OFL | Appaji Ambarisha Darbha | Copyright (c) 2011 Silicon Andhra (fonts.siliconandhra.org). Copyright (c) 2012, Eduardo Tunni (http://www.tipo.net.ar), with Reserved Font Name \'Joti\' |
-| Readex Pro | OFL | Thomas Jockin, Nadine Chahine, Bonnie Shaver-Troup, Santiago Orozco, Héctor Gómez | Copyright 2019 The Readex Pro Project Authors (https://github.com/ThomasJockin/readexpro) |
 | Recursive | OFL | Arrow Type, Stephen Nixon | Copyright 2019 The Recursive Project Authors (github.com/arrowtype/recursive) |
 | Red Hat Display | OFL | MCKL | Copyright 2024 The Red Hat Project Authors (https://github.com/RedHatOfficial/RedHatFont) |
 | Red Hat Mono | OFL | MCKL | Copyright 2024 The Red Hat Project Authors (https://github.com/RedHatOfficial/RedHatFont) |
@@ -1565,7 +1199,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Redressed | APACHE2 | Astigmatic | Copyright (c) 2011 by Brian J. Bonislawsky DBA Astigmatic (AOETI). All rights reserved. Available under the Apache 2.0 licence. http://www.apache.org/licenses/LICENSE-2.0.html |
 | Reem Kufi | OFL | Khaled Hosny, Santiago Orozco | Copyright 2015-2022 The Reem Kufi Project Authors (https://github.com/aliftype/reem-kufi). |
 | Reem Kufi Fun | OFL | Khaled Hosny, Santiago Orozco | Copyright 2015-2022 The Reem Kufi Fun Project Authors (https://github.com/aliftype/reem-kufi). |
-| Reem Kufi Ink | OFL | Khaled Hosny, Santiago Orozco | Copyright 2015-2022 The Reem Kufi Project Authors (https://github.com/aliftype/reem-kufi). |
 | Reenie Beanie | OFL | James Grieshaber | Copyright (c) 2010 Typeco (james@typeco.com). All rights reserved. |
 | Reggae One | OFL | Fontworks Inc. | Copyright 2020 The Reggae Project Authors (https://github.com/fontworks-fonts/Reggae/), all rights reserved. |
 | REM | OFL | Octavio Pardo | Copyright 2019 The REM Project Authors (https://github.com/octaviopardo/REM) |
@@ -1634,7 +1267,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Ruwudu | OFL | SIL International | Copyright (c) SIL International, 2015-2023 |
 | Rye | OFL | Nicole Fally | Copyright (c) 2012, Sorkin Type Co (eben@eyebytes.com) with Reserved Font Name \'Rye\' |
 | Sacramento | OFL | Astigmatic | Copyright (c) 2012 by Brian J. Bonislawsky DBA Astigmatic (AOETI) (astigma@astigmatic.com), with Reserved Font Name \'Sacramento\' |
-| Sahitya | OFL | Juan Pablo del Peral | Copyright (c) 2015 by Juan Pablo del Peral (http://www.huertatipografica.com). All rights reserved. |
 | Sail | OFL | Miguel Hernandez | Copyright (c) 2011 by LatinoType Limitada (luciano@latinotype.com), with Reserved Font Names "Sail" |
 | Saira | OFL | Omnibus-Type | Copyright 2020 The Saira Project Authors (https://github.com/Omnibus-Type/Saira) |
 | Saira Condensed | OFL | Omnibus-Type | Copyright 2016 The Saira Project Authors (omnibus.type@gmail.com), with reserved font name "Saira". |
@@ -1688,16 +1320,13 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Shippori Antique | OFL | FONTDASU | Copyright 2020 The Shippori Antique Project Authors (https://github.com/fontdasu/ShipporiAntique) |
 | Shippori Antique B1 | OFL | FONTDASU | Copyright 2020 The Shippori Antique Project Authors (https://github.com/fontdasu/ShipporiAntique) |
 | Shippori Mincho | OFL | FONTDASU | Copyright 2021 The Shippori Mincho Project Authors (https://github.com/fontdasu/ShipporiMincho) |
-| Shippori Mincho B1 | OFL | FONTDASU | Copyright 2021 The Shippori Mincho Project Authors (https://github.com/fontdasu/ShipporiMincho) |
 | Shizuru | OFL | Shibuya Font | Copyright 2020 The Shizuru Project Authors (https://github.com/shibuyafont/shizuru-font), all rights reserved. |
 | Shojumaru | OFL | Astigmatic | Copyright (c) 2012 by Brian J. Bonislawsky DBA Astigmatic (AOETI) (astigma@astigmatic.com), with Reserved Font Name "Shojumaru" |
 | Short Stack | OFL | James Grieshaber | Copyright (c) 2011, Sorkin Type Co (www.sorkintype.com eben@eyebytes.com) with Reserved Font Names "Short Stack" and "Short Stack One". |
 | Shrikhand | OFL | Jonny Pinhorn | Copyright (c) 2015 Jonny Pinhorn (jonpinhorn.typedesign@gmail.com) |
-| Siemreap | OFL | Danh Hong | Copyright (c) 2010, Danh Hong (khmertype.blogspot.com danhhong@gmail.com), with Reserved Font Name Khmer OS Siemreap. This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL |
 | Sigmar | OFL | Vernon Adams | Copyright 2011 The Sigmar One Project Authors (https://github.com/googlefonts/sigmarone) |
 | Sigmar One | OFL | Vernon Adams | Copyright 2011 The Sigmar One Project Authors (contact@sansoxygen.com) |
 | Signika | OFL | Anna Giedryś | Copyright 2018 The Signika Project Authors (https://github.com/googlefonts/Signika). |
-| Signika Negative | OFL | Anna Giedryś | Copyright 2018 The Signika Project Authors (https://github.com/googlefonts/Signika). |
 | Silkscreen | OFL | Jason Kottke | Copyright 2001 The Silkscreen Project Authors (https://github.com/googlefonts/silkscreen) |
 | Simonetta | OFL | Brownfox | Copyright (c) 2011-2012, Brownfox (www.brownfox.org gayaneh.b@gmail.com), with Reserved Font Name "Simonetta" |
 | Single Day | OFL | DXKorea Inc | Copyright 2015 DXKorea Inc. All rights reserved. |
@@ -1757,9 +1386,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Sree Krushnadevaraya | OFL | Purushoth Kumar Guttula | Copyright (c) 2012 Andhrapradesh Society for Knowledge Networks (fonts.siliconandhra.org). Copyright (c) 2011-2012, Sorkin Type Co (www.sorkintype.com) with Reserved Font Name \'Cantata\' |
 | Sriracha | OFL | Cadson Demak | Copyright (c) 2015, Cadson Demak (info@cadsondemak.com), Copyright (c) 2014, Pablo Impallari (www.impallari.com\|impallari@gmail.com) |
 | Srisakdi | OFL | Cadson Demak | Copyright 2018 The Srisakdi Project Authors (https://github.com/cadsondemak/Srisakdi) |
-| Staatliches | OFL | Brian LaRossa, Erica Carras | Copyright 2018 The Staatliches Project Authors (https://github.com/googlefonts/staatliches) |
-| Stack Sans Headline | OFL | Koto | Copyright 2025 The Stack Sans Project Authors (https://github.com/DylanYoungKoto/Stack-Sans) |
-| Stack Sans Notch | OFL | Koto | Copyright 2025 The Stack Sans Project Authors (https://github.com/DylanYoungKoto/Stack-Sans) |
 | Stack Sans Text | OFL | Koto | Copyright 2025 The Stack Sans Project Authors (https://github.com/DylanYoungKoto/Stack-Sans) |
 | Stalemate | OFL | Astigmatic | Copyright (c) 2012 by Jim Lyles for Astigmatic (AOETI) (astigma@astigmatic.com), with Reserved Font Name \'Stalemate\' |
 | Stalinist One | OFL | Alexey Maslov, Jovanny Lemonad | Copyright (c) 2009-2011, Alexey Maslov, Jovanny Lemonad (lemonad@jovanny.ru), with Reserved Font Name \'Stalinist\' |
@@ -1768,7 +1394,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Stick No Bills | OFL | Mooniak | Copyright 2021 The Stick No Bills Project Authors (https://github.com/mooniak/stick-no-bills-font) |
 | Stint Ultra Condensed | OFL | Astigmatic | Copyright (c) 2011 by Brian J. Bonislawsky DBA Astigmatic (AOETI) (astigma@astigmatic.com), with Reserved Font Name "Stint Ultra Condensed" |
 | Stint Ultra Expanded | OFL | Astigmatic | Copyright (c) 2012 by Brian J. Bonislawsky DBA Astigmatic (AOETI) (astigma@astigmatic.com), with Reserved Font Name "Stint Ultra Expanded" |
-| STIX Two Math | OFL | Tiro Typeworks, Ross Mills, John Hudson, Paul Hanslow | Copyright 2001-2021 The STIX Fonts Project Authors (https://github.com/stipub/stixfonts) |
 | STIX Two Text | OFL | Tiro Typeworks, Ross Mills, John Hudson, Paul Hanslow | Copyright 2001-2021 The STIX Fonts Project Authors (https://github.com/stipub/stixfonts) |
 | Stoke | OFL | Nicole Fally | Copyright (c) 2012, Sorkin Type Co (www.sorkintype.com eben@eyebytes.com), with Reserved Font Name \'Stoke\' |
 | Story Script | OFL | Lana Roulhac, Ben Buysse | Copyright 2022 The Story Script Project Authors (https://github.com/lroulh/story-script) |
@@ -1788,7 +1413,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Suravaram | OFL | Purushoth Kumar Guttula | Copyright (c) 2012 Silicon Andhra (fonts.siliconandhra.org). Copyright (c) 2011 by vernon adams (vern@newtypography.co.uk) with Reserved Font Name \'Tienne\' |
 | SUSE | OFL | René Bieder | Copyright 2025 The SUSE Project Authors (https://github.com/SUSE/suse-font) |
 | SUSE Mono | OFL | René Bieder | Copyright 2025 The SUSE Project Authors (https://github.com/SUSE/suse-font) |
-| Suwannaphum | OFL | Danh Hong | Copyright 2019 The Suwannaphum Project Authors (https://github.com/danhhong/Suwannaphum) |
 | Swanky and Moo Moo | OFL | Kimberly Geswein | Copyright (c) 2010, Kimberly Geswein (kimberlygeswein.com kimberlygeswein@gmail.com) |
 | Syncopate | APACHE2 | Astigmatic | Copyright (c) 2010 by Brian J. Bonislawsky DBA Astigmatic (AOETI). All rights reserved. Available under the Apache 2.0 licence. http://www.apache.org/licenses/LICENSE-2.0.html |
 | Syne | OFL | Bonjour Monde, Lucas Descroix, George Triantafyllakos | Copyright 2019 The Syne Project Authors (https://gitlab.com/bonjour-monde/fonderie/syne-typeface) |
@@ -1825,22 +1449,12 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Timmana | OFL | Appaji Ambarisha Darbha | Copyright (c) 2012 Andhrapradesh Society for Knowledge Networks (fonts.siliconandhra.org). Copyright (c) 2011, Sergiy Tkachenko (www.4thfebruary.com.ua info@4thfebruary.com.ua), with Reserved Font Names \'Sansus\', \'Webissimo\'. |
 | Tinos | OFL | Steve Matteson | Copyright 2026 The Tinos Project Authors (https://github.com/googlefonts/tinos) |
 | Tiny5 | OFL | Stefan Schmidt | Copyright 2022-2024 The Tiny5 Project Authors (https://github.com/Gissio/font_tiny5) |
-| Tiro Bangla | OFL | Tiro Typeworks, John Hudson, Fiona Ross, Neelakash Kshetrimayum | Copyright 2020 The Indigo Project Authors (https://github.com/TiroTypeworks/Indigo) |
-| Tiro Devanagari Hindi | OFL | Tiro Typeworks, John Hudson, Fiona Ross, Paul Hanslow | Copyright 2020 The Indigo Project Authors (https://github.com/TiroTypeworks/Indigo) |
-| Tiro Devanagari Marathi | OFL | Tiro Typeworks, John Hudson, Fiona Ross, Paul Hanslow | Copyright 2020 The Indigo Project Authors (https://github.com/TiroTypeworks/Indigo) |
-| Tiro Devanagari Sanskrit | OFL | Tiro Typeworks, John Hudson, Fiona Ross, Paul Hanslow | Copyright 2020 The Indigo Project Authors (https://github.com/TiroTypeworks/Indigo) |
-| Tiro Gurmukhi | OFL | Tiro Typeworks, John Hudson, Fiona Ross, Paul Hanslow | Copyright 2020 The Indigo Project Authors (https://github.com/TiroTypeworks/Indigo) |
-| Tiro Kannada | OFL | Tiro Typeworks, John Hudson, Fiona Ross, Kaja Słojewska | Copyright 2020 The Indigo Project Authors (https://github.com/TiroTypeworks/Indigo) |
-| Tiro Tamil | OFL | Tiro Typeworks, Fernando Mello, Fiona Ross, Kaja Słojewska | Copyright 2020 The Indigo Project Authors (https://github.com/TiroTypeworks/Indigo) |
-| Tiro Telugu | OFL | Tiro Typeworks, John Hudson, Fiona Ross, Kaja Słojewska | Copyright 2020 The Indigo Project Authors (https://github.com/TiroTypeworks/Indigo) |
-| Tirra | OFL | SIL International | Copyright (c) 2010-2025, SIL Global (https://scripts.sil.org), with Reserved Font Name "Tirra", copyright 2010-2019 Adobe (http://www.adobe.com/), with Reserved Font Name "Source" (Latin glyphs). |
 | Titan One | OFL | Rodrigo Fuenzalida | Copyright (c) 2011 Rodrigo Fuenzalida (hello@rfuenzalida.com), with Reserved Font Name "Titan One" |
 | Titillium Web | OFL | Accademia di Belle Arti di Urbino | Copyright (c) 2009-2011 by Accademia di Belle Arti di Urbino and students of MA course of Visual design. Some rights reserved. |
 | Tomorrow | OFL | Tony de Marco, Monica Rizzolli | Copyright 2019 The Tomorrow Project Authors (https://github.com/MonicaRizzolli/Tomorrow) |
 | Tourney | OFL | Tyler Finck, ETC | Copyright 2020 The Tourney Project Authors (https://github.com/Etcetera-Type-Co/Tourney) |
 | Trade Winds | OFL | Sideshow | Copyright (c) 2011 by Font Diner, Inc DBA Sideshow (diner@fontdiner.com) with Reserved Font Name "Trade Winds" |
 | Train One | OFL | Fontworks Inc. | Copyright 2020 The Train Project Authors (https://github.com/fontworks-fonts/Train/) |
-| Triodion | OFL | Aleksandr Andreev | Copyright 2025 The Triodion Project Authors (https://github.com/slavonic/Triodion). |
 | Trirong | OFL | Cadson Demak | Copyright (c) 2015, Cadson Demak (info@cadsondemak.com) |
 | Trispace | OFL | Tyler Finck, ETC | Copyright 2020 The Trispace Project Authors (https://github.com/Etcetera-Type-Co/Trispace) |
 | Trocchi | OFL | Vernon Adams | Copyright 2012 The Trocchi Project Authors (https://github.com/m4rc1e/Trocchi) |
@@ -1875,9 +1489,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Vampiro One | OFL | Riccardo De Franceschi | Copyright (c) 2012, Sorkin Type Co (www.sorkintype.com eben@eyebytes.com) with Reserved Font Name \'Vampiro\'. |
 | Varela | OFL | Joe Prince | Copyright (c) 2011 by Admix Designs (joe@admixdesigns.com). All rights reserved. |
 | Varela Round | OFL | Joe Prince | Copyright 2023 The Varela Round Project Authors (https://github.com/alefalefalef/Varela-Round-Hebrew/), with Reserved Font Names Varela and Varela Round. |
-| Varta | OFL | Joana Correia, Viktoriya Grabowska, Eben Sorkin | Copyright 2019 The Varta Project Authors (https://github.com/SorkinType/Varta) |
 | Vast Shadow | OFL | Nicole Fally | Copyright (c) 2010 by Sorkin Type Co (eben@eyebytes.com) with Reserved Font Name Vast and Vast Shadow. This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is copied below, and is also available with a FAQ at: http://scripts.sil.org/OFL |
-| Vazirmatn | OFL | Saber Rastikerdar | Copyright 2015 The Vazirmatn Project Authors (https://github.com/rastikerdar/vazirmatn) |
 | Vend Sans | OFL | Bloom Type Foundry, Baptiste Guesnon | Copyright 2025 The Vend Sans Project Authors (https://github.com/ktkm/Vend-Sans) |
 | Vesper Libre | OFL | Mota Italic | Copyright (c) 2007, Robert Keller (www.motaitalic.com) |
 | Viaoda Libre | OFL | Gydient, ViệtAnh Nguyễn | Copyright 2020 The Viaodalibre Project Authors (https://github.com/bettergui/ViaodaLibre) |
@@ -1901,8 +1513,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Water Brush | OFL | Robert Leuschke | Copyright 2004-2021 The Water Brush Project Authors (https://github.com/googlefonts/water-brush) |
 | Waterfall | OFL | Robert Leuschke | Copyright 2011 The Waterfall Project Authors (https://github.com/googlefonts/waterfall) |
 | Wavefont | OFL | Dmitry Ivanov | Copyright 2022 The Wavefont Project Authors (https://github.com/dy/wavefont) |
-| WDXL Lubrifont JP N | OFL | NightFurySL2001 | Copyright 2025 The WDXL Lubrifont Project Authors (https://github.com/NightFurySL2001/WD-XL-font) |
-| WDXL Lubrifont SC | OFL | NightFurySL2001 | Copyright 2025 The WDXL Lubrifont Project Authors (https://github.com/NightFurySL2001/WD-XL-font) |
 | WDXL Lubrifont TC | OFL | NightFurySL2001 | Copyright 2025 The WDXL Lubrifont Project Authors (https://github.com/NightFurySL2001/WD-XL-font) |
 | Wellfleet | OFL | Riccardo De Franceschi | Copyright (c) 2011, Sorkin Type Co (www.sorkintype.com eben@eyebytes.com), with Reserved Font Name Wellfleet |
 | Wendy One | OFL | Alejandro Inler | Copyright (c) 2012, Alejandro Inler (alejandroinler@gmail.com), with Reserved Font Name \'Wendy\' |
@@ -1931,14 +1541,12 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Yesteryear | OFL | Astigmatic | Copyright (c) 2011 by Brian J. Bonislawsky DBA Astigmatic (AOETI) (astigma@astigmatic.com), with Reserved Font Name "Yesteryear" |
 | Yomogi | OFL | Satsuyako | Copyright 2020 The Yomogi Project Authors (https://github.com/satsuyako/YomogiFont), all rights reserved. |
 | Young Serif | OFL | Bastien Sozeau | Copyright 2023 The Young Serif Project Authors (https://github.com/noirblancrouge/YoungSerif) |
-| Yrsa | OFL | Rosetta, Anna Giedryś, David Březina | Copyright 2015 The Yrsa-Rasa Project Authors (https://github.com/rosettatype/yrsa-rasa/) |
 | Ysabeau | OFL | Christian Thalmann | Copyright 2023 The Ysabeau Project Authors (https://github.com/CatharsisFonts/Ysabeau) |
 | Ysabeau Infant | OFL | Christian Thalmann | Copyright 2023 The Ysabeau Project Authors (https://github.com/CatharsisFonts/Ysabeau) |
 | Ysabeau Office | OFL | Christian Thalmann | Copyright 2023 The Ysabeau Project Authors (https://github.com/CatharsisFonts/Ysabeau) |
 | Ysabeau SC | OFL | Christian Thalmann | Copyright 2023 The Ysabeau Project Authors (https://github.com/CatharsisFonts/Ysabeau) |
 | Yuji Boku | OFL | Kinuta Font Factory | Copyright 2021 The Yuji Project Authors (https://github.com/Kinutafontfactory/Yuji) |
 | Yuji Hentaigana Akari | OFL | Kinuta Font Factory | Copyright 2021 The Yuji Project Authors (https://github.com/Kinutafontfactory/Yuji) |
-| Yuji Hentaigana Akebono | OFL | Kinuta Font Factory | Copyright 2021 The Yuji Project Authors (https://github.com/Kinutafontfactory/Yuji) |
 | Yuji Mai | OFL | Kinuta Font Factory | Copyright 2021 The Yuji Project Authors (https://github.com/Kinutafontfactory/Yuji) |
 | Yuji Syuku | OFL | Kinuta Font Factory | Copyright 2021 The Yuji Project Authors (https://github.com/Kinutafontfactory/Yuji) |
 | Yusei Magic | OFL | Tanukizamurai | Copyright 2020 The Yusei Magic Project Authors (https://github.com/tanukifont/YuseiMagic) |
@@ -1950,9 +1558,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Zalando Sans SemiExpanded | OFL | Jakob Ekelund, KH Type, Zalando | Copyright 2025 The Zalando Sans SemiExpanded Project Authors (https://github.com/zalando/sans) |
 | ZCOOL KuaiLe | OFL | Liu Bingke, Yang Kang, Wu Shaojie | Copyright 2018 The ZCOOL KuaiLe Project Authors (https://github.com/googlefonts/zcool-kuaile) |
 | ZCOOL QingKe HuangYou | OFL | Zheng Qingke | Copyright 2018 The ZCOOL QingKe HuangYou Project Authors (https://www.github.com/googlefonts/zcool-qingke-huangyou) |
-| ZCOOL XiaoWei | OFL | Li Dawei | Copyright 2018 The ZCOOL XiaoWei Project Authors (https://www.github.com/googlefonts/xiaowei) |
 | Zen Antique | OFL | Yoshimichi Ohira | Copyright 2021 The Zen Antique Project Authors (https://github.com/googlefonts/zen-antique) |
-| Zen Antique Soft | OFL | Yoshimichi Ohira | Copyright 2021 The Zen Antique Project Authors (https://github.com/googlefonts/zen-antique) |
 | Zen Dots | OFL | Yoshimichi Ohira | Copyright 2021 The Dots Project Authors (https://github.com/googlefonts/zen-dots) |
 | Zen Kaku Gothic Antique | OFL | Yoshimichi Ohira | Copyright 2022 The Zen Project Authors (https://github.com/googlefonts/zen-kakugothic) |
 | Zen Kaku Gothic New | OFL | Yoshimichi Ohira | Copyright 2022 The Zen Project Authors (https://github.com/googlefonts/zen-kakugothic) |
@@ -1962,7 +1568,6 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Zen Old Mincho | OFL | Yoshimichi Ohira | Copyright 2021 The Zen Old Mincho Project Authors (https://github.com/googlefonts/zen-oldmincho) |
 | Zen Tokyo Zoo | OFL | Yoshimichi Ohira | Copyright 2021 The Zen Tokyo Zoo Project Authors (https://github.com/googlefonts/zen-tokyo-zoo) |
 | Zeyada | OFL | Kimberly Geswein | Copyright (c) 2010, Kimberly Geswein (kimberlygeswein.com kimberlygeswein@gmail.com) |
-| Zhi Mang Xing | OFL | Wei Zhimang | Copyright 2018 The ZhiMangXing Project Authors (https://github.com/googlefonts/zhimangxing) |
 | Zilla Slab | OFL | Typotheque | Copyright 2017, The Mozilla Foundation |
 | Zilla Slab Highlight | OFL | Typotheque | Copyright 2017, The Mozilla Foundation |
 

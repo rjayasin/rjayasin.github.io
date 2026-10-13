@@ -1,14 +1,18 @@
 #!/usr/bin/env node
 // Fetches the live Google Fonts family list from fonts.google.com's metadata
 // endpoint and appends any families missing from ../fonts.js. Preserves the
-// file's existing codepoint sort order and formatting. Exits non-zero on
-// network/parse failures; exits 0 with no file changes when nothing is new.
+// file's existing codepoint sort order and formatting. Families listed in
+// culled-fonts.json (near-duplicates of a family we keep) are never re-added.
+// Exits non-zero on network/parse failures; exits 0 with no file changes when
+// nothing is new.
 
 const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..');
 const FONTS_JS = path.join(ROOT, 'fonts.js');
+// Maps each culled family to the kept family it's indistinguishable from.
+const CULLED_JSON = path.join(__dirname, 'culled-fonts.json');
 const METADATA_URL = 'https://fonts.google.com/metadata/fonts';
 const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
@@ -49,8 +53,9 @@ function renderFontsJs(names) {
 (async () => {
   const local = loadLocal();
   const localSet = new Set(local);
+  const culled = new Set(Object.keys(JSON.parse(fs.readFileSync(CULLED_JSON, 'utf8'))));
   const remote = await fetchRemote();
-  const newFonts = remote.filter((f) => !localSet.has(f));
+  const newFonts = remote.filter((f) => !localSet.has(f) && !culled.has(f));
 
   if (newFonts.length === 0) {
     console.log('ADDED=0');
