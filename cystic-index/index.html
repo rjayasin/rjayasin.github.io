@@ -1720,18 +1720,22 @@
         return { fill: toCanvas(fill), outline: toCanvas(line) };
       }
 
-      // The full-size image with the fill view and numbers drawn over it.
+      // The fill view as the viewer shows it (same crop and label size), at
+      // the original image's full resolution.
       function overlayImage(t) {
         const { width: W, height: H } = t.work;
+        const box = viewBox(t);
+        const kx = t.origW / W;
+        const ky = t.origH / H;
         const c = document.createElement('canvas');
-        c.width = t.origW;
-        c.height = t.origH;
+        c.width = Math.round(box.w * kx);
+        c.height = Math.round(box.h * ky);
         const g = c.getContext('2d');
-        g.drawImage(t.img || t.work, 0, 0, c.width, c.height);
-        g.scale(c.width / W, c.height / H);
+        g.setTransform(kx, 0, 0, ky, -box.x * kx, -box.y * ky);
+        g.drawImage(t.img || t.work, 0, 0, W, H);
         g.imageSmoothingEnabled = false;
         g.drawImage(overlaysFor(t).fill, 0, 0);
-        const size = Math.max(10, Math.round(Math.max(W, H) / 45));
+        const size = Math.max(10, Math.round(Math.max(box.w, box.h) / 45));
         g.font = `600 ${size}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
         g.textAlign = 'center';
         g.textBaseline = 'middle';
@@ -1796,11 +1800,11 @@
         return { x, y, w, h };
       }
 
-      function viewBox() {
-        const { width: W, height: H } = state.work;
+      function viewBox(t = state) {
+        const { width: W, height: H } = t.work;
         const all = { x: 0, y: 0, w: W, h: H };
-        if (!state.zoom || !state.result || !state.result.organoids.length) return all;
-        const { labels } = state.result;
+        if (!state.zoom || !t.result || !t.result.organoids.length) return all;
+        const { labels } = t.result;
         let x0 = W,
           y0 = H,
           x1 = 0,
