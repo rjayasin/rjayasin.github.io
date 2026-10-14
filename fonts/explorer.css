@@ -92,14 +92,6 @@ body {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-#sample-toggle svg {
-  /* Drawn on a 24 grid, so a slightly larger box and matching stroke keep
-     its line weight in step with the magnifier. */
-  width: 1.15em;
-  height: 1.15em;
-  vertical-align: -0.22em;
-  stroke-width: 2;
-}
 .expander input {
   font: inherit;
   letter-spacing: inherit;

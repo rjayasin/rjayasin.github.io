@@ -289,7 +289,7 @@
     }
   }
 
-  // Sample text: the pen hand expands into the text every card renders.
+  // Sample text: the I-beam expands into the text every card renders.
   const setSampleOpen = makeExpander(sampleEl, sampleToggleEl, inputEl, () => applyText(''));
   inputEl.addEventListener('input', () => applyText(inputEl.value));
 
