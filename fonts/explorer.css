@@ -249,6 +249,25 @@ body {
 #single-info::-webkit-scrollbar {
   display: none;
 }
+#single-size-buttons {
+  display: inline-flex;
+  gap: 4px;
+  white-space: nowrap;
+  user-select: none;
+}
+#single-size-buttons button {
+  font: inherit;
+  letter-spacing: inherit;
+  color: #888;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+#single-size-buttons button:hover {
+  color: #000;
+}
 #single-close {
   font: inherit;
   font-size: 20px;
@@ -291,7 +310,8 @@ body.dark #single {
 body.dark #single-top {
   border-bottom-color: #333;
 }
-body.dark #single-close:hover {
+body.dark #single-close:hover,
+body.dark #single-size-buttons button:hover {
   color: #fff;
 }
 body.dark #single-input,
@@ -320,7 +340,8 @@ body.dark .expander input {
   body:not(.light) #single-top {
     border-bottom-color: #333;
   }
-  body:not(.light) #single-close:hover {
+  body:not(.light) #single-close:hover,
+  body:not(.light) #single-size-buttons button:hover {
     color: #fff;
   }
   body:not(.light) #single-input,

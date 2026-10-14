@@ -310,7 +310,13 @@
     const cur = sample ? parseFloat(getComputedStyle(sample).fontSize) : 34;
     const next = Math.min(120, Math.max(10, cur + delta));
     listEl.style.setProperty('--sample-size', `${next}px`);
+    if (!singleEl.hidden) singleTilesEl.style.fontSize = `${next}px`;
   }
+
+  document.getElementById('single-size-buttons').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-size]');
+    if (btn) bumpSampleSize(Number(btn.dataset.size));
+  });
 
   document.addEventListener('keydown', (e) => {
     const t = e.target;
