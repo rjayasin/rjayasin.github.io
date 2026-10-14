@@ -10,7 +10,7 @@
   const inputEl = document.getElementById('sample-input');
   const countEl = document.getElementById('count');
   const catButtonsEl = document.getElementById('cat-buttons');
-  const sortButtonsEl = document.getElementById('sort-buttons');
+  const sortSelectEl = document.getElementById('sort-select');
   const sizeButtonsEl = document.getElementById('size-buttons');
   const minimalToggleEl = document.getElementById('minimal-toggle');
 
@@ -181,17 +181,19 @@
     reset();
   });
 
-  sortButtonsEl.addEventListener('click', (e) => {
-    const btn = e.target.closest('button');
-    if (!btn) return;
-    // Re-clicking "random" deals a fresh shuffle; the others are no-ops.
-    if (state.sort === btn.dataset.sort && btn.dataset.sort !== 'random') return;
-    state.sort = btn.dataset.sort;
-    sortButtonsEl
-      .querySelectorAll('button')
-      .forEach((b) => b.classList.toggle('active', b === btn));
+  // A select is as wide as its longest option; fit it to the chosen one so
+  // the caret hugs the label. (The bar is monospace, so ch counts exactly.)
+  function fitSortSelect() {
+    const n = sortSelectEl.selectedOptions[0].textContent.length;
+    sortSelectEl.style.width = `calc(${n} * (1ch + 0.05em) + 1.1em)`;
+  }
+
+  sortSelectEl.addEventListener('change', () => {
+    state.sort = sortSelectEl.value;
+    fitSortSelect();
     reset();
   });
+  fitSortSelect();
 
   // An icon button that expands into an inline field. Closing clears the
   // field (and runs onClear); blurring an empty field closes it.

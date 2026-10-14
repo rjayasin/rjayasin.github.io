@@ -76,6 +76,33 @@ body {
 #filters .dot {
   user-select: none;
 }
+/* Sort: a native dropdown (so the menu isn't clipped by the scrolling bar)
+   dressed as plain bar text, with a caret drawn beside it. */
+#sort {
+  position: relative;
+  align-items: baseline;
+}
+#sort-select {
+  font: inherit;
+  letter-spacing: inherit;
+  color: #000;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  outline: none;
+  padding: 0 1.1em 0 0;
+  margin: 0;
+  appearance: none;
+  cursor: pointer;
+}
+#sort-select:focus-visible {
+  outline: 1px dotted currentColor;
+}
+#sort .caret {
+  position: absolute;
+  right: 0;
+  pointer-events: none;
+}
 /* Sample text and search: an icon that expands into an inline field. The
    field sits at zero width (and out of the tab order) until opened. */
 #filters .expander {
@@ -264,6 +291,7 @@ body.dark #single-close:hover {
   color: #fff;
 }
 body.dark #single-input,
+body.dark #sort-select,
 body.dark .expander input {
   color: #fff;
 }
@@ -292,6 +320,7 @@ body.dark .expander input {
     color: #fff;
   }
   body:not(.light) #single-input,
+  body:not(.light) #sort-select,
   body:not(.light) .expander input {
     color: #fff;
   }
