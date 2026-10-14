@@ -152,6 +152,10 @@ body {
 #sample.open input {
   width: calc(min(max(var(--chars, 0), 14), 48) * (1ch + 0.05em) + 1ch);
 }
+/* Unfocused, it hugs the text exactly: no minimum, no room for the caret. */
+#sample.open input:not(:focus) {
+  width: calc(min(var(--chars, 0), 48) * (1ch + 0.05em));
+}
 .expander input::placeholder {
   color: #888;
 }
