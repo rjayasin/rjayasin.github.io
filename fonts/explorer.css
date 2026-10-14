@@ -9,65 +9,54 @@ body {
   position: sticky;
   top: 0;
   z-index: 10;
-  padding: 24px 32px 12px;
+  padding: 20px 32px 12px;
   background: rgba(255, 255, 255, 0.95);
   border-bottom: 1px solid #ddd;
   transition:
     background-color 0.2s ease,
     border-color 0.2s ease;
 }
-#bar {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 12px;
-}
-#sample-input,
 #single-input {
   font: inherit;
-  color: inherit;
+  color: #000;
   background: transparent;
   border: none;
   outline: none;
   border-bottom: 1px dotted currentColor;
   padding: 2px 0;
   flex: 1;
-  max-width: 480px;
 }
-#filters-toggle {
-  font: inherit;
-  font-size: 20px;
-  line-height: 1;
-  color: #888;
-  background: transparent;
-  border: none;
-  /* Generous tap target; negative margins cancel it out of the layout so the
-     bar stays input-height and the glyph hugs the content's right edge. */
-  padding: 8px 10px;
-  margin: -8px -10px;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-#filters-toggle:hover,
-#filters-toggle.active {
-  color: #000;
-}
-#sample-input::placeholder,
 #single-input::placeholder {
   color: #888;
 }
+/* One line at every width: it scrolls sideways when it overflows, bleeding
+   to the viewport edges so entries aren't clipped mid-padding. */
 #filters {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: baseline;
   gap: 4px 8px;
   color: #888;
   letter-spacing: 0.05em;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 -32px;
+  padding: 0 32px;
+}
+#filters::-webkit-scrollbar {
+  display: none;
 }
 #filters .group {
   display: inline-flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
+}
+#filters button,
+#filters .sep,
+#filters .dot,
+#count {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 #filters button {
   font: inherit;
@@ -87,13 +76,13 @@ body {
 #filters .dot {
   user-select: none;
 }
-/* Search: a magnifier that expands into a name filter. The field sits at
-   zero width (and out of the tab order) until opened. */
-#search {
+/* Sample text and search: an icon that expands into an inline field. The
+   field sits at zero width (and out of the tab order) until opened. */
+#filters .expander {
   align-items: baseline;
   gap: 0;
 }
-#search-toggle svg {
+.expander button svg {
   width: 1em;
   height: 1em;
   vertical-align: -0.15em;
@@ -101,8 +90,17 @@ body {
   stroke: currentColor;
   stroke-width: 1.6;
   stroke-linecap: round;
+  stroke-linejoin: round;
 }
-#search-input {
+#sample-toggle svg {
+  /* Drawn on a 24 grid, so a slightly larger box and matching stroke keep
+     its line weight in step with the magnifier. */
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.22em;
+  stroke-width: 2;
+}
+.expander input {
   font: inherit;
   letter-spacing: inherit;
   color: #000;
@@ -121,7 +119,7 @@ body {
     margin 0.2s ease,
     visibility 0s 0.2s;
 }
-#search.open #search-input {
+.expander.open input {
   width: 14ch;
   margin-left: 6px;
   visibility: visible;
@@ -131,19 +129,12 @@ body {
     margin 0.2s ease,
     visibility 0s;
 }
-#search-input::placeholder {
+/* Grows with the text (--chars is set as you type), within reason. */
+#sample.open input {
+  width: calc(min(max(var(--chars, 0), 14), 48) * (1ch + 0.05em) + 1ch);
+}
+.expander input::placeholder {
   color: #888;
-}
-/* Collapsed filters vanish entirely; the toggle lives on the input line so
-   the header shrinks to a single row, with the trailing space tightened up. */
-#filters.collapsed {
-  display: none;
-}
-#controls.collapsed {
-  padding-bottom: 6px;
-}
-#controls.collapsed #bar {
-  margin-bottom: 0;
 }
 #list {
   padding: 8px 32px 16px;
@@ -232,13 +223,6 @@ body {
   overflow-x: auto;
   scrollbar-width: none;
 }
-#single-input {
-  /* Shares #sample-input's look; uncap the width so it fills the bar and the
-     close button stays pinned right. The bar's #888 is placeholder-only —
-     typed text gets the body color back. */
-  max-width: none;
-  color: #000;
-}
 #single-info::-webkit-scrollbar {
   display: none;
 }
@@ -269,9 +253,7 @@ body.dark #controls {
   border-bottom-color: #333;
 }
 body.dark #filters button:hover,
-body.dark #filters button.active,
-body.dark #filters-toggle:hover,
-body.dark #filters-toggle.active {
+body.dark #filters button.active {
   color: #fff;
 }
 body.dark .card {
@@ -290,7 +272,7 @@ body.dark #single-close:hover {
   color: #fff;
 }
 body.dark #single-input,
-body.dark #search-input {
+body.dark .expander input {
   color: #fff;
 }
 @media (prefers-color-scheme: dark) {
@@ -299,9 +281,7 @@ body.dark #search-input {
     border-bottom-color: #333;
   }
   body:not(.light) #filters button:hover,
-  body:not(.light) #filters button.active,
-  body:not(.light) #filters-toggle:hover,
-  body:not(.light) #filters-toggle.active {
+  body:not(.light) #filters button.active {
     color: #fff;
   }
   body:not(.light) .card {
@@ -320,35 +300,17 @@ body.dark #search-input {
     color: #fff;
   }
   body:not(.light) #single-input,
-  body:not(.light) #search-input {
+  body:not(.light) .expander input {
     color: #fff;
   }
 }
 @media (max-width: 640px) {
   #controls {
-    padding: 20px 20px 10px;
+    padding: 16px 20px 10px;
   }
-  /* One horizontally scrollable line, bleeding to the viewport edges so
-     entries aren't clipped mid-padding while scrolling. */
   #filters {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
     margin: 0 -20px;
     padding: 0 20px;
-  }
-  #filters::-webkit-scrollbar {
-    display: none;
-  }
-  #filters .group {
-    flex-wrap: nowrap;
-  }
-  #filters button,
-  #filters .sep,
-  #filters .dot,
-  #count {
-    white-space: nowrap;
-    flex-shrink: 0;
   }
   #list {
     padding: 4px 20px 12px;

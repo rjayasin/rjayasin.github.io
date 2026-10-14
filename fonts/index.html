@@ -18,12 +18,41 @@
   </head>
   <body>
     <header id="controls">
-      <div id="bar">
-        <input id="sample-input" type="text" autocomplete="off" spellcheck="false" placeholder="type anything…" />
-        <button type="button" id="filters-toggle" class="active" title="hide filters">▴</button>
-      </div>
       <nav id="filters">
-        <span class="group" id="search">
+        <span class="group expander" id="sample">
+          <button
+            type="button"
+            id="sample-toggle"
+            title="sample text"
+            aria-label="sample text"
+            aria-expanded="false"
+            aria-controls="sample-input"
+          >
+            <!-- An outline take on ✍️: the mask hides the pen behind the fist. -->
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <defs>
+                <mask id="sample-hand-mask">
+                  <rect width="24" height="24" fill="#fff" />
+                  <path fill="#000" stroke="#000" stroke-width="2.6" d="M23 8.5C19.5 6.8 16 6.8 13.2 8.4L10.6 10.4C9.4 11.4 9.4 13 10.3 14C10.9 16 12.6 17.2 14.6 17.2L18.5 17C20 16.8 21.5 16.2 23 15.6Z" />
+                </mask>
+              </defs>
+              <path mask="url(#sample-hand-mask)" d="M17.6 1.4l3 3L8.4 16.6l-4.3 1.3 1.3-4.3z" />
+              <path d="M23 8.5C19.5 6.8 16 6.8 13.2 8.4L10.6 10.4C9.4 11.4 9.4 13 10.3 14C10.9 16 12.6 17.2 14.6 17.2L18.5 17C20 16.8 21.5 16.2 23 15.6" />
+              <path d="M10.3 14l3.2-.6M12 16.4l3-.4M13.2 8.4c.9 1.4 2.5 2 4.2 1.6M1.5 22h9" />
+            </svg>
+          </button>
+          <input
+            id="sample-input"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="type anything…"
+            aria-label="sample text"
+            tabindex="-1"
+          />
+        </span>
+        <span class="sep">|</span>
+        <span class="group expander" id="search">
           <button
             type="button"
             id="search-toggle"

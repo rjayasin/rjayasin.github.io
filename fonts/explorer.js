@@ -11,12 +11,11 @@
   const countEl = document.getElementById('count');
   const catButtonsEl = document.getElementById('cat-buttons');
   const sortButtonsEl = document.getElementById('sort-buttons');
-  const controlsEl = document.getElementById('controls');
-  const filtersEl = document.getElementById('filters');
-  const filtersToggleEl = document.getElementById('filters-toggle');
   const sizeButtonsEl = document.getElementById('size-buttons');
   const minimalToggleEl = document.getElementById('minimal-toggle');
 
+  const sampleEl = document.getElementById('sample');
+  const sampleToggleEl = document.getElementById('sample-toggle');
   const searchEl = document.getElementById('search');
   const searchToggleEl = document.getElementById('search-toggle');
   const searchInputEl = document.getElementById('search-input');
@@ -194,43 +193,40 @@
     reset();
   });
 
-  filtersToggleEl.addEventListener('click', () => {
-    const collapsed = filtersEl.classList.toggle('collapsed');
-    controlsEl.classList.toggle('collapsed', collapsed);
-    filtersToggleEl.classList.toggle('active', !collapsed);
-    filtersToggleEl.textContent = collapsed ? '▾' : '▴';
-    filtersToggleEl.title = collapsed ? 'show filters' : 'hide filters';
-  });
+  // An icon button that expands into an inline field. Closing clears the
+  // field (and runs onClear); blurring an empty field closes it.
+  function makeExpander(el, toggleEl, fieldEl, onClear) {
+    function setOpen(open, { focus = true } = {}) {
+      el.classList.toggle('open', open);
+      toggleEl.classList.toggle('active', open);
+      toggleEl.setAttribute('aria-expanded', String(open));
+      fieldEl.tabIndex = open ? 0 : -1;
+      if (open) {
+        if (focus) fieldEl.focus();
+      } else if (fieldEl.value) {
+        fieldEl.value = '';
+        onClear();
+      }
+    }
+    // Keep focus in the field when the toggle is pressed, so the blur handler
+    // below doesn't close it a moment before the click toggles it.
+    toggleEl.addEventListener('mousedown', (e) => e.preventDefault());
+    toggleEl.addEventListener('click', () => setOpen(!el.classList.contains('open')));
+    fieldEl.addEventListener('blur', () => {
+      if (!fieldEl.value.trim()) setOpen(false);
+    });
+    return setOpen;
+  }
 
   // Search: the magnifier expands into a name filter that applies as you type.
-  function setSearchOpen(open) {
-    searchEl.classList.toggle('open', open);
-    searchToggleEl.classList.toggle('active', open);
-    searchToggleEl.setAttribute('aria-expanded', String(open));
-    searchInputEl.tabIndex = open ? 0 : -1;
-    if (open) {
-      searchInputEl.focus();
-    } else if (searchInputEl.value) {
-      searchInputEl.value = '';
-      applyQuery();
-    }
-  }
+  makeExpander(searchEl, searchToggleEl, searchInputEl, () => applyQuery());
 
   function applyQuery() {
     state.query = searchInputEl.value.toLowerCase().split(/\s+/).filter(Boolean);
     reset({ reorder: false });
   }
 
-  // Keep focus in the field when the toggle is pressed, so the blur handler
-  // below doesn't close it a moment before the click toggles it.
-  searchToggleEl.addEventListener('mousedown', (e) => e.preventDefault());
-  searchToggleEl.addEventListener('click', () =>
-    setSearchOpen(!searchEl.classList.contains('open'))
-  );
   searchInputEl.addEventListener('input', applyQuery);
-  searchInputEl.addEventListener('blur', () => {
-    if (!searchInputEl.value.trim()) setSearchOpen(false);
-  });
 
   sizeButtonsEl.addEventListener('click', (e) => {
     const btn = e.target.closest('button');
@@ -276,6 +272,9 @@
   function closeSingle() {
     singleEl.hidden = true;
     document.body.style.overflow = '';
+    // Text typed in the single view shows in the list's field too, so keep
+    // the field open exactly when it holds something.
+    setSampleOpen(Boolean(inputEl.value.trim()), { focus: false });
   }
 
   singleCloseEl.addEventListener('click', closeSingle);
@@ -283,12 +282,15 @@
   // Retype existing cards in place so edits don't reset scroll or refetch.
   function applyText(raw) {
     state.text = raw.trim();
+    inputEl.style.setProperty('--chars', String(inputEl.value.length));
     const samples = listEl.querySelectorAll('.card .sample');
     for (let i = 0; i < samples.length; i++) {
       samples[i].textContent = sampleFor(filtered[i]);
     }
   }
 
+  // Sample text: the pen hand expands into the text every card renders.
+  const setSampleOpen = makeExpander(sampleEl, sampleToggleEl, inputEl, () => applyText(''));
   inputEl.addEventListener('input', () => applyText(inputEl.value));
 
   // The single view's input mirrors the main one, so the sample text stays
@@ -323,7 +325,8 @@
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === '/') {
       e.preventDefault();
-      (singleEl.hidden ? inputEl : singleInputEl).focus();
+      if (singleEl.hidden) setSampleOpen(true);
+      else singleInputEl.focus();
     } else if (e.key === '+' || e.key === '=') {
       bumpSampleSize(4);
     } else if (e.key === '-' || e.key === '_') {
