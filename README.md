@@ -41,6 +41,7 @@
 - [`etymology-game`](https://rjayasin.github.io/etymology/game/)
 - [`pinball`](https://rjayasin.github.io/pinball/)
 - [`war`](https://rjayasin.github.io/war/)
+- [`reverse-jeopardy`](https://rjayasin.github.io/reverse-jeopardy/)
 
 `experiments`
 

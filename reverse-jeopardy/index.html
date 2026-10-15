@@ -1,0 +1,1180 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ruvan / reverse-jeopardy</title>
+    <link rel="icon" id="favicon" />
+    <link rel="stylesheet" href="/common.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Anton&family=Libre+Baskerville:wght@700&display=swap"
+    />
+    <style>
+      :root {
+        --blue: #060ce9;
+        --blue-deep: #030784;
+        --gold: #ffcc00;
+        --muted: rgba(0, 0, 0, 0.5);
+        --line: rgba(0, 0, 0, 0.15);
+        --ok: #1a7f37;
+        --bad: #cf222e;
+        --close: #9a6700;
+      }
+      body.dark {
+        --muted: rgba(255, 255, 255, 0.55);
+        --line: rgba(255, 255, 255, 0.2);
+        --ok: #3fb950;
+        --bad: #f85149;
+        --close: #d29922;
+      }
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) {
+          --muted: rgba(255, 255, 255, 0.55);
+          --line: rgba(255, 255, 255, 0.2);
+          --ok: #3fb950;
+          --bad: #f85149;
+          --close: #d29922;
+        }
+      }
+      body {
+        min-height: 100dvh;
+        padding: 16px;
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        font-size: 13px;
+      }
+      #layout {
+        display: flex;
+        gap: 24px;
+        align-items: flex-start;
+      }
+      #side {
+        flex: 0 0 260px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        position: sticky;
+        top: 16px;
+      }
+      #main {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        justify-content: center;
+      }
+      #scorebar {
+        display: flex;
+        gap: 20px;
+        color: var(--muted);
+      }
+      #scorebar b {
+        font-weight: normal;
+        color: #000;
+      }
+      body.dark #scorebar b {
+        color: #fff;
+      }
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) #scorebar b {
+          color: #fff;
+        }
+      }
+      #board {
+        /* Six 16:10 rows plus gaps: about 0.63 of the width, so cap the width
+           to keep the whole board on screen. */
+        width: min(100%, calc((100dvh - 48px) * 1.55));
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: clamp(3px, 0.6vw, 6px);
+        padding: clamp(3px, 0.6vw, 6px);
+        background: #000;
+        user-select: none;
+      }
+      .cell {
+        background: var(--blue);
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        min-width: 0;
+        aspect-ratio: 16 / 10;
+        padding: 4px;
+        box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.35);
+        overflow: hidden;
+      }
+      .head {
+        cursor: pointer;
+        margin-bottom: clamp(3px, 0.6vw, 6px);
+        font-family: 'Anton', Impact, sans-serif;
+        font-size: clamp(10px, 1.7vw, 19px);
+        letter-spacing: 0.03em;
+        line-height: 1.15;
+        text-transform: uppercase;
+        text-shadow: 2px 2px 0 #000;
+        overflow-wrap: anywhere;
+        outline: 3px solid transparent;
+        outline-offset: -3px;
+        transition: outline-color 0.15s ease;
+      }
+      .head.hidden-title {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-content: center;
+        gap: 0.4em 0.8em;
+        color: var(--gold);
+        font-size: clamp(10px, 1.6vw, 19px);
+        letter-spacing: 0;
+      }
+      .head.hidden-title .word {
+        display: inline-flex;
+        align-items: flex-end;
+        gap: 0.12em;
+        white-space: nowrap;
+      }
+      /* Fixed-width slots so Anton's uneven letter widths don't shift the
+         blanks around while typing. */
+      .head.hidden-title .slot {
+        display: inline-block;
+        width: 0.62em;
+        height: 1.2em;
+        line-height: 1.2em;
+        text-align: center;
+        border-bottom: 2px solid var(--gold);
+      }
+      .head.hidden-title .slot.fill {
+        color: #fff;
+      }
+      .head.hidden-title .over {
+        color: #ff8a80;
+      }
+      .head.sel {
+        outline-color: var(--gold);
+      }
+      .head .mark {
+        font-family: ui-monospace, monospace;
+        font-size: clamp(9px, 1.1vw, 12px);
+        letter-spacing: 0;
+        text-shadow: none;
+        margin-top: 3px;
+      }
+      .head.won .mark {
+        color: var(--gold);
+      }
+      .head.lost {
+        color: rgba(255, 255, 255, 0.7);
+      }
+      .head.reveal {
+        animation: pop 0.4s ease;
+      }
+      @keyframes pop {
+        from {
+          transform: scale(0.85);
+          opacity: 0;
+        }
+      }
+      .clue {
+        cursor: pointer;
+        font-family: 'Anton', Impact, sans-serif;
+        font-size: clamp(16px, 3.6vw, 40px);
+        color: var(--gold);
+        text-shadow: 2px 2px 0 #000;
+        transition: filter 0.15s ease;
+      }
+      .clue:hover {
+        filter: brightness(1.25);
+      }
+      .clue.seen {
+        gap: 0.4em;
+        padding: 4px;
+        font-family: 'Libre Baskerville', Georgia, serif;
+        font-weight: 700;
+        line-height: 1.25;
+        color: #fff;
+        text-transform: uppercase;
+        text-shadow: 1px 1px 0 #000;
+        overflow-wrap: anywhere;
+      }
+      .clue.seen .resp {
+        color: var(--gold);
+        text-transform: none;
+      }
+      .clue.seen.wrong .resp {
+        color: rgba(255, 255, 255, 0.55);
+      }
+      .clue.peek {
+        opacity: 0.6;
+      }
+      #overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        background: var(--blue);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4vh;
+        padding: 6vh 6vw 10vh;
+        text-align: center;
+        box-shadow: inset 0 0 120px var(--blue-deep);
+        color: #fff;
+      }
+      #overlay[hidden] {
+        display: none;
+      }
+      #overlay.zoom {
+        animation: zoom 0.25s ease-out;
+      }
+      @keyframes zoom {
+        from {
+          transform: scale(0.2);
+          opacity: 0.4;
+        }
+      }
+      #ov-meta {
+        font-family: 'Anton', Impact, sans-serif;
+        font-size: clamp(14px, 2vw, 22px);
+        color: var(--gold);
+        letter-spacing: 0.04em;
+        text-shadow: 2px 2px 0 #000;
+      }
+      #ov-text {
+        max-width: 1000px;
+        font-family: 'Libre Baskerville', Georgia, serif;
+        font-weight: 700;
+        font-size: clamp(20px, 4.2vw, 50px);
+        line-height: 1.35;
+        text-transform: uppercase;
+        text-shadow: 4px 4px 0 #000;
+      }
+      #ov-form {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        width: min(560px, 100%);
+        border-bottom: 2px solid rgba(255, 255, 255, 0.5);
+      }
+      #ov-form[hidden] {
+        display: none;
+      }
+      #ov-guess {
+        flex: 1;
+        min-width: 0;
+        font-family: 'Libre Baskerville', Georgia, serif;
+        font-weight: 700;
+        font-size: clamp(16px, 2.4vw, 26px);
+        padding: 8px 0;
+        background: transparent;
+        color: #fff;
+        border: none;
+        outline: none;
+      }
+      #ov-guess::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+      }
+      #ov-form button,
+      #ov-verdict button {
+        color: rgba(255, 255, 255, 0.8);
+      }
+      #ov-resp {
+        font-family: 'Libre Baskerville', Georgia, serif;
+        font-weight: 700;
+        font-size: clamp(18px, 2.8vw, 32px);
+        color: var(--gold);
+        text-shadow: 3px 3px 0 #000;
+      }
+      #ov-verdict {
+        font-size: 14px;
+        min-height: 18px;
+      }
+      #ov-hint {
+        position: absolute;
+        bottom: 18px;
+        left: 0;
+        right: 0;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.55);
+      }
+      #guess-form {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0 8px;
+        border-bottom: 1px solid var(--line);
+      }
+      #which {
+        flex-basis: 100%;
+        color: var(--muted);
+      }
+      #guess {
+        flex: 1;
+        min-width: 0;
+        font: inherit;
+        font-size: 18px;
+        padding: 8px 0;
+        background: transparent;
+        color: inherit;
+        border: none;
+        outline: none;
+      }
+      #guess::placeholder {
+        color: var(--muted);
+      }
+      button {
+        font: inherit;
+        color: inherit;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 0 4px;
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        text-underline-offset: 3px;
+      }
+      button:disabled {
+        color: var(--muted);
+        cursor: default;
+        text-decoration: none;
+      }
+      button[hidden] {
+        display: none;
+      }
+      #status {
+        min-height: 20px;
+        margin-top: 10px;
+        line-height: 1.5;
+      }
+      .ok {
+        color: var(--ok);
+      }
+      .bad {
+        color: var(--bad);
+      }
+      .close {
+        color: var(--close);
+      }
+      #overlay .ok {
+        color: #7ee787;
+      }
+      #overlay .bad {
+        color: #ffa198;
+      }
+      #guesses {
+        list-style: none;
+        margin-top: 6px;
+        color: var(--muted);
+      }
+      #guesses li::before {
+        content: '✗ ';
+      }
+      #guesses li.close::before {
+        content: '~ ';
+      }
+      #actions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        color: var(--muted);
+      }
+      #actions button {
+        padding: 0;
+      }
+      #matcher {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      #matcher:empty {
+        display: none;
+      }
+      #hint {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        font-size: 12px;
+        color: #888;
+        user-select: none;
+      }
+      #hint .hint-btn {
+        cursor: pointer;
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        text-underline-offset: 2px;
+      }
+      #hint .hint-btn:hover {
+        color: #333;
+      }
+      body.dark #hint .hint-btn:hover {
+        color: #ccc;
+      }
+      @media (max-width: 760px) {
+        #layout {
+          flex-direction: column-reverse;
+        }
+        #side {
+          flex-basis: auto;
+          width: 100%;
+          position: static;
+        }
+        #main {
+          width: 100%;
+        }
+      }
+      .cell.skel {
+        animation: twinkle 1.4s ease-in-out infinite;
+      }
+      @keyframes twinkle {
+        50% {
+          filter: brightness(1.45);
+        }
+      }
+      .cell.in {
+        animation: cell-in 0.35s ease-out backwards;
+      }
+      @keyframes cell-in {
+        from {
+          opacity: 0;
+          transform: scale(0.6);
+        }
+      }
+      .cell.out {
+        animation: cell-out 0.15s ease-in forwards;
+      }
+      @keyframes cell-out {
+        to {
+          opacity: 0;
+          transform: scale(0.6);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #overlay.zoom,
+        .head.reveal,
+        .cell.skel,
+        .cell.in,
+        .cell.out {
+          animation: none;
+        }
+      }
+    </style>
+    <script src="/common.js"></script>
+  </head>
+  <body class="dark">
+    <div id="layout">
+      <aside id="side">
+        <div id="scorebar">
+          <span>score <b id="score">$0</b></span>
+          <span>categories <b id="solved">0/6</b></span>
+        </div>
+        <div id="play">
+          <form id="guess-form" autocomplete="off">
+            <span id="which"></span>
+            <input type="text" id="guess" placeholder="what is the category?" spellcheck="false" />
+            <button id="guess-btn" type="submit">guess</button>
+          </form>
+          <div id="status"></div>
+          <ul id="guesses"></ul>
+        </div>
+        <div id="actions">
+          <button id="giveup" type="button">give up on this category</button>
+          <button id="claim" type="button" hidden>my last guess was right</button>
+          <button id="next" type="button">new board →</button>
+        </div>
+        <div id="matcher"></div>
+        <div id="hint">
+          <div><span class="hint-btn" id="hb-clue">c next clue</span></div>
+          <div><span class="hint-btn" id="hb-col">←/→ category</span></div>
+          <div><span class="hint-btn" id="hb-guess">/ guess</span></div>
+          <div><span class="hint-btn" id="hb-next">n new board</span></div>
+          <div>
+            <span class="hint-btn" id="hb-dark">1 <span class="hb-dark-label">light</span></span>
+          </div>
+          <div><span class="hint-btn" id="hb-sitemap">s sitemap</span></div>
+        </div>
+      </aside>
+      <main id="main"><div id="board"></div></main>
+    </div>
+    <div id="overlay" hidden>
+      <div id="ov-meta"></div>
+      <div id="ov-text"></div>
+      <form id="ov-form" autocomplete="off">
+        <input type="text" id="ov-guess" placeholder="what is…" spellcheck="false" />
+        <button type="submit">answer</button>
+        <button type="button" id="ov-pass">pass</button>
+      </form>
+      <div id="ov-resp"></div>
+      <div id="ov-verdict"></div>
+      <div id="ov-hint"></div>
+    </div>
+    <script>
+      Common.paintFavicon({ glyph: '❓', fontSize: 44, transparent: true });
+      Common.initDarkMode();
+      Common.initSitemapShortcut();
+      Common.initHintUpdated({ hintEl: document.getElementById('hint') });
+
+      const SHARDS = 100;
+      const STORE = 'reverse-jeopardy';
+      const MISS = 100;
+      const $ = (id) => document.getElementById(id);
+      const boardEl = $('board');
+      const guessEl = $('guess');
+      const statusEl = $('status');
+      const guessesEl = $('guesses');
+      const overlay = $('overlay');
+      const ovGuess = $('ov-guess');
+      const esc = Common.escHtml;
+
+      // --- persistence ------------------------------------------------------
+
+      const stats = (() => {
+        try {
+          return { seen: [], ...JSON.parse(localStorage.getItem(STORE)) };
+        } catch {
+          return { seen: [] };
+        }
+      })();
+      function saveStats() {
+        stats.seen = stats.seen.slice(-3000);
+        try {
+          localStorage.setItem(STORE, JSON.stringify(stats));
+        } catch {}
+      }
+      const money = (n) => (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString();
+
+      // --- game state -------------------------------------------------------
+      // cols[j]: { opened, guesses: [{ text, n, close }], done, won }
+      //   opened counts clues seen before the category was settled.
+      // clues[j][i]: { seen, ans: null | 'right' | 'wrong' | 'pass' }
+
+      let board = null;
+      let cols = [];
+      let clues = [];
+      let sel = 0;
+      let current = null;
+      let boardScore = 0;
+
+      // Fewer clues seen = more money for naming the category.
+      const worthAt = (n) => Math.max(200, 1200 - 200 * Math.max(1, n));
+      const valueOf = (i) => 200 * (i + 1);
+      const catKey = (c) => `${c.d}|${c.c}`;
+
+      async function drawCats() {
+        const r = await fetch(`data/${Math.floor(Math.random() * SHARDS)}.json`);
+        if (!r.ok) throw new Error(`shard: ${r.status}`);
+        const shard = await r.json();
+        for (let i = shard.length - 1; i > 0; i--) {
+          const k = Math.floor(Math.random() * (i + 1));
+          [shard[i], shard[k]] = [shard[k], shard[i]];
+        }
+        const seen = new Set(stats.seen);
+        const fresh = shard.filter((c) => !seen.has(catKey(c)));
+        return [...fresh, ...shard.filter((c) => seen.has(catKey(c)))].slice(0, 6);
+      }
+
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+      // Like the show's board fill: each cell animates on its own random beat.
+      function animateCells(cls, spread) {
+        for (const el of boardEl.children) {
+          el.style.animationDelay = Math.round(Math.random() * spread) + 'ms';
+          el.classList.add(cls);
+        }
+      }
+      function showSkeleton() {
+        boardEl.textContent = '';
+        for (let k = 0; k < 36; k++) {
+          const el = document.createElement('div');
+          el.className = k < 6 ? 'cell head skel' : 'cell skel';
+          boardEl.appendChild(el);
+        }
+        animateCells('skel', 1200);
+      }
+
+      let loadingBoard = false;
+      async function newBoard() {
+        if (loadingBoard) return;
+        loadingBoard = true;
+        $('next').disabled = true;
+        const drawing = drawCats();
+        if (board) {
+          animateCells('out', 250);
+          await sleep(400);
+        }
+        showSkeleton();
+        let cats;
+        try {
+          [cats] = await Promise.all([drawing, sleep(board ? 250 : 0)]);
+        } finally {
+          loadingBoard = false;
+          $('next').disabled = false;
+        }
+        board = { cats };
+        cols = cats.map(() => ({ opened: 0, guesses: [], done: false, won: false }));
+        clues = cats.map((c) => c.q.map(() => ({ seen: false, ans: null })));
+        boardScore = 0;
+        sel = 0;
+        stats.seen.push(...cats.map(catKey));
+        saveStats();
+        render();
+        animateCells('in', 600);
+        Matcher.prepare(board.cats.map((c) => c.c));
+      }
+
+      function render() {
+        boardEl.textContent = '';
+        board.cats.forEach((cat, j) => {
+          const h = document.createElement('div');
+          h.className = 'cell head hidden-title';
+          h.id = `head-${j}`;
+          h.addEventListener('click', () => select(j, true));
+          boardEl.appendChild(h);
+          paintBlanks(j, '');
+        });
+        for (let i = 0; i < 5; i++) {
+          board.cats.forEach((_, j) => {
+            const el = document.createElement('div');
+            el.className = 'cell clue';
+            el.id = `clue-${j}-${i}`;
+            el.textContent = '$' + valueOf(i);
+            el.addEventListener('click', () => openClue(j, i));
+            boardEl.appendChild(el);
+          });
+        }
+        select(0);
+        updateScore();
+      }
+
+      // One underscore per letter, grouped by word; the guess being typed fills
+      // them in word by word, and letters that don't fit spill over in red.
+      function paintBlanks(j, text) {
+        if (cols[j].done) return;
+        const h = $(`head-${j}`);
+        h.textContent = '';
+        const typed = text.toUpperCase().split(/\s+/).filter(Boolean);
+        const span = (cls, s) => {
+          const el = document.createElement('span');
+          el.className = cls;
+          el.textContent = s;
+          return el;
+        };
+        let gi = 0;
+        for (const w of board.cats[j].c.split(/\s+/)) {
+          const word = span('word', '');
+          if (!/[a-z0-9]/i.test(w)) {
+            if (/^(&|AND|\+)$/.test(typed[gi] || '')) gi++;
+            word.textContent = w;
+            h.appendChild(word);
+            continue;
+          }
+          const letters = (typed[gi++] || '').replace(/[^A-Z0-9]/g, '');
+          let k = 0;
+          for (const ch of w) {
+            if (!/[a-z0-9]/i.test(ch)) word.append(ch);
+            else if (k < letters.length) word.appendChild(span('slot fill', letters[k++]));
+            else word.appendChild(span('slot', ''));
+          }
+          if (k < letters.length) word.appendChild(span('over', letters.slice(k)));
+          h.appendChild(word);
+        }
+        if (gi < typed.length) h.appendChild(span('word over', typed.slice(gi).join(' ')));
+      }
+
+      function select(j, focus) {
+        board.cats.forEach((_, k) => paintBlanks(k, ''));
+        sel = j;
+        board.cats.forEach((_, k) => $(`head-${k}`).classList.toggle('sel', k === sel));
+        const col = cols[j];
+        guessEl.value = '';
+        guessEl.disabled = col.done;
+        guessEl.placeholder = col.done
+          ? col.won
+            ? 'solved'
+            : 'given up'
+          : 'what is the category?';
+        $('giveup').hidden = col.done;
+        $('claim').hidden = !(col.done && !col.won && col.guesses.length && !col.claimed);
+        guessesEl.textContent = '';
+        for (const g of col.guesses) addGuessLi(g);
+        statusEl.textContent = '';
+        if (col.done) {
+          const c = board.cats[j];
+          setStatus(
+            col.won ? 'ok' : 'bad',
+            col.won ? `solved: ${esc(c.c)}` : `it was: ${esc(c.c)}`
+          );
+        }
+        updateScore();
+        if (focus && !col.done && matchMedia('(pointer: fine)').matches) guessEl.focus();
+      }
+
+      function updateScore() {
+        $('score').textContent = money(boardScore);
+        $('solved').textContent = `${cols.filter((c) => c.won).length}/6`;
+        const col = cols[sel];
+        $('guess-btn').disabled = col.done;
+        $('which').textContent = col.done
+          ? `category #${sel + 1}`
+          : `category #${sel + 1} · worth ${money(worthAt(col.opened))}`;
+      }
+
+      function addPoints(n) {
+        boardScore += n;
+        updateScore();
+      }
+
+      function paintClue(j, i) {
+        const el = $(`clue-${j}-${i}`);
+        const st = clues[j][i];
+        const [clue, resp] = board.cats[j].q[i];
+        el.className = 'cell clue seen';
+        el.classList.toggle('wrong', !!st.ans && st.ans !== 'right');
+        el.classList.toggle('peek', !!st.peek);
+        el.innerHTML = `<span>${esc(clue)}</span>`;
+        el.title = st.ans ? '' : 'unanswered — click to answer';
+        if (st.ans) {
+          const r = document.createElement('span');
+          r.className = 'resp';
+          r.textContent = (st.ans === 'right' ? '✓ ' : '') + resp;
+          el.appendChild(r);
+        }
+        fitText(el);
+      }
+
+      // Largest font size (in half-pixel steps) at which the text fits the cell.
+      function fitText(el) {
+        let lo = 4;
+        let hi = 16;
+        while (hi - lo > 0.5) {
+          const mid = (lo + hi) / 2;
+          el.style.fontSize = mid + 'px';
+          if (el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth) hi = mid;
+          else lo = mid;
+        }
+        el.style.fontSize = lo + 'px';
+      }
+      let refitTimer = null;
+      window.addEventListener('resize', () => {
+        clearTimeout(refitTimer);
+        refitTimer = setTimeout(() => boardEl.querySelectorAll('.clue.seen').forEach(fitText), 100);
+      });
+      document.fonts.ready.then(() => boardEl.querySelectorAll('.clue.seen').forEach(fitText));
+
+      // --- clue overlay -------------------------------------------------------
+
+      function openClue(j, i) {
+        const st = clues[j][i];
+        if (!st.seen) {
+          st.seen = true;
+          if (!cols[j].done) cols[j].opened++;
+          else st.peek = true;
+          paintClue(j, i);
+        }
+        if (sel !== j) select(j);
+        else updateScore();
+        current = { j, i };
+        const [clue] = board.cats[j].q[i];
+        $('ov-meta').textContent = cols[j].done
+          ? `${board.cats[j].c} · $${valueOf(i)}`
+          : `category #${j + 1} · $${valueOf(i)}`;
+        $('ov-text').textContent = clue;
+        showAnswerState();
+        overlay.hidden = false;
+        overlay.classList.remove('zoom');
+        void overlay.offsetWidth;
+        overlay.classList.add('zoom');
+        if (!st.ans) ovGuess.focus();
+      }
+
+      function showAnswerState(verdictHtml = '') {
+        const { j, i } = current;
+        const st = clues[j][i];
+        const [, resp] = board.cats[j].q[i];
+        $('ov-form').hidden = !!st.ans;
+        ovGuess.value = '';
+        $('ov-resp').textContent = st.ans ? resp : '';
+        $('ov-verdict').innerHTML = verdictHtml;
+        $('ov-hint').textContent = st.ans
+          ? 'click or enter to close'
+          : 'enter an empty answer to pass · esc to close and come back later';
+      }
+
+      function closeClue() {
+        overlay.hidden = true;
+        current = null;
+        if (!cols[sel].done && matchMedia('(pointer: fine)').matches) guessEl.focus();
+      }
+
+      $('ov-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        answer(ovGuess.value);
+      });
+      $('ov-pass').addEventListener('click', () => answer(''));
+      overlay.addEventListener('click', (e) => {
+        if (e.target.closest('#ov-form, #ov-verdict button')) return;
+        const st = current && clues[current.j][current.i];
+        if (st && !st.ans && e.target.closest('#ov-text, #ov-meta')) return;
+        closeClue();
+      });
+
+      function answer(text) {
+        const { j, i } = current;
+        const st = clues[j][i];
+        if (st.ans) return;
+        text = text.trim();
+        const [, resp] = board.cats[j].q[i];
+        if (!text) {
+          st.ans = 'pass';
+          showAnswerState('<span>passed</span>');
+        } else if (matchResponse(text, resp)) {
+          st.ans = 'right';
+          addPoints(valueOf(i));
+          showAnswerState(`<span class="ok">correct! +${money(valueOf(i))}</span>`);
+        } else {
+          st.ans = 'wrong';
+          showAnswerState(
+            `<span class="bad">you said “${esc(text)}”</span> <button type="button" id="ov-claim">I was right</button>`
+          );
+          $('ov-claim').addEventListener('click', () => {
+            st.ans = 'right';
+            addPoints(valueOf(i));
+            paintClue(j, i);
+            showAnswerState(`<span class="ok">fair enough — +${money(valueOf(i))}</span>`);
+          });
+        }
+        paintClue(j, i);
+        overlay.focus();
+        document.activeElement.blur();
+      }
+
+      // Responses are names and facts, so spelling matters more than meaning:
+      // accept typos, missing articles, optional parenthesized bits, either side
+      // of an "or", and a surname alone for multi-word names.
+      function normResp(s) {
+        return s
+          .normalize('NFD')
+          .replace(/[̀-ͯ]/g, '')
+          .toLowerCase()
+          .replace(/^(what|who|where|when)\s+(is|are|was|were)\s+/, '')
+          .replace(/&/g, ' and ')
+          .replace(/[^a-z0-9 ]+/g, ' ')
+          .replace(/\b(the|a|an)\b/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+      function respVariants(resp) {
+        const out = new Set();
+        for (const part of resp.split(/\s+or\s+|\s*\/\s*/i)) {
+          out.add(part.replace(/\([^)]*\)/g, ' '));
+          out.add(part.replace(/[()]/g, ' '));
+        }
+        const inner = resp.match(/\(([^)]*)\)/);
+        if (inner) out.add(inner[1].replace(/^or\s+/i, ''));
+        return [...out].map(normResp).filter(Boolean);
+      }
+      function matchResponse(guess, resp) {
+        const g = normResp(guess);
+        if (!g) return false;
+        return respVariants(resp).some((t) => {
+          if (g === t) return true;
+          const typos = t.length < 5 ? 0 : t.length < 10 ? 1 : Math.floor(t.length * 0.15);
+          if (editDistance(g, t) <= typos) return true;
+          const tw = t.split(' ');
+          const gw = g.split(' ');
+          const last = tw[tw.length - 1];
+          const surname = (w) => editDistance(w, last) <= (last.length > 6 ? 1 : 0);
+          if (tw.length >= 2 && last.length >= 4 && gw.length <= tw.length && surname(gw.at(-1)))
+            return true;
+          return t.length >= 4 && ` ${g} `.includes(` ${t} `) && g.length <= t.length + 12;
+        });
+      }
+      function editDistance(a, b) {
+        const d = Array.from({ length: b.length + 1 }, (_, i) => i);
+        for (let i = 1; i <= a.length; i++) {
+          let prev = d[0];
+          d[0] = i;
+          for (let j = 1; j <= b.length; j++) {
+            const t = d[j];
+            d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+            prev = t;
+          }
+        }
+        return d[b.length];
+      }
+
+      // --- category guesses ---------------------------------------------------
+
+      function setStatus(cls, html) {
+        statusEl.innerHTML = `<span class="${cls}">${html}</span>`;
+      }
+      function addGuessLi(g) {
+        const li = document.createElement('li');
+        li.textContent = g.text + (g.close ? ' (close)' : ` (−$${MISS})`);
+        if (g.close) li.className = 'close';
+        guessesEl.prepend(li);
+      }
+
+      function settle(j, won) {
+        const col = cols[j];
+        col.done = true;
+        col.won = won;
+        const h = $(`head-${j}`);
+        h.className = `cell head reveal ${won ? 'won' : 'lost'}${j === sel ? ' sel' : ''}`;
+        h.title = `aired ${board.cats[j].d}`;
+        h.innerHTML = `<span>${esc(board.cats[j].c)}</span><span class="mark">${
+          won ? '✓ ' + money(col.paid) : '✗'
+        }</span>`;
+        if (cols.every((c) => c.done)) {
+          setTimeout(
+            () =>
+              setStatus(
+                'ok',
+                `board finished — ${cols.filter((c) => c.won).length}/6 categories, ${money(boardScore)} this board`
+              ),
+            0
+          );
+        }
+      }
+
+      async function submitGuess(text) {
+        text = text.trim();
+        const j = sel;
+        const col = cols[j];
+        if (!text || col.done) return;
+        if (col.opened === 0) {
+          setStatus('close', 'reveal at least one clue in this category first');
+          return;
+        }
+        guessEl.disabled = true;
+        const verdict = await Matcher.judge(text, j);
+        guessEl.disabled = false;
+        if (verdict.result === 'yes') {
+          col.paid = worthAt(col.opened);
+          addPoints(col.paid);
+          settle(j, true);
+          select(j);
+          setStatus(
+            'ok',
+            `correct! +${money(col.paid)} for ${col.opened} clue${col.opened === 1 ? '' : 's'}` +
+              (verdict.exact ? '' : ` — “${esc(text)}” is close enough`)
+          );
+          return;
+        }
+        const g = { text, n: col.opened, close: verdict.result === 'close' };
+        col.guesses.push(g);
+        if (!g.close) addPoints(-MISS);
+        addGuessLi(g);
+        setStatus(g.close ? 'close' : 'bad', g.close ? 'close — be more specific' : 'nope');
+        guessEl.value = '';
+        paintBlanks(j, '');
+        if (sel === j) guessEl.focus();
+      }
+
+      guessEl.addEventListener('input', () => paintBlanks(sel, guessEl.value));
+      $('guess-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        submitGuess(guessEl.value);
+      });
+      $('giveup').addEventListener('click', () => {
+        if (cols[sel].done) return;
+        settle(sel, false);
+        select(sel);
+      });
+      // Honor system for when the matcher is too strict: pays out what the
+      // last guess would have been worth and refunds its miss.
+      $('claim').addEventListener('click', () => {
+        const j = sel;
+        const col = cols[j];
+        const g = col.guesses[col.guesses.length - 1];
+        col.claimed = true;
+        col.paid = worthAt(g.n);
+        addPoints(col.paid + (g.close ? 0 : MISS));
+        settle(j, true);
+        select(j);
+        setStatus('ok', `fair enough — +${money(col.paid)} for “${esc(g.text)}”`);
+      });
+      $('next').addEventListener('click', () => newBoard());
+
+      function openNextClue() {
+        for (let i = 0; i < 5; i++) if (!clues[sel][i].seen) return openClue(sel, i);
+      }
+      const move = (d) => select((sel + d + 6) % 6);
+
+      $('hb-clue').addEventListener('click', openNextClue);
+      $('hb-col').addEventListener('click', () => move(1));
+      $('hb-guess').addEventListener('click', () => guessEl.focus());
+      $('hb-next').addEventListener('click', () => $('next').click());
+      $('hb-dark').addEventListener('click', Common.toggleDark);
+      $('hb-sitemap').addEventListener('click', Common.openSitemap);
+
+      document.addEventListener('keydown', (e) => {
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        if (!overlay.hidden) {
+          const answered = current && clues[current.j][current.i].ans;
+          if (e.key === 'Escape' || (answered && (e.key === 'Enter' || e.key === ' '))) {
+            e.preventDefault();
+            closeClue();
+          }
+          return;
+        }
+        if (e.target === guessEl) {
+          if (e.key === 'Escape') guessEl.blur();
+          return;
+        }
+        if (e.key === 'c') openNextClue();
+        else if (e.key === 'ArrowLeft') move(-1);
+        else if (e.key === 'ArrowRight') move(1);
+        else if (e.key === 'n') $('next').click();
+        else if (e.key === '/') {
+          e.preventDefault();
+          guessEl.focus();
+        }
+      });
+
+      // --- category matching ----------------------------------------------------
+      // A guess counts when it says the same thing as the title, word for word
+      // in meaning: every content word of the title needs a counterpart in the
+      // guess and vice versa, where a counterpart is the same stem, a one-letter
+      // typo, or a near-synonym by a small embedding model (bge-small, run in
+      // the browser): kids~children and film~movie pass, cool~classic and
+      // british~american don't. So dropping a qualifier ("children's books")
+      // or swapping one ("cool children's books") is only close. A whole-phrase
+      // paraphrase that scores very high passes on its own.
+      const Matcher = (() => {
+        const MODEL = 'Xenova/bge-small-en-v1.5';
+        const WORD = 0.74;
+        const PHRASE = 0.92;
+        const PHRASE_MIN = 0.7;
+        const CLOSE = 0.7;
+        const STOP = new Set(
+          'a an the of and or in on at to for from with by is are its it this that these those'.split(
+            ' '
+          )
+        );
+        const matcherEl = $('matcher');
+        let extractor = null;
+        let loading = null;
+        const cache = new Map();
+
+        function norm(s) {
+          return s
+            .toLowerCase()
+            .replace(/&/g, ' and ')
+            .replace(/\bu\.?\s?s\.?\b/g, 'us')
+            .replace(/['’]s\b/g, '')
+            .replace(/[^a-z0-9 ]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        }
+        function stem(w) {
+          if (w.length > 4 && w.endsWith('ies')) return w.slice(0, -3) + 'y';
+          if (w.length > 4 && /(ches|shes|sses|xes)$/.test(w)) return w.slice(0, -2);
+          if (w.length > 3 && w.endsWith('s') && !w.endsWith('ss')) return w.slice(0, -1);
+          return w;
+        }
+        const words = (s) =>
+          norm(s)
+            .split(' ')
+            .filter((w) => w && !STOP.has(w))
+            .map((w) => ({ w, s: stem(w) }));
+        const same = (a, b) =>
+          a.s === b.s || (Math.min(a.s.length, b.s.length) >= 6 && editDistance(a.s, b.s) <= 1);
+
+        // How many title words have a counterpart in the guess, and whether
+        // every guess word has one in the title.
+        async function coverage(gw, tw) {
+          const vecs = extractor ? await embed([...gw, ...tw].map((t) => t.w)) : null;
+          // Numbers ("17th", "1960s") have to match exactly.
+          const numeric = (t) => /\d/.test(t.w);
+          const match = (ai, bi) =>
+            same(gw[ai], tw[bi]) ||
+            (vecs &&
+              !numeric(gw[ai]) &&
+              !numeric(tw[bi]) &&
+              dot(vecs[ai], vecs[gw.length + bi]) >= WORD);
+          const titleHits = tw.filter((_, bi) => gw.some((_, ai) => match(ai, bi))).length;
+          const guessAll = gw.every((_, ai) => tw.some((_, bi) => match(ai, bi)));
+          return { all: titleHits === tw.length && guessAll, part: titleHits / tw.length };
+        }
+
+        async function load() {
+          if (!loading) {
+            loading = (async () => {
+              matcherEl.textContent = 'loading matcher…';
+              const { pipeline, env } = await import(
+                'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.5'
+              );
+              env.allowLocalModels = false;
+              extractor = await pipeline('feature-extraction', MODEL, { dtype: 'q8' });
+              matcherEl.textContent = '';
+            })().catch((err) => {
+              console.error('matcher:', err);
+              matcherEl.textContent = 'semantic matcher failed to load — exact-ish matches only';
+            });
+          }
+          return loading;
+        }
+
+        async function embed(texts) {
+          const missing = [...new Set(texts.filter((t) => !cache.has(t)))];
+          if (missing.length) {
+            const out = (await extractor(missing, { pooling: 'mean', normalize: true })).tolist();
+            missing.forEach((t, i) => cache.set(t, out[i]));
+          }
+          return texts.map((t) => cache.get(t));
+        }
+        const dot = (x, y) => x.reduce((s, v, i) => s + v * y[i], 0);
+        const lc = (s) => s.toLowerCase();
+
+        let titles = [];
+        let ready = Promise.resolve();
+        function prepare(boardTitles) {
+          titles = boardTitles;
+          ready = load().then(async () => {
+            if (!extractor) return;
+            await embed(boardTitles.flatMap((t) => [lc(t), ...words(t).map((x) => x.w)]));
+          });
+        }
+
+        async function judge(guess, j) {
+          const title = titles[j];
+          const g = norm(guess);
+          const t = norm(title);
+          if (g === t) return { result: 'yes', exact: true };
+          const digits = (s) => s.replace(/\D/g, '');
+          if (t.length >= 6 && digits(g) === digits(t) && editDistance(g, t) / t.length <= 0.15)
+            return { result: 'yes' };
+          const gw = words(guess);
+          const tw = words(title);
+          if (!gw.length || !tw.length) return { result: 'no' };
+          await ready;
+          const cov = await coverage(gw, tw);
+          if (!extractor) return { result: cov.all ? 'yes' : cov.part >= 0.5 ? 'close' : 'no' };
+          const [ge, te] = await embed([lc(guess), lc(title)]);
+          const s = dot(ge, te);
+          console.log(
+            `match "${guess}" ~ #${j + 1}: phrase ${s.toFixed(3)}, words ${cov.all ? 'all' : Math.round(cov.part * 100) + '%'}`
+          );
+          if (s >= PHRASE || (cov.all && s >= PHRASE_MIN)) return { result: 'yes' };
+          if (s >= CLOSE || cov.part >= 0.5) return { result: 'close' };
+          return { result: 'no' };
+        }
+
+        return { prepare, judge };
+      })();
+
+      newBoard().catch((err) => {
+        console.error(err);
+        setStatus('bad', 'couldn’t load clues');
+      });
+    </script>
+  </body>
+</html>
