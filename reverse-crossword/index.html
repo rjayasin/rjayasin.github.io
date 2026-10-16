@@ -561,7 +561,11 @@
       if (matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('dark');
       Common.initHintUpdated({ hintEl: document.getElementById('hint') });
 
-      const PUZZLES = 150;
+      // PUZZLES and SHARDS match what scripts/build-reverse-crossword.js wrote;
+      // DATA versions saved progress so a rebuild doesn't resume the wrong grid.
+      const PUZZLES = 11349;
+      const SHARDS = 256;
+      const DATA = 2;
       const STORE = 'reverse-crossword';
       const WORTH = 100;
       const MISS = 25;
@@ -584,14 +588,15 @@
         }
       })();
       function saveStats() {
-        stats.seen = stats.seen.slice(-PUZZLES + 10);
+        stats.seen = stats.seen.slice(-2000);
         try {
           localStorage.setItem(STORE, JSON.stringify(stats));
         } catch {}
       }
 
       // --- game state -------------------------------------------------------
-      // puzzle.words[k]: { n, dir, ans, clue, past, cells }
+      // puzzle.words[k]: { n, dir, ans, clue, own, given, cells, past }
+      //   past is filled in from data/past/ when the entry is first selected.
       // state[k]: { done, won, given, said, best, misses, guesses: [{ text, close }], paid }
 
       let puzzle = null;
@@ -670,19 +675,48 @@
       // --- loading ------------------------------------------------------------
 
       async function fetchPuzzle(id) {
-        const r = await fetch(`data/${id}.json`);
+        const r = await fetch(`data/puzzles/${id}.json`);
         if (!r.ok) throw new Error(`puzzle ${id}: ${r.status}`);
         return r.json();
       }
 
       function pickId() {
         const seen = new Set(stats.seen);
-        const fresh = [...Array(PUZZLES).keys()].filter((i) => !seen.has(i));
-        const pool = fresh.length ? fresh : [...Array(PUZZLES).keys()];
-        return pool[Math.floor(Math.random() * pool.length)];
+        let id;
+        for (let tries = 0; tries < 50; tries++) {
+          id = Math.floor(Math.random() * PUZZLES);
+          if (!seen.has(id)) break;
+        }
+        return id;
       }
 
-      // Numbers squares the standard way and attaches each entry's squares.
+      // Each answer's past clues live in one of SHARDS files picked by an
+      // FNV-1a hash of the answer, as in scripts/build-reverse-crossword.js.
+      function shardOf(ans) {
+        let h = 0x811c9dc5;
+        for (let i = 0; i < ans.length; i++) h = Math.imul(h ^ ans.charCodeAt(i), 0x01000193);
+        return ((h >>> 0) % SHARDS).toString(16).padStart(2, '0');
+      }
+      const shards = new Map();
+      function pastOf(w) {
+        if (w.past) return Promise.resolve(w.past);
+        const s = shardOf(w.ans);
+        if (!shards.has(s)) {
+          const load = fetch(`data/past/${s}.json`).then((r) => {
+            if (!r.ok) throw new Error(`past clues ${s}: ${r.status}`);
+            return r.json();
+          });
+          load.catch(() => shards.delete(s));
+          shards.set(s, load);
+        }
+        return shards.get(s).then((bank) => {
+          w.past = [...(bank[w.ans] || []), ...(w.own ? [w.clue] : [])];
+          return w.past;
+        });
+      }
+
+      // Builds the entries from the [number, clue, flag] lists, numbering
+      // squares the standard way and reading each answer off the grid.
       function layout(p) {
         const size = Math.round(Math.sqrt(p.grid.length));
         const open = (r, c) =>
@@ -697,10 +731,21 @@
             if (a || d) starts[++n] = r * size + c;
           }
         p.size = size;
-        for (const w of p.words) {
-          const step = w.dir === 'a' ? 1 : size;
-          w.cells = [];
-          for (let i = starts[w.n], k = 0; k < w.ans.length; i += step, k++) w.cells.push(i);
+        p.words = [];
+        for (const dir of ['a', 'd']) {
+          const step = dir === 'a' ? 1 : size;
+          for (const [n, clue, flag] of p[dir]) {
+            const cells = [];
+            let r = Math.floor(starts[n] / size);
+            let c = starts[n] % size;
+            while (open(r, c)) {
+              cells.push(r * size + c);
+              if (dir === 'a') c++;
+              else r++;
+            }
+            const ans = cells.map((i) => p.grid[i]).join('');
+            p.words.push({ n, dir, clue, ans, cells, own: flag === 1, given: flag === 2 });
+          }
         }
         return p;
       }
@@ -716,13 +761,13 @@
           if (resume) state = resume.state;
           else {
             state = puzzle.words.map((w) => ({
-              done: !w.past.length,
+              done: w.given,
               won: false,
-              given: !w.past.length,
+              given: w.given,
               misses: 0,
               guesses: [],
             }));
-            stats.cur = { id, t: Date.now(), state };
+            stats.cur = { v: DATA, id, t: Date.now(), state };
             stats.seen.push(id);
             saveStats();
           }
@@ -831,7 +876,10 @@
         $(`clue-${k}`).scrollIntoView({ block: 'nearest' });
         paintCells();
         showWord();
-        Matcher.warm(w);
+        pastOf(w).then(
+          () => Matcher.warm(w),
+          () => {}
+        );
         if (focus && !state[k].done && fine()) guessEl.focus();
       }
 
@@ -878,9 +926,20 @@
               `<br><span style="color:var(--muted)">the puzzle's clue: <q>${esc(w.clue)}</q></span>`
           );
         } else if (st.done) setStatus('bad', `the puzzle's clue: <q>${esc(w.clue)}</q>`);
+        $('known').hidden = true;
+        $('known').open = false;
+        if (st.done && !st.given)
+          pastOf(w).then(
+            () => puzzle.words[sel] === w && showKnown(),
+            () => {}
+          );
+      }
+
+      function showKnown() {
+        const w = puzzle.words[sel];
+        const st = state[sel];
         const known = $('known');
-        known.hidden = !st.done || st.given;
-        known.open = false;
+        known.hidden = false;
         known.querySelector('summary').textContent = `${w.past.length} past clue${
           w.past.length === 1 ? '' : 's'
         } for ${w.ans}`;
@@ -947,7 +1006,16 @@
         const w = puzzle.words[k];
         if (!text || st.done) return;
         guessEl.disabled = true;
-        const v = await Matcher.judge(text, w);
+        let v;
+        try {
+          await pastOf(w);
+          v = await Matcher.judge(text, w);
+        } catch (err) {
+          console.error(err);
+          guessEl.disabled = false;
+          setStatus('bad', 'couldn’t load past clues — try again');
+          return;
+        }
         guessEl.disabled = false;
         if (sel !== k) return;
         if (v.result === 'yes') {
@@ -1252,7 +1320,7 @@
         return d[b.length];
       }
 
-      const resume = stats.cur?.state ? stats.cur : null;
+      const resume = stats.cur?.v === DATA && stats.cur.state ? stats.cur : null;
       newPuzzle(resume).catch((err) => {
         console.error(err);
         if (resume) {
