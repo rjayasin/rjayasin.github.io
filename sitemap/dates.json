@@ -60,8 +60,8 @@
     "url": "https://github.com/rjayasin/rjayasin.github.io/commit/16e58efb31ba18087a3c60fb8a3be02be4138236"
   },
   "/sitemap/": {
-    "date": "2026-10-15T15:55:02-07:00",
-    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/9f4828cba9f043ac737f84740bdb5cae88c13355"
+    "date": "2026-10-16T13:32:01-07:00",
+    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/31769d8637e7feebccd2b1d35e37544e513eeb40"
   },
   "/grid/": {
     "date": "2026-08-26T11:02:45-07:00",
@@ -134,5 +134,9 @@
   "/reverse-jeopardy/": {
     "date": "2026-10-16T13:09:41-07:00",
     "url": "https://github.com/rjayasin/rjayasin.github.io/commit/35ebaea631826ac48ec585f9bbdffa8eccdcb957"
+  },
+  "/reverse-crossword/": {
+    "date": "2026-10-16T13:32:01-07:00",
+    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/31769d8637e7feebccd2b1d35e37544e513eeb40"
   }
 }

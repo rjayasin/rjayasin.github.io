@@ -144,14 +144,24 @@
         background: var(--block);
         cursor: default;
       }
-      .sq.done {
-        background: var(--done);
+      /* The across entry tints the top-left half, the down entry the
+         bottom-right. */
+      .sq:not(.block) {
+        --a: var(--cell);
+        --d: var(--cell);
+        background: linear-gradient(135deg, var(--a) 50%, var(--d) 50%);
       }
-      .sq.gave {
-        background: var(--gave);
+      .sq.a-won {
+        --a: var(--done);
       }
-      .sq.done.gave:not(.on) {
-        background: linear-gradient(135deg, var(--done) 50%, var(--gave) 50%);
+      .sq.a-gave {
+        --a: var(--gave);
+      }
+      .sq.d-won {
+        --d: var(--done);
+      }
+      .sq.d-gave {
+        --d: var(--gave);
       }
       .sq.on {
         background: var(--sel-soft);
@@ -787,28 +797,25 @@
         } else if (st.done) li.innerHTML += `<span class="said">${esc(w.clue)}</span>`;
       }
 
-      // Squares of clued entries are green and of revealed ones red; a square
-      // where one of each crosses is split between the two.
+      // Each half of a square shows one of its entries: green once clued, red
+      // once revealed. A square in only one entry is tinted whole.
       function paintCells() {
         const through = new Map();
         puzzle.words.forEach((w, k) => {
           for (const i of w.cells) {
-            const s = through.get(i) || [];
-            s.push(state[k]);
+            const s = through.get(i) || {};
+            s[w.dir] = state[k];
             through.set(i, s);
           }
         });
         const on = new Set(puzzle.words[sel].cells);
         for (const [i, sts] of through) {
           const el = $(`sq-${i}`);
-          el.classList.toggle(
-            'done',
-            sts.some((st) => st.won)
-          );
-          el.classList.toggle(
-            'gave',
-            sts.some((st) => st.done && !st.won && !st.given)
-          );
+          for (const half of ['a', 'd']) {
+            const st = sts[half] || sts.a || sts.d;
+            el.classList.toggle(`${half}-won`, st.won);
+            el.classList.toggle(`${half}-gave`, st.done && !st.won && !st.given);
+          }
           el.classList.toggle('on', on.has(i));
           el.classList.toggle('cur', on.has(i) && i === lastCell);
         }
