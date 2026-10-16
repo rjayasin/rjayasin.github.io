@@ -243,12 +243,14 @@
         display: none;
       }
       #overlay.zoom {
-        animation: zoom 0.25s ease-out;
+        transform-origin: 0 0;
+        animation: zoom 0.35s ease-out;
       }
+      /* --zx/--zy/--sx/--sy put the overlay over the clicked cell. */
       @keyframes zoom {
         from {
-          transform: scale(0.2);
-          opacity: 0.4;
+          transform: translate(var(--zx, 40vw), var(--zy, 40vh))
+            scale(var(--sx, 0.2), var(--sy, 0.2));
         }
       }
       #ov-meta {
@@ -635,17 +637,16 @@
           return { seen: [], scores: [] };
         }
       })();
-      // Finished boards only; an entry keeps updating if clues are claimed later.
+      // A board is saved once a clue is opened and re-saved on every score
+      // change, so closing the page never loses it.
       const LEADERS = 10;
       let myEntry = null;
       function recordScore() {
-        if (!myEntry) {
-          if (!cols.every((c) => c.done)) return;
-          myEntry = { t: Date.now() };
-          stats.scores.push(myEntry);
-        }
+        if (!clues.some((c) => c.some((st) => st.seen))) return;
+        myEntry ||= { t: Date.now() };
         myEntry.score = boardScore;
         myEntry.solved = cols.filter((c) => c.won).length;
+        if (!stats.scores.includes(myEntry)) stats.scores.push(myEntry);
         stats.scores.sort((a, b) => b.score - a.score || a.t - b.t);
         stats.scores = stats.scores.slice(0, LEADERS);
         saveStats();
@@ -678,7 +679,7 @@
           n.textContent = all.indexOf(e) + 1;
           const b = document.createElement('b');
           b.textContent = money(e.score);
-          const when = e === live && !myEntry ? 'this board' : new Date(e.t).toLocaleDateString();
+          const when = e === live ? 'this board' : new Date(e.t).toLocaleDateString();
           li.append(n, b, `${e.solved}/6 · ${when}`);
           if (e === live) li.className = 'mine';
           list.appendChild(li);
@@ -891,7 +892,7 @@
       function addPoints(n) {
         boardScore += n;
         updateScore();
-        if (myEntry) recordScore();
+        recordScore();
       }
 
       function paintClue(j, i) {
@@ -933,13 +934,16 @@
 
       // --- clue overlay -------------------------------------------------------
 
+      let lockedUntil = 0;
       function openClue(j, i) {
+        if (performance.now() < lockedUntil) return;
         const st = clues[j][i];
         if (!st.seen) {
           st.seen = true;
           if (!cols[j].done) cols[j].opened++;
           else st.peek = true;
           paintClue(j, i);
+          recordScore();
         }
         if (sel !== j) select(j);
         else updateScore();
@@ -953,6 +957,11 @@
         else showAnswerState();
         overlay.hidden = false;
         overlay.classList.remove('zoom');
+        const r = $(`clue-${j}-${i}`).getBoundingClientRect();
+        overlay.style.setProperty('--zx', r.left + 'px');
+        overlay.style.setProperty('--zy', r.top + 'px');
+        overlay.style.setProperty('--sx', r.width / overlay.offsetWidth);
+        overlay.style.setProperty('--sy', r.height / overlay.offsetHeight);
         void overlay.offsetWidth;
         overlay.classList.add('zoom');
         if (!st.ans) ovGuess.focus();
@@ -974,6 +983,7 @@
       function closeClue() {
         overlay.hidden = true;
         current = null;
+        lockedUntil = performance.now() + 400;
         if (!cols[sel].done && matchMedia('(pointer: fine)').matches) guessEl.focus();
       }
 
