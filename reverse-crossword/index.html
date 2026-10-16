@@ -126,6 +126,7 @@
         background: var(--grid-line);
         border: 1px solid var(--grid-line);
         user-select: none;
+        touch-action: manipulation;
         container-type: inline-size;
         font-family: 'Libre Franklin', Helvetica, Arial, sans-serif;
       }
@@ -137,6 +138,7 @@
         align-items: flex-end;
         justify-content: center;
         cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
         font-size: calc(100cqi / var(--cols, 15) * 0.56);
         line-height: 1.3;
       }
@@ -221,6 +223,7 @@
         gap: 0 4px;
         padding: 4px 6px 4px 0;
         cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
         border-left: 4px solid transparent;
         line-height: 1.35;
       }
@@ -294,6 +297,7 @@
         background: transparent;
         border: none;
         cursor: pointer;
+        touch-action: manipulation;
         padding: 0 4px;
         text-decoration: underline;
         text-decoration-style: dotted;
@@ -370,21 +374,26 @@
       #actions #giveup {
         color: var(--bad);
       }
-      #actions #giveup:hover {
-        background: var(--bad);
-        color: #fff;
-      }
       #actions #claim {
         color: var(--ok);
       }
-      #actions #claim:hover {
-        background: var(--ok);
-        color: #fff;
-      }
-      #actions #next:hover:not(:disabled),
-      #actions #info-btn:hover,
       #actions #info-btn[aria-expanded='true'] {
         background: var(--line);
+      }
+      @media (hover: hover) {
+        #actions #giveup:hover {
+          background: var(--bad);
+          color: #fff;
+        }
+        #actions #claim:hover {
+          background: var(--ok);
+          color: #fff;
+        }
+        #actions #skip:hover,
+        #actions #next:hover:not(:disabled),
+        #actions #info-btn:hover {
+          background: var(--line);
+        }
       }
       #info {
         padding: 0.8em 1em;
@@ -469,24 +478,37 @@
           max-height: 50vh;
         }
       }
-      @media (max-width: 760px) {
+      /* Phones in portrait: one column with the clue box right under the
+         grid, so a tapped entry and the box to clue it are both in view. */
+      @media (max-width: 760px) and (orientation: portrait), (max-width: 640px) {
         #layout {
           flex-direction: column;
+          align-items: stretch;
+          gap: 20px;
         }
-        #side {
-          flex-basis: auto;
-          width: 100%;
-          min-width: 0;
-          min-height: 0;
-          padding: 0;
-          position: static;
-        }
+        #side,
         #main {
-          width: 100%;
+          display: contents;
         }
         #grid-wrap {
-          width: 100%;
+          order: 1;
+          width: min(100%, calc(100dvh - 32px));
           min-width: 0;
+        }
+        #word {
+          order: 2;
+        }
+        #actions,
+        #info,
+        #matcher {
+          order: 3;
+        }
+        #clues {
+          order: 4;
+        }
+        #leaders {
+          order: 5;
+          margin-top: 0;
         }
         #hint {
           position: static;
@@ -518,7 +540,13 @@
           <span id="which"></span>
           <span id="answer"></span>
           <form id="guess-form" autocomplete="off">
-            <input type="text" id="guess" placeholder="write a clue" spellcheck="false" />
+            <input
+              type="text"
+              id="guess"
+              placeholder="write a clue"
+              spellcheck="false"
+              enterkeyhint="go"
+            />
             <button id="guess-btn" type="submit">check</button>
           </form>
           <div id="status"></div>
@@ -531,6 +559,7 @@
         <div id="actions">
           <button id="giveup" type="button">reveal clue</button>
           <button id="claim" type="button" hidden>my last clue was fine</button>
+          <button id="skip" type="button">next clue</button>
           <button id="next" type="button">new puzzle →</button>
           <button id="info-btn" type="button" aria-expanded="false">how it works</button>
         </div>
@@ -819,7 +848,10 @@
             if (w.dir !== dir) return;
             const li = document.createElement('li');
             li.id = `clue-${k}`;
-            li.addEventListener('click', () => select(k, true));
+            li.addEventListener('click', () => {
+              select(k, true);
+              bringFormIntoView();
+            });
             ol.appendChild(li);
             paintClue(k);
           });
@@ -873,14 +905,41 @@
         if (!w.cells.includes(lastCell)) lastCell = w.cells[0];
         if ($(`clue-${prev}`)) paintClue(prev);
         paintClue(k);
-        $(`clue-${k}`).scrollIntoView({ block: 'nearest' });
+        scrollList($(`clue-${k}`));
         paintCells();
         showWord();
         pastOf(w).then(
           () => Matcher.warm(w),
           () => {}
         );
-        if (focus && !state[k].done && fine()) guessEl.focus();
+        if (focus && !state[k].done && (fine() || typing)) guessEl.focus();
+      }
+
+      // Scrolls only the clue list, not the page, which on a phone would
+      // jump away from the grid.
+      function scrollList(li) {
+        const ol = li.parentElement;
+        const a = li.getBoundingClientRect();
+        const b = ol.getBoundingClientRect();
+        if (a.top < b.top) ol.scrollTop += a.top - b.top;
+        else if (a.bottom > b.bottom) ol.scrollTop += a.bottom - b.bottom;
+      }
+
+      // On a touchscreen the keyboard stays up when moving to another entry
+      // while writing a clue, and stays down otherwise.
+      let typing = false;
+      document.addEventListener(
+        'pointerdown',
+        () => {
+          typing = document.activeElement === guessEl;
+        },
+        true
+      );
+
+      function bringFormIntoView() {
+        const r = $('guess-form').getBoundingClientRect();
+        if (r.top < 0 || r.bottom > innerHeight)
+          $('guess-form').scrollIntoView({ block: 'center', behavior: 'smooth' });
       }
 
       function clickCell(i) {
@@ -909,6 +968,7 @@
           : `write a clue for ${w.ans}`;
         $('guess-btn').disabled = st.done;
         $('giveup').hidden = st.done;
+        $('skip').hidden = nextOpen(sel) < 0 || nextOpen(sel) === sel;
         $('claim').hidden = !(!st.won && !st.given && st.guesses.some((g) => !g.close || st.done));
         const ul = $('guesses');
         ul.textContent = '';
@@ -999,24 +1059,27 @@
         return -1;
       }
 
+      let judging = false;
       async function submitGuess(text) {
         text = text.trim();
         const k = sel;
         const st = state[k];
         const w = puzzle.words[k];
-        if (!text || st.done) return;
-        guessEl.disabled = true;
+        if (!text || st.done || judging) return;
+        // The box stays enabled while judging, since disabling it would
+        // drop a phone's keyboard after every try.
+        judging = true;
         let v;
         try {
           await pastOf(w);
           v = await Matcher.judge(text, w);
         } catch (err) {
           console.error(err);
-          guessEl.disabled = false;
           setStatus('bad', 'couldn’t load past clues — try again');
           return;
+        } finally {
+          judging = false;
         }
-        guessEl.disabled = false;
         if (sel !== k) return;
         if (v.result === 'yes') {
           st.said = text;
@@ -1080,6 +1143,13 @@
         setStatus('ok', `fair enough — +${st.paid} for <q>${esc(g.text)}</q>`);
       });
       $('next').addEventListener('click', () => newPuzzle());
+      $('skip').addEventListener('click', () => {
+        const j = nextOpen(sel);
+        if (j < 0) return;
+        select(j);
+        guessEl.focus();
+        bringFormIntoView();
+      });
 
       guessEl.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') guessEl.blur();
