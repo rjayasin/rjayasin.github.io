@@ -391,6 +391,9 @@
       #actions button {
         padding: 0;
       }
+      #actions #giveup {
+        color: var(--bad);
+      }
       #matcher {
         font-size: 11px;
         color: var(--muted);
@@ -486,21 +489,12 @@
           <ul id="guesses"></ul>
         </div>
         <div id="actions">
-          <button id="giveup" type="button">give up on this category</button>
+          <button id="giveup" type="button">reveal category title</button>
           <button id="claim" type="button" hidden>my last guess was right</button>
           <button id="next" type="button">new board →</button>
         </div>
         <div id="matcher"></div>
-        <div id="hint">
-          <div><span class="hint-btn" id="hb-clue">c next clue</span></div>
-          <div><span class="hint-btn" id="hb-col">←/→ category</span></div>
-          <div><span class="hint-btn" id="hb-guess">/ guess</span></div>
-          <div><span class="hint-btn" id="hb-next">n new board</span></div>
-          <div>
-            <span class="hint-btn" id="hb-dark">1 <span class="hb-dark-label">light</span></span>
-          </div>
-          <div><span class="hint-btn" id="hb-sitemap">s sitemap</span></div>
-        </div>
+        <div id="hint"></div>
       </aside>
       <main id="main"><div id="board"></div></main>
     </div>
@@ -518,8 +512,7 @@
     </div>
     <script>
       Common.paintFavicon({ glyph: '❓', fontSize: 44, transparent: true });
-      Common.initDarkMode();
-      Common.initSitemapShortcut();
+      if (matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('dark');
       Common.initHintUpdated({ hintEl: document.getElementById('hint') });
 
       const SHARDS = 100;
@@ -786,7 +779,8 @@
           ? `${board.cats[j].c} · $${valueOf(i)}`
           : `category #${j + 1} · $${valueOf(i)}`;
         $('ov-text').textContent = clue;
-        showAnswerState();
+        if (st.ans === 'wrong') showWrong();
+        else showAnswerState();
         overlay.hidden = false;
         overlay.classList.remove('zoom');
         void overlay.offsetWidth;
@@ -840,19 +834,26 @@
           showAnswerState(`<span class="ok">correct! +${money(valueOf(i))}</span>`);
         } else {
           st.ans = 'wrong';
-          showAnswerState(
-            `<span class="bad">you said “${esc(text)}”</span> <button type="button" id="ov-claim">I was right</button>`
-          );
-          $('ov-claim').addEventListener('click', () => {
-            st.ans = 'right';
-            addPoints(valueOf(i));
-            paintClue(j, i);
-            showAnswerState(`<span class="ok">fair enough — +${money(valueOf(i))}</span>`);
-          });
+          st.said = text;
+          showWrong();
         }
         paintClue(j, i);
         overlay.focus();
         document.activeElement.blur();
+      }
+
+      function showWrong() {
+        const { j, i } = current;
+        const st = clues[j][i];
+        showAnswerState(
+          `<span class="bad">you said “${esc(st.said)}”</span> <button type="button" id="ov-claim">I was right</button>`
+        );
+        $('ov-claim').addEventListener('click', () => {
+          st.ans = 'right';
+          addPoints(valueOf(i));
+          paintClue(j, i);
+          showAnswerState(`<span class="ok">fair enough — +${money(valueOf(i))}</span>`);
+        });
       }
 
       // Responses are names and facts, so spelling matters more than meaning:
@@ -1003,18 +1004,6 @@
       });
       $('next').addEventListener('click', () => newBoard());
 
-      function openNextClue() {
-        for (let i = 0; i < 5; i++) if (!clues[sel][i].seen) return openClue(sel, i);
-      }
-      const move = (d) => select((sel + d + 6) % 6);
-
-      $('hb-clue').addEventListener('click', openNextClue);
-      $('hb-col').addEventListener('click', () => move(1));
-      $('hb-guess').addEventListener('click', () => guessEl.focus());
-      $('hb-next').addEventListener('click', () => $('next').click());
-      $('hb-dark').addEventListener('click', Common.toggleDark);
-      $('hb-sitemap').addEventListener('click', Common.openSitemap);
-
       document.addEventListener('keydown', (e) => {
         if (e.metaKey || e.ctrlKey || e.altKey) return;
         if (!overlay.hidden) {
@@ -1025,18 +1014,7 @@
           }
           return;
         }
-        if (e.target === guessEl) {
-          if (e.key === 'Escape') guessEl.blur();
-          return;
-        }
-        if (e.key === 'c') openNextClue();
-        else if (e.key === 'ArrowLeft') move(-1);
-        else if (e.key === 'ArrowRight') move(1);
-        else if (e.key === 'n') $('next').click();
-        else if (e.key === '/') {
-          e.preventDefault();
-          guessEl.focus();
-        }
+        if (e.target === guessEl && e.key === 'Escape') guessEl.blur();
       });
 
       // --- category matching ----------------------------------------------------
