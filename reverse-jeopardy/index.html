@@ -768,14 +768,22 @@
         loadingBoard = true;
         $('next').disabled = true;
         const drawing = drawCats();
+        let ready = false;
+        drawing.then(
+          () => (ready = true),
+          () => {}
+        );
         if (board) {
           animateCells('out', 250);
           await sleep(400);
         }
-        showSkeleton();
+        // Skip the skeleton when the next board is already in hand, so the
+        // faded-out board goes straight to the new one.
+        const skeleton = !ready;
+        if (skeleton) showSkeleton();
         let cats;
         try {
-          [cats] = await Promise.all([drawing, sleep(board ? 250 : 0)]);
+          [cats] = await Promise.all([drawing, sleep(skeleton && board ? 250 : 0)]);
         } finally {
           loadingBoard = false;
           $('next').disabled = false;
