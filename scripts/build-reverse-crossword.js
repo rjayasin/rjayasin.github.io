@@ -4,10 +4,10 @@
 // Every clue in the archive goes into a bank keyed by answer. Then every
 // plain 15x15 Monday–Saturday puzzle (no rebus squares, circles or notes) is
 // written, shuffled, one per file in data/puzzles/, and every past clue of
-// each answer they use goes once into data/past/, most common first. Clues
-// that only make sense inside their own puzzle (cross-references, theme
-// hints) are left out of the bank. Prints the puzzle count, which PUZZLES in
-// the page must match.
+// each answer they use goes once into data/past/, most common (then shortest)
+// first. Clues that only make sense inside their own puzzle (cross-references,
+// theme hints) are left out of the bank. Prints the puzzle count, which
+// PUZZLES in the page must match.
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -83,7 +83,9 @@ for (const f of files) {
 }
 
 function pastClues(ans) {
-  return [...(bank.get(ans)?.values() || [])].sort((a, b) => b.n - a.n).map((e) => e.clue);
+  return [...(bank.get(ans)?.values() || [])]
+    .sort((a, b) => b.n - a.n || a.clue.length - b.clue.length)
+    .map((e) => e.clue);
 }
 
 // Must match shardOf in reverse-crossword/index.html.
