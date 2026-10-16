@@ -610,7 +610,7 @@
           <li>A clue counts if it matches one that has run for that word in the NYT crossword (1976–2018) — same words, a typo off, or a close paraphrase.</li>
           <li>Correct: ${WORTH}, minus ${MISS} per wrong try (at least ${MISS}). “Close” tries are free.</li>
           <li>Clues can't contain the answer. Use ___ for a blank.</li>
-          <li>Tab / shift-tab: next / previous unclued entry. Click a square twice to switch direction.</li>
+          <li>Tab / shift-tab: next / previous unclued entry. ↓ / →: the down / across entry through the square. Click a square twice to switch direction.</li>
         </ul>`;
       $('info-btn').addEventListener('click', (e) => {
         const open = $('info').hidden;
@@ -1031,6 +1031,18 @@
         if (j < 0) return;
         e.preventDefault();
         select(j, true);
+      });
+      // ↓ and → switch to the down and across entry through the current
+      // square. In the clue box they only do so while it's empty, so they
+      // still move the caret through a half-written clue.
+      document.addEventListener('keydown', (e) => {
+        const dir = { ArrowDown: 'd', ArrowRight: 'a' }[e.key];
+        if (!dir || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || !puzzle) return;
+        if (e.target.closest('input') ? e.target.value : e.target.closest('summary')) return;
+        const k = puzzle.words.findIndex((w) => w.dir === dir && w.cells.includes(lastCell));
+        if (k < 0) return;
+        e.preventDefault();
+        if (k !== sel) select(k, true);
       });
 
       // Keep the clue lists as tall as the grid beside them.
