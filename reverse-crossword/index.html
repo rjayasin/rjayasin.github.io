@@ -644,7 +644,7 @@
           <li>A clue counts if it matches one that has run for that word in the NYT crossword (1976–2018) — same words, a typo off, or a close paraphrase.</li>
           <li>Correct: ${WORTH}, minus ${MISS} per wrong try (at least ${MISS}). “Close” tries are free.</li>
           <li>Clues can't contain the answer. Use ___ for a blank.</li>
-          <li>Tab / shift-tab: next / previous unclued entry. ↓ / →: the down / across entry through the square. Click a square twice to switch direction.</li>
+          <li>Tab / shift-tab: next / previous unclued entry. ↓ / →: the down / across entry through the square. ↑: your last try. Click a square twice to switch direction.</li>
         </ul>`;
       $('info-btn').addEventListener('click', (e) => {
         const open = $('info').hidden;
@@ -960,6 +960,7 @@
           `${label(w)} · ${w.ans.length} letters` + (st.done ? '' : ` · worth ${worthOf(st)}`);
         $('answer').textContent = w.ans;
         guessEl.value = '';
+        recall = -1;
         guessEl.disabled = st.done;
         guessEl.placeholder = st.done
           ? st.won
@@ -1069,6 +1070,7 @@
         // The box stays enabled while judging, since disabling it would
         // drop a phone's keyboard after every try.
         judging = true;
+        lastTried = text;
         let v;
         try {
           await pastOf(w);
@@ -1151,7 +1153,23 @@
         bringFormIntoView();
       });
 
+      // ↑ in the clue box steps back through this entry's tries, newest first,
+      // or brings back the last clue tried anywhere if it has none.
+      let lastTried = '';
+      let recall = -1;
+      guessEl.addEventListener('input', () => {
+        recall = -1;
+      });
       guessEl.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowUp' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+          const tries = state[sel].guesses.map((g) => g.text).reverse();
+          if (!tries.length && lastTried) tries.push(lastTried);
+          if (!tries.length) return;
+          e.preventDefault();
+          recall = Math.min(recall + 1, tries.length - 1);
+          guessEl.value = tries[recall];
+          guessEl.setSelectionRange(guessEl.value.length, guessEl.value.length);
+        }
         if (e.key === 'Escape') guessEl.blur();
         if (e.key === 'Tab') {
           const j = nextOpen(sel, e.shiftKey ? -1 : 1);
