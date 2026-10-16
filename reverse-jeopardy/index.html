@@ -647,6 +647,7 @@
         myEntry.score = boardScore;
         myEntry.solved = cols.filter((c) => c.won).length;
         if (!stats.scores.includes(myEntry)) stats.scores.push(myEntry);
+        stats.scores = stats.scores.filter((e) => e.score !== 0);
         stats.scores.sort((a, b) => b.score - a.score || a.t - b.t);
         stats.scores = stats.scores.slice(0, LEADERS);
         saveStats();
@@ -662,7 +663,9 @@
           solved: cols.filter((c) => c.won).length,
           t: Infinity,
         };
-        const all = stats.scores.includes(live) ? [...stats.scores] : [...stats.scores, live];
+        const all = [...stats.scores, live].filter(
+          (e, k, a) => e.score !== 0 && a.indexOf(e) === k
+        );
         all.sort((a, b) => b.score - a.score || a.t - b.t);
         const rank = all.indexOf(live);
         const shown = all.slice(0, LEADERS);
