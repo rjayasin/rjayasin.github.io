@@ -42,6 +42,7 @@
 - [`pinball`](https://rjayasin.github.io/pinball/)
 - [`war`](https://rjayasin.github.io/war/)
 - [`reverse-jeopardy`](https://rjayasin.github.io/reverse-jeopardy/)
+- [`reverse-crossword`](https://rjayasin.github.io/reverse-crossword/)
 
 `experiments`
 

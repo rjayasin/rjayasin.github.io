@@ -1,0 +1,1247 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ruvan / reverse-crossword</title>
+    <link rel="icon" id="favicon" />
+    <link rel="stylesheet" href="/common.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;600&display=swap"
+    />
+    <style>
+      :root {
+        --muted: rgba(0, 0, 0, 0.5);
+        --line: rgba(0, 0, 0, 0.15);
+        --ok: #1a7f37;
+        --bad: #cf222e;
+        --close: #9a6700;
+        --cell: #fff;
+        --block: #000;
+        --grid-line: #000;
+        --sel: #a7d8ff;
+        --sel-soft: #dcefff;
+        --done: #cdeccf;
+        --gave: #f8d7d7;
+      }
+      body.dark {
+        --muted: rgba(255, 255, 255, 0.55);
+        --line: rgba(255, 255, 255, 0.2);
+        --ok: #3fb950;
+        --bad: #f85149;
+        --close: #d29922;
+        --cell: #232323;
+        --block: #050505;
+        --grid-line: #050505;
+        --sel: #1f5a8a;
+        --sel-soft: #19324a;
+        --done: #1e4428;
+        --gave: #4a2323;
+      }
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) {
+          --muted: rgba(255, 255, 255, 0.55);
+          --line: rgba(255, 255, 255, 0.2);
+          --ok: #3fb950;
+          --bad: #f85149;
+          --close: #d29922;
+          --cell: #232323;
+          --block: #050505;
+          --grid-line: #050505;
+          --sel: #1f5a8a;
+          --sel-soft: #19324a;
+          --done: #1e4428;
+          --gave: #4a2323;
+        }
+      }
+      body {
+        min-height: 100dvh;
+        padding: 16px;
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        font-size: 13px;
+      }
+      #layout {
+        display: flex;
+        gap: 32px;
+        align-items: flex-start;
+      }
+      #side {
+        flex: 0 1 340px;
+        min-width: 260px;
+        padding: 8px 0 24px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        min-height: calc(100dvh - 32px);
+        position: sticky;
+        top: 16px;
+      }
+      #main {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        gap: 24px;
+        align-items: flex-start;
+      }
+      #scorebar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 20px;
+        color: var(--muted);
+      }
+      #scorebar b {
+        font-weight: normal;
+        color: #000;
+      }
+      body.dark #scorebar b {
+        color: #fff;
+      }
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) #scorebar b {
+          color: #fff;
+        }
+      }
+      #meta {
+        flex-basis: 100%;
+      }
+      #grid-wrap {
+        flex: 0 1 calc(100dvh - 32px);
+        min-width: 280px;
+      }
+      #grid {
+        display: grid;
+        grid-template-columns: repeat(var(--cols, 15), minmax(0, 1fr));
+        gap: 1px;
+        padding: 2px;
+        background: var(--grid-line);
+        border: 1px solid var(--grid-line);
+        user-select: none;
+        container-type: inline-size;
+        font-family: 'Libre Franklin', Helvetica, Arial, sans-serif;
+      }
+      .sq {
+        position: relative;
+        aspect-ratio: 1;
+        background: var(--cell);
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        cursor: pointer;
+        font-size: calc(100cqi / var(--cols, 15) * 0.56);
+        line-height: 1.3;
+      }
+      .sq.block {
+        background: var(--block);
+        cursor: default;
+      }
+      .sq.done {
+        background: var(--done);
+      }
+      .sq.gave {
+        background: var(--gave);
+      }
+      .sq.done.gave:not(.on) {
+        background: linear-gradient(135deg, var(--done) 50%, var(--gave) 50%);
+      }
+      .sq.on {
+        background: var(--sel-soft);
+      }
+      .sq.cur {
+        background: var(--sel);
+      }
+      .sq .num {
+        position: absolute;
+        top: 1px;
+        left: 2px;
+        font-size: calc(100cqi / var(--cols, 15) * 0.26);
+        line-height: 1;
+      }
+      .sq.in {
+        animation: sq-in 0.3s ease-out backwards;
+      }
+      @keyframes sq-in {
+        from {
+          opacity: 0;
+          transform: scale(0.6);
+        }
+      }
+      #clues {
+        flex: 1 1 360px;
+        min-width: 0;
+        max-width: 640px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        height: var(--grid-h, auto);
+        font-family: 'Libre Franklin', Helvetica, Arial, sans-serif;
+        font-size: 13px;
+      }
+      .list {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+      .list h2 {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--line);
+      }
+      .list ol {
+        list-style: none;
+        overflow-y: auto;
+        min-height: 0;
+        flex: 1;
+      }
+      .list li {
+        display: grid;
+        grid-template-columns: 2.4em 1fr;
+        gap: 0 4px;
+        padding: 4px 6px 4px 0;
+        cursor: pointer;
+        border-left: 4px solid transparent;
+        line-height: 1.35;
+      }
+      .list li.cur {
+        background: var(--sel-soft);
+        border-left-color: var(--sel);
+      }
+      .list .n {
+        font-weight: 600;
+        text-align: right;
+        padding-right: 4px;
+      }
+      .list .ans {
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      .list .said {
+        grid-column: 2;
+      }
+      .list .past {
+        grid-column: 2;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .list li.won .ans {
+        color: var(--ok);
+      }
+      .list li.lost .ans {
+        color: var(--bad);
+      }
+      #word {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      #which {
+        color: var(--muted);
+      }
+      #answer {
+        font-family: 'Libre Franklin', Helvetica, Arial, sans-serif;
+        font-weight: 600;
+        font-size: 26px;
+        letter-spacing: 0.12em;
+        overflow-wrap: anywhere;
+      }
+      #guess-form {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        border-bottom: 1px solid var(--line);
+      }
+      #guess {
+        flex: 1;
+        min-width: 0;
+        font: inherit;
+        font-size: 1.3em;
+        padding: 8px 0;
+        background: transparent;
+        color: inherit;
+        border: none;
+        outline: none;
+      }
+      #guess::placeholder {
+        color: var(--muted);
+      }
+      button {
+        font: inherit;
+        color: inherit;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 0 4px;
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        text-underline-offset: 3px;
+      }
+      button:disabled {
+        color: var(--muted);
+        cursor: default;
+        text-decoration: none;
+      }
+      button[hidden] {
+        display: none;
+      }
+      #status {
+        min-height: 20px;
+        line-height: 1.5;
+      }
+      #status q {
+        quotes: '“' '”';
+      }
+      .ok {
+        color: var(--ok);
+      }
+      .bad {
+        color: var(--bad);
+      }
+      .close {
+        color: var(--close);
+      }
+      #guesses {
+        list-style: none;
+        color: var(--muted);
+      }
+      #guesses li::before {
+        content: '✗ ';
+      }
+      #guesses li.close::before {
+        content: '~ ';
+      }
+      #known {
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      #known[hidden] {
+        display: none;
+      }
+      #known summary {
+        cursor: pointer;
+      }
+      #known ul {
+        margin: 4px 0 0 1.2em;
+        max-height: 30vh;
+        overflow-y: auto;
+      }
+      #known li.hit {
+        color: var(--ok);
+      }
+      #actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 10px;
+        color: var(--muted);
+      }
+      #actions button {
+        padding: 0.5em 1em;
+        border: 1px solid currentColor;
+        border-radius: 6px;
+        text-decoration: none;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      #actions #giveup {
+        color: var(--bad);
+      }
+      #actions #giveup:hover {
+        background: var(--bad);
+        color: #fff;
+      }
+      #actions #claim {
+        color: var(--ok);
+      }
+      #actions #claim:hover {
+        background: var(--ok);
+        color: #fff;
+      }
+      #actions #next:hover:not(:disabled),
+      #actions #info-btn:hover,
+      #actions #info-btn[aria-expanded='true'] {
+        background: var(--line);
+      }
+      #info {
+        padding: 0.8em 1em;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+      #info[hidden] {
+        display: none;
+      }
+      #info ul {
+        margin: 0 0 0 1.2em;
+      }
+      #matcher {
+        color: var(--muted);
+      }
+      #matcher:empty {
+        display: none;
+      }
+      #leaders {
+        margin-top: auto;
+        color: var(--muted);
+      }
+      #leaders ol {
+        list-style: none;
+        margin-top: 6px;
+      }
+      #leaders li {
+        display: flex;
+        gap: 1em;
+      }
+      #leaders li b {
+        font-weight: normal;
+        min-width: 5ch;
+        text-align: right;
+      }
+      #leaders .rank {
+        min-width: 2ch;
+        text-align: right;
+      }
+      #leaders li.mine {
+        color: var(--ok);
+      }
+      #hint {
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        left: 16px;
+        bottom: 8px;
+        gap: 2px;
+        font-size: 12px;
+        color: #888;
+        user-select: none;
+      }
+      #hint .hint-btn {
+        cursor: pointer;
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        text-underline-offset: 2px;
+      }
+      #hint .hint-btn:hover {
+        color: #333;
+      }
+      body.dark #hint .hint-btn:hover {
+        color: #ccc;
+      }
+      @media (max-width: 1100px) {
+        #main {
+          flex-direction: column;
+        }
+        #grid-wrap {
+          flex: none;
+          width: min(100%, calc(100dvh - 32px));
+        }
+        #clues {
+          flex: none;
+          width: 100%;
+          height: auto;
+        }
+        .list ol {
+          max-height: 50vh;
+        }
+      }
+      @media (max-width: 760px) {
+        #layout {
+          flex-direction: column;
+        }
+        #side {
+          flex-basis: auto;
+          width: 100%;
+          min-width: 0;
+          min-height: 0;
+          padding: 0;
+          position: static;
+        }
+        #main {
+          width: 100%;
+        }
+        #grid-wrap {
+          width: 100%;
+          min-width: 0;
+        }
+        #hint {
+          position: static;
+          margin-top: 20px;
+        }
+      }
+      @media (max-width: 480px) {
+        #clues {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .sq.in {
+          animation: none;
+        }
+      }
+    </style>
+    <script src="/common.js"></script>
+  </head>
+  <body class="dark">
+    <div id="layout">
+      <aside id="side">
+        <div id="scorebar">
+          <span>score <b id="score">0</b></span>
+          <span>clued <b id="solved">0/0</b></span>
+          <span id="meta"></span>
+        </div>
+        <div id="word">
+          <span id="which"></span>
+          <span id="answer"></span>
+          <form id="guess-form" autocomplete="off">
+            <input type="text" id="guess" placeholder="write a clue" spellcheck="false" />
+            <button id="guess-btn" type="submit">check</button>
+          </form>
+          <div id="status"></div>
+          <ul id="guesses"></ul>
+          <details id="known" hidden>
+            <summary></summary>
+            <ul></ul>
+          </details>
+        </div>
+        <div id="actions">
+          <button id="giveup" type="button">reveal clue</button>
+          <button id="claim" type="button" hidden>my last clue was fine</button>
+          <button id="next" type="button">new puzzle →</button>
+          <button id="info-btn" type="button" aria-expanded="false">how it works</button>
+        </div>
+        <div id="info" hidden></div>
+        <div id="matcher"></div>
+        <div id="leaders">
+          <div>high scores</div>
+          <ol id="leaders-list"></ol>
+        </div>
+      </aside>
+      <main id="main">
+        <div id="grid-wrap"><div id="grid"></div></div>
+        <div id="clues">
+          <section class="list">
+            <h2>Across</h2>
+            <ol id="list-a"></ol>
+          </section>
+          <section class="list">
+            <h2>Down</h2>
+            <ol id="list-d"></ol>
+          </section>
+        </div>
+      </main>
+    </div>
+    <div id="hint"></div>
+    <script>
+      Common.paintFavicon({ glyph: '✏️', fontSize: 44, transparent: true });
+      if (matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('dark');
+      Common.initHintUpdated({ hintEl: document.getElementById('hint') });
+
+      const PUZZLES = 150;
+      const STORE = 'reverse-crossword';
+      const WORTH = 100;
+      const MISS = 25;
+      const LEADERS = 10;
+      const $ = (id) => document.getElementById(id);
+      const gridEl = $('grid');
+      const guessEl = $('guess');
+      const statusEl = $('status');
+      const esc = Common.escHtml;
+      const fine = () => matchMedia('(pointer: fine)').matches;
+
+      // --- persistence ------------------------------------------------------
+      // cur is the puzzle in progress, so a reload picks up where it left off.
+
+      const stats = (() => {
+        try {
+          return { seen: [], scores: [], cur: null, ...JSON.parse(localStorage.getItem(STORE)) };
+        } catch {
+          return { seen: [], scores: [], cur: null };
+        }
+      })();
+      function saveStats() {
+        stats.seen = stats.seen.slice(-PUZZLES + 10);
+        try {
+          localStorage.setItem(STORE, JSON.stringify(stats));
+        } catch {}
+      }
+
+      // --- game state -------------------------------------------------------
+      // puzzle.words[k]: { n, dir, ans, clue, past, cells }
+      // state[k]: { done, won, given, said, best, misses, guesses: [{ text, close }], paid }
+
+      let puzzle = null;
+      let state = [];
+      let sel = 0;
+      let lastCell = -1;
+
+      const worthOf = (st) => Math.max(MISS, WORTH - MISS * st.misses);
+      const playable = () => state.filter((st) => !st.given);
+      const score = () => state.reduce((s, st) => s + (st.paid || 0), 0);
+      const label = (w) => `${w.n} ${w.dir === 'a' ? 'across' : 'down'}`;
+
+      $('info').innerHTML = `
+        <ul>
+          <li>The grid is filled in; the clues are hidden. Write a clue for each entry.</li>
+          <li>A clue counts if it matches one that has run for that word in the NYT crossword (1976–2018) — same words, a typo off, or a close paraphrase.</li>
+          <li>Correct: ${WORTH}, minus ${MISS} per wrong try (at least ${MISS}). “Close” tries are free.</li>
+          <li>Clues can't contain the answer. Use ___ for a blank.</li>
+          <li>Tab / shift-tab: next / previous unclued entry. Click a square twice to switch direction.</li>
+        </ul>`;
+      $('info-btn').addEventListener('click', (e) => {
+        const open = $('info').hidden;
+        $('info').hidden = !open;
+        e.currentTarget.setAttribute('aria-expanded', open);
+      });
+
+      function recordScore() {
+        const cur = stats.cur;
+        if (!cur) return;
+        cur.state = state;
+        const entry = { t: cur.t, score: score(), solved: playable().filter((s) => s.won).length };
+        entry.total = playable().length;
+        stats.scores = stats.scores.filter((e) => e.t !== cur.t);
+        if (entry.score > 0) stats.scores.push(entry);
+        stats.scores.sort((a, b) => b.score - a.score || a.t - b.t);
+        stats.scores = stats.scores.slice(0, LEADERS);
+        saveStats();
+        renderLeaders();
+      }
+      // The puzzle in progress is ranked as it changes, and shown below the
+      // top ten if it hasn't made it in.
+      function renderLeaders() {
+        const list = $('leaders-list');
+        list.textContent = '';
+        const t = stats.cur?.t;
+        const live = stats.scores.find((e) => e.t === t) || {
+          t,
+          score: score(),
+          solved: playable().filter((s) => s.won).length,
+          total: playable().length,
+        };
+        const all = [...stats.scores.filter((e) => e !== live), live].filter((e) => e.score > 0);
+        all.sort((a, b) => b.score - a.score || a.t - b.t);
+        const rank = all.indexOf(live);
+        const shown = all.slice(0, LEADERS);
+        if (rank >= LEADERS) shown.push(null, live);
+        for (const e of shown) {
+          const li = document.createElement('li');
+          if (!e) {
+            li.textContent = '⋯';
+            list.appendChild(li);
+            continue;
+          }
+          const n = document.createElement('span');
+          n.className = 'rank';
+          n.textContent = all.indexOf(e) + 1;
+          const b = document.createElement('b');
+          b.textContent = e.score;
+          const when = e === live ? 'this puzzle' : new Date(e.t).toLocaleDateString();
+          li.append(n, b, `${e.solved}/${e.total} · ${when}`);
+          if (e === live) li.className = 'mine';
+          list.appendChild(li);
+        }
+      }
+
+      // --- loading ------------------------------------------------------------
+
+      async function fetchPuzzle(id) {
+        const r = await fetch(`data/${id}.json`);
+        if (!r.ok) throw new Error(`puzzle ${id}: ${r.status}`);
+        return r.json();
+      }
+
+      function pickId() {
+        const seen = new Set(stats.seen);
+        const fresh = [...Array(PUZZLES).keys()].filter((i) => !seen.has(i));
+        const pool = fresh.length ? fresh : [...Array(PUZZLES).keys()];
+        return pool[Math.floor(Math.random() * pool.length)];
+      }
+
+      // Numbers squares the standard way and attaches each entry's squares.
+      function layout(p) {
+        const size = Math.round(Math.sqrt(p.grid.length));
+        const open = (r, c) =>
+          r >= 0 && c >= 0 && r < size && c < size && p.grid[r * size + c] !== '.';
+        const starts = {};
+        let n = 0;
+        for (let r = 0; r < size; r++)
+          for (let c = 0; c < size; c++) {
+            if (!open(r, c)) continue;
+            const a = !open(r, c - 1) && open(r, c + 1);
+            const d = !open(r - 1, c) && open(r + 1, c);
+            if (a || d) starts[++n] = r * size + c;
+          }
+        p.size = size;
+        for (const w of p.words) {
+          const step = w.dir === 'a' ? 1 : size;
+          w.cells = [];
+          for (let i = starts[w.n], k = 0; k < w.ans.length; i += step, k++) w.cells.push(i);
+        }
+        return p;
+      }
+
+      let loading = false;
+      async function newPuzzle(resume) {
+        if (loading) return;
+        loading = true;
+        $('next').disabled = true;
+        try {
+          const id = resume ? resume.id : pickId();
+          puzzle = layout(await fetchPuzzle(id));
+          if (resume) state = resume.state;
+          else {
+            state = puzzle.words.map((w) => ({
+              done: !w.past.length,
+              won: false,
+              given: !w.past.length,
+              misses: 0,
+              guesses: [],
+            }));
+            stats.cur = { id, t: Date.now(), state };
+            stats.seen.push(id);
+            saveStats();
+          }
+        } finally {
+          loading = false;
+          $('next').disabled = false;
+        }
+        render();
+        const first = state.findIndex((st) => !st.done);
+        select(first < 0 ? 0 : first, true);
+      }
+
+      // --- rendering ----------------------------------------------------------
+
+      function render() {
+        const p = puzzle;
+        const d = new Date(p.date + 'T12:00');
+        $('meta').textContent = `${d.toLocaleDateString(undefined, {
+          weekday: 'long',
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })} · ${p.by}`;
+        gridEl.style.setProperty('--cols', p.size);
+        gridEl.textContent = '';
+        const nums = new Map(p.words.map((w) => [w.cells[0], w.n]));
+        for (let i = 0; i < p.grid.length; i++) {
+          const el = document.createElement('div');
+          el.id = `sq-${i}`;
+          if (p.grid[i] === '.') el.className = 'sq block';
+          else {
+            el.className = 'sq in';
+            el.style.animationDelay = Math.round(Math.random() * 400) + 'ms';
+            el.textContent = p.grid[i];
+            if (nums.has(i)) {
+              const n = document.createElement('span');
+              n.className = 'num';
+              n.textContent = nums.get(i);
+              el.prepend(n);
+            }
+            el.addEventListener('click', () => clickCell(i));
+          }
+          gridEl.appendChild(el);
+        }
+        for (const dir of ['a', 'd']) {
+          const ol = $(`list-${dir}`);
+          ol.textContent = '';
+          p.words.forEach((w, k) => {
+            if (w.dir !== dir) return;
+            const li = document.createElement('li');
+            li.id = `clue-${k}`;
+            li.addEventListener('click', () => select(k, true));
+            ol.appendChild(li);
+            paintClue(k);
+          });
+        }
+        paintCells();
+        updateScore();
+        renderLeaders();
+      }
+
+      function paintClue(k) {
+        const w = puzzle.words[k];
+        const st = state[k];
+        const li = $(`clue-${k}`);
+        li.className = (st.done ? (st.won ? 'won' : 'lost') : '') + (k === sel ? ' cur' : '');
+        li.innerHTML = `<span class="n">${w.n}</span><span class="ans">${w.ans}</span>`;
+        if (st.won) {
+          li.innerHTML += `<span class="said">${esc(st.said)}</span>`;
+          if (st.best && st.best.toLowerCase() !== st.said.toLowerCase())
+            li.innerHTML += `<span class="past">≈ ${esc(st.best)}</span>`;
+        } else if (st.done) li.innerHTML += `<span class="said">${esc(w.clue)}</span>`;
+      }
+
+      // Squares of clued entries are green and of revealed ones red; a square
+      // where one of each crosses is split between the two.
+      function paintCells() {
+        const through = new Map();
+        puzzle.words.forEach((w, k) => {
+          for (const i of w.cells) {
+            const s = through.get(i) || [];
+            s.push(state[k]);
+            through.set(i, s);
+          }
+        });
+        const on = new Set(puzzle.words[sel].cells);
+        for (const [i, sts] of through) {
+          const el = $(`sq-${i}`);
+          el.classList.toggle(
+            'done',
+            sts.some((st) => st.won)
+          );
+          el.classList.toggle(
+            'gave',
+            sts.some((st) => st.done && !st.won && !st.given)
+          );
+          el.classList.toggle('on', on.has(i));
+          el.classList.toggle('cur', on.has(i) && i === lastCell);
+        }
+      }
+
+      function select(k, focus) {
+        const prev = sel;
+        sel = k;
+        const w = puzzle.words[k];
+        if (!w.cells.includes(lastCell)) lastCell = w.cells[0];
+        if ($(`clue-${prev}`)) paintClue(prev);
+        paintClue(k);
+        $(`clue-${k}`).scrollIntoView({ block: 'nearest' });
+        paintCells();
+        showWord();
+        Matcher.warm(w);
+        if (focus && !state[k].done && fine()) guessEl.focus();
+      }
+
+      function clickCell(i) {
+        const words = puzzle.words
+          .map((w, k) => (w.cells.includes(i) ? k : -1))
+          .filter((k) => k >= 0);
+        if (!words.length) return;
+        let k = words.find((k) => puzzle.words[k].dir === puzzle.words[sel].dir) ?? words[0];
+        if (i === lastCell && words.length > 1) k = words.find((x) => x !== sel) ?? k;
+        lastCell = i;
+        select(k, true);
+      }
+
+      function showWord() {
+        const w = puzzle.words[sel];
+        const st = state[sel];
+        $('which').textContent =
+          `${label(w)} · ${w.ans.length} letters` + (st.done ? '' : ` · worth ${worthOf(st)}`);
+        $('answer').textContent = w.ans;
+        guessEl.value = '';
+        guessEl.disabled = st.done;
+        guessEl.placeholder = st.done
+          ? st.won
+            ? 'clued'
+            : 'revealed'
+          : `write a clue for ${w.ans}`;
+        $('guess-btn').disabled = st.done;
+        $('giveup').hidden = st.done;
+        $('claim').hidden = !(!st.won && !st.given && st.guesses.some((g) => !g.close || st.done));
+        const ul = $('guesses');
+        ul.textContent = '';
+        for (const g of st.guesses) addGuessLi(g);
+        statusEl.textContent = '';
+        if (st.given)
+          setStatus('', `the puzzle's clue: <q>${esc(w.clue)}</q> — no other clues to match`);
+        else if (st.won) {
+          setStatus(
+            'ok',
+            `✓ <q>${esc(st.said)}</q>` +
+              (st.best && st.best.toLowerCase() !== st.said.toLowerCase()
+                ? ` ≈ <q>${esc(st.best)}</q>`
+                : '') +
+              `<br><span style="color:var(--muted)">the puzzle's clue: <q>${esc(w.clue)}</q></span>`
+          );
+        } else if (st.done) setStatus('bad', `the puzzle's clue: <q>${esc(w.clue)}</q>`);
+        const known = $('known');
+        known.hidden = !st.done || st.given;
+        known.open = false;
+        known.querySelector('summary').textContent = `${w.past.length} past clue${
+          w.past.length === 1 ? '' : 's'
+        } for ${w.ans}`;
+        const kl = known.querySelector('ul');
+        kl.textContent = '';
+        for (const c of w.past) {
+          const li = document.createElement('li');
+          li.textContent = c;
+          if (c === st.best) li.className = 'hit';
+          kl.appendChild(li);
+        }
+      }
+
+      function setStatus(cls, html) {
+        statusEl.innerHTML = `<span class="${cls}">${html}</span>`;
+      }
+      function addGuessLi(g) {
+        const li = document.createElement('li');
+        li.textContent = g.text + (g.close ? ' (close)' : g.why ? ` (${g.why})` : ` (−${MISS})`);
+        if (g.close || g.why) li.className = 'close';
+        $('guesses').prepend(li);
+      }
+
+      function updateScore() {
+        $('score').textContent = score();
+        $('solved').textContent = `${playable().filter((s) => s.won).length}/${playable().length}`;
+        renderLeaders();
+      }
+
+      // --- guessing -----------------------------------------------------------
+
+      function settle(k, won) {
+        const st = state[k];
+        st.done = true;
+        st.won = won;
+        recordScore();
+        paintClue(k);
+        paintCells();
+        updateScore();
+        if (state.every((s) => s.done))
+          setTimeout(
+            () =>
+              setStatus(
+                'ok',
+                `puzzle finished — ${playable().filter((s) => s.won).length}/${playable().length} clued, ${score()} points`
+              ),
+            0
+          );
+      }
+
+      function nextOpen(k, step = 1) {
+        const n = state.length;
+        for (let d = 1; d <= n; d++) {
+          const j = (((k + step * d) % n) + n) % n;
+          if (!state[j].done) return j;
+        }
+        return -1;
+      }
+
+      async function submitGuess(text) {
+        text = text.trim();
+        const k = sel;
+        const st = state[k];
+        const w = puzzle.words[k];
+        if (!text || st.done) return;
+        guessEl.disabled = true;
+        const v = await Matcher.judge(text, w);
+        guessEl.disabled = false;
+        if (sel !== k) return;
+        if (v.result === 'yes') {
+          st.said = text;
+          st.best = v.best;
+          st.paid = worthOf(st);
+          settle(k, true);
+          showWord();
+          setStatus(
+            'ok',
+            `✓ +${st.paid} — ` +
+              (v.exact
+                ? 'that exact clue has run before'
+                : `close enough to <q>${esc(v.best)}</q>`) +
+              `<br><span style="color:var(--muted)">the puzzle's clue: <q>${esc(w.clue)}</q>` +
+              (nextOpen(k) >= 0 && fine() ? '<br>enter for the next clue' : '') +
+              '</span>'
+          );
+          return;
+        }
+        const g = { text, close: v.result === 'close' };
+        if (v.result === 'giveaway') g.why = 'gives it away';
+        else if (!g.close) st.misses++;
+        st.guesses.push(g);
+        recordScore();
+        showWord();
+        setStatus(
+          g.why || g.close ? 'close' : 'bad',
+          g.why
+            ? `a clue can't contain ${esc(w.ans)}`
+            : g.close
+              ? 'close — try another angle'
+              : `no clue like that has run for ${esc(w.ans)}`
+        );
+        guessEl.focus();
+      }
+
+      $('guess-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        submitGuess(guessEl.value);
+      });
+      $('giveup').addEventListener('click', () => {
+        if (state[sel].done) return;
+        settle(sel, false);
+        showWord();
+      });
+      // Honor system for when the matcher is too strict: pays out what the
+      // last miss would have earned and refunds the misses since.
+      $('claim').addEventListener('click', () => {
+        const st = state[sel];
+        const g = [...st.guesses].reverse().find((g) => !g.close && !g.why) || st.guesses.at(-1);
+        const missesAfter = st.guesses
+          .slice(st.guesses.indexOf(g))
+          .filter((x) => !x.close && !x.why);
+        st.misses = Math.max(0, st.misses - missesAfter.length);
+        st.said = g.text;
+        st.best = null;
+        st.paid = worthOf(st);
+        st.claimed = true;
+        settle(sel, true);
+        showWord();
+        setStatus('ok', `fair enough — +${st.paid} for <q>${esc(g.text)}</q>`);
+      });
+      $('next').addEventListener('click', () => newPuzzle());
+
+      guessEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') guessEl.blur();
+        if (e.key === 'Tab') {
+          const j = nextOpen(sel, e.shiftKey ? -1 : 1);
+          if (j < 0) return;
+          e.preventDefault();
+          select(j, true);
+        }
+      });
+      // Once an entry is settled, enter (or tab) moves on to the next one.
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== 'Tab') return;
+        if (e.metaKey || e.ctrlKey || e.altKey || !puzzle || !state[sel].done) return;
+        if (e.target.closest('input, button, summary, a')) return;
+        const j = nextOpen(sel, e.shiftKey ? -1 : 1);
+        if (j < 0) return;
+        e.preventDefault();
+        select(j, true);
+      });
+
+      // Keep the clue lists as tall as the grid beside them.
+      new ResizeObserver(() => {
+        $('clues').style.setProperty('--grid-h', gridEl.offsetHeight + 'px');
+      }).observe(gridEl);
+
+      // --- clue matching --------------------------------------------------------
+      // A clue counts when it matches any clue that has run for the entry:
+      //   - the same text, ignoring case, punctuation and a few typos;
+      //   - every content word of the past clue has a counterpart in the guess
+      //     (same stem, a typo, or a near-synonym by a small embedding model,
+      //     bge-small, run in the browser), with up to two extra words, so
+      //     “curvy letter” matches “Letter” and “Mom's husband” matches
+      //     “Mom's spouse”;
+      //   - or the whole guess is a close paraphrase by the same model. A lone
+      //     word needs to be closer, since “guitar” sits near “Instrument”.
+      // Thresholds were tuned on held-out past clues: about 60% of real clues
+      // the bank hasn't seen pass outright and 25% come back close, while a
+      // clue for another entry in the same puzzle passes about 1 time in 400.
+      const Matcher = (() => {
+        const YES = 0.78;
+        const YES_ONE_WORD = 0.86;
+        const LEX_MIN = 0.7;
+        const CLOSE = 0.7;
+        const WORD = 0.8;
+        const STOP = new Set(
+          'a an the of and or in on at to for from with by is are be its it this that these those as one some e g eg qblank'.split(
+            ' '
+          )
+        );
+        const matcherEl = $('matcher');
+        let ready = false;
+        let loading = null;
+        const cache = new Map();
+
+        function norm(s) {
+          return s
+            .normalize('NFD')
+            .replace(/[̀-ͯ]/g, '')
+            .toLowerCase()
+            .replace(/_+|-{2,}|\bblank\b|…|\.{3}/g, ' qblank ')
+            .replace(/&/g, ' and ')
+            .replace(/['’]s\b/g, '')
+            .replace(/\b([a-z])\.(?=[a-z]\.)/g, '$1')
+            .replace(/[^a-z0-9 ]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        }
+        function stem(w) {
+          if (w.length > 4 && w.endsWith('ies')) return w.slice(0, -3) + 'y';
+          if (w.length > 4 && /(ches|shes|sses|xes)$/.test(w)) return w.slice(0, -2);
+          if (w.length > 3 && w.endsWith('s') && !w.endsWith('ss')) return w.slice(0, -1);
+          if (w.length > 5 && w.endsWith('ing')) return w.slice(0, -3);
+          if (w.length > 4 && w.endsWith('ed')) return w.slice(0, -2);
+          return w;
+        }
+        const words = (n) =>
+          n
+            .split(' ')
+            .filter((w) => w && !STOP.has(w))
+            .map((w) => ({ w, s: stem(w) }));
+        const same = (a, b) =>
+          a.s === b.s || (Math.min(a.s.length, b.s.length) >= 5 && editDistance(a.s, b.s) <= 1);
+        const dot = (x, y) => x.reduce((s, v, i) => s + v * y[i], 0);
+
+        function givesAway(g, ans) {
+          const a = ans.toLowerCase();
+          if (g.split(' ').some((w) => w === a || stem(w) === a)) return true;
+          return a.length >= 5 && g.replace(/ /g, '').includes(a);
+        }
+
+        // 1 when every past-clue word has a counterpart and the guess adds at
+        // most two of its own, else the share of past-clue words covered.
+        function lexical(gw, tw, vecOf) {
+          if (!gw.length || !tw.length) return 0;
+          const match = (a, b) =>
+            same(a, b) || (vecOf && !/\d/.test(a.w + b.w) && dot(vecOf(a.w), vecOf(b.w)) >= WORD);
+          const hits = tw.filter((b) => gw.some((a) => match(a, b))).length;
+          const extra = gw.filter((a) => !tw.some((b) => match(a, b))).length;
+          if (hits === tw.length && extra <= 2) return 1;
+          return hits / tw.length;
+        }
+
+        // The model runs in embed-worker.js; replies come back by request id.
+        let worker = null;
+        let nextId = 0;
+        const pending = new Map();
+        function load() {
+          if (!loading) {
+            matcherEl.textContent = 'loading matcher…';
+            loading = new Promise((resolve, reject) => {
+              worker = new Worker('embed-worker.js', { type: 'module' });
+              worker.onerror = (e) => reject(new Error(e.message || 'worker failed'));
+              worker.onmessage = ({ data }) => {
+                if (data.ready) resolve();
+                else if (data.id === undefined) reject(new Error(data.error));
+                else {
+                  const p = pending.get(data.id);
+                  pending.delete(data.id);
+                  if (data.error) p.reject(new Error(data.error));
+                  else p.resolve(data.vecs);
+                }
+              };
+            }).then(
+              () => {
+                ready = true;
+                matcherEl.textContent = '';
+              },
+              (err) => {
+                console.error('matcher:', err);
+                matcherEl.textContent = 'semantic matcher failed to load — near-exact matches only';
+              }
+            );
+          }
+          return loading;
+        }
+
+        // cache maps each text to a promise of its vector, so a text already
+        // on its way to the worker isn't sent twice.
+        function embed(texts) {
+          const missing = [...new Set(texts.filter((t) => !cache.has(t)))];
+          if (missing.length) {
+            const id = nextId++;
+            const batch = new Promise((resolve, reject) => pending.set(id, { resolve, reject }));
+            worker.postMessage({ id, texts: missing });
+            missing.forEach((t, i) => {
+              const vec = batch.then((vecs) => vecs[i]);
+              vec.catch(() => cache.delete(t));
+              cache.set(t, vec);
+            });
+          }
+          return Promise.all(texts.map((t) => cache.get(t)));
+        }
+        const pastTexts = (w) => {
+          const ts = w.past.map(norm);
+          return [...ts, ...ts.flatMap((t) => words(t).map((x) => x.w))];
+        };
+
+        // Embed an entry's past clues once the selection rests on it, so
+        // checking a guess only has to embed the guess. Clicking through
+        // entries quickly doesn't queue up work for each one.
+        let warmTimer = null;
+        function warm(w) {
+          clearTimeout(warmTimer);
+          warmTimer = setTimeout(async () => {
+            await load();
+            if (ready && puzzle.words[sel] === w) embed(pastTexts(w)).catch(() => {});
+          }, 300);
+        }
+
+        async function judge(guess, w) {
+          const g = norm(guess);
+          if (!g || g === 'qblank') return { result: 'no' };
+          if (givesAway(g, w.ans)) return { result: 'giveaway' };
+          const ts = w.past.map(norm);
+          const k = ts.indexOf(g);
+          if (k >= 0) return { result: 'yes', best: w.past[k], exact: true };
+          for (let i = 0; i < ts.length; i++) {
+            const t = ts[i];
+            const typos = t.length < 6 ? 0 : t.length < 12 ? 1 : Math.floor(t.length * 0.12);
+            if (typos && editDistance(g, t) <= typos) return { result: 'yes', best: w.past[i] };
+          }
+          await load();
+          const gw = words(g);
+          const tws = ts.map(words);
+          let vecOf = null;
+          let phrase = null;
+          if (ready) {
+            const texts = [g, ...gw.map((x) => x.w), ...pastTexts(w)];
+            const vecs = await embed(texts);
+            const by = new Map(texts.map((t, i) => [t, vecs[i]]));
+            vecOf = (t) => by.get(t);
+            phrase = ts.map((t) => dot(by.get(g), by.get(t)));
+          }
+          let best = -1;
+          let partial = 0;
+          for (let i = 0; i < ts.length; i++) {
+            const lex = lexical(gw, tws[i], vecOf);
+            if (lex === 1 && (!phrase || phrase[i] >= LEX_MIN))
+              return { result: 'yes', best: w.past[i] };
+            partial = Math.max(partial, lex);
+            if (phrase && (best < 0 || phrase[i] > phrase[best])) best = i;
+          }
+          const s = best >= 0 ? phrase[best] : 0;
+          console.log(`match "${guess}" ~ ${w.ans}: "${w.past[best]}" ${s.toFixed(3)}`);
+          if (s >= (gw.length > 1 ? YES : YES_ONE_WORD))
+            return { result: 'yes', best: w.past[best] };
+          if (s >= CLOSE || partial >= 0.5) return { result: 'close' };
+          return { result: 'no' };
+        }
+
+        return { warm, judge };
+      })();
+
+      function editDistance(a, b) {
+        const d = Array.from({ length: b.length + 1 }, (_, i) => i);
+        for (let i = 1; i <= a.length; i++) {
+          let prev = d[0];
+          d[0] = i;
+          for (let j = 1; j <= b.length; j++) {
+            const t = d[j];
+            d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+            prev = t;
+          }
+        }
+        return d[b.length];
+      }
+
+      const resume = stats.cur?.state ? stats.cur : null;
+      newPuzzle(resume).catch((err) => {
+        console.error(err);
+        if (resume) {
+          stats.cur = null;
+          saveStats();
+        }
+        setStatus('bad', 'couldn’t load the puzzle');
+      });
+    </script>
+  </body>
+</html>
