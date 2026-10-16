@@ -528,7 +528,9 @@
         }
       }
       .cell.skel {
-        animation: twinkle 1.4s ease-in-out infinite;
+        animation:
+          cell-in 0.35s ease-out backwards,
+          twinkle 1.4s ease-in-out infinite;
       }
       @keyframes twinkle {
         50% {
@@ -776,6 +778,8 @@
         if (board) {
           animateCells('out', 250);
           await sleep(400);
+        } else {
+          await Promise.race([drawing.catch(() => {}), sleep(300)]);
         }
         // Skip the skeleton when the next board is already in hand, so the
         // faded-out board goes straight to the new one.
