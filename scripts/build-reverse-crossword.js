@@ -3,16 +3,16 @@
 //   node scripts/build-reverse-crossword.js path/to/nyt_crosswords
 // Every clue in the archive goes into a bank keyed by answer. Then every
 // plain 15x15 Monday–Saturday puzzle (no rebus squares, circles or notes) is
-// written, shuffled, one per file in data/puzzles/, and the most common past
-// clues of each answer they use go once into data/past/. Clues that only make
-// sense inside their own puzzle (cross-references, theme hints) are left out
-// of the bank. Prints the puzzle count, which PUZZLES in the page must match.
+// written, shuffled, one per file in data/puzzles/, and every past clue of
+// each answer they use goes once into data/past/, most common first. Clues
+// that only make sense inside their own puzzle (cross-references, theme
+// hints) are left out of the bank. Prints the puzzle count, which PUZZLES in
+// the page must match.
 
 const fs = require('node:fs');
 const path = require('node:path');
 
 const OUT = path.resolve(__dirname, '..', 'reverse-crossword', 'data');
-const PAST = 40;
 const SHARDS = 256;
 const DAYS = new Set(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']);
 
@@ -83,10 +83,7 @@ for (const f of files) {
 }
 
 function pastClues(ans) {
-  return [...(bank.get(ans)?.values() || [])]
-    .sort((a, b) => b.n - a.n)
-    .slice(0, PAST)
-    .map((e) => e.clue);
+  return [...(bank.get(ans)?.values() || [])].sort((a, b) => b.n - a.n).map((e) => e.clue);
 }
 
 // Must match shardOf in reverse-crossword/index.html.

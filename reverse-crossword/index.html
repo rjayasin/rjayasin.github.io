@@ -1071,6 +1071,7 @@
         // drop a phone's keyboard after every try.
         judging = true;
         lastTried = text;
+        const slow = setTimeout(() => sel === k && setStatus('', 'checking…'), 400);
         let v;
         try {
           await pastOf(w);
@@ -1081,6 +1082,7 @@
           return;
         } finally {
           judging = false;
+          clearTimeout(slow);
         }
         if (sel !== k) return;
         if (v.result === 'yes') {
@@ -1225,6 +1227,7 @@
         const LEX_MIN = 0.7;
         const CLOSE = 0.7;
         const WORD = 0.8;
+        const WARM = 40;
         const STOP = new Set(
           'a an the of and or in on at to for from with by is are be its it this that these those as one some e g eg qblank'.split(
             ' '
@@ -1333,20 +1336,23 @@
           }
           return Promise.all(texts.map((t) => cache.get(t)));
         }
-        const pastTexts = (w) => {
-          const ts = w.past.map(norm);
+        const pastTexts = (clues) => {
+          const ts = clues.map(norm);
           return [...ts, ...ts.flatMap((t) => words(t).map((x) => x.w))];
         };
 
-        // Embed an entry's past clues once the selection rests on it, so
-        // checking a guess only has to embed the guess. Clicking through
-        // entries quickly doesn't queue up work for each one.
+        // Embed an entry's past clues, most common first and WARM at a time,
+        // while the selection rests on it, so checking a guess usually only
+        // has to embed the guess. Moving on stops it after the current batch.
         let warmTimer = null;
         function warm(w) {
           clearTimeout(warmTimer);
           warmTimer = setTimeout(async () => {
             await load();
-            if (ready && puzzle.words[sel] === w) embed(pastTexts(w)).catch(() => {});
+            for (let i = 0; i < w.past.length; i += WARM) {
+              if (!ready || puzzle.words[sel] !== w) return;
+              await embed(pastTexts(w.past.slice(i, i + WARM))).catch(() => {});
+            }
           }, 300);
         }
 
@@ -1365,30 +1371,42 @@
           await load();
           const gw = words(g);
           const tws = ts.map(words);
-          let vecOf = null;
-          let phrase = null;
-          if (ready) {
-            const texts = [g, ...gw.map((x) => x.w), ...pastTexts(w)];
-            const vecs = await embed(texts);
-            const by = new Map(texts.map((t, i) => [t, vecs[i]]));
-            vecOf = (t) => by.get(t);
-            phrase = ts.map((t) => dot(by.get(g), by.get(t)));
+
+          // Compares the guess by meaning with the past clues at idx.
+          async function compare(idx) {
+            let vecOf = null;
+            let phrase = null;
+            if (ready) {
+              const texts = [g, ...gw.map((x) => x.w), ...pastTexts(idx.map((i) => w.past[i]))];
+              const vecs = await embed(texts);
+              const by = new Map(texts.map((t, i) => [t, vecs[i]]));
+              vecOf = (t) => by.get(t);
+              phrase = new Map(idx.map((i) => [i, dot(by.get(g), by.get(ts[i]))]));
+            }
+            let best = -1;
+            let partial = 0;
+            for (const i of idx) {
+              const lex = lexical(gw, tws[i], vecOf);
+              if (lex === 1 && (!phrase || phrase.get(i) >= LEX_MIN))
+                return { result: 'yes', best: w.past[i] };
+              partial = Math.max(partial, lex);
+              if (phrase && (best < 0 || phrase.get(i) > phrase.get(best))) best = i;
+            }
+            const s = best >= 0 ? phrase.get(best) : 0;
+            console.log(`match "${guess}" ~ ${w.ans}: "${w.past[best]}" ${s.toFixed(3)}`);
+            if (s >= (gw.length > 1 ? YES : YES_ONE_WORD))
+              return { result: 'yes', best: w.past[best] };
+            if (s >= CLOSE || partial >= 0.5) return { result: 'close' };
+            return { result: 'no' };
           }
-          let best = -1;
-          let partial = 0;
-          for (let i = 0; i < ts.length; i++) {
-            const lex = lexical(gw, tws[i], vecOf);
-            if (lex === 1 && (!phrase || phrase[i] >= LEX_MIN))
-              return { result: 'yes', best: w.past[i] };
-            partial = Math.max(partial, lex);
-            if (phrase && (best < 0 || phrase[i] > phrase[best])) best = i;
-          }
-          const s = best >= 0 ? phrase[best] : 0;
-          console.log(`match "${guess}" ~ ${w.ans}: "${w.past[best]}" ${s.toFixed(3)}`);
-          if (s >= (gw.length > 1 ? YES : YES_ONE_WORD))
-            return { result: 'yes', best: w.past[best] };
-          if (s >= CLOSE || partial >= 0.5) return { result: 'close' };
-          return { result: 'no' };
+
+          // The rarer clues are only embedded when the common ones miss, but
+          // any of them that shares the guess's words stem for stem is
+          // compared straight away.
+          const all = ts.map((_, i) => i);
+          const first = all.filter((i) => i < WARM || lexical(gw, tws[i], null) === 1);
+          const v = await compare(first);
+          return v.result === 'yes' || first.length === all.length ? v : compare(all);
         }
 
         return { warm, judge };
