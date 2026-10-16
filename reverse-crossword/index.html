@@ -644,7 +644,7 @@
           <li>A clue counts if it matches one that has run for that word in the NYT crossword (1976–2018) — same words, a typo off, or a close paraphrase.</li>
           <li>Correct: ${WORTH}, minus ${MISS} per wrong try (at least ${MISS}). “Close” tries are free.</li>
           <li>Clues can't contain the answer. Use ___ for a blank.</li>
-          <li>Tab / shift-tab: next / previous unclued entry. ↓ / →: the down / across entry through the square. ↑: your last try. Click a square twice to switch direction.</li>
+          <li>Tab / shift-tab: next / previous unclued entry. ↓ / →: the down / across entry through the square. ↑: your last try at this entry. Click a square twice to switch direction.</li>
         </ul>`;
       $('info-btn').addEventListener('click', (e) => {
         const open = $('info').hidden;
@@ -1070,7 +1070,6 @@
         // The box stays enabled while judging, since disabling it would
         // drop a phone's keyboard after every try.
         judging = true;
-        lastTried = text;
         const slow = setTimeout(() => sel === k && setStatus('', 'checking…'), 400);
         let v;
         try {
@@ -1155,9 +1154,7 @@
         bringFormIntoView();
       });
 
-      // ↑ in the clue box steps back through this entry's tries, newest first,
-      // or brings back the last clue tried anywhere if it has none.
-      let lastTried = '';
+      // ↑ in the clue box steps back through this entry's tries, newest first.
       let recall = -1;
       guessEl.addEventListener('input', () => {
         recall = -1;
@@ -1165,7 +1162,6 @@
       guessEl.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowUp' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
           const tries = state[sel].guesses.map((g) => g.text).reverse();
-          if (!tries.length && lastTried) tries.push(lastTried);
           if (!tries.length) return;
           e.preventDefault();
           recall = Math.min(recall + 1, tries.length - 1);
