@@ -981,7 +981,24 @@
       }
 
       function closeClue() {
-        overlay.hidden = true;
+        if (!current) return;
+        const r = $(`clue-${current.j}-${current.i}`).getBoundingClientRect();
+        const to = `translate(${r.left}px, ${r.top}px) scale(${r.width / overlay.offsetWidth}, ${
+          r.height / overlay.offsetHeight
+        })`;
+        overlay.classList.remove('zoom');
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) overlay.hidden = true;
+        else {
+          const anim = overlay.animate([{ transformOrigin: '0 0', transform: to }], {
+            duration: 150,
+            easing: 'ease-in',
+            fill: 'forwards',
+          });
+          anim.finished.then(() => {
+            if (!current) overlay.hidden = true;
+            anim.cancel();
+          });
+        }
         current = null;
         lockedUntil = performance.now() + 400;
         if (!cols[sel].done && matchMedia('(pointer: fine)').matches) guessEl.focus();
