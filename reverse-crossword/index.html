@@ -598,6 +598,7 @@
       const STORE = 'reverse-crossword';
       const WORTH = 100;
       const MISS = 25;
+      const EXACT = 50;
       const LEADERS = 10;
       const $ = (id) => document.getElementById(id);
       const gridEl = $('grid');
@@ -643,6 +644,7 @@
           <li>The grid is filled in; the clues are hidden. Write a clue for each entry.</li>
           <li>A clue counts if it matches one that has run for that word in the NYT crossword (1976–2018) — same words, a typo off, or a close paraphrase.</li>
           <li>Correct: ${WORTH}, minus ${MISS} per wrong try (at least ${MISS}). “Close” tries are free.</li>
+          <li>A clue that has run word for word (ignoring case and punctuation) earns ${EXACT} more, marked ★.</li>
           <li>Clues can't contain the answer. Use ___ for a blank.</li>
           <li>Tab / shift-tab: next / previous unclued entry. ↓ / →: the down / across entry through the square. ↑: your last try at this entry. Click a square twice to switch direction.</li>
         </ul>`;
@@ -868,7 +870,7 @@
         li.className = (st.done ? (st.won ? 'won' : 'lost') : '') + (k === sel ? ' cur' : '');
         li.innerHTML = `<span class="n">${w.n}</span><span class="ans">${w.ans}</span>`;
         if (st.won) {
-          li.innerHTML += `<span class="said">${esc(st.said)}</span>`;
+          li.innerHTML += `<span class="said">${esc(st.said)}${st.exact ? ' ★' : ''}</span>`;
           if (st.best && st.best.toLowerCase() !== st.said.toLowerCase())
             li.innerHTML += `<span class="past">≈ ${esc(st.best)}</span>`;
         } else if (st.done) li.innerHTML += `<span class="said">${esc(w.clue)}</span>`;
@@ -981,6 +983,7 @@
           setStatus(
             'ok',
             `✓ <q>${esc(st.said)}</q>` +
+              (st.exact ? ' ★' : '') +
               (st.best && st.best.toLowerCase() !== st.said.toLowerCase()
                 ? ` ≈ <q>${esc(st.best)}</q>`
                 : '') +
@@ -1087,14 +1090,15 @@
         if (v.result === 'yes') {
           st.said = text;
           st.best = v.best;
-          st.paid = worthOf(st);
+          st.exact = !!v.exact;
+          st.paid = worthOf(st) + (st.exact ? EXACT : 0);
           settle(k, true);
           showWord();
           setStatus(
             'ok',
             `✓ +${st.paid} — ` +
               (v.exact
-                ? 'that exact clue has run before'
+                ? `that exact clue has run before (+${EXACT} bonus)`
                 : `close enough to <q>${esc(v.best)}</q>`) +
               `<br><span style="color:var(--muted)">the puzzle's clue: <q>${esc(w.clue)}</q>` +
               (nextOpen(k) >= 0 && fine() ? '<br>enter for the next clue' : '') +
