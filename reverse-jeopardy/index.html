@@ -65,6 +65,8 @@
         display: flex;
         flex-direction: column;
         gap: 28px;
+        min-height: calc(100dvh - 32px);
+        padding-bottom: 24px;
         position: sticky;
         top: 16px;
         container-type: inline-size;
@@ -388,18 +390,64 @@
       #guesses li.close::before {
         content: '~ ';
       }
+      #actions #info-btn {
+        color: #fff;
+      }
+      #actions #info-btn:hover,
+      #actions #info-btn[aria-expanded='true'] {
+        background: #fff;
+        color: #000;
+      }
+      #info {
+        padding: 0.8em 1em;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+      #info[hidden] {
+        display: none;
+      }
+      #info ul {
+        margin: 0 0 0 1.2em;
+      }
       #actions {
         display: flex;
         flex-direction: column;
         align-items: flex-start;
-        gap: 6px;
+        gap: 10px;
         color: var(--muted);
       }
       #actions button {
         padding: 0;
       }
+      #actions #giveup,
+      #actions #next,
+      #actions #info-btn {
+        padding: 0.5em 1em;
+        border: 1px solid currentColor;
+        border-radius: 6px;
+        text-decoration: none;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
       #actions #giveup {
         color: var(--bad);
+      }
+      #actions #giveup:hover {
+        background: var(--bad);
+        color: #fff;
+      }
+      #actions #next {
+        color: var(--gold);
+      }
+      #actions #next:hover:not(:disabled) {
+        background: var(--gold);
+        color: #000;
+      }
+      #actions #next:disabled {
+        opacity: 0.5;
       }
       #matcher {
         font-size: clamp(11px, 3.4cqi, 15px);
@@ -408,11 +456,38 @@
       #matcher:empty {
         display: none;
       }
+      #leaders {
+        margin-top: auto;
+        color: var(--muted);
+      }
+      #leaders ol {
+        list-style: none;
+        margin-top: 6px;
+      }
+      #leaders li {
+        display: flex;
+        gap: 1em;
+      }
+      #leaders li b {
+        font-weight: normal;
+        min-width: 8ch;
+        text-align: right;
+      }
+      #leaders .rank {
+        min-width: 2ch;
+        text-align: right;
+      }
+      #leaders li.mine {
+        color: var(--ok);
+      }
       #hint {
         display: flex;
         flex-direction: column;
+        position: fixed;
+        left: 16px;
+        bottom: 8px;
         gap: 2px;
-        font-size: clamp(12px, 3.6cqi, 16px);
+        font-size: 12px;
         color: #888;
         user-select: none;
       }
@@ -437,8 +512,13 @@
           width: 100%;
           min-width: 0;
           max-width: none;
+          min-height: 0;
           padding: 0;
           position: static;
+        }
+        #hint {
+          position: static;
+          margin-top: 20px;
         }
         #main {
           flex: none;
@@ -500,15 +580,21 @@
           <ul id="guesses"></ul>
         </div>
         <div id="actions">
-          <button id="giveup" type="button">reveal category title</button>
+          <button id="giveup" type="button">reveal category</button>
           <button id="claim" type="button" hidden>my last guess was right</button>
           <button id="next" type="button">new board →</button>
+          <button id="info-btn" type="button" aria-expanded="false">scoring info</button>
         </div>
+        <div id="info" hidden></div>
         <div id="matcher"></div>
-        <div id="hint"></div>
+        <div id="leaders">
+          <div>high scores</div>
+          <ol id="leaders-list"></ol>
+        </div>
       </aside>
       <main id="main"><div id="board"></div></main>
     </div>
+    <div id="hint"></div>
     <div id="overlay" hidden>
       <div id="ov-meta"></div>
       <div id="ov-text"></div>
@@ -528,7 +614,7 @@
 
       const SHARDS = 100;
       const STORE = 'reverse-jeopardy';
-      const MISS = 100;
+      const MISS = 1000;
       const $ = (id) => document.getElementById(id);
       const boardEl = $('board');
       const guessEl = $('guess');
@@ -542,11 +628,62 @@
 
       const stats = (() => {
         try {
-          return { seen: [], ...JSON.parse(localStorage.getItem(STORE)) };
+          // `best` held scores from the old point values.
+          const { best, ...saved } = JSON.parse(localStorage.getItem(STORE)) || {};
+          return { seen: [], scores: [], ...saved };
         } catch {
-          return { seen: [] };
+          return { seen: [], scores: [] };
         }
       })();
+      // Finished boards only; an entry keeps updating if clues are claimed later.
+      const LEADERS = 10;
+      let myEntry = null;
+      function recordScore() {
+        if (!myEntry) {
+          if (!cols.every((c) => c.done)) return;
+          myEntry = { t: Date.now() };
+          stats.scores.push(myEntry);
+        }
+        myEntry.score = boardScore;
+        myEntry.solved = cols.filter((c) => c.won).length;
+        stats.scores.sort((a, b) => b.score - a.score || a.t - b.t);
+        stats.scores = stats.scores.slice(0, LEADERS);
+        saveStats();
+        renderLeaders();
+      }
+      // The board in progress is ranked among the saved scores as it changes,
+      // and shown below the top ten if it hasn't made it in.
+      function renderLeaders() {
+        const list = $('leaders-list');
+        list.textContent = '';
+        const live = myEntry || {
+          score: boardScore,
+          solved: cols.filter((c) => c.won).length,
+          t: Infinity,
+        };
+        const all = stats.scores.includes(live) ? [...stats.scores] : [...stats.scores, live];
+        all.sort((a, b) => b.score - a.score || a.t - b.t);
+        const rank = all.indexOf(live);
+        const shown = all.slice(0, LEADERS);
+        if (rank >= LEADERS) shown.push(null, live);
+        for (const e of shown) {
+          const li = document.createElement('li');
+          if (!e) {
+            li.textContent = '⋯';
+            list.appendChild(li);
+            continue;
+          }
+          const n = document.createElement('span');
+          n.className = 'rank';
+          n.textContent = all.indexOf(e) + 1;
+          const b = document.createElement('b');
+          b.textContent = money(e.score);
+          const when = e === live && !myEntry ? 'this board' : new Date(e.t).toLocaleDateString();
+          li.append(n, b, `${e.solved}/6 · ${when}`);
+          if (e === live) li.className = 'mine';
+          list.appendChild(li);
+        }
+      }
       function saveStats() {
         stats.seen = stats.seen.slice(-3000);
         try {
@@ -568,9 +705,27 @@
       let boardScore = 0;
 
       // Fewer clues seen = more money for naming the category.
-      const worthAt = (n) => Math.max(200, 1200 - 200 * Math.max(1, n));
+      // A wrong category guess costs a step like opening a clue does; once the
+      // worth bottoms out it costs MISS instead.
+      const STEPS = 5;
+      const worthAt = (n) => 2000 * (STEPS + 1 - Math.min(STEPS, Math.max(1, n)));
+      const stepsOf = (col) => col.opened + col.misses;
       const valueOf = (i) => 200 * (i + 1);
       const catKey = (c) => `${c.d}|${c.c}`;
+
+      $('info').innerHTML = `
+        <ul>
+          <li>Correct category: ${[1, 2, 3, 4, 5].map((n) => money(worthAt(n))).join(' / ')} after 1–5 clues opened</li>
+          <li>Wrong category guess: category worth −${money(worthAt(1) - worthAt(2))}, or −${money(MISS)} at ${money(worthAt(STEPS))}</li>
+          <li>Close category guess: $0</li>
+          <li>Correct clue: ${money(valueOf(0))}–${money(valueOf(4))}, by row</li>
+          <li>Reveal category: $0</li>
+        </ul>`;
+      $('info-btn').addEventListener('click', (e) => {
+        const open = $('info').hidden;
+        $('info').hidden = !open;
+        e.currentTarget.setAttribute('aria-expanded', open);
+      });
 
       async function drawCats() {
         const r = await fetch(`data/${Math.floor(Math.random() * SHARDS)}.json`);
@@ -622,9 +777,11 @@
           $('next').disabled = false;
         }
         board = { cats };
-        cols = cats.map(() => ({ opened: 0, guesses: [], done: false, won: false }));
+        cols = cats.map(() => ({ opened: 0, misses: 0, guesses: [], done: false, won: false }));
         clues = cats.map((c) => c.q.map(() => ({ seen: false, ans: null })));
         boardScore = 0;
+        myEntry = null;
+        renderLeaders();
         sel = 0;
         stats.seen.push(...cats.map(catKey));
         saveStats();
@@ -723,16 +880,18 @@
       function updateScore() {
         $('score').textContent = money(boardScore);
         $('solved').textContent = `${cols.filter((c) => c.won).length}/6`;
+        renderLeaders();
         const col = cols[sel];
         $('guess-btn').disabled = col.done;
         $('which').textContent = col.done
           ? `category #${sel + 1}`
-          : `category #${sel + 1} · worth ${money(worthAt(col.opened))}`;
+          : `category #${sel + 1} · worth ${money(worthAt(stepsOf(col)))}`;
       }
 
       function addPoints(n) {
         boardScore += n;
         updateScore();
+        if (myEntry) recordScore();
       }
 
       function paintClue(j, i) {
@@ -929,7 +1088,13 @@
       }
       function addGuessLi(g) {
         const li = document.createElement('li');
-        li.textContent = g.text + (g.close ? ' (close)' : ` (−$${MISS})`);
+        li.textContent =
+          g.text +
+          (g.close
+            ? ' (close)'
+            : g.cost
+              ? ` (−${money(g.cost)})`
+              : ` (worth −${money(worthAt(g.n) - worthAt(g.n + 1))})`);
         if (g.close) li.className = 'close';
         guessesEl.prepend(li);
       }
@@ -945,6 +1110,7 @@
           won ? '✓ ' + money(col.paid) : '✗'
         }</span>`;
         if (cols.every((c) => c.done)) {
+          recordScore();
           setTimeout(
             () =>
               setStatus(
@@ -969,7 +1135,7 @@
         const verdict = await Matcher.judge(text, j);
         guessEl.disabled = false;
         if (verdict.result === 'yes') {
-          col.paid = worthAt(col.opened);
+          col.paid = worthAt(stepsOf(col));
           addPoints(col.paid);
           settle(j, true);
           select(j);
@@ -980,10 +1146,14 @@
           );
           return;
         }
-        const g = { text, n: col.opened, close: verdict.result === 'close' };
+        const g = { text, n: stepsOf(col), close: verdict.result === 'close', cost: 0 };
         col.guesses.push(g);
-        if (!g.close) addPoints(-MISS);
+        if (!g.close) {
+          if (g.n < STEPS) col.misses++;
+          else addPoints(-(g.cost = MISS));
+        }
         addGuessLi(g);
+        updateScore();
         setStatus(g.close ? 'close' : 'bad', g.close ? 'close — be more specific' : 'nope');
         guessEl.value = '';
         paintBlanks(j, '');
@@ -1008,7 +1178,7 @@
         const g = col.guesses[col.guesses.length - 1];
         col.claimed = true;
         col.paid = worthAt(g.n);
-        addPoints(col.paid + (g.close ? 0 : MISS));
+        addPoints(col.paid + g.cost);
         settle(j, true);
         select(j);
         setStatus('ok', `fair enough — +${money(col.paid)} for “${esc(g.text)}”`);
