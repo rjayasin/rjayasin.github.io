@@ -312,6 +312,31 @@
       .gcard:active {
         cursor: grabbing;
       }
+      .gcard.root {
+        cursor: default;
+      }
+      body.has-selection .gcard {
+        cursor: pointer;
+      }
+      body.drag-active,
+      body.drag-active * {
+        cursor: grabbing !important;
+      }
+      @media (hover: hover) {
+        body:not(.drag-active) .gcard:not(.root):not(.ghost):hover {
+          translate: 0 -1px;
+          border-color: var(--muted);
+        }
+        body:not(.drag-active) .gcard:not(.root):not(.ghost):not(.wrong):not(.correct):hover {
+          box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+        }
+      }
+      /* tap-to-place: the picked piece, and the card a drag would attach to */
+      .gcard.selected,
+      .gcard.drop-rel {
+        outline: 2px solid var(--muted);
+        outline-offset: 2px;
+      }
       .gcard .lang {
         font-family:
           ui-monospace,
@@ -754,6 +779,11 @@
         .gcard {
           flex: none;
         }
+        /* A sideways swipe over a piece scrolls the one-row pool; any other
+           direction still picks it up. */
+        #pool .gcard {
+          touch-action: pan-x;
+        }
       }
     </style>
     <script src="/common.js"></script>
@@ -954,6 +984,7 @@
           if (n !== realRoot) pool.push(piece(n));
         });
         shuffle(pool);
+        selected = null;
         solved = false;
         gameSubmits = 0;
         feedback.clear();
@@ -1033,7 +1064,11 @@
       function cardEl(n) {
         const div = document.createElement('div');
         div.className =
-          'gcard' + (n.root ? ' root' : '') + (n.ghost ? ' ghost' : '') + (won ? ' won' : '');
+          'gcard' +
+          (n.root ? ' root' : '') +
+          (n.ghost ? ' ghost' : '') +
+          (won ? ' won' : '') +
+          (n.id === selected && !n.ghost ? ' selected' : '');
         div.dataset.id = n.id;
 
         const lang = document.createElement('div');
@@ -1228,6 +1263,13 @@
         // track the live arrangement: lit only while the board still matches the
         // answer, so moving a piece drops them and rebuilding re-adds them.
         won = solved && pool.length === 0 && signature(boardRoot) === realSig;
+        if (
+          selected != null &&
+          !pool.some((x) => x.id === selected) &&
+          !findNode(boardRoot, selected)
+        )
+          selected = null;
+        document.body.classList.toggle('has-selection', selected != null);
         renderBoard(boardRoot);
         renderPool();
         const ready = boardRoot !== null;
@@ -1241,6 +1283,8 @@
         submitBtn.disabled = !placed || won;
         resetBtn.disabled = !ready || pool.length === countAll() - 1;
         if (solved) setMessage(won ? solvedMessageNode() : DEFAULT_MSG, won ? 'ok' : '');
+        if (selected != null) setMessage(SELECT_MSG, 'select');
+        else if (msgEl.classList.contains('select')) setMessage(DEFAULT_MSG, '');
         // Drop the instruction hint once the player has ever dragged a node out
         // (hintDismissed, which persists across games), or while a piece is on
         // the board this game. The solved line and the 'bad' submit feedback
@@ -1248,7 +1292,10 @@
         const placedAny = ready && pool.length < countAll() - 1;
         msgEl.classList.toggle(
           'hint-off',
-          (hintDismissed || placedAny) && !solved && !msgEl.classList.contains('bad')
+          (hintDismissed || placedAny) &&
+            !solved &&
+            !msgEl.classList.contains('bad') &&
+            !msgEl.classList.contains('select')
         );
         updateDailyUI();
       }
@@ -1269,7 +1316,12 @@
       let dragging = null; // { p, clone, home, grabDX, grabDY, lastKey, layout }
       // A press that hasn't travelled DRAG_START_DIST yet. Nothing has been
       // lifted, so a click or an aborted touch leaves the board untouched.
-      let pending = null; // { id, fromBoard, startX, startY, rect, threshold }
+      let pending = null; // { id, fromBoard, startX, startY, rect, threshold, touch, tapOnly }
+      // Tap-to-place: the id of the piece picked with a tap (null = none).
+      // Tapping a board card then stacks it above that card; tapping the pool
+      // background sends it back.
+      let selected = null;
+      const SELECT_MSG = 'Tap a board card to place this above it, or the pool to put it back.';
 
       // A press only becomes a drag once the pointer has travelled this far
       // (px). Grabbing used to detach the node the instant the pointer went
@@ -1295,34 +1347,77 @@
         // won-green outline), so only block while another drag is in flight.
         if (dragging || pending || (e.button != null && e.button !== 0)) return;
         const card = pointerCard(e);
-        if (!card) return;
-        if (card.classList.contains('root')) return; // the answer card stays put
+        // Background presses only matter as taps that resolve a selection.
+        if (!card && selected == null) return;
 
         // Don't lift anything yet: the press only becomes a grab once the
         // pointer has clearly moved (see onPointerMove). Until then the board
         // stays exactly as it is, so a click can't reshuffle placed cards.
         pending = {
-          id: Number(card.dataset.id),
-          fromBoard: boardEl.contains(card),
+          id: card ? Number(card.dataset.id) : null,
+          fromBoard: boardEl.contains(e.target),
           startX: e.clientX,
           startY: e.clientY,
-          rect: card.getBoundingClientRect(),
+          rect: card && card.getBoundingClientRect(),
           threshold: DRAG_START_DIST[e.pointerType] || DRAG_START_DIST.mouse,
+          touch: e.pointerType === 'touch',
+          // the answer card (and the background) can be tapped but never dragged
+          tapOnly: !card || card.classList.contains('root'),
         };
         window.addEventListener('pointermove', onPointerMove, { passive: false });
         window.addEventListener('pointerup', onPointerUp);
-        window.addEventListener('pointercancel', onPointerUp);
-        e.preventDefault();
+        window.addEventListener('pointercancel', onPointerCancel);
+        if (card) e.preventDefault();
+      }
+
+      function dismissHint() {
+        if (hintDismissed) return;
+        hintDismissed = true;
+        try {
+          localStorage.setItem(HINT_KEY, '1');
+        } catch (_) {}
+      }
+
+      // A press that never moved: pick, re-pick or drop the tap selection.
+      function onTap(t) {
+        if (t.id == null) {
+          if (!t.fromBoard && !pool.some((x) => x.id === selected)) {
+            const p = liftSelected();
+            if (p) pool.push(p);
+          }
+          selected = null;
+        } else if (t.id === selected) {
+          selected = null;
+        } else if (selected == null || !t.fromBoard) {
+          selected = t.tapOnly ? null : t.id;
+        } else {
+          const p = liftSelected();
+          if (p) applyTarget(boardRoot, p, { relId: t.id, relation: 'ancestor' });
+          selected = null;
+        }
+        render();
+      }
+
+      function liftSelected() {
+        const i = pool.findIndex((x) => x.id === selected);
+        const p = i !== -1 ? pool.splice(i, 1)[0] : detach(boardRoot, selected);
+        if (p) {
+          clearBadMessage();
+          dismissHint();
+        }
+        return p;
       }
 
       // The press has travelled far enough to count as a drag: lift the piece
       // (out of the board or the pool), hand a clone to the pointer, and start
       // previewing drop targets.
       function startDrag(x, y) {
-        const { id, fromBoard, startX, startY, rect } = pending;
+        const { id, fromBoard, startX, startY, rect, touch } = pending;
         pending = null;
+        selected = null;
         let p = null;
         let home = null;
+        let poolFrom = -1;
         if (fromBoard) {
           // Remember exactly where the piece sits — its descendant, its slot,
           // and how many of its own ancestors detach will lift into that slot
@@ -1346,30 +1441,28 @@
           };
           p = detach(boardRoot, id);
         } else {
-          const i = pool.findIndex((x) => x.id === id);
-          if (i !== -1) p = pool.splice(i, 1)[0];
+          poolFrom = pool.findIndex((x) => x.id === id);
+          if (poolFrom !== -1) p = pool.splice(poolFrom, 1)[0];
         }
         if (!p) return;
         won = false; // any pickup breaks the solved arrangement — drop the strokes
-        if (!hintDismissed) {
-          // First node dragged out — retire the instruction hint permanently.
-          hintDismissed = true;
-          try {
-            localStorage.setItem(HINT_KEY, '1');
-          } catch (_) {}
-        }
+        dismissHint(); // first node dragged out — retire the instruction hint permanently
 
         const clone = cardEl(p);
         clone.id = 'drag-clone';
         clone.style.width = rect.width + 'px';
         document.body.appendChild(clone);
+        document.body.classList.add('drag-active');
 
         dragging = {
           p,
           clone,
           home,
-          grabDX: startX - (rect.left + rect.width / 2),
-          grabDY: startY - (rect.top + rect.height / 2),
+          poolFrom,
+          // A fingertip hides whatever is under it, so on touch the clone
+          // rides just above the finger instead of beneath it.
+          grabDX: touch ? 0 : startX - (rect.left + rect.width / 2),
+          grabDY: touch ? rect.height / 2 + 28 : startY - (rect.top + rect.height / 2),
           lastKey: undefined,
           lastTarget: null, // the target the preview currently shows (for hysteresis)
           poolIndex: -1, // gap index the pool preview currently shows (-1 = none)
@@ -1386,6 +1479,14 @@
         // the preview reflow no longer feeds back into the drop target.
         dragging.layout = snapshotBoardCards();
         dragging.poolLayout = snapshotPoolCards();
+        // Scroll offsets the snapshots were taken at: auto-scroll mid-drag
+        // moves the content, so hit-tests shift the pointer by the difference.
+        dragging.scroll0 = {
+          bl: boardEl.scrollLeft,
+          bt: boardEl.scrollTop,
+          pl: poolEl.scrollLeft,
+          pt: poolEl.scrollTop,
+        };
         if (home) {
           // First frame of a board grab: paint the home preview *statically*
           // (before the .dragging class arms the connector fade), so the only
@@ -1405,7 +1506,49 @@
         // Position purely via transform: compositor-only, no layout per frame.
         dragging.clone.style.transform =
           `translate(${x - dragging.grabDX}px, ${y - dragging.grabDY}px)` +
-          ' translate(-50%, -50%) rotate(-1.5deg)';
+          ' translate(-50%, -50%) rotate(-1.5deg) scale(1.04)';
+      }
+
+      // Pointer position in the board's drag-start coordinates.
+      function boardPt(x, y) {
+        const s = dragging.scroll0;
+        return [x + boardEl.scrollLeft - s.bl, y + boardEl.scrollTop - s.bt];
+      }
+      function atHome(x, y) {
+        const h = dragging.home;
+        if (!h) return false;
+        const [bx, by] = boardPt(x, y);
+        return Math.hypot(bx - h.x, by - h.y) < HOME_RADIUS;
+      }
+
+      // Holding a piece near the edge of the board or pool scrolls it, faster
+      // the closer to the edge, so tall or wide trees stay reachable mid-drag.
+      const AUTO_SCROLL_EDGE = 48;
+      const AUTO_SCROLL_MAX = 14;
+      let scrollRAF = 0;
+      function edgeSpeed(v, lo, hi) {
+        const edge = Math.min(AUTO_SCROLL_EDGE, (hi - lo) / 4);
+        if (v < lo + edge) return -AUTO_SCROLL_MAX * Math.min(1, (lo + edge - v) / edge);
+        if (v > hi - edge) return AUTO_SCROLL_MAX * Math.min(1, (v - hi + edge) / edge);
+        return 0;
+      }
+      function autoScroll() {
+        scrollRAF = 0;
+        if (!dragging) return;
+        const { x, y } = lastPointer;
+        let moved = false;
+        for (const el of [boardEl, poolEl]) {
+          const r = el.getBoundingClientRect();
+          if (x < r.left || x > r.right || y < r.top || y > r.bottom) continue;
+          const l = el.scrollLeft;
+          const t = el.scrollTop;
+          el.scrollLeft += edgeSpeed(x, r.left, r.right);
+          el.scrollTop += edgeSpeed(y, r.top, r.bottom);
+          if (el.scrollLeft !== l || el.scrollTop !== t) moved = true;
+        }
+        if (!moved) return;
+        updatePreview(x, y);
+        scrollRAF = requestAnimationFrame(autoScroll);
       }
 
       // Pointermove can fire several times per frame; coalesce the work into a
@@ -1418,7 +1561,9 @@
           e.preventDefault();
           const travelled = Math.hypot(e.clientX - pending.startX, e.clientY - pending.startY);
           if (travelled < pending.threshold) return;
-          startDrag(e.clientX, e.clientY); // lifts the piece and draws the first preview
+          if (pending.tapOnly)
+            pending = null; // moved too far to count as a tap
+          else startDrag(e.clientX, e.clientY); // lifts the piece and draws the first preview
           return;
         }
         if (!dragging) return;
@@ -1431,6 +1576,7 @@
           if (!dragging) return;
           moveClone(lastPointer.x, lastPointer.y);
           updatePreview(lastPointer.x, lastPointer.y);
+          if (!scrollRAF) autoScroll();
         });
       }
 
@@ -1475,6 +1621,8 @@
       function poolDropIndex(x, y, current) {
         const cards = (dragging && dragging.poolLayout) || [];
         if (!cards.length) return 0;
+        x += poolEl.scrollLeft - dragging.scroll0.pl;
+        y += poolEl.scrollTop - dragging.scroll0.pt;
         let best = 0;
         let bestDist = Infinity;
         for (let i = 0; i < cards.length; i++) {
@@ -1518,6 +1666,7 @@
 
         const cards = (dragging && dragging.layout) || [];
         if (!cards.length) return null;
+        [x, y] = boardPt(x, y);
         const stickId = current ? current.relId : null;
         let best = null;
         let bestDist = Infinity;
@@ -1567,7 +1716,7 @@
         // reshuffle anything until the player commits to a direction. Wander
         // out and back and home re-engages — dropping then restores the spot.
         const home = dragging.home;
-        if (home && Math.hypot(x - home.x, y - home.y) < HOME_RADIUS) {
+        if (atHome(x, y)) {
           poolEl.classList.remove('drop-active');
           dragging.lastTarget = null;
           dragging.poolIndex = -1;
@@ -1618,6 +1767,8 @@
         const ghost = Object.assign(piece(dragging.p), { ghost: true });
         applyTarget(preview, ghost, target);
         renderBoardAnimated(preview);
+        const rel = boardEl.querySelector(`.gcard[data-id="${target.relId}"]`);
+        if (rel) rel.classList.add('drop-rel');
         dragging.boardPreviewing = true;
       }
       function pointInPool(x, y) {
@@ -1626,28 +1777,57 @@
       }
 
       function onPointerUp(e) {
+        finishDrag(e.clientX, e.clientY, false);
+      }
+      // A cancelled gesture (the browser took it over for scrolling, or Escape)
+      // puts the piece back where it came from instead of dropping it.
+      function onPointerCancel() {
+        finishDrag(0, 0, true);
+      }
+      window.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        if (dragging || pending) finishDrag(0, 0, true);
+        else if (selected != null) {
+          selected = null;
+          render();
+        }
+      });
+
+      function finishDrag(x, y, cancel) {
         window.removeEventListener('pointermove', onPointerMove);
         window.removeEventListener('pointerup', onPointerUp);
-        window.removeEventListener('pointercancel', onPointerUp);
-        pending = null; // a press that never travelled — the board was never touched
+        window.removeEventListener('pointercancel', onPointerCancel);
+        if (pending) {
+          // a press that never travelled — the board was never touched
+          const tap = pending;
+          pending = null;
+          if (!cancel) onTap(tap);
+          return;
+        }
         if (!dragging) return;
         if (moveRAF) {
           cancelAnimationFrame(moveRAF);
           moveRAF = 0;
         }
-        const { p, clone, home } = dragging;
+        if (scrollRAF) {
+          cancelAnimationFrame(scrollRAF);
+          scrollRAF = 0;
+        }
+        const { p, clone, home, poolFrom } = dragging;
         clone.remove();
+        document.body.classList.remove('drag-active');
         // Released still within the grab radius: the piece never left home,
         // so put it back exactly — same descendant, same slot, its own
         // ancestors re-attached (matching the home preview on screen).
-        const inHome = home && Math.hypot(e.clientX - home.x, e.clientY - home.y) < HOME_RADIUS;
+        const inHome = home && (cancel || atHome(x, y));
         // Drop where the preview is showing — same hysteresis as the last move.
-        const target = inHome ? null : dropTarget(e.clientX, e.clientY, dragging.lastTarget);
+        const target = inHome || cancel ? null : dropTarget(x, y, dragging.lastTarget);
         // No board target → back to the pool, at the gap the preview showed
         // (so a piece can be reordered, not just appended to the end).
-        const poolIdx =
-          !inHome && !target && pointInPool(e.clientX, e.clientY)
-            ? poolDropIndex(e.clientX, e.clientY, dragging.poolIndex)
+        const poolIdx = cancel
+          ? poolFrom
+          : !inHome && !target && pointInPool(x, y)
+            ? poolDropIndex(x, y, dragging.poolIndex)
             : pool.length;
         dragging = null;
         poolEl.classList.remove('drop-active');
@@ -1806,6 +1986,7 @@
         });
         shuffle(pool);
         boardRoot = piece(realRoot);
+        selected = null;
         setMessage(DEFAULT_MSG, '');
         render();
       }
