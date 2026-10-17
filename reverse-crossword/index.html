@@ -27,6 +27,7 @@
         --done: #cdeccf;
         --gave: #f8d7d7;
         --given: #e4e4e4;
+        --gold: #c99a06;
       }
       body.dark {
         --muted: rgba(255, 255, 255, 0.55);
@@ -42,6 +43,7 @@
         --done: #1e4428;
         --gave: #4a2323;
         --given: #3a3a3a;
+        --gold: #f2c230;
       }
       @media (prefers-color-scheme: dark) {
         body:not(.light) {
@@ -58,6 +60,7 @@
           --done: #1e4428;
           --gave: #4a2323;
           --given: #3a3a3a;
+          --gold: #f2c230;
         }
       }
       body {
@@ -391,6 +394,11 @@
         background: var(--muted);
         border-radius: 4px;
       }
+      .star {
+        color: var(--gold);
+        font-size: 1.5em;
+        line-height: 1;
+      }
       #known li.hit {
         color: var(--ok);
       }
@@ -685,7 +693,7 @@
         <ul>
           <li>The grid is filled in; the clues are hidden. Write a clue for each entry.</li>          <li>A clue counts if it matches one that has run for that word in the NYT crossword (1976–2018) — same words, a typo off, or a close paraphrase.</li>
           <li>Correct: ${WORTH}, minus ${MISS} per wrong try (at least ${MISS}). “Close” tries are free.</li>
-          <li>A clue that has run word for word (ignoring case and punctuation) earns ${EXACT} more, marked ★.</li>
+          <li>A clue that has run word for word (ignoring case and punctuation) earns ${EXACT} more, marked <span class="star">★</span>.</li>
           <li>Clues can't contain the answer. Use ___ for a blank.</li>
           <li>Tab / shift-tab: next / previous unclued entry. ↓ / →: the down / across entry through the square. ↑: your last try at this entry. Click a square twice to switch direction.</li>
         </ul>`;
@@ -980,7 +988,7 @@
           (k === sel ? ' cur' : '');
         li.innerHTML = `<span class="n">${w.n}</span><span class="ans">${w.ans}</span>`;
         if (st.won) {
-          li.innerHTML += `<span class="said">${esc(st.said)}${st.exact ? ' ★' : ''}</span>`;
+          li.innerHTML += `<span class="said">${esc(st.said)}${st.exact ? ' <span class="star">★</span>' : ''}</span>`;
           if (st.best && st.best.toLowerCase() !== st.said.toLowerCase())
             li.innerHTML += `<span class="past">≈ ${esc(st.best)}</span>`;
         } else if (st.done) li.innerHTML += `<span class="said">${esc(w.clue)}</span>`;
@@ -1093,7 +1101,7 @@
           setStatus(
             'ok',
             `✓ <q>${esc(st.said)}</q>` +
-              (st.exact ? ' ★' : '') +
+              (st.exact ? ' <span class="star">★</span>' : '') +
               (st.best && st.best.toLowerCase() !== st.said.toLowerCase()
                 ? ` ≈ <q>${esc(st.best)}</q>`
                 : '') +
