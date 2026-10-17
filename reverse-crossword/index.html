@@ -115,11 +115,20 @@
         }
       }
       #meta,
-      #daily {
+      #daily,
+      #finished {
         flex-basis: 100%;
       }
-      #daily[hidden] {
+      #daily[hidden],
+      #finished[hidden] {
         display: none;
+      }
+      #scorebar #finished {
+        color: var(--ok);
+      }
+      #scorebar #score {
+        color: var(--ok);
+        font-weight: bold;
       }
       #grid-wrap {
         flex: 0 1 calc(100dvh - 32px);
@@ -369,6 +378,19 @@
         max-height: 30vh;
         overflow-y: auto;
       }
+      /* A styled scrollbar stays visible where the system's would hide until
+         scrolled. */
+      #known ul::-webkit-scrollbar {
+        width: 8px;
+      }
+      #known ul::-webkit-scrollbar-track {
+        background: var(--line);
+        border-radius: 4px;
+      }
+      #known ul::-webkit-scrollbar-thumb {
+        background: var(--muted);
+        border-radius: 4px;
+      }
       #known li.hit {
         color: var(--ok);
       }
@@ -549,6 +571,7 @@
           <span>score <b id="score">0</b></span>
           <span>clued <b id="solved">0/0</b></span>
           <span id="meta"></span>
+          <b id="finished" hidden>✓ puzzle complete</b>
         </div>
         <div id="word">
           <span id="which"></span>
@@ -1120,6 +1143,7 @@
         $('score').textContent = score();
         $('solved').textContent = `${playable().filter((s) => s.won).length}/${playable().length}`;
         $('share').hidden = !playable().some((s) => s.done);
+        $('finished').hidden = !state.every((s) => s.done);
         renderLeaders();
       }
 
@@ -1165,15 +1189,6 @@
         paintClue(k);
         paintCells();
         updateScore();
-        if (state.every((s) => s.done))
-          setTimeout(
-            () =>
-              setStatus(
-                'ok',
-                `puzzle finished — ${playable().filter((s) => s.won).length}/${playable().length} clued, ${score()} points`
-              ),
-            0
-          );
       }
 
       function nextOpen(k, step = 1) {
