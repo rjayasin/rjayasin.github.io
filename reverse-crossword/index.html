@@ -741,11 +741,12 @@
 
       $('info').innerHTML = `
         <ul>
-          <li>The grid is filled in; the clues are hidden. Write a clue for each entry.</li>          <li>A clue counts if it matches one that has run for that word in the NYT crossword (1976–2018) — same words, a typo off, or a close paraphrase.</li>
-          <li>Correct: ${WORTH}, minus ${MISS} per wrong try (at least ${MISS}). “Close” tries are free.</li>
-          <li>A clue that has run word for word (ignoring case and punctuation) earns ${EXACT} more, marked <span class="star">★</span>.</li>
-          <li>Clues can't contain the answer. Use ___ for a blank.</li>
-          <li>Tab / shift-tab: next / previous unclued entry. ↓ / →: the down / across entry through the square. ↑: your last try at this entry. Click a square twice to switch direction.</li>
+          <li>The answers are filled in. Write a clue for each one.</li>
+          <li>Your clue counts if it matches any clue the NYT crossword used for that answer between 1976 and 2018. It can match exactly, with a small typo, or in meaning.</li>
+          <li>A correct clue is worth ${WORTH} points. Each wrong try takes off ${MISS}, down to ${MISS}. Tries marked “close” cost nothing.</li>
+          <li>An exact match to an NYT clue earns ${EXACT} extra points and a <span class="star">★</span>. Capital letters and punctuation don't matter.</li>
+          <li>Your clue can't include the answer. Type ___ for a blank.</li>
+          <li>Tab and shift-tab move to the next and previous unclued answer. ↓ and → switch to the down or across answer through the current square. ↑ brings back your last try. Click a square twice to switch direction.</li>
         </ul>`;
       $('info-btn').addEventListener('click', (e) => {
         const open = $('info').hidden;
@@ -1130,6 +1131,7 @@
         $('which').textContent =
           `${label(w)} · ${w.ans.length} letters` + (st.done ? '' : ` · worth ${worthOf(st)}`);
         $('answer').textContent = w.ans;
+        $('answer').className = st.won ? 'ok' : st.done && !st.given ? 'bad' : '';
         guessEl.value = '';
         recall = -1;
         guessEl.disabled = st.done;
@@ -1290,7 +1292,7 @@
           showWord();
           setStatus(
             'ok',
-            `✓ +${st.paid} — ` +
+            `✓ +${st.paid}${st.exact ? ' <span class="star">★</span>' : ''} — ` +
               (v.exact
                 ? `that exact clue has run before (+${EXACT} bonus)`
                 : `close enough to <q>${esc(v.best)}</q>`) +
