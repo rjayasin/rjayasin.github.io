@@ -81,7 +81,7 @@
         padding: 8px 0 24px 8px;
         display: flex;
         flex-direction: column;
-        gap: 24px;
+        gap: 40px;
         min-height: calc(100dvh - 32px);
         position: sticky;
         top: 16px;
@@ -96,7 +96,7 @@
       #scorebar {
         display: flex;
         flex-wrap: wrap;
-        gap: 4px 20px;
+        gap: 8px 20px;
         color: var(--muted);
       }
       #scorebar b {
@@ -111,8 +111,12 @@
           color: #fff;
         }
       }
-      #meta {
+      #meta,
+      #daily {
         flex-basis: 100%;
+      }
+      #daily[hidden] {
+        display: none;
       }
       #grid-wrap {
         flex: 0 1 calc(100dvh - 32px);
@@ -259,7 +263,7 @@
       #word {
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 12px;
       }
       #which {
         color: var(--muted);
@@ -348,7 +352,7 @@
         cursor: pointer;
       }
       #known ul {
-        margin: 4px 0 0 1.2em;
+        margin: 8px 0 0 1.2em;
         max-height: 30vh;
         overflow-y: auto;
       }
@@ -359,7 +363,7 @@
         display: flex;
         flex-wrap: wrap;
         align-items: flex-start;
-        gap: 10px;
+        gap: 12px;
         color: var(--muted);
       }
       #actions button {
@@ -374,9 +378,6 @@
       #actions #giveup {
         color: var(--bad);
       }
-      #actions #claim {
-        color: var(--ok);
-      }
       #actions #info-btn[aria-expanded='true'] {
         background: var(--line);
       }
@@ -385,11 +386,9 @@
           background: var(--bad);
           color: #fff;
         }
-        #actions #claim:hover {
-          background: var(--ok);
-          color: #fff;
-        }
         #actions #skip:hover,
+        #actions #share:hover,
+        #actions #today:hover,
         #actions #next:hover:not(:disabled),
         #actions #info-btn:hover {
           background: var(--line);
@@ -420,11 +419,12 @@
       }
       #leaders ol {
         list-style: none;
-        margin-top: 6px;
+        margin-top: 10px;
       }
       #leaders li {
         display: flex;
         gap: 1em;
+        padding: 2px 0;
       }
       #leaders li b {
         font-weight: normal;
@@ -484,7 +484,7 @@
         #layout {
           flex-direction: column;
           align-items: stretch;
-          gap: 20px;
+          gap: 32px;
         }
         #side,
         #main {
@@ -532,6 +532,7 @@
     <div id="layout">
       <aside id="side">
         <div id="scorebar">
+          <b id="daily" hidden></b>
           <span>score <b id="score">0</b></span>
           <span>clued <b id="solved">0/0</b></span>
           <span id="meta"></span>
@@ -558,15 +559,16 @@
         </div>
         <div id="actions">
           <button id="giveup" type="button">reveal clue</button>
-          <button id="claim" type="button" hidden>my last clue was fine</button>
           <button id="skip" type="button">next clue</button>
-          <button id="next" type="button">new puzzle →</button>
-          <button id="info-btn" type="button" aria-expanded="false">how it works</button>
+          <button id="share" type="button" hidden>share score</button>
+          <button id="today" type="button" hidden>today's puzzle</button>
+          <button id="next" type="button">random puzzle</button>
+          <button id="info-btn" type="button" aria-expanded="false">how to play</button>
         </div>
         <div id="info" hidden></div>
         <div id="matcher"></div>
         <div id="leaders">
-          <div>high scores</div>
+          <div>your high scores</div>
           <ol id="leaders-list"></ol>
         </div>
       </aside>
@@ -600,6 +602,7 @@
       const MISS = 25;
       const EXACT = 50;
       const LEADERS = 10;
+      const LAUNCH = Date.UTC(2026, 9, 16);
       const $ = (id) => document.getElementById(id);
       const gridEl = $('grid');
       const guessEl = $('guess');
@@ -608,13 +611,15 @@
       const fine = () => matchMedia('(pointer: fine)').matches;
 
       // --- persistence ------------------------------------------------------
-      // cur is the puzzle in progress, so a reload picks up where it left off.
+      // daily is today's puzzle and cur the random one in progress, so a
+      // reload picks up where it left off.
 
       const stats = (() => {
+        const blank = { seen: [], scores: [], cur: null, daily: null };
         try {
-          return { seen: [], scores: [], cur: null, ...JSON.parse(localStorage.getItem(STORE)) };
+          return { ...blank, ...JSON.parse(localStorage.getItem(STORE)) };
         } catch {
-          return { seen: [], scores: [], cur: null };
+          return blank;
         }
       })();
       function saveStats() {
@@ -630,6 +635,7 @@
       // state[k]: { done, won, given, said, best, misses, guesses: [{ text, close }], paid }
 
       let puzzle = null;
+      let game = null;
       let state = [];
       let sel = 0;
       let lastCell = -1;
@@ -641,8 +647,7 @@
 
       $('info').innerHTML = `
         <ul>
-          <li>The grid is filled in; the clues are hidden. Write a clue for each entry.</li>
-          <li>A clue counts if it matches one that has run for that word in the NYT crossword (1976–2018) — same words, a typo off, or a close paraphrase.</li>
+          <li>The grid is filled in; the clues are hidden. Write a clue for each entry.</li>          <li>A clue counts if it matches one that has run for that word in the NYT crossword (1976–2018) — same words, a typo off, or a close paraphrase.</li>
           <li>Correct: ${WORTH}, minus ${MISS} per wrong try (at least ${MISS}). “Close” tries are free.</li>
           <li>A clue that has run word for word (ignoring case and punctuation) earns ${EXACT} more, marked ★.</li>
           <li>Clues can't contain the answer. Use ___ for a blank.</li>
@@ -655,11 +660,12 @@
       });
 
       function recordScore() {
-        const cur = stats.cur;
+        const cur = game;
         if (!cur) return;
         cur.state = state;
         const entry = { t: cur.t, score: score(), solved: playable().filter((s) => s.won).length };
         entry.total = playable().length;
+        entry.day = cur.day;
         stats.scores = stats.scores.filter((e) => e.t !== cur.t);
         if (entry.score > 0) stats.scores.push(entry);
         stats.scores.sort((a, b) => b.score - a.score || a.t - b.t);
@@ -672,7 +678,7 @@
       function renderLeaders() {
         const list = $('leaders-list');
         list.textContent = '';
-        const t = stats.cur?.t;
+        const t = game?.t;
         const live = stats.scores.find((e) => e.t === t) || {
           t,
           score: score(),
@@ -696,7 +702,12 @@
           n.textContent = all.indexOf(e) + 1;
           const b = document.createElement('b');
           b.textContent = e.score;
-          const when = e === live ? 'this puzzle' : new Date(e.t).toLocaleDateString();
+          const when =
+            e === live
+              ? 'this puzzle'
+              : e.day
+                ? `daily #${e.day}`
+                : new Date(e.t).toLocaleDateString();
           li.append(n, b, `${e.solved}/${e.total} · ${when}`);
           if (e === live) li.className = 'mine';
           list.appendChild(li);
@@ -781,27 +792,35 @@
         return p;
       }
 
+      // Daily puzzles are numbered from LAUNCH by the local date; the puzzle
+      // files are already shuffled, so #n plays file n - 1.
+      function today() {
+        const d = new Date();
+        return (
+          Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - LAUNCH) / 864e5) + 1
+        );
+      }
+
       let loading = false;
-      async function newPuzzle(resume) {
+      async function openPuzzle(rec) {
         if (loading) return;
         loading = true;
         $('next').disabled = true;
         try {
-          const id = resume ? resume.id : pickId();
-          puzzle = layout(await fetchPuzzle(id));
-          if (resume) state = resume.state;
-          else {
-            state = puzzle.words.map((w) => ({
+          puzzle = layout(await fetchPuzzle(rec.id));
+          if (!rec.state) {
+            rec.state = puzzle.words.map((w) => ({
               done: w.given,
               won: false,
               given: w.given,
               misses: 0,
               guesses: [],
             }));
-            stats.cur = { v: DATA, id, t: Date.now(), state };
-            stats.seen.push(id);
-            saveStats();
+            stats.seen.push(rec.id);
           }
+          game = rec;
+          state = rec.state;
+          saveStats();
         } finally {
           loading = false;
           $('next').disabled = false;
@@ -810,6 +829,30 @@
         const first = state.findIndex((st) => !st.done);
         select(first < 0 ? 0 : first, true);
       }
+
+      // The page plays today's puzzle, or puzzle n at ?p=n, resuming either
+      // if it's the one saved.
+      function start() {
+        const p = new URLSearchParams(location.search).get('p');
+        const id = p === null ? NaN : Number(p);
+        const saved = (rec, match) => rec?.v === DATA && rec.state && match(rec);
+        let rec;
+        if (Number.isInteger(id) && id >= 0 && id < PUZZLES) {
+          rec = saved(stats.cur, (r) => r.id === id) ? stats.cur : { v: DATA, id, t: Date.now() };
+          stats.cur = rec;
+        } else {
+          const day = today();
+          rec = saved(stats.daily, (r) => r.day === day)
+            ? stats.daily
+            : { v: DATA, id: (((day - 1) % PUZZLES) + PUZZLES) % PUZZLES, t: Date.now(), day };
+          stats.daily = rec;
+        }
+        openPuzzle(rec).catch((err) => {
+          console.error(err);
+          setStatus('bad', 'couldn’t load the puzzle');
+        });
+      }
+      addEventListener('popstate', start);
 
       // --- rendering ----------------------------------------------------------
 
@@ -822,6 +865,12 @@
           day: 'numeric',
           year: 'numeric',
         })} · ${p.by}`;
+        $('daily').hidden = !game.day;
+        $('daily').textContent = `daily puzzle #${game.day} · ${new Date().toLocaleDateString(
+          undefined,
+          { month: 'short', day: 'numeric', year: 'numeric' }
+        )}`;
+        $('today').hidden = !!game.day;
         gridEl.style.setProperty('--cols', p.size);
         gridEl.textContent = '';
         const nums = new Map(p.words.map((w) => [w.cells[0], w.n]));
@@ -972,7 +1021,6 @@
         $('guess-btn').disabled = st.done;
         $('giveup').hidden = st.done;
         $('skip').hidden = nextOpen(sel) < 0 || nextOpen(sel) === sel;
-        $('claim').hidden = !(!st.won && !st.given && st.guesses.some((g) => !g.close || st.done));
         const ul = $('guesses');
         ul.textContent = '';
         for (const g of st.guesses) addGuessLi(g);
@@ -991,7 +1039,7 @@
           );
         } else if (st.done) setStatus('bad', `the puzzle's clue: <q>${esc(w.clue)}</q>`);
         $('known').hidden = true;
-        $('known').open = false;
+        $('known').open = true;
         if (st.done && !st.given)
           pastOf(w).then(
             () => puzzle.words[sel] === w && showKnown(),
@@ -1030,8 +1078,41 @@
       function updateScore() {
         $('score').textContent = score();
         $('solved').textContent = `${playable().filter((s) => s.won).length}/${playable().length}`;
+        $('share').hidden = !playable().some((s) => s.done);
         renderLeaders();
       }
+
+      function shareText() {
+        const sts = playable();
+        const won = sts.filter((s) => s.won).length;
+        const stars = sts.filter((s) => s.exact).length;
+        const url = location.origin + location.pathname + (game.day ? '' : `?p=${game.id}`);
+        return [
+          game.day ? `Reverse Crossword #${game.day}` : `Reverse Crossword · NYT ${puzzle.date}`,
+          `${score()} points · ${won}/${sts.length} clued` + (stars ? ` · ${stars}★` : ''),
+          url,
+        ].join('\n');
+      }
+      let shareTimer = null;
+      $('share').addEventListener('click', async () => {
+        const btn = $('share');
+        const text = shareText();
+        const flash = (msg) => {
+          btn.textContent = msg;
+          clearTimeout(shareTimer);
+          shareTimer = setTimeout(() => (btn.textContent = 'share score'), 1500);
+        };
+        try {
+          if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+            await navigator.share({ text });
+            return;
+          }
+          await navigator.clipboard.writeText(text);
+          flash('copied!');
+        } catch (err) {
+          if (err.name !== 'AbortError') flash('couldn’t copy');
+        }
+      });
 
       // --- guessing -----------------------------------------------------------
 
@@ -1132,24 +1213,17 @@
         settle(sel, false);
         showWord();
       });
-      // Honor system for when the matcher is too strict: pays out what the
-      // last miss would have earned and refunds the misses since.
-      $('claim').addEventListener('click', () => {
-        const st = state[sel];
-        const g = [...st.guesses].reverse().find((g) => !g.close && !g.why) || st.guesses.at(-1);
-        const missesAfter = st.guesses
-          .slice(st.guesses.indexOf(g))
-          .filter((x) => !x.close && !x.why);
-        st.misses = Math.max(0, st.misses - missesAfter.length);
-        st.said = g.text;
-        st.best = null;
-        st.paid = worthOf(st);
-        st.claimed = true;
-        settle(sel, true);
-        showWord();
-        setStatus('ok', `fair enough — +${st.paid} for <q>${esc(g.text)}</q>`);
+      $('next').addEventListener('click', () => {
+        if (loading) return;
+        stats.cur = null;
+        history.pushState(null, '', `?p=${pickId()}`);
+        start();
       });
-      $('next').addEventListener('click', () => newPuzzle());
+      $('today').addEventListener('click', () => {
+        if (loading) return;
+        history.pushState(null, '', location.pathname);
+        start();
+      });
       $('skip').addEventListener('click', () => {
         const j = nextOpen(sel);
         if (j < 0) return;
@@ -1426,15 +1500,7 @@
         return d[b.length];
       }
 
-      const resume = stats.cur?.v === DATA && stats.cur.state ? stats.cur : null;
-      newPuzzle(resume).catch((err) => {
-        console.error(err);
-        if (resume) {
-          stats.cur = null;
-          saveStats();
-        }
-        setStatus('bad', 'couldn’t load the puzzle');
-      });
+      start();
     </script>
   </body>
 </html>
