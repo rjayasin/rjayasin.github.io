@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// Builds reverse-crossword/data/minis/ from the past clues already in
-// reverse-crossword/data/past/ (so run build-reverse-crossword.js first) and
+// Builds clueward/data/minis/ from the past clues already in
+// clueward/data/past/ (so run build-clueward.js first) and
 // the matcher model's word list, vocab.txt from
 // https://huggingface.co/BAAI/bge-small-en-v1.5:
-//   node scripts/build-reverse-crossword-minis.js path/to/vocab.txt
+//   node scripts/build-clueward-minis.js path/to/vocab.txt
 // Fills 5x5 grids, NYT Mini style, with answers that have run at least
 // MIN_PAST times, so each entry has plenty to match against, and that are
 // in the word list (or a plural of a word in it), which keeps out
@@ -17,7 +17,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const DATA = path.resolve(__dirname, '..', 'reverse-crossword', 'data');
+const DATA = path.resolve(__dirname, '..', 'clueward', 'data');
 const OUT = path.join(DATA, 'minis');
 const COUNT = 1000;
 const MIN_PAST = 12;
@@ -47,7 +47,7 @@ function rand() {
 }
 const [vocabFile] = process.argv.slice(2);
 if (!vocabFile) {
-  console.error('usage: build-reverse-crossword-minis.js <vocab.txt>');
+  console.error('usage: build-clueward-minis.js <vocab.txt>');
   process.exit(1);
 }
 const vocab = new Set(fs.readFileSync(vocabFile, 'utf8').split('\n'));

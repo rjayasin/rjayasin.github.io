@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Builds reverse-crossword/data/ from a checkout of doshea/nyt_crosswords:
-//   node scripts/build-reverse-crossword.js path/to/nyt_crosswords
+// Builds clueward/data/ from a checkout of doshea/nyt_crosswords:
+//   node scripts/build-clueward.js path/to/nyt_crosswords
 // Every clue in the archive goes into a bank keyed by answer. Then every
 // plain 15x15 Monday–Saturday puzzle (no rebus squares, circles or notes) is
 // written, shuffled, one per file in data/puzzles/, and every past clue of
@@ -12,7 +12,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const OUT = path.resolve(__dirname, '..', 'reverse-crossword', 'data');
+const OUT = path.resolve(__dirname, '..', 'clueward', 'data');
 const SHARDS = 256;
 const DAYS = new Set(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']);
 
@@ -21,7 +21,7 @@ const SELF_REF =
 
 const [src] = process.argv.slice(2);
 if (!src) {
-  console.error('usage: build-reverse-crossword.js <nyt_crosswords dir>');
+  console.error('usage: build-clueward.js <nyt_crosswords dir>');
   process.exit(1);
 }
 
@@ -88,7 +88,7 @@ function pastClues(ans) {
     .map((e) => e.clue);
 }
 
-// Must match shardOf in reverse-crossword/index.html.
+// Must match shardOf in clueward/index.html.
 function shardOf(ans) {
   let h = 0x811c9dc5;
   for (let i = 0; i < ans.length; i++) h = Math.imul(h ^ ans.charCodeAt(i), 0x01000193);
