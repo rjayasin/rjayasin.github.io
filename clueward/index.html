@@ -207,7 +207,7 @@
         cursor: pointer;
         -webkit-tap-highlight-color: transparent;
         font-size: calc(100cqi / var(--cols, 15) * 0.56);
-        line-height: 1.3;
+        line-height: 1.5;
       }
       .sq.block {
         background: var(--block);
@@ -262,10 +262,10 @@
       }
       #clues {
         flex: 1 1 360px;
-        min-width: 0;
+        min-width: 340px;
         max-width: 640px;
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 20px;
         height: var(--grid-h, auto);
         font-family: 'Libre Franklin', Helvetica, Arial, sans-serif;
@@ -314,6 +314,7 @@
         font-size: 11px;
         letter-spacing: 0.08em;
         color: var(--muted);
+        overflow-wrap: anywhere;
       }
       .list .said {
         grid-column: 2;
@@ -384,27 +385,50 @@
         letter-spacing: 0.12em;
         overflow-wrap: anywhere;
       }
+      #bar-mid > #guess-form {
+        grid-column: 1 / -1;
+      }
       #guess-form {
         display: flex;
-        align-items: baseline;
+        align-items: center;
         gap: 8px;
-        border-bottom: 1px solid var(--line);
+        padding: 4px;
+        background: var(--cell);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        transition: border-color 0.15s;
+      }
+      #guess-form:focus-within {
+        border-color: var(--gold);
       }
       #guess {
         flex: 1;
         min-width: 0;
         font: inherit;
-        font-size: 1.3em;
-        padding: 8px 0;
+        font-size: 1.4em;
+        padding: 8px 0 8px 8px;
         background: transparent;
         color: inherit;
         border: none;
         outline: none;
       }
+      #guess-btn {
+        align-self: stretch;
+        padding: 0 1em;
+        background: var(--gold);
+        color: #000;
+        border-radius: 5px;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      #guess-btn:disabled {
+        background: var(--line);
+        color: var(--muted);
+      }
       #guess::placeholder {
         color: var(--muted);
         opacity: 0.6;
-        font-size: 0.8em;
+        font-size: 0.75em;
       }
       button {
         font: inherit;
@@ -427,8 +451,11 @@
         display: none;
       }
       #status {
-        min-height: 20px;
         line-height: 1.5;
+      }
+      #status:empty,
+      #guesses:empty {
+        display: none;
       }
       #status q {
         quotes: '“' '”';
@@ -537,6 +564,15 @@
       }
       #matcher {
         color: var(--muted);
+        font-size: 11px;
+      }
+      #matcher.loading {
+        animation: pulse 1.6s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        50% {
+          opacity: 0.4;
+        }
       }
       #matcher:empty {
         display: none;
@@ -589,7 +625,7 @@
       body.dark #hint .hint-btn:hover {
         color: #ccc;
       }
-      @media (max-width: 1100px) {
+      @media (max-width: 1280px) {
         #main {
           flex-direction: column;
         }
@@ -599,6 +635,7 @@
         }
         #clues {
           flex: none;
+          min-width: 0;
           width: 100%;
           height: auto;
         }
@@ -649,7 +686,8 @@
         }
       }
       @media (prefers-reduced-motion: reduce) {
-        .sq.in {
+        .sq.in,
+        #matcher.loading {
           animation: none;
         }
       }
@@ -863,6 +901,11 @@
         const rank = all.indexOf(live);
         const shown = all.slice(0, LEADERS);
         if (rank >= LEADERS) shown.push(null, live);
+        if (!shown.length) {
+          const li = document.createElement('li');
+          li.textContent = 'none yet — clue an entry to score';
+          list.appendChild(li);
+        }
         for (const e of shown) {
           const li = document.createElement('li');
           if (!e) {
@@ -1598,6 +1641,7 @@
         function load() {
           if (!loading) {
             matcherEl.textContent = 'loading matcher…';
+            matcherEl.classList.add('loading');
             loading = new Promise((resolve, reject) => {
               worker = new Worker('embed-worker.js', { type: 'module' });
               worker.onerror = (e) => reject(new Error(e.message || 'worker failed'));
@@ -1611,16 +1655,19 @@
                   else p.resolve(data.vecs);
                 }
               };
-            }).then(
-              () => {
-                ready = true;
-                matcherEl.textContent = '';
-              },
-              (err) => {
-                console.error('matcher:', err);
-                matcherEl.textContent = 'semantic matcher failed to load — near-exact matches only';
-              }
-            );
+            })
+              .finally(() => matcherEl.classList.remove('loading'))
+              .then(
+                () => {
+                  ready = true;
+                  matcherEl.textContent = '';
+                },
+                (err) => {
+                  console.error('matcher:', err);
+                  matcherEl.textContent =
+                    'semantic matcher failed to load — near-exact matches only';
+                }
+              );
           }
           return loading;
         }
