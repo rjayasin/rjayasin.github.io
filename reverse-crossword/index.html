@@ -1531,9 +1531,16 @@
           }
           return Promise.all(texts.map((t) => cache.get(t)));
         }
+        // Phrases are embedded without their blanks, which otherwise make any
+        // two short fill-in-the-blank clues look alike.
+        const bare = (t) =>
+          t
+            .replace(/\bqblank\b/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim() || t;
         const pastTexts = (clues) => {
           const ts = clues.map(norm);
-          return [...ts, ...ts.flatMap((t) => words(t).map((x) => x.w))];
+          return [...ts.map(bare), ...ts.flatMap((t) => words(t).map((x) => x.w))];
         };
 
         // Embed an entry's past clues, most common first and WARM at a time,
@@ -1572,11 +1579,15 @@
             let vecOf = null;
             let phrase = null;
             if (ready) {
-              const texts = [g, ...gw.map((x) => x.w), ...pastTexts(idx.map((i) => w.past[i]))];
+              const texts = [
+                bare(g),
+                ...gw.map((x) => x.w),
+                ...pastTexts(idx.map((i) => w.past[i])),
+              ];
               const vecs = await embed(texts);
               const by = new Map(texts.map((t, i) => [t, vecs[i]]));
               vecOf = (t) => by.get(t);
-              phrase = new Map(idx.map((i) => [i, dot(by.get(g), by.get(ts[i]))]));
+              phrase = new Map(idx.map((i) => [i, dot(by.get(bare(g)), by.get(bare(ts[i])))]));
             }
             let best = -1;
             let partial = 0;
