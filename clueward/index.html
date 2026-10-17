@@ -613,6 +613,14 @@
         color: #888;
         user-select: none;
       }
+      #legal {
+        position: fixed;
+        right: 16px;
+        bottom: 8px;
+        font-size: 10px;
+        text-align: right;
+        color: var(--muted);
+      }
       #hint .hint-btn {
         cursor: pointer;
         text-decoration: underline;
@@ -628,6 +636,10 @@
       @media (max-width: 1280px) {
         #main {
           flex-direction: column;
+        }
+        #legal {
+          position: static;
+          margin-top: 24px;
         }
         #grid-wrap {
           flex: none;
@@ -678,6 +690,10 @@
         #hint {
           position: static;
           margin-top: 20px;
+        }
+        #legal {
+          margin-top: 12px;
+          text-align: left;
         }
       }
       @media (max-width: 480px) {
@@ -779,6 +795,10 @@
       </main>
     </div>
     <div id="hint"></div>
+    <footer id="legal">
+      Puzzles and clues © The New York Times. Not affiliated with or endorsed by The New York
+      Times.
+    </footer>
     <script>
       Common.paintFavicon({ glyph: '✏️', fontSize: 44, transparent: true });
       if (matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('dark');
