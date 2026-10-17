@@ -131,6 +131,7 @@ fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(path.join(OUT, 'puzzles'), { recursive: true });
 fs.mkdirSync(path.join(OUT, 'past'), { recursive: true });
 const used = new Set();
+let days = '';
 let written = 0;
 for (const p of eligible) {
   const fromGrid = gridAnswers(p.grid);
@@ -165,8 +166,12 @@ for (const p of eligible) {
     ...entries,
   };
   fs.writeFileSync(path.join(OUT, 'puzzles', `${written}.json`), JSON.stringify(puzzle));
+  days += [...DAYS].indexOf(p.dow) + 1;
   written++;
 }
+// Each puzzle's weekday as a digit (Monday is 1), so the page can give each
+// day's daily a puzzle that ran on the same weekday.
+fs.writeFileSync(path.join(OUT, 'days.json'), JSON.stringify(days));
 
 // Each answer's past clues are written once, into one of SHARDS files picked
 // by a hash of the answer; the page fetches a shard when an entry needs it.

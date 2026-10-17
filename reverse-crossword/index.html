@@ -792,13 +792,33 @@
         return p;
       }
 
-      // Daily puzzles are numbered from LAUNCH by the local date; the puzzle
-      // files are already shuffled, so #n plays file n - 1.
+      // Daily puzzles are numbered from LAUNCH by the local date. Each plays
+      // the next puzzle, in file order, that ran on its weekday; Sundays take
+      // Thursday's, since there are no Sunday puzzles.
       function today() {
         const d = new Date();
         return (
           Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - LAUNCH) / 864e5) + 1
         );
+      }
+      let dayIndex = null;
+      async function dailyId(n) {
+        dayIndex ||= fetch('data/days.json').then((r) => {
+          if (!r.ok) throw new Error(`days: ${r.status}`);
+          return r.json();
+        });
+        const days = await dayIndex.catch((err) => {
+          dayIndex = null;
+          throw err;
+        });
+        const weekday = (m) => {
+          const d = (((new Date(LAUNCH).getUTCDay() + m - 1) % 7) + 7) % 7;
+          return String(d || 4);
+        };
+        let k = 0;
+        for (let m = 1; m < n; m++) if (weekday(m) === weekday(n)) k++;
+        const ids = [...days].flatMap((d, i) => (d === weekday(n) ? [i] : []));
+        return ids[k % ids.length];
       }
 
       let loading = false;
@@ -832,25 +852,28 @@
 
       // The page plays today's puzzle, or puzzle n at ?p=n, resuming either
       // if it's the one saved.
-      function start() {
+      async function start() {
         const p = new URLSearchParams(location.search).get('p');
         const id = p === null ? NaN : Number(p);
         const saved = (rec, match) => rec?.v === DATA && rec.state && match(rec);
-        let rec;
-        if (Number.isInteger(id) && id >= 0 && id < PUZZLES) {
-          rec = saved(stats.cur, (r) => r.id === id) ? stats.cur : { v: DATA, id, t: Date.now() };
-          stats.cur = rec;
-        } else {
-          const day = today();
-          rec = saved(stats.daily, (r) => r.day === day)
-            ? stats.daily
-            : { v: DATA, id: (((day - 1) % PUZZLES) + PUZZLES) % PUZZLES, t: Date.now(), day };
-          stats.daily = rec;
-        }
-        openPuzzle(rec).catch((err) => {
+        try {
+          let rec;
+          if (Number.isInteger(id) && id >= 0 && id < PUZZLES) {
+            rec = saved(stats.cur, (r) => r.id === id) ? stats.cur : { v: DATA, id, t: Date.now() };
+            stats.cur = rec;
+          } else {
+            const day = today();
+            const id = await dailyId(day);
+            rec = saved(stats.daily, (r) => r.day === day && r.id === id)
+              ? stats.daily
+              : { v: DATA, id, t: Date.now(), day };
+            stats.daily = rec;
+          }
+          await openPuzzle(rec);
+        } catch (err) {
           console.error(err);
           setStatus('bad', 'couldn’t load the puzzle');
-        });
+        }
       }
       addEventListener('popstate', start);
 
@@ -1035,9 +1058,11 @@
               (st.best && st.best.toLowerCase() !== st.said.toLowerCase()
                 ? ` ≈ <q>${esc(st.best)}</q>`
                 : '') +
-              `<br><span style="color:var(--muted)">the puzzle's clue: <q>${esc(w.clue)}</q></span>`
+              `<br><span style="color:var(--muted)">the puzzle's clue: <q>${esc(w.clue)}</q></span>` +
+              `<br>+${st.paid || 0} points`
           );
-        } else if (st.done) setStatus('bad', `the puzzle's clue: <q>${esc(w.clue)}</q>`);
+        } else if (st.done)
+          setStatus('bad', `the puzzle's clue: <q>${esc(w.clue)}</q><br>0 points`);
         $('known').hidden = true;
         $('known').open = true;
         if (st.done && !st.given)
