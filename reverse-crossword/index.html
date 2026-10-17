@@ -285,23 +285,30 @@
       .list li.lost .ans {
         color: var(--bad);
       }
-      #word,
-      #bar-mid {
+      #word {
         display: flex;
         flex-direction: column;
         gap: 12px;
       }
+      /* The arrows sit either side of the answer. */
       #bar {
-        display: flex;
-        align-items: center;
-        gap: 8px;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 12px 8px;
       }
       #bar-mid {
-        flex: 1;
-        min-width: 0;
+        display: contents;
+      }
+      #bar-mid > * {
+        grid-column: 2;
+      }
+      #prev-clue {
+        grid-area: 2 / 1;
+      }
+      #next-clue {
+        grid-area: 2 / 3;
       }
       #bar .arrow {
-        align-self: stretch;
         display: flex;
         align-items: center;
         padding: 0 6px;
