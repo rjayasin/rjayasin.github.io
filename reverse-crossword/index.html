@@ -285,10 +285,39 @@
       .list li.lost .ans {
         color: var(--bad);
       }
-      #word {
+      #word,
+      #bar-mid {
         display: flex;
         flex-direction: column;
         gap: 12px;
+      }
+      #bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      #bar-mid {
+        flex: 1;
+        min-width: 0;
+      }
+      #bar .arrow {
+        align-self: stretch;
+        display: flex;
+        align-items: center;
+        padding: 0 6px;
+        color: var(--muted);
+      }
+      #bar .arrow path {
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      @media (hover: hover) {
+        #bar .arrow:hover {
+          color: inherit;
+        }
       }
       #which {
         color: var(--muted);
@@ -429,7 +458,6 @@
           background: var(--bad);
           color: #fff;
         }
-        #actions #skip:hover,
         #actions #share:hover,
         #actions #today:hover,
         #actions #next:hover:not(:disabled),
@@ -582,18 +610,32 @@
           <b id="finished" hidden>✓ puzzle complete</b>
         </div>
         <div id="word">
-          <span id="which"></span>
-          <span id="answer"></span>
-          <form id="guess-form" autocomplete="off">
-            <input
-              type="text"
-              id="guess"
-              placeholder="write a clue"
-              spellcheck="false"
-              enterkeyhint="go"
-            />
-            <button id="guess-btn" type="submit">check</button>
-          </form>
+          <div id="bar">
+            <button id="prev-clue" class="arrow" type="button" aria-label="previous clue">
+              <svg viewBox="0 0 12 24" width="12" height="24" aria-hidden="true">
+                <path d="M10 2 2 12l8 10" />
+              </svg>
+            </button>
+            <div id="bar-mid">
+              <span id="which"></span>
+              <span id="answer"></span>
+              <form id="guess-form" autocomplete="off">
+                <input
+                  type="text"
+                  id="guess"
+                  placeholder="write a clue"
+                  spellcheck="false"
+                  enterkeyhint="go"
+                />
+                <button id="guess-btn" type="submit">check</button>
+              </form>
+            </div>
+            <button id="next-clue" class="arrow" type="button" aria-label="next clue">
+              <svg viewBox="0 0 12 24" width="12" height="24" aria-hidden="true">
+                <path d="M2 2l8 10-8 10" />
+              </svg>
+            </button>
+          </div>
           <div id="status"></div>
           <ul id="guesses"></ul>
           <details id="known" hidden>
@@ -603,7 +645,6 @@
         </div>
         <div id="actions">
           <button id="giveup" type="button">reveal clue</button>
-          <button id="skip" type="button">next clue</button>
           <button id="share" type="button" hidden>share score</button>
           <button id="today" type="button" hidden>today's puzzle</button>
           <button id="next" type="button">random puzzle</button>
@@ -1090,7 +1131,6 @@
           : `write a clue for ${w.ans}`;
         $('guess-btn').disabled = st.done;
         $('giveup').hidden = st.done;
-        $('skip').hidden = nextOpen(sel) < 0 || nextOpen(sel) === sel;
         const ul = $('guesses');
         ul.textContent = '';
         for (const g of st.guesses) addGuessLi(g);
@@ -1288,13 +1328,19 @@
         history.pushState(null, '', location.pathname);
         start();
       });
-      $('skip').addEventListener('click', () => {
-        const j = nextOpen(sel);
-        if (j < 0) return;
-        select(j);
-        guessEl.focus();
-        bringFormIntoView();
-      });
+      // The arrows step to the previous / next unclued entry, or the adjacent
+      // one once every entry is done.
+      for (const [id, step] of [
+        ['prev-clue', -1],
+        ['next-clue', 1],
+      ]) {
+        $(id).addEventListener('mousedown', (e) => e.preventDefault());
+        $(id).addEventListener('click', () => {
+          if (!puzzle) return;
+          const j = nextOpen(sel, step);
+          select(j < 0 ? (sel + step + state.length) % state.length : j, true);
+        });
+      }
 
       // ↑ in the clue box steps back through this entry's tries, newest first.
       let recall = -1;
