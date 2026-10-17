@@ -26,6 +26,7 @@
         --sel-soft: #dcefff;
         --done: #cdeccf;
         --gave: #f8d7d7;
+        --given: #e4e4e4;
       }
       body.dark {
         --muted: rgba(255, 255, 255, 0.55);
@@ -40,6 +41,7 @@
         --sel-soft: #19324a;
         --done: #1e4428;
         --gave: #4a2323;
+        --given: #3a3a3a;
       }
       @media (prefers-color-scheme: dark) {
         body:not(.light) {
@@ -55,6 +57,7 @@
           --sel-soft: #19324a;
           --done: #1e4428;
           --gave: #4a2323;
+          --given: #3a3a3a;
         }
       }
       body {
@@ -169,6 +172,12 @@
       .sq.d-gave {
         --d: var(--gave);
       }
+      .sq.a-given {
+        --a: var(--given);
+      }
+      .sq.d-given {
+        --d: var(--given);
+      }
       .sq.on {
         background: var(--sel-soft);
       }
@@ -256,6 +265,10 @@
       }
       .list li.won .ans {
         color: var(--ok);
+      }
+      .list li.given .said {
+        color: var(--muted);
+        font-style: italic;
       }
       .list li.lost .ans {
         color: var(--bad);
@@ -939,7 +952,9 @@
         const w = puzzle.words[k];
         const st = state[k];
         const li = $(`clue-${k}`);
-        li.className = (st.done ? (st.won ? 'won' : 'lost') : '') + (k === sel ? ' cur' : '');
+        li.className =
+          (st.given ? 'given' : st.done ? (st.won ? 'won' : 'lost') : '') +
+          (k === sel ? ' cur' : '');
         li.innerHTML = `<span class="n">${w.n}</span><span class="ans">${w.ans}</span>`;
         if (st.won) {
           li.innerHTML += `<span class="said">${esc(st.said)}${st.exact ? ' ★' : ''}</span>`;
@@ -966,6 +981,7 @@
             const st = sts[half] || sts.a || sts.d;
             el.classList.toggle(`${half}-won`, st.won);
             el.classList.toggle(`${half}-gave`, st.done && !st.won && !st.given);
+            el.classList.toggle(`${half}-given`, st.given);
           }
           el.classList.toggle('on', on.has(i));
           el.classList.toggle('cur', on.has(i) && i === lastCell);
