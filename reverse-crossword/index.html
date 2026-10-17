@@ -123,8 +123,27 @@
         flex-basis: 100%;
       }
       #daily[hidden],
-      #finished[hidden] {
+      #finished[hidden],
+      #meta[hidden] {
         display: none;
+      }
+      #modes {
+        display: flex;
+        gap: 4px;
+      }
+      #modes button {
+        padding: 0.3em 0.9em;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        text-decoration: none;
+        color: var(--muted);
+      }
+      #modes button[aria-pressed='true'] {
+        background: var(--line);
+        color: inherit;
+      }
+      body.mini #grid-wrap {
+        max-width: 420px;
       }
       #scorebar #finished {
         color: var(--ok);
@@ -611,6 +630,10 @@
   <body class="dark">
     <div id="layout">
       <aside id="side">
+        <div id="modes">
+          <button type="button" data-mode="full" aria-pressed="true">full</button>
+          <button type="button" data-mode="mini" aria-pressed="false">mini</button>
+        </div>
         <div id="scorebar">
           <b id="daily" hidden></b>
           <span>score <b id="score">0</b></span>
@@ -662,7 +685,7 @@
         <div id="info" hidden></div>
         <div id="matcher"></div>
         <div id="leaders">
-          <div>your high scores</div>
+          <div id="leaders-head">your high scores</div>
           <ol id="leaders-list"></ol>
         </div>
       </aside>
@@ -686,9 +709,11 @@
       if (matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('dark');
       Common.initHintUpdated({ hintEl: document.getElementById('hint') });
 
-      // PUZZLES and SHARDS match what scripts/build-reverse-crossword.js wrote;
-      // DATA versions saved progress so a rebuild doesn't resume the wrong grid.
+      // PUZZLES and SHARDS match what scripts/build-reverse-crossword.js wrote,
+      // and MINIS what scripts/build-reverse-crossword-minis.js wrote; DATA
+      // versions saved progress so a rebuild doesn't resume the wrong grid.
       const PUZZLES = 11349;
+      const MINIS = 1000;
       const SHARDS = 256;
       const DATA = 2;
       const STORE = 'reverse-crossword';
@@ -706,10 +731,19 @@
 
       // --- persistence ------------------------------------------------------
       // daily is today's puzzle and cur the random one in progress, so a
-      // reload picks up where it left off.
+      // reload picks up where it left off; miniDaily and miniCur are the same
+      // for minis.
 
       const stats = (() => {
-        const blank = { seen: [], scores: [], cur: null, daily: null };
+        const blank = {
+          seen: [],
+          miniSeen: [],
+          scores: [],
+          cur: null,
+          daily: null,
+          miniCur: null,
+          miniDaily: null,
+        };
         try {
           return { ...blank, ...JSON.parse(localStorage.getItem(STORE)) };
         } catch {
@@ -718,6 +752,7 @@
       })();
       function saveStats() {
         stats.seen = stats.seen.slice(-2000);
+        stats.miniSeen = stats.miniSeen.slice(-1000);
         try {
           localStorage.setItem(STORE, JSON.stringify(stats));
         } catch {}
@@ -737,6 +772,8 @@
       const worthOf = (st) => Math.max(MISS, WORTH - MISS * st.misses);
       const playable = () => state.filter((st) => !st.given);
       const score = () => state.reduce((s, st) => s + (st.paid || 0), 0);
+      // A mini's clues are its answers' most common past clues.
+      const clueLabel = () => (game.mini ? 'the most common clue' : "the puzzle's clue");
       const label = (w) => `${w.n} ${w.dir === 'a' ? 'across' : 'down'}`;
 
       $('info').innerHTML = `
@@ -761,6 +798,7 @@
         const entry = { t: cur.t, score: score(), solved: playable().filter((s) => s.won).length };
         entry.total = playable().length;
         entry.day = cur.day;
+        entry.mini = cur.mini;
         stats.scores = stats.scores.filter((e) => e.t !== cur.t);
         if (entry.score > 0) stats.scores.push(entry);
         stats.scores.sort((a, b) => b.score - a.score || a.t - b.t);
@@ -774,13 +812,15 @@
         const list = $('leaders-list');
         list.textContent = '';
         const t = game?.t;
-        const live = stats.scores.find((e) => e.t === t) || {
+        const scores = stats.scores.filter((e) => !!e.mini === !!game?.mini);
+        $('leaders-head').textContent = game?.mini ? 'your mini high scores' : 'your high scores';
+        const live = scores.find((e) => e.t === t) || {
           t,
           score: score(),
           solved: playable().filter((s) => s.won).length,
           total: playable().length,
         };
-        const all = [...stats.scores.filter((e) => e !== live), live].filter((e) => e.score > 0);
+        const all = [...scores.filter((e) => e !== live), live].filter((e) => e.score > 0);
         all.sort((a, b) => b.score - a.score || a.t - b.t);
         const rank = all.indexOf(live);
         const shown = all.slice(0, LEADERS);
@@ -811,17 +851,17 @@
 
       // --- loading ------------------------------------------------------------
 
-      async function fetchPuzzle(id) {
-        const r = await fetch(`data/puzzles/${id}.json`);
+      async function fetchPuzzle(id, mini) {
+        const r = await fetch(`data/${mini ? 'minis' : 'puzzles'}/${id}.json`);
         if (!r.ok) throw new Error(`puzzle ${id}: ${r.status}`);
         return r.json();
       }
 
-      function pickId() {
-        const seen = new Set(stats.seen);
+      function pickId(mini) {
+        const seen = new Set(mini ? stats.miniSeen : stats.seen);
         let id;
         for (let tries = 0; tries < 50; tries++) {
-          id = Math.floor(Math.random() * PUZZLES);
+          id = Math.floor(Math.random() * (mini ? MINIS : PUZZLES));
           if (!seen.has(id)) break;
         }
         return id;
@@ -922,7 +962,7 @@
         loading = true;
         $('next').disabled = true;
         try {
-          puzzle = layout(await fetchPuzzle(rec.id));
+          puzzle = layout(await fetchPuzzle(rec.id, rec.mini));
           if (!rec.state) {
             rec.state = puzzle.words.map((w) => ({
               done: w.given,
@@ -931,7 +971,7 @@
               misses: 0,
               guesses: [],
             }));
-            stats.seen.push(rec.id);
+            (rec.mini ? stats.miniSeen : stats.seen).push(rec.id);
           }
           game = rec;
           state = rec.state;
@@ -945,24 +985,33 @@
         select(first < 0 ? 0 : first, true);
       }
 
-      // The page plays today's puzzle, or puzzle n at ?p=n, resuming either
-      // if it's the one saved.
+      // The page plays today's puzzle, puzzle n at ?p=n, today's mini at
+      // ?mini, or mini n at ?mini=n, resuming any of them if it's the one
+      // saved. Minis are already shuffled, so daily mini #n plays mini n - 1.
       async function start() {
-        const p = new URLSearchParams(location.search).get('p');
-        const id = p === null ? NaN : Number(p);
+        const q = new URLSearchParams(location.search);
+        const mini = q.has('mini');
+        const p = mini ? q.get('mini') : q.get('p');
+        const id = p ? Number(p) : NaN;
+        const [curKey, dailyKey] = mini ? ['miniCur', 'miniDaily'] : ['cur', 'daily'];
         const saved = (rec, match) => rec?.v === DATA && rec.state && match(rec);
+        document.body.classList.toggle('mini', mini);
+        for (const b of $('modes').children)
+          b.setAttribute('aria-pressed', (b.dataset.mode === 'mini') === mini);
         try {
           let rec;
-          if (Number.isInteger(id) && id >= 0 && id < PUZZLES) {
-            rec = saved(stats.cur, (r) => r.id === id) ? stats.cur : { v: DATA, id, t: Date.now() };
-            stats.cur = rec;
+          if (Number.isInteger(id) && id >= 0 && id < (mini ? MINIS : PUZZLES)) {
+            rec = saved(stats[curKey], (r) => r.id === id)
+              ? stats[curKey]
+              : { v: DATA, id, t: Date.now(), mini };
+            stats[curKey] = rec;
           } else {
             const day = today();
-            const id = await dailyId(day);
-            rec = saved(stats.daily, (r) => r.day === day && r.id === id)
-              ? stats.daily
-              : { v: DATA, id, t: Date.now(), day };
-            stats.daily = rec;
+            const id = mini ? (((day - 1) % MINIS) + MINIS) % MINIS : await dailyId(day);
+            rec = saved(stats[dailyKey], (r) => r.day === day && r.id === id)
+              ? stats[dailyKey]
+              : { v: DATA, id, t: Date.now(), day, mini };
+            stats[dailyKey] = rec;
           }
           await openPuzzle(rec);
         } catch (err) {
@@ -976,18 +1025,20 @@
 
       function render() {
         const p = puzzle;
-        const d = new Date(p.date + 'T12:00');
-        $('meta').textContent = `${d.toLocaleDateString(undefined, {
-          weekday: 'long',
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        })} · ${p.by}`;
+        $('meta').hidden = game.mini;
+        if (!game.mini)
+          $('meta').textContent = `${new Date(p.date + 'T12:00').toLocaleDateString(undefined, {
+            weekday: 'long',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          })} · ${p.by}`;
         $('daily').hidden = !game.day;
-        $('daily').textContent = `daily puzzle #${game.day} · ${new Date().toLocaleDateString(
-          undefined,
-          { month: 'short', day: 'numeric', year: 'numeric' }
-        )}`;
+        $('daily').textContent =
+          `daily ${game.mini ? 'mini' : 'puzzle'} #${game.day} · ${new Date().toLocaleDateString(
+            undefined,
+            { month: 'short', day: 'numeric', year: 'numeric' }
+          )}`;
         $('today').hidden = !!game.day;
         gridEl.style.setProperty('--cols', p.size);
         gridEl.textContent = '';
@@ -1147,7 +1198,7 @@
         for (const g of st.guesses) addGuessLi(g);
         statusEl.textContent = '';
         if (st.given)
-          setStatus('', `the puzzle's clue: <q>${esc(w.clue)}</q> — no other clues to match`);
+          setStatus('', `${clueLabel()}: <q>${esc(w.clue)}</q> — no other clues to match`);
         else if (st.won) {
           setStatus(
             'ok',
@@ -1156,11 +1207,10 @@
               (st.best && st.best.toLowerCase() !== st.said.toLowerCase()
                 ? ` ≈ <q>${esc(st.best)}</q>`
                 : '') +
-              `<br><span style="color:var(--muted)">the puzzle's clue: <q>${esc(w.clue)}</q></span>` +
+              `<br><span style="color:var(--muted)">${clueLabel()}: <q>${esc(w.clue)}</q></span>` +
               `<br>+${st.paid || 0} points`
           );
-        } else if (st.done)
-          setStatus('bad', `the puzzle's clue: <q>${esc(w.clue)}</q><br>0 points`);
+        } else if (st.done) setStatus('bad', `${clueLabel()}: <q>${esc(w.clue)}</q><br>0 points`);
         $('known').hidden = true;
         $('known').open = true;
         if (st.done && !st.given)
@@ -1210,11 +1260,22 @@
         const sts = playable();
         const won = sts.filter((s) => s.won).length;
         const stars = sts.filter((s) => s.exact).length;
-        const url = location.origin + location.pathname + (game.day ? '' : `?p=${game.id}`);
+        const q = game.mini
+          ? game.day
+            ? '?mini'
+            : `?mini=${game.id}`
+          : game.day
+            ? ''
+            : `?p=${game.id}`;
+        const name = game.mini ? 'Reverse Crossword Mini' : 'Reverse Crossword';
         return [
-          game.day ? `Reverse Crossword #${game.day}` : `Reverse Crossword · NYT ${puzzle.date}`,
+          game.day
+            ? `${name} #${game.day}`
+            : game.mini
+              ? `${name} ${game.id + 1}`
+              : `${name} · NYT ${puzzle.date}`,
           `${score()} points · ${won}/${sts.length} clued` + (stars ? ` · ${stars}★` : ''),
-          url,
+          location.origin + location.pathname + q,
         ].join('\n');
       }
       let shareTimer = null;
@@ -1296,7 +1357,7 @@
               (v.exact
                 ? `that exact clue has run before (+${EXACT} bonus)`
                 : `close enough to <q>${esc(v.best)}</q>`) +
-              `<br><span style="color:var(--muted)">the puzzle's clue: <q>${esc(w.clue)}</q>` +
+              `<br><span style="color:var(--muted)">${clueLabel()}: <q>${esc(w.clue)}</q>` +
               (nextOpen(k) >= 0 && fine() ? '<br>enter for the next clue' : '') +
               '</span>'
           );
@@ -1330,15 +1391,26 @@
       });
       $('next').addEventListener('click', () => {
         if (loading) return;
-        stats.cur = null;
-        history.pushState(null, '', `?p=${pickId()}`);
+        const mini = !!game?.mini;
+        stats[mini ? 'miniCur' : 'cur'] = null;
+        history.pushState(null, '', mini ? `?mini=${pickId(true)}` : `?p=${pickId()}`);
         start();
       });
       $('today').addEventListener('click', () => {
         if (loading) return;
-        history.pushState(null, '', location.pathname);
+        history.pushState(null, '', location.pathname + (game?.mini ? '?mini' : ''));
         start();
       });
+      for (const b of $('modes').children)
+        b.addEventListener('click', () => {
+          if (loading || (b.dataset.mode === 'mini') === !!game?.mini) return;
+          history.pushState(
+            null,
+            '',
+            location.pathname + (b.dataset.mode === 'mini' ? '?mini' : '')
+          );
+          start();
+        });
       // The arrows step to the previous / next unclued entry, or the adjacent
       // one once every entry is done.
       for (const [id, step] of [
