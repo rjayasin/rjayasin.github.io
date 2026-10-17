@@ -284,11 +284,13 @@
         padding-bottom: 6px;
         border-bottom: 1px solid var(--line);
       }
+      /* The bottom padding lets the last clues scroll up past the disclaimer. */
       .list ol {
         list-style: none;
         overflow-y: auto;
         min-height: 0;
         flex: 1;
+        padding-bottom: 32px;
       }
       .list li {
         display: grid;
@@ -615,8 +617,10 @@
       }
       #legal {
         position: fixed;
-        right: 16px;
-        bottom: 8px;
+        right: 0;
+        bottom: 0;
+        padding: 6px 16px 8px 8px;
+        background: inherit;
         font-size: 10px;
         text-align: right;
         color: var(--muted);
@@ -640,6 +644,7 @@
         #legal {
           position: static;
           margin-top: 24px;
+          padding: 0;
         }
         #grid-wrap {
           flex: none;
@@ -1452,16 +1457,11 @@
           st.paid = worthOf(st) + (st.exact ? EXACT : 0);
           settle(k, true);
           showWord();
-          setStatus(
-            'ok',
-            `✓ +${st.paid}${st.exact ? ' <span class="star">★</span>' : ''} — ` +
-              (v.exact
-                ? `that exact clue has run before (+${EXACT} bonus)`
-                : `close enough to <q>${esc(v.best)}</q>`) +
-              `<br><span style="color:var(--muted)">${clueLabel()}: <q>${esc(w.clue)}</q>` +
-              (nextOpen(k) >= 0 && fine() ? '<br>enter for the next clue' : '') +
-              '</span>'
-          );
+          if (nextOpen(k) >= 0 && fine())
+            statusEl.firstChild.insertAdjacentHTML(
+              'beforeend',
+              '<br><span style="color:var(--muted)">enter for the next clue</span>'
+            );
           return;
         }
         const g = { text, close: v.result === 'close' };
