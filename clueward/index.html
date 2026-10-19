@@ -28,6 +28,8 @@
         --gave: #f8d7d7;
         --given: #e4e4e4;
         --gold: #c99a06;
+        --frame: #b4b4b4;
+        --flash: rgba(255, 255, 255, 0.5);
       }
       body.dark {
         --muted: rgba(255, 255, 255, 0.55);
@@ -44,6 +46,8 @@
         --gave: #4a2323;
         --given: #3a3a3a;
         --gold: #f2c230;
+        --frame: #555;
+        --flash: rgba(70, 210, 100, 0.22);
       }
       @media (prefers-color-scheme: dark) {
         body:not(.light) {
@@ -61,6 +65,8 @@
           --gave: #4a2323;
           --given: #3a3a3a;
           --gold: #f2c230;
+          --frame: #555;
+          --flash: rgba(70, 210, 100, 0.22);
         }
       }
       body {
@@ -189,13 +195,64 @@
         display: grid;
         grid-template-columns: repeat(var(--cols, 15), minmax(0, 1fr));
         gap: 1px;
+        position: relative;
         padding: 2px;
         background: var(--grid-line);
-        border: 1px solid var(--grid-line);
+        border: 4px solid var(--frame);
         user-select: none;
         touch-action: manipulation;
         container-type: inline-size;
         font-family: 'Libre Franklin', Helvetica, Arial, sans-serif;
+      }
+      #grid::before {
+        content: '';
+        position: absolute;
+        inset: -4px;
+        border: 4px solid var(--ok);
+        opacity: 0;
+        pointer-events: none;
+      }
+      #grid.complete::before {
+        opacity: 1;
+      }
+      #grid.cheer::before {
+        transition: opacity 0.32s ease-out var(--wave);
+      }
+      /* Finishing the grid lifts each square toward the viewer in a diagonal
+         wave. Only transform and opacity animate, which keeps it smooth in
+         Chrome: the scale and outward nudge stand in for translateZ(35px)
+         under a 600px perspective. */
+      #grid.cheer .sq:not(.block) {
+        animation: sq-lift 0.45s calc(var(--k) * var(--step));
+      }
+      #grid.cheer .sq:not(.block)::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: var(--flash);
+        box-shadow: 0 6px 12px -4px rgba(0, 0, 0, 0.4);
+        opacity: 0;
+        pointer-events: none;
+        animation: sq-glint 0.45s calc(var(--k) * var(--step));
+      }
+      @keyframes sq-lift {
+        from {
+          animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1);
+        }
+        40% {
+          transform: translate(calc(var(--ox) * 6.2%), calc(var(--oy) * 6.2%)) scale(1.062);
+          animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.3);
+        }
+      }
+      @keyframes sq-glint {
+        from {
+          animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1);
+        }
+        40% {
+          opacity: 1;
+          animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.3);
+        }
       }
       .sq {
         position: relative;
@@ -252,7 +309,7 @@
         line-height: 1;
       }
       .sq.in {
-        animation: sq-in 0.3s ease-out backwards;
+        animation: sq-in 0.3s ease-out var(--in) backwards;
       }
       @keyframes sq-in {
         from {
@@ -708,6 +765,8 @@
       }
       @media (prefers-reduced-motion: reduce) {
         .sq.in,
+        #grid.cheer .sq:not(.block),
+        #grid.cheer .sq:not(.block)::before,
         #matcher.loading {
           animation: none;
         }
@@ -1146,7 +1205,12 @@
             { month: 'short', day: 'numeric', year: 'numeric' }
           )}`;
         $('today').hidden = !!game.day;
+        const step = p.size > 5 ? 30 : 60;
+        const mid = (p.size - 1) / 2;
         gridEl.style.setProperty('--cols', p.size);
+        gridEl.style.setProperty('--step', step + 'ms');
+        gridEl.style.setProperty('--wave', 2 * (p.size - 1) * step + 120 + 'ms');
+        gridEl.classList.remove('complete', 'cheer');
         gridEl.textContent = '';
         const nums = new Map(p.words.map((w) => [w.cells[0], w.n]));
         for (let i = 0; i < p.grid.length; i++) {
@@ -1154,8 +1218,13 @@
           el.id = `sq-${i}`;
           if (p.grid[i] === '.') el.className = 'sq block';
           else {
+            const r = Math.floor(i / p.size);
+            const c = i % p.size;
             el.className = 'sq in';
-            el.style.animationDelay = Math.round(Math.random() * 400) + 'ms';
+            el.style.setProperty('--in', Math.round(Math.random() * 400) + 'ms');
+            el.style.setProperty('--k', r + c);
+            el.style.setProperty('--ox', c - mid);
+            el.style.setProperty('--oy', r - mid);
             el.textContent = p.grid[i];
             if (nums.has(i)) {
               const n = document.createElement('span');
@@ -1354,11 +1423,14 @@
         $('guesses').prepend(li);
       }
 
-      function updateScore() {
+      function updateScore(cheer) {
         $('score').textContent = score();
         $('solved').textContent = `${playable().filter((s) => s.won).length}/${playable().length}`;
         $('share').hidden = !playable().some((s) => s.done);
-        $('finished').hidden = !state.every((s) => s.done);
+        const done = state.every((s) => s.done);
+        $('finished').hidden = !done;
+        if (cheer && done) gridEl.classList.add('cheer');
+        gridEl.classList.toggle('complete', done);
         renderLeaders();
       }
 
@@ -1414,7 +1486,7 @@
         recordScore();
         paintClue(k);
         paintCells();
-        updateScore();
+        updateScore(true);
       }
 
       function nextOpen(k, step = 1) {
