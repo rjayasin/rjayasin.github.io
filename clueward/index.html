@@ -100,32 +100,56 @@
       }
       #brand {
         display: flex;
-        align-items: center;
-        gap: 24px;
+        flex-direction: column;
+        gap: 12px;
       }
+      /* A one-line run of grid squares, with clued and revealed across
+         halves alternating. */
       #logo {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 3px;
-        width: 144px;
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+        gap: 1px;
+        padding: 1px;
+        background: var(--grid-line);
+        border: 3px solid var(--frame);
         container-type: inline-size;
         font-family: 'Libre Franklin', Helvetica, Arial, sans-serif;
         font-weight: 600;
         user-select: none;
       }
-      #logo span {
+      #logo > span {
+        position: relative;
         aspect-ratio: 1;
         display: flex;
-        align-items: center;
+        align-items: flex-end;
         justify-content: center;
-        border: 1px solid var(--line);
-        border-radius: 4px;
-        font-size: calc(100cqi / 4 * 0.5);
+        font-size: calc(100cqi / 8 * 0.56);
+        line-height: 1.5;
+        background: linear-gradient(135deg, var(--done) 50%, var(--cell) 50%);
       }
-      #logo .hi {
-        background: var(--gold);
-        border-color: var(--gold);
-        color: #000;
+      #logo > span:nth-child(even) {
+        background: linear-gradient(135deg, var(--gave) 50%, var(--cell) 50%);
+      }
+      #logo .num {
+        position: absolute;
+        top: 1px;
+        left: 2px;
+        font-size: calc(100cqi / 8 * 0.26);
+        font-weight: 400;
+        line-height: 1;
+      }
+      #logo.bounce > span {
+        animation: logo-lift 0.45s calc(var(--k) * 45ms);
+      }
+      @keyframes logo-lift {
+        from {
+          animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1);
+        }
+        40% {
+          transform: translateY(-8%) scale(1.08);
+          box-shadow: 0 6px 12px -4px rgba(0, 0, 0, 0.4);
+          animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.3);
+        }
       }
       #main {
         flex: 1 1 auto;
@@ -179,9 +203,8 @@
       }
       #controls {
         display: flex;
-        flex-direction: column;
+        justify-content: space-between;
         align-items: center;
-        gap: 10px;
       }
       #theme {
         position: relative;
@@ -814,6 +837,7 @@
         .sq.in,
         #grid.cheer .sq:not(.block),
         #grid.cheer .sq:not(.block)::before,
+        #logo.bounce > span,
         #matcher.loading {
           animation: none;
         }
@@ -827,8 +851,8 @@
         <div id="brand">
           <h1>
             <span id="logo" role="img" aria-label="Clueward">
-              <span class="hi">C</span><span>L</span><span class="hi">U</span><span>E</span
-              ><span>W</span><span class="hi">A</span><span>R</span><span class="hi">D</span>
+              <span><span class="num">1</span>C</span><span>L</span><span>U</span><span>E</span
+              ><span>W</span><span>A</span><span>R</span><span>D</span>
             </span>
           </h1>
           <div id="controls">
@@ -932,6 +956,15 @@
     <script>
       Common.paintFavicon({ glyph: '✏️', fontSize: 44, transparent: true });
       if (matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('dark');
+      // Hovering the logo runs one full wave, even if the pointer leaves mid-way.
+      {
+        const logo = document.getElementById('logo');
+        [...logo.children].forEach((s, k) => s.style.setProperty('--k', k));
+        logo.addEventListener('mouseenter', () => logo.classList.add('bounce'));
+        logo.lastElementChild.addEventListener('animationend', () =>
+          logo.classList.remove('bounce')
+        );
+      }
       {
         const THEME = 'clueward-theme';
         const btn = document.getElementById('theme');
