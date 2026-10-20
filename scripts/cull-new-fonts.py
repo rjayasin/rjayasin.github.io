@@ -28,6 +28,7 @@ import os
 import re
 import subprocess
 import sys
+import unicodedata
 
 import numpy as np
 from fontTools.pens.boundsPen import BoundsPen
@@ -52,7 +53,9 @@ NEVER_CULL = set()
 
 
 def slug(name):
-    return name.lower().replace(" ", "-")
+    # Matches Common.slugifyFont in common.js.
+    plain = unicodedata.normalize("NFD", name).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", "-", plain.lower()).strip("-")
 
 
 def parse_fonts_js(src):

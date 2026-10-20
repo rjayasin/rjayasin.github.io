@@ -88,7 +88,12 @@ window.Common = window.Common || {};
   }
 
   function slugifyFont(name) {
-    return name.toLowerCase().replace(/ /g, '-');
+    return name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
   }
 
   const loadedGoogleFonts = new Set();
@@ -107,9 +112,10 @@ window.Common = window.Common || {};
     return document.fonts.load(`1em '${font}'`).catch(() => {});
   }
 
+  // Includes the typefree.org fonts on pages that load /typefree-fonts.js.
   function pickRandomGoogleFont() {
-    const list = window.googleFonts;
-    if (!list || !list.length) return null;
+    const list = (window.googleFonts || []).concat(Object.keys(window.typefreeFonts || {}));
+    if (!list.length) return null;
     return list[Math.floor(Math.random() * list.length)];
   }
 
@@ -119,13 +125,15 @@ window.Common = window.Common || {};
     return arr[Math.floor(Math.random() * arr.length)];
   }
 
+  // A typefree.org font's own homepage, else its Google Fonts specimen.
+  function fontPageUrl(font) {
+    const typefree = window.typefreeFonts && window.typefreeFonts[font];
+    return typefree ? typefree[2] : `https://fonts.google.com/specimen/${font.replace(/ /g, '+')}`;
+  }
+
   function openFontSpecimen(font) {
     if (!font) return;
-    window.open(
-      `https://fonts.google.com/specimen/${font.replace(/ /g, '+')}`,
-      '_blank',
-      'noopener'
-    );
+    window.open(fontPageUrl(font), '_blank', 'noopener');
   }
 
   function parseQueryItems() {
@@ -610,6 +618,7 @@ window.Common = window.Common || {};
     slugifyFont,
     pickRandomGoogleFont,
     pickLoadedGoogleFont,
+    fontPageUrl,
     openFontSpecimen,
     parseQueryItems,
     makeCooldown,

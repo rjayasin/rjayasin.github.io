@@ -141,7 +141,9 @@
 
       Common.onTap(handleClick);
 
-      Common.loadScript('/fonts.js').then(() => display());
+      Promise.all([Common.loadScript('/fonts.js'), Common.loadScript('/typefree-fonts.js')]).then(
+        () => display()
+      );
     </script>
   </body>
 </html>

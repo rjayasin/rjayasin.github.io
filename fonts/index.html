@@ -118,9 +118,11 @@
       Common.initDarkMode();
       Common.initSitemapShortcut();
       Common.paintFavicon({ glyph: '🔤', fontSize: 48, transparent: true });
-      Promise.all([Common.loadScript('/fonts.js'), Common.loadScript('/fonts-meta.js')]).then(
-        () => Common.loadScript('/fonts/explorer.js?v=dev')
-      );
+      Promise.all([
+        Common.loadScript('/fonts.js'),
+        Common.loadScript('/fonts-meta.js'),
+        Common.loadScript('/typefree-fonts.js'),
+      ]).then(() => Common.loadScript('/fonts/explorer.js?v=dev'));
     </script>
   </body>
 </html>

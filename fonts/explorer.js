@@ -1,6 +1,9 @@
 (function () {
   const meta = window.googleFontsMeta || { categories: [], fonts: {} };
-  const allFonts = (window.googleFonts || []).slice();
+  const typefree = window.typefreeFonts || {};
+  const allFonts = (window.googleFonts || [])
+    .concat(Object.keys(typefree))
+    .sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' }));
 
   // Generic fallback per category, shown (dimmed) until the real woff2 loads.
   const FALLBACKS = ['sans-serif', 'serif', 'serif', 'cursive', 'monospace'];
@@ -28,11 +31,11 @@
   let rendered = 0;
 
   function catOf(font) {
-    const m = meta.fonts[font];
+    const m = meta.fonts[font] || typefree[font];
     return m ? m[0] : -1;
   }
   function dateOf(font) {
-    const m = meta.fonts[font];
+    const m = meta.fonts[font] || typefree[font];
     return m ? m[1] : '';
   }
 
@@ -48,7 +51,7 @@
     if (state.sort === 'random') {
       shuffle(ordered);
     } else if (state.sort === 'new') {
-      // fonts.js is alphabetical, so the stable sort keeps same-day fonts in
+      // allFonts is alphabetical, so the stable sort keeps same-day fonts in
       // name order; dateless (delisted) families sink to the end.
       ordered.sort((a, b) => {
         const da = dateOf(a);
@@ -86,7 +89,7 @@
   function fillInfo(el, font) {
     el.textContent = '';
     const link = document.createElement('a');
-    link.href = `https://fonts.google.com/specimen/${font.replace(/ /g, '+')}`;
+    link.href = Common.fontPageUrl(font);
     link.target = '_blank';
     link.rel = 'noopener';
     link.textContent = font;
@@ -96,6 +99,7 @@
     if (cat >= 0) parts.push(meta.categories[cat].toLowerCase());
     const date = dateOf(font);
     if (date) parts.push(date);
+    if (typefree[font]) parts.push('typefree');
     if (parts.length) el.appendChild(document.createTextNode(` · ${parts.join(' · ')}`));
   }
 
