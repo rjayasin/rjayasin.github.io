@@ -891,6 +891,8 @@
          the whole grid stays in view while writing a clue. The grid shrinks
          to fit the space above the keyboard. */
       #pad {
+        --key-h: 40px;
+        --key-gap: 8px;
         position: fixed;
         left: 0;
         right: 0;
@@ -909,17 +911,18 @@
       /* No scroll anchoring, which would push the grid up under the page's
          top edge whenever the past clues open beneath it. */
       body.pad {
-        padding-bottom: calc(var(--pad-h, 320px) + 16px);
+        padding: 16px 8px calc(var(--pad-h, 320px) + 16px);
         overflow-anchor: none;
       }
       body.pad #grid-wrap {
-        width: min(100%, calc(100dvh - var(--pad-h, 320px) - 16px));
+        width: min(100%, calc(100dvh - var(--pad-h, 320px) - 8px));
         margin-inline: auto;
-        scroll-margin-top: 8px;
+        scroll-margin-top: 4px;
       }
+      /* The arrows flank the box, with the entry's details on one line
+         beneath it, or the status in their place while writing. */
       body.pad #bar {
-        gap: 4px;
-        padding: 0 3px;
+        gap: 4px 2px;
       }
       body.pad #prev-clue {
         grid-area: 1 / 1;
@@ -927,10 +930,17 @@
       body.pad #next-clue {
         grid-area: 1 / 3;
       }
+      body.pad #bar-mid > #guess-form {
+        grid-area: 1 / 2;
+      }
       body.pad #which {
+        grid-area: 2 / 1 / 3 / -1;
         text-align: center;
         font-size: 12px;
-        line-height: 24px;
+        line-height: 18px;
+      }
+      #pad:not(.done) #pad-bar:has(#status:not(:empty)) #which {
+        display: none;
       }
       body.pad #answer,
       body.pad #guess-btn {
@@ -943,34 +953,50 @@
         font-size: 17px;
         padding: 6px 8px;
       }
-      /* The clue bar keeps one height, so the keyboard doesn't jump: the
-         status has two lines' room, and the box's too once the entry is
-         done. */
-      #pad-bar {
-        display: flex;
-        flex-direction: column;
-        height: 108px;
-      }
-      #pad.done #guess-form {
-        display: none;
-      }
-      body.pad #status,
-      body.pad #status:empty {
-        display: block;
-        flex: 1;
-        min-height: 0;
+      body.pad #status {
         margin: 4px 3px 0;
-        overflow-y: auto;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        text-align: center;
         font-size: 12px;
-        line-height: 1.35;
+        line-height: 18px;
+      }
+      /* Once the entry is done, its status takes the place of the letter
+         keys, leaving next where check was, so nothing above moves. */
+      #pad-bar {
+        position: relative;
+      }
+      #pad.done #keys .row:not(:last-child),
+      #pad.done #keys .key:not([data-k='go']) {
+        visibility: hidden;
+      }
+      #pad.done #status {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: calc(100% + 4px);
+        height: calc(3 * var(--key-h) + 2 * var(--key-gap));
+        margin: 0;
+        padding: 4px 6px;
+        overflow-y: auto;
+        white-space: normal;
+        text-align: left;
+        font-size: 13px;
+        line-height: 1.5;
       }
       body.pad.all-done #keys {
         display: none;
       }
+      body.pad.all-done #status {
+        position: static;
+        height: auto;
+        max-height: 30vh;
+      }
       #keys {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: var(--key-gap);
         padding-top: 4px;
         font-family: 'Libre Franklin', Helvetica, Arial, sans-serif;
       }
@@ -982,7 +1008,7 @@
       #keys .key {
         flex: none;
         width: calc((100% - 45px) / 10);
-        height: 40px;
+        height: var(--key-h);
         display: flex;
         align-items: center;
         justify-content: center;
