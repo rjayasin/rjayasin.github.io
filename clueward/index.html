@@ -949,9 +949,47 @@
       body.pad #guess-form {
         padding: 2px;
       }
-      body.pad #guess {
-        font-size: 17px;
+      /* The box itself is never focused here, since iOS scrolls the page to
+         keep a focused box in view as its text changes, even in a fixed bar;
+         a copy of its text with a drawn caret shows instead. */
+      body.pad #pad:not(.done) #guess-form {
+        border-color: var(--gold);
+      }
+      body.pad #guess,
+      #guess-view {
+        display: none;
+      }
+      body.pad #guess-view {
+        display: block;
+        flex: 1;
+        min-width: 0;
         padding: 6px 8px;
+        font-size: 17px;
+        line-height: 22px;
+        white-space: pre;
+        overflow: hidden;
+      }
+      #guess-view .ph {
+        color: var(--muted);
+        opacity: 0.6;
+        font-size: 0.75em;
+      }
+      #guess-view .caret {
+        display: inline-block;
+        width: 2px;
+        height: 20px;
+        margin: 0 -1px;
+        vertical-align: -4px;
+        background: var(--gold);
+        animation: blink 1s steps(1) infinite;
+      }
+      #pad.done #guess-view .caret {
+        display: none;
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
       }
       body.pad #status {
         margin: 4px 3px 0;
@@ -1055,6 +1093,7 @@
         #grid.cheer .sq:not(.block),
         #grid.cheer .sq:not(.block)::before,
         #logo.bounce > span,
+        #guess-view .caret,
         #matcher.loading {
           animation: none;
         }
@@ -1121,6 +1160,12 @@
                   spellcheck="false"
                   enterkeyhint="go"
                 />
+                <div
+                  id="guess-view"
+                  role="textbox"
+                  aria-readonly="true"
+                  aria-label="your clue"
+                ></div>
                 <button id="guess-btn" type="submit">check</button>
               </form>
             </div>
@@ -1679,7 +1724,7 @@
           () => Matcher.warm(w),
           () => {}
         );
-        if (focus && !state[k].done && (fine() || typing || pad())) guessEl.focus();
+        if (focus && !state[k].done && (fine() || typing)) guessEl.focus();
       }
 
       // Scrolls only the clue list, not the page, which on a phone would
@@ -2020,8 +2065,7 @@
       // --- on-screen keyboard -------------------------------------------------
       // Phones in portrait get the clue bar and a keyboard pinned to the
       // bottom of the screen in place of the system keyboard, which would
-      // cover the grid. The box keeps focus, for its caret, but with
-      // inputmode none the system keyboard stays down.
+      // cover the grid. The keys add to and delete from the end of the clue.
 
       const padQuery = matchMedia(
         '(pointer: coarse) and (max-width: 760px) and (orientation: portrait), ' +
@@ -2042,10 +2086,10 @@
         go: ['check', 'check'],
       };
       let page = 'abc';
-      // null follows the caret, capitalising the first letter; tapping ⇧
-      // sets it for the next letter only.
+      // null capitalises the clue's first letter; tapping ⇧ sets it for the
+      // next letter only.
       let shift = null;
-      const caps = () => shift ?? guessEl.selectionStart === 0;
+      const caps = () => shift ?? !guessEl.value;
 
       function buildKeys() {
         const keys = $('keys');
@@ -2072,6 +2116,7 @@
 
       function paintKeys() {
         if (!pad() || !puzzle) return;
+        paintView();
         const st = state[sel];
         const keys = $('keys');
         keys.classList.toggle('off', st.done);
@@ -2089,20 +2134,28 @@
         }
       }
 
+      // Shows the clue, or the box's placeholder, with the caret at its end,
+      // scrolled to keep the end in view.
+      function paintView() {
+        const v = $('guess-view');
+        const caret = document.createElement('span');
+        caret.className = 'caret';
+        const ph = document.createElement('span');
+        ph.className = 'ph';
+        ph.textContent = guessEl.placeholder;
+        v.replaceChildren(...(guessEl.value ? [guessEl.value, caret] : [caret, ph]));
+        v.scrollLeft = v.scrollWidth;
+      }
+
       function typeText(text) {
-        const start = guessEl.selectionStart ?? guessEl.value.length;
-        const end = guessEl.selectionEnd ?? start;
-        guessEl.setRangeText(text, start, end, 'end');
-        if (guessEl.selectionEnd === guessEl.value.length) guessEl.scrollLeft = guessEl.scrollWidth;
+        guessEl.value += text;
         shift = null;
         guessEl.dispatchEvent(new Event('input'));
       }
 
       function backspace() {
-        const start = guessEl.selectionStart ?? guessEl.value.length;
-        const end = guessEl.selectionEnd ?? start;
-        if (start === end && start === 0) return;
-        guessEl.setRangeText('', start === end ? start - 1 : start, end, 'end');
+        if (!guessEl.value) return;
+        guessEl.value = guessEl.value.slice(0, -1);
         guessEl.dispatchEvent(new Event('input'));
       }
 
@@ -2119,7 +2172,6 @@
           return buildKeys();
         }
         if (st.done) return;
-        if (document.activeElement !== guessEl) guessEl.focus();
         if (k === 'shift') {
           shift = !caps();
           return paintKeys();
@@ -2134,8 +2186,7 @@
         }
       }
 
-      // Keys act on press, without taking focus from the clue box; holding
-      // delete repeats it.
+      // Keys act on press, without taking focus; holding delete repeats it.
       {
         const keys = $('keys');
         let held = null;
@@ -2170,6 +2221,15 @@
           if (b && !b.disabled && e.timeStamp - pressedAt > 1000) pressKey(b.dataset.k);
         });
       }
+      // A hardware keyboard types into the clue too, since the box is hidden.
+      document.addEventListener('keydown', (e) => {
+        if (!pad() || !puzzle || state[sel].done || e.metaKey || e.ctrlKey || e.altKey) return;
+        if (e.key === 'Backspace') backspace();
+        else if (e.key === 'Enter') submitGuess(guessEl.value);
+        else if (e.key.length === 1) typeText(e.key);
+        else return;
+        e.preventDefault();
+      });
 
       // Scrolls the grid fully into view above the keyboard.
       function revealGrid() {
@@ -2183,13 +2243,10 @@
         document.body.classList.toggle('pad', on);
         $('pad').hidden = !on;
         if (on) {
-          guessEl.setAttribute('inputmode', 'none');
+          guessEl.blur();
           $('pad-bar').append($('bar'), statusEl);
           buildKeys();
-        } else {
-          guessEl.removeAttribute('inputmode');
-          $('word').prepend($('bar'), statusEl);
-        }
+        } else $('word').prepend($('bar'), statusEl);
       }
       padQuery.addEventListener('change', setPad);
       setPad();
