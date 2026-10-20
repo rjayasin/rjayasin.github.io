@@ -24,6 +24,8 @@
         --grid-line: #000;
         --sel: #a7d8ff;
         --sel-soft: #dcefff;
+        --sel-edge: #1a73e8;
+        --sel-tint: rgba(60, 150, 255, 0.4);
         --done: #cdeccf;
         --gave: #f8d7d7;
         --given: #e4e4e4;
@@ -42,6 +44,8 @@
         --grid-line: #050505;
         --sel: #1f5a8a;
         --sel-soft: #19324a;
+        --sel-edge: #4ea1ff;
+        --sel-tint: rgba(60, 150, 255, 0.35);
         --done: #1e4428;
         --gave: #4a2323;
         --given: #3a3a3a;
@@ -61,6 +65,10 @@
           --grid-line: #050505;
           --sel: #1f5a8a;
           --sel-soft: #19324a;
+          --sel-edge: #4ea1ff;
+          --sel-tint: rgba(60, 150, 255, 0.35);
+          --sel-edge: #4ea1ff;
+          --sel-tint: rgba(60, 150, 255, 0.35);
           --done: #1e4428;
           --gave: #4a2323;
           --given: #3a3a3a;
@@ -365,11 +373,20 @@
       .sq.d-given {
         --d: var(--given);
       }
-      .sq.on {
-        background: var(--sel-soft);
+      /* The selected entry is outlined rather than filled, so its squares'
+         clued / revealed halves stay visible; the cursor square gets a
+         see-through blue wash on top. The outline is one box placed over
+         the entry's grid area, so it runs unbroken across the grid lines. */
+      #sel-box {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        border: 3px solid var(--sel-edge);
+        pointer-events: none;
       }
-      .sq.cur {
-        background: var(--sel);
+      .sq.cur:not(.block) {
+        background: linear-gradient(var(--sel-tint), var(--sel-tint)),
+          linear-gradient(135deg, var(--a) 50%, var(--d) 50%);
       }
       .sq .num {
         position: absolute;
@@ -377,6 +394,17 @@
         left: 2px;
         font-size: calc(100cqi / var(--cols, 15) * 0.26);
         line-height: 1;
+        /* sits over the selection outline, backed by its own half's colour */
+        z-index: 2;
+        padding: 0 1px;
+        background: var(--a, var(--cell));
+      }
+      .sq.cur .num {
+        background: linear-gradient(var(--sel-tint), var(--sel-tint)), var(--a);
+      }
+      .sq.starred .num {
+        color: var(--gold);
+        font-weight: 600;
       }
       .sq.in {
         animation: sq-in 0.3s ease-out var(--in) backwards;
@@ -1401,18 +1429,33 @@
             through.set(i, s);
           }
         });
-        const on = new Set(puzzle.words[sel].cells);
+        const w = puzzle.words[sel];
+        const on = new Set(w.cells);
+        // A clue number turns gold once an entry starting there earns a ★.
+        const starred = new Set(
+          puzzle.words.filter((w, k) => state[k].exact).map((w) => w.cells[0])
+        );
         for (const [i, sts] of through) {
           const el = $(`sq-${i}`);
+          el.classList.toggle('starred', starred.has(i));
           for (const half of ['a', 'd']) {
             const st = sts[half] || sts.a || sts.d;
             el.classList.toggle(`${half}-won`, st.won);
             el.classList.toggle(`${half}-gave`, st.done && !st.won && !st.given);
             el.classList.toggle(`${half}-given`, st.given);
           }
-          el.classList.toggle('on', on.has(i));
           el.classList.toggle('cur', on.has(i) && i === lastCell);
         }
+        let box = $('sel-box');
+        if (!box) {
+          box = document.createElement('div');
+          box.id = 'sel-box';
+          gridEl.append(box);
+        }
+        const [a, z] = [w.cells[0], w.cells.at(-1)];
+        const n = puzzle.size;
+        box.style.gridRow = `${Math.floor(a / n) + 1} / ${Math.floor(z / n) + 2}`;
+        box.style.gridColumn = `${(a % n) + 1} / ${(z % n) + 2}`;
       }
 
       function select(k, focus) {
