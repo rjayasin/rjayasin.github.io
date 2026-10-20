@@ -399,9 +399,29 @@
       .sq.cur .num {
         background: linear-gradient(var(--sel-tint), var(--sel-tint)), var(--a);
       }
+      .sq.starred .num,
+      .sq.starred-a .num,
+      .sq.starred-d .num {
+        font-weight: 600;
+      }
       .sq.starred .num {
         color: var(--gold);
-        font-weight: 600;
+      }
+      /* A number starting both an across and a down entry goes gold one
+         half at a time: the top half for the across, the bottom for the down. */
+      .sq.starred-a .num::after,
+      .sq.starred-d .num::after {
+        content: attr(data-n);
+        position: absolute;
+        inset: 0;
+        padding: 0 1px;
+        color: var(--gold);
+      }
+      .sq.starred-a .num::after {
+        clip-path: inset(0 0 50% 0);
+      }
+      .sq.starred-d .num::after {
+        clip-path: inset(50% 0 0 0);
       }
       .sq.in {
         animation: sq-in 0.3s ease-out var(--in) backwards;
@@ -1369,7 +1389,7 @@
             if (nums.has(i)) {
               const n = document.createElement('span');
               n.className = 'num';
-              n.textContent = nums.get(i);
+              n.textContent = n.dataset.n = nums.get(i);
               el.prepend(n);
             }
             el.addEventListener('click', () => clickCell(i));
@@ -1424,13 +1444,21 @@
         });
         const w = puzzle.words[sel];
         const on = new Set(w.cells);
-        // A clue number turns gold once an entry starting there earns a ★.
-        const starred = new Set(
-          puzzle.words.filter((w, k) => state[k].exact).map((w) => w.cells[0])
-        );
+        // A clue number turns gold once every entry starting there earns a
+        // ★, or half gold when only one of its across and down has.
+        const stars = new Map();
+        puzzle.words.forEach((w, k) => {
+          const s = stars.get(w.cells[0]) || {};
+          s[w.dir] = !!state[k].exact;
+          stars.set(w.cells[0], s);
+        });
         for (const [i, sts] of through) {
           const el = $(`sq-${i}`);
-          el.classList.toggle('starred', starred.has(i));
+          const s = stars.get(i) || {};
+          const all = Object.values(s).length > 0 && Object.values(s).every(Boolean);
+          el.classList.toggle('starred', all);
+          el.classList.toggle('starred-a', !all && !!s.a);
+          el.classList.toggle('starred-d', !all && !!s.d);
           for (const half of ['a', 'd']) {
             const st = sts[half] || sts.a || sts.d;
             el.classList.toggle(`${half}-won`, st.won);
