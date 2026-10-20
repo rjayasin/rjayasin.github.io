@@ -98,7 +98,7 @@
       #side {
         flex: 0 1 340px;
         min-width: 260px;
-        padding: 8px 0 24px 8px;
+        padding: 8px 0 0 8px;
         display: flex;
         flex-direction: column;
         gap: 40px;
@@ -762,9 +762,6 @@
       #hint {
         display: flex;
         flex-direction: column;
-        position: fixed;
-        left: 16px;
-        bottom: 8px;
         gap: 2px;
         font-size: 12px;
         color: #888;
@@ -848,8 +845,7 @@
           margin-top: 0;
         }
         #hint {
-          position: static;
-          margin-top: 20px;
+          order: 6;
         }
         #legal {
           margin-top: 12px;
@@ -961,6 +957,7 @@
           <div id="leaders-head">your high scores</div>
           <ol id="leaders-list"></ol>
         </div>
+        <div id="hint"></div>
       </aside>
       <main id="main">
         <div id="grid-wrap"><div id="grid"></div></div>
@@ -976,7 +973,6 @@
         </div>
       </main>
     </div>
-    <div id="hint"></div>
     <footer id="legal">
       Puzzles and clues © The New York Times. Not affiliated with or endorsed by The New York
       Times.
