@@ -1311,9 +1311,13 @@
           loading = false;
           $('next').disabled = false;
         }
-        render();
+        // Select before rendering, since the last puzzle's entry may not
+        // exist in this one, as when a mini follows a full puzzle.
         const first = state.findIndex((st) => !st.done);
-        select(first < 0 ? 0 : first, true);
+        sel = first < 0 ? 0 : first;
+        lastCell = -1;
+        render();
+        select(sel, true);
       }
 
       // The page plays today's puzzle, puzzle n at ?p=n, today's mini at
