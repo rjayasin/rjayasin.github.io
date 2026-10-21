@@ -997,11 +997,17 @@
     <script>
       Common.paintFavicon({ glyph: '✏️', fontSize: 44, transparent: true });
       if (matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('dark');
-      // Hovering the logo runs one full wave, even if the pointer leaves mid-way.
+      // Hovering the logo runs one full wave, even if the pointer leaves
+      // mid-way, and every click starts a new one, over any that's running.
       {
         const logo = document.getElementById('logo');
         [...logo.children].forEach((s, k) => s.style.setProperty('--k', k));
         logo.addEventListener('mouseenter', () => logo.classList.add('bounce'));
+        logo.addEventListener('click', () => {
+          logo.classList.remove('bounce');
+          void logo.offsetWidth;
+          logo.classList.add('bounce');
+        });
         logo.lastElementChild.addEventListener('animationend', () =>
           logo.classList.remove('bounce')
         );
