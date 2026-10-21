@@ -32,10 +32,6 @@
         --gold: #e8ae00;
         --frame: #8a8a8a;
         --flash: rgba(255, 255, 255, 0.5);
-        --pad-bg: #d4d6db;
-        --key: #fff;
-        --key-alt: #adb2bc;
-        --key-down: #bfc3ca;
       }
       body.dark {
         --muted: rgba(255, 255, 255, 0.55);
@@ -56,10 +52,6 @@
         --gold: #f2c230;
         --frame: #555;
         --flash: rgba(70, 210, 100, 0.22);
-        --pad-bg: #1e1e1e;
-        --key: #4a4a4a;
-        --key-alt: #333;
-        --key-down: #6a6a6a;
       }
       @media (prefers-color-scheme: dark) {
         body:not(.light) {
@@ -81,10 +73,6 @@
           --gold: #f2c230;
           --frame: #555;
           --flash: rgba(70, 210, 100, 0.22);
-          --pad-bg: #1e1e1e;
-          --key: #4a4a4a;
-          --key-alt: #333;
-          --key-down: #6a6a6a;
         }
       }
       body {
@@ -886,214 +874,11 @@
           grid-template-columns: 1fr;
         }
       }
-      /* On a touchscreen phone the system keyboard stays down and an
-         on-screen one is pinned to the bottom with the clue bar above it, so
-         the whole grid stays in view while writing a clue. The grid shrinks
-         to fit the space above the keyboard. */
-      #pad {
-        --key-h: 40px;
-        --key-gap: 8px;
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 10;
-        padding: 6px 3px max(6px, env(safe-area-inset-bottom));
-        background: var(--pad-bg);
-        border-top: 1px solid var(--line);
-        user-select: none;
-        -webkit-user-select: none;
-        touch-action: manipulation;
-      }
-      #pad[hidden] {
-        display: none;
-      }
-      /* No scroll anchoring, which would push the grid up under the page's
-         top edge whenever the past clues open beneath it. */
-      body.pad {
-        padding: 16px 8px calc(var(--pad-h, 320px) + 16px);
-        overflow-anchor: none;
-      }
-      body.pad #grid-wrap {
-        width: min(100%, calc(100dvh - var(--pad-h, 320px) - 8px));
-        margin-inline: auto;
-        scroll-margin-top: 4px;
-      }
-      /* The arrows flank the box, with the entry's details on one line
-         beneath it, or the status in their place while writing. */
-      body.pad #bar {
-        gap: 4px 2px;
-      }
-      body.pad #prev-clue {
-        grid-area: 1 / 1;
-      }
-      body.pad #next-clue {
-        grid-area: 1 / 3;
-      }
-      body.pad #bar-mid > #guess-form {
-        grid-area: 1 / 2;
-      }
-      body.pad #which {
-        grid-area: 2 / 1 / 3 / -1;
-        text-align: center;
-        font-size: 12px;
-        line-height: 18px;
-      }
-      #pad:not(.done) #pad-bar:has(#status:not(:empty)) #which {
-        display: none;
-      }
-      body.pad #answer,
-      body.pad #guess-btn {
-        display: none;
-      }
-      body.pad #guess-form {
-        padding: 2px;
-      }
-      /* The box itself is never focused here, since iOS scrolls the page to
-         keep a focused box in view as its text changes, even in a fixed bar;
-         a copy of its text with a drawn caret shows instead. */
-      body.pad #pad:not(.done) #guess-form {
-        border-color: var(--gold);
-      }
-      body.pad #guess,
-      #guess-view {
-        display: none;
-      }
-      body.pad #guess-view {
-        display: block;
-        flex: 1;
-        min-width: 0;
-        padding: 6px 8px;
-        font-size: 17px;
-        line-height: 22px;
-        white-space: pre;
-        overflow: hidden;
-      }
-      #guess-view .ph {
-        color: var(--muted);
-        opacity: 0.6;
-        font-size: 0.75em;
-      }
-      #guess-view .caret {
-        display: inline-block;
-        width: 2px;
-        height: 20px;
-        margin: 0 -1px;
-        vertical-align: -4px;
-        background: var(--gold);
-        animation: blink 1s steps(1) infinite;
-      }
-      #pad.done #guess-view .caret {
-        display: none;
-      }
-      @keyframes blink {
-        50% {
-          opacity: 0;
-        }
-      }
-      body.pad #status {
-        margin: 4px 3px 0;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        text-align: center;
-        font-size: 12px;
-        line-height: 18px;
-      }
-      /* Once the entry is done, its status takes the place of the letter
-         keys, leaving next where check was, so nothing above moves. */
-      #pad-bar {
-        position: relative;
-      }
-      #pad.done #keys .row:not(:last-child),
-      #pad.done #keys .key:not([data-k='go']) {
-        visibility: hidden;
-      }
-      #pad.done #status {
-        position: absolute;
-        left: 0;
-        right: 0;
-        top: calc(100% + 4px);
-        height: calc(3 * var(--key-h) + 2 * var(--key-gap));
-        margin: 0;
-        padding: 4px 6px;
-        overflow-y: auto;
-        white-space: normal;
-        text-align: left;
-        font-size: 13px;
-        line-height: 1.5;
-      }
-      body.pad.all-done #keys {
-        display: none;
-      }
-      body.pad.all-done #status {
-        position: static;
-        height: auto;
-        max-height: 30vh;
-      }
-      #keys {
-        display: flex;
-        flex-direction: column;
-        gap: var(--key-gap);
-        padding-top: 4px;
-        font-family: 'Libre Franklin', Helvetica, Arial, sans-serif;
-      }
-      #keys .row {
-        display: flex;
-        justify-content: center;
-        gap: 5px;
-      }
-      #keys .key {
-        flex: none;
-        width: calc((100% - 45px) / 10);
-        height: var(--key-h);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
-        border-radius: 5px;
-        background: var(--key);
-        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
-        font-size: 21px;
-        text-decoration: none;
-        -webkit-tap-highlight-color: transparent;
-      }
-      #keys .key.wide {
-        flex: 1 1 0;
-        width: auto;
-        background: var(--key-alt);
-        font-size: 15px;
-      }
-      #keys .key[data-k=' '] {
-        flex-grow: 4;
-        background: var(--key);
-      }
-      #keys .key[data-k='go'] {
-        flex-grow: 2;
-        background: var(--gold);
-        color: #000;
-        font-weight: 600;
-      }
-      #keys .key.down {
-        background: var(--key-down);
-      }
-      #keys .key[data-k='shift'].on {
-        background: var(--key);
-      }
-      #keys.off .key:not([data-k='go']),
-      #keys .key:disabled {
-        opacity: 0.4;
-      }
-      #keys .key[data-k='go']:disabled {
-        background: var(--key-alt);
-        color: var(--muted);
-      }
       @media (prefers-reduced-motion: reduce) {
         .sq.in,
         #grid.cheer .sq:not(.block),
         #grid.cheer .sq:not(.block)::before,
         #logo.bounce > span,
-        #guess-view .caret,
         #matcher.loading {
           animation: none;
         }
@@ -1160,12 +945,6 @@
                   spellcheck="false"
                   enterkeyhint="go"
                 />
-                <div
-                  id="guess-view"
-                  role="textbox"
-                  aria-readonly="true"
-                  aria-label="your clue"
-                ></div>
                 <button id="guess-btn" type="submit">check</button>
               </form>
             </div>
@@ -1215,24 +994,14 @@
       Puzzles and clues © The New York Times. Not affiliated with or endorsed by The New York
       Times.
     </footer>
-    <div id="pad" hidden>
-      <div id="pad-bar"></div>
-      <div id="keys"></div>
-    </div>
     <script>
       Common.paintFavicon({ glyph: '✏️', fontSize: 44, transparent: true });
       if (matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('dark');
-      // Hovering the logo runs one full wave, even if the pointer leaves
-      // mid-way, and every click starts a new one, over any that's running.
+      // Hovering the logo runs one full wave, even if the pointer leaves mid-way.
       {
         const logo = document.getElementById('logo');
         [...logo.children].forEach((s, k) => s.style.setProperty('--k', k));
         logo.addEventListener('mouseenter', () => logo.classList.add('bounce'));
-        logo.addEventListener('click', () => {
-          logo.classList.remove('bounce');
-          void logo.offsetWidth;
-          logo.classList.add('bounce');
-        });
         logo.lastElementChild.addEventListener('animationend', () =>
           logo.classList.remove('bounce')
         );
@@ -1749,7 +1518,6 @@
       );
 
       function bringFormIntoView() {
-        if (pad()) return revealGrid();
         const r = $('guess-form').getBoundingClientRect();
         if (r.top < 0 || r.bottom > innerHeight)
           $('guess-form').scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -1764,7 +1532,6 @@
         if (i === lastCell && words.length > 1) k = words.find((x) => x !== sel) ?? k;
         lastCell = i;
         select(k, true);
-        if (pad()) revealGrid();
       }
 
       function showWord() {
@@ -1783,7 +1550,6 @@
             : 'revealed'
           : `write a clue for ${w.ans}`;
         $('guess-btn').disabled = st.done;
-        paintKeys();
         $('giveup').hidden = st.done;
         const ul = $('guesses');
         ul.textContent = '';
@@ -1846,7 +1612,6 @@
         $('share').hidden = !playable().some((s) => s.done);
         const done = state.every((s) => s.done);
         $('finished').hidden = !done;
-        document.body.classList.toggle('all-done', done);
         if (cheer && done) gridEl.classList.add('cheer');
         gridEl.classList.toggle('complete', done);
         renderLeaders();
@@ -2020,7 +1785,6 @@
       let recall = -1;
       guessEl.addEventListener('input', () => {
         recall = -1;
-        paintKeys();
       });
       guessEl.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowUp' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
@@ -2061,198 +1825,6 @@
         e.preventDefault();
         if (k !== sel) select(k, true);
       });
-
-      // --- on-screen keyboard -------------------------------------------------
-      // Phones in portrait get the clue bar and a keyboard pinned to the
-      // bottom of the screen in place of the system keyboard, which would
-      // cover the grid. The keys add to and delete from the end of the clue.
-
-      const padQuery = matchMedia(
-        '(pointer: coarse) and (max-width: 760px) and (orientation: portrait), ' +
-          '(pointer: coarse) and (max-width: 640px)'
-      );
-      const pad = () => document.body.classList.contains('pad');
-      const PAGES = {
-        abc: ['qwertyuiop', 'asdfghjkl', ['shift', ...'zxcvbnm', 'back'], ['123', ' ', 'go']],
-        sym: ['1234567890', '-/:;()$&@"', ['___', ...".,?!'", 'back'], ['abc', ' ', 'go']],
-      };
-      const WIDE = {
-        shift: ['⇧', 'shift'],
-        back: ['⌫', 'delete'],
-        123: ['123', 'numbers and punctuation'],
-        abc: ['ABC', 'letters'],
-        ' ': ['space', 'space'],
-        ___: ['___', 'blank'],
-        go: ['check', 'check'],
-      };
-      let page = 'abc';
-      // null capitalises the clue's first letter; tapping ⇧ sets it for the
-      // next letter only.
-      let shift = null;
-      const caps = () => shift ?? !guessEl.value;
-
-      function buildKeys() {
-        const keys = $('keys');
-        keys.textContent = '';
-        for (const row of PAGES[page]) {
-          const div = document.createElement('div');
-          div.className = 'row';
-          for (const k of row) {
-            const b = document.createElement('button');
-            b.type = 'button';
-            b.className = 'key';
-            b.dataset.k = k;
-            if (WIDE[k]) {
-              b.classList.add('wide');
-              [b.textContent] = WIDE[k];
-              b.setAttribute('aria-label', WIDE[k][1]);
-            } else b.textContent = k;
-            div.append(b);
-          }
-          keys.append(div);
-        }
-        paintKeys();
-      }
-
-      function paintKeys() {
-        if (!pad() || !puzzle) return;
-        paintView();
-        const st = state[sel];
-        const keys = $('keys');
-        keys.classList.toggle('off', st.done);
-        $('pad').classList.toggle('done', st.done);
-        const up = caps();
-        for (const b of keys.querySelectorAll('.key')) {
-          const k = b.dataset.k;
-          if (k.length === 1 && k !== ' ') b.textContent = up ? k.toUpperCase() : k;
-          else if (k === 'shift') b.classList.toggle('on', up);
-          else if (k === 'go') {
-            b.textContent = st.done ? 'next' : 'check';
-            b.setAttribute('aria-label', b.textContent);
-            b.disabled = st.done && nextOpen(sel) < 0;
-          }
-        }
-      }
-
-      // Shows the clue, or the box's placeholder, with the caret at its end,
-      // scrolled to keep the end in view.
-      function paintView() {
-        const v = $('guess-view');
-        const caret = document.createElement('span');
-        caret.className = 'caret';
-        const ph = document.createElement('span');
-        ph.className = 'ph';
-        ph.textContent = guessEl.placeholder;
-        v.replaceChildren(...(guessEl.value ? [guessEl.value, caret] : [caret, ph]));
-        v.scrollLeft = v.scrollWidth;
-      }
-
-      function typeText(text) {
-        guessEl.value += text;
-        shift = null;
-        guessEl.dispatchEvent(new Event('input'));
-      }
-
-      function backspace() {
-        if (!guessEl.value) return;
-        guessEl.value = guessEl.value.slice(0, -1);
-        guessEl.dispatchEvent(new Event('input'));
-      }
-
-      function pressKey(k) {
-        if (!puzzle) return;
-        const st = state[sel];
-        if (k === 'go') {
-          if (!st.done) submitGuess(guessEl.value);
-          else if (nextOpen(sel) >= 0) select(nextOpen(sel), true);
-          return;
-        }
-        if (k === '123' || k === 'abc') {
-          page = k === '123' ? 'sym' : 'abc';
-          return buildKeys();
-        }
-        if (st.done) return;
-        if (k === 'shift') {
-          shift = !caps();
-          return paintKeys();
-        }
-        if (k === 'back') return backspace();
-        typeText(caps() ? k.toUpperCase() : k);
-        // Like a phone's own keyboard, a space or apostrophe goes back to
-        // the letters.
-        if (page === 'sym' && (k === ' ' || k === "'")) {
-          page = 'abc';
-          buildKeys();
-        }
-      }
-
-      // Keys act on press, without taking focus; holding delete repeats it.
-      {
-        const keys = $('keys');
-        let held = null;
-        let repeat = null;
-        let pressedAt = -Infinity;
-        const release = () => {
-          held?.classList.remove('down');
-          held = null;
-          clearTimeout(repeat);
-          clearInterval(repeat);
-        };
-        keys.addEventListener('pointerdown', (e) => {
-          const b = e.target.closest('.key');
-          if (!b) return;
-          e.preventDefault();
-          release();
-          pressedAt = e.timeStamp;
-          if (b.disabled) return;
-          held = b;
-          b.classList.add('down');
-          pressKey(b.dataset.k);
-          if (b.dataset.k === 'back')
-            repeat = setTimeout(() => (repeat = setInterval(backspace, 70)), 450);
-        });
-        addEventListener('pointerup', release);
-        addEventListener('pointercancel', release);
-        // A click with no pointer press just before it, as from a screen
-        // reader. The click after a press can land on a different key, when
-        // the press switched between letters and punctuation.
-        keys.addEventListener('click', (e) => {
-          const b = e.target.closest('.key');
-          if (b && !b.disabled && e.timeStamp - pressedAt > 1000) pressKey(b.dataset.k);
-        });
-      }
-      // A hardware keyboard types into the clue too, since the box is hidden.
-      document.addEventListener('keydown', (e) => {
-        if (!pad() || !puzzle || state[sel].done || e.metaKey || e.ctrlKey || e.altKey) return;
-        if (e.key === 'Backspace') backspace();
-        else if (e.key === 'Enter') submitGuess(guessEl.value);
-        else if (e.key.length === 1) typeText(e.key);
-        else return;
-        e.preventDefault();
-      });
-
-      // Scrolls the grid fully into view above the keyboard.
-      function revealGrid() {
-        const r = gridEl.getBoundingClientRect();
-        if (r.top < 0 || r.bottom > innerHeight - $('pad').offsetHeight)
-          $('grid-wrap').scrollIntoView({ block: 'start', behavior: 'smooth' });
-      }
-
-      function setPad() {
-        const on = padQuery.matches;
-        document.body.classList.toggle('pad', on);
-        $('pad').hidden = !on;
-        if (on) {
-          guessEl.blur();
-          $('pad-bar').append($('bar'), statusEl);
-          buildKeys();
-        } else $('word').prepend($('bar'), statusEl);
-      }
-      padQuery.addEventListener('change', setPad);
-      setPad();
-      new ResizeObserver(() => {
-        document.body.style.setProperty('--pad-h', $('pad').offsetHeight + 'px');
-      }).observe($('pad'));
 
       // Keep the clue lists as tall as the grid beside them.
       new ResizeObserver(() => {
