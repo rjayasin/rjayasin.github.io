@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Clueward matcher probe</title>
+    <link rel="stylesheet" href="/common.css" />
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 24px 16px;
+        line-height: 1.5;
+      }
+      button {
+        font: inherit;
+        font-weight: 600;
+        padding: 10px 20px;
+        border-radius: 6px;
+        border: 0;
+        background: #1a7f37;
+        color: #fff;
+      }
+      button:disabled {
+        opacity: 0.5;
+      }
+      #status {
+        font-variant-numeric: tabular-nums;
+      }
+      textarea {
+        width: 100%;
+        box-sizing: border-box;
+        height: 160px;
+        font:
+          12px ui-monospace,
+          monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Clueward matcher probe</h1>
+    <p>
+      Scores past clues with the game's own matcher model across a range of thresholds, so they can
+      be retuned. Tap Run, keep this tab open with the screen on, and copy the report when it's
+      done. It takes a few minutes and doesn't touch your saved progress.
+    </p>
+    <p><button id="run">Run</button></p>
+    <p id="status">Not started.</p>
+    <div id="done" hidden>
+      <p><button id="copy">Copy report</button></p>
+      <textarea id="report" readonly></textarea>
+    </div>
+    <script>
+      const status = (t) => (document.getElementById('status').textContent = t);
+
+      async function probe() {
+        const LEX_MIN = 0.7,
+          CLOSE = 0.7,
+          YES_ONE_WORD = 0.86;
+        const STOP = new Set(
+          'a an the of and or in on at to for from with by is are be its it this that these those as one some e g eg qblank'.split(
+            ' '
+          )
+        );
+        const norm = (s) =>
+          s
+            .normalize('NFD')
+            .replace(/[̀-ͯ]/g, '')
+            .toLowerCase()
+            .replace(/_+|-{2,}|\bblank\b|…|\.{3}/g, ' qblank ')
+            .replace(/&/g, ' and ')
+            .replace(/['’]s\b/g, '')
+            .replace(/\b([a-z])\.(?=[a-z]\.)/g, '$1')
+            .replace(/[^a-z0-9 ]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        function stem(w) {
+          if (w.length > 4 && w.endsWith('ies')) return w.slice(0, -3) + 'y';
+          if (w.length > 4 && /(ches|shes|sses|xes)$/.test(w)) return w.slice(0, -2);
+          if (w.length > 3 && w.endsWith('s') && !w.endsWith('ss')) return w.slice(0, -1);
+          if (w.length > 5 && w.endsWith('ing')) return w.slice(0, -3);
+          if (w.length > 4 && w.endsWith('ed')) return w.slice(0, -2);
+          return w;
+        }
+        function ed(a, b) {
+          const d = Array.from({ length: b.length + 1 }, (_, i) => i);
+          for (let i = 1; i <= a.length; i++) {
+            let prev = d[0];
+            d[0] = i;
+            for (let j = 1; j <= b.length; j++) {
+              const t = d[j];
+              d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+              prev = t;
+            }
+          }
+          return d[b.length];
+        }
+        const words = (n) =>
+          n
+            .split(' ')
+            .filter((w) => w && !STOP.has(w))
+            .map((w) => ({ w, s: stem(w) }));
+        const same = (a, b) =>
+          a.s === b.s || (Math.min(a.s.length, b.s.length) >= 5 && ed(a.s, b.s) <= 1);
+        const dot = (x, y) => x.reduce((s, v, i) => s + v * y[i], 0);
+        const sims = new Map();
+        const sim = (a, b) => {
+          const k = a + '\u0001' + b;
+          if (!sims.has(k)) sims.set(k, dot(V.get(a), V.get(b)));
+          return sims.get(k);
+        };
+        const bare = (t) =>
+          t
+            .replace(/\bqblank\b/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim() || t;
+        function givesAway(g, ans) {
+          const a = ans.toLowerCase();
+          if (g.split(' ').some((w) => w === a || stem(w) === a)) return true;
+          return a.length >= 5 && g.replace(/ /g, '').includes(a);
+        }
+        const textsFor = (clue) => {
+          const t = norm(clue);
+          return [bare(t), ...words(t).map((x) => x.w)];
+        };
+
+        // Embeddings come from the page's own worker, so the model is the one the game uses.
+        const worker = new Worker('embed-worker.js', { type: 'module' });
+        const V = new Map();
+        let nextId = 0;
+        const pending = new Map();
+        const ready = new Promise((res, rej) => {
+          worker.onmessage = ({ data }) => {
+            if (data.ready) res();
+            else if (data.id === undefined) rej(new Error(data.error));
+            else {
+              const p = pending.get(data.id);
+              pending.delete(data.id);
+              data.error ? p.rej(new Error(data.error)) : p.res(data.vecs);
+            }
+          };
+        });
+        status('Loading the model…');
+        await ready;
+        async function embedAll(texts) {
+          const todo = [...new Set(texts)].filter((t) => !V.has(t));
+          for (let i = 0; i < todo.length; i += 256) {
+            const batch = todo.slice(i, i + 256);
+            const id = nextId++;
+            const vecs = await new Promise((res, rej) => {
+              pending.set(id, { res, rej });
+              worker.postMessage({ id, texts: batch });
+            });
+            batch.forEach((t, k) => V.set(t, vecs[k]));
+            status(`Embedding clues: ${Math.min(i + 256, todo.length)} of ${todo.length}`);
+          }
+        }
+
+        function lexical(gw, tw, W) {
+          if (!gw.length || !tw.length) return 0;
+          const match = (a, b) => same(a, b) || (!/\d/.test(a.w + b.w) && sim(a.w, b.w) >= W);
+          const hits = tw.filter((b) => gw.some((a) => match(a, b))).length;
+          const extra = gw.filter((a) => !tw.some((b) => match(a, b))).length;
+          if (hits === tw.length && extra <= 2) return 1;
+          return hits / tw.length;
+        }
+        // A one-for-one swap of a single word in an otherwise identical clue.
+        const isSwap = (gw, tw) =>
+          gw.length === tw.length &&
+          tw.length >= 2 &&
+          tw.filter((b) => gw.some((a) => same(a, b))).length === tw.length - 1;
+
+        // The parts of a judgement that don't depend on the thresholds, worked out
+        // once per guess and bank.
+        const preps = new WeakMap();
+        function prep(guess, ans, past) {
+          let byGuess = preps.get(past);
+          if (!byGuess) preps.set(past, (byGuess = new Map()));
+          if (byGuess.has(guess)) return byGuess.get(guess);
+          let r;
+          const g = norm(guess);
+          const ts = past.map(norm);
+          if (!g || g === 'qblank') r = { early: 'no' };
+          else if (givesAway(g, ans)) r = { early: 'giveaway' };
+          else if (ts.includes(g)) r = { early: 'yes' };
+          else
+            for (const t of ts) {
+              const typos = t.length < 6 ? 0 : t.length < 12 ? 1 : Math.floor(t.length * 0.12);
+              if (typos && ed(g, t) <= typos) {
+                r = { early: 'yes' };
+                break;
+              }
+            }
+          if (!r) {
+            const gw = words(g);
+            r = { gw, items: ts.map((t) => ({ tw: words(t), s: sim(bare(g), bare(t)) })) };
+            r.items.forEach((x) => (x.swap = isSwap(gw, x.tw)));
+          }
+          byGuess.set(guess, r);
+          return r;
+        }
+
+        function judge(guess, ans, past, cfg) {
+          const p = prep(guess, ans, past);
+          if (p.early) return p.early;
+          let bestS = -1,
+            partial = 0;
+          for (const { tw, s, swap } of p.items) {
+            const lex = lexical(p.gw, tw, cfg.W);
+            if (lex === 1 && s >= LEX_MIN) return 'yes';
+            partial = Math.max(partial, lex);
+            if (cfg.G && lex < 1 && swap) continue;
+            bestS = Math.max(bestS, s);
+          }
+          bestS = Math.max(bestS, 0);
+          if (bestS >= (p.gw.length > 1 ? cfg.Y : YES_ONE_WORD)) return 'yes';
+          if (bestS >= CLOSE || partial >= 0.5) return 'close';
+          return 'no';
+        }
+
+        const SHARDS = 256;
+        const shardOf = (ans) => {
+          let h = 0x811c9dc5;
+          for (let i = 0; i < ans.length; i++) h = Math.imul(h ^ ans.charCodeAt(i), 0x01000193);
+          return ((h >>> 0) % SHARDS).toString(16).padStart(2, '0');
+        };
+        const shardCache = new Map();
+        const shard = async (s) => {
+          if (!shardCache.has(s))
+            shardCache.set(s, await (await fetch(`data/past/${s}.json`)).json());
+          return shardCache.get(s);
+        };
+        const bankOf = async (ans) => (await shard(shardOf(ans)))[ans] || [];
+
+        // [guess, answer, should it pass]
+        const PROBES = [
+          ['Nixons successor', 'REAGAN', 0],
+          ["Nixon's successor", 'REAGAN', 0],
+          ["Ford's successor", 'REAGAN', 0],
+          ["Nixon's successor", 'CARTER', 0],
+          ["Hoover's successor", 'TRUMAN', 0],
+          ["Lincoln's successor", 'TRUMAN', 0],
+          ["Jefferson's successor", 'ADAMS', 0],
+          ["Obama's predecessor", 'CARTER', 0],
+          ['Letter before ar', 'ESS', 0],
+          ['Successor to Carter', 'REAGAN', 1],
+          ["Jimmy Carter's successor", 'REAGAN', 1],
+          ['President after Carter', 'REAGAN', 1],
+          ["Carter's replacement", 'REAGAN', 1],
+          ['40th president', 'REAGAN', 1],
+          ["FDR's successor", 'TRUMAN', 1],
+          ["James Monroe's successor", 'ADAMS', 1],
+          ['Successor of Ford', 'CARTER', 1],
+          ["Mom's husband", 'DAD', 1],
+          ["Mom's partner", 'DAD', 1],
+          ['Twisty letter', 'ESS', 1],
+        ];
+
+        // Held-out past clues: each sampled answer loses one clue, which is then
+        // judged against the rest of its own bank and against four other banks.
+        let seed = 12345;
+        const rand = () => (seed = (Math.imul(seed, 1103515245) + 12345) >>> 0) / 2 ** 32;
+        const pool = [];
+        for (let s = 0; s < 16; s++) {
+          const bank = await shard(s.toString(16).padStart(2, '0'));
+          for (const [ans, clues] of Object.entries(bank))
+            if (clues.length >= 6 && clues.length <= 60) pool.push([ans, clues]);
+        }
+        pool.sort((a, b) => (a[0] < b[0] ? -1 : 1));
+        for (let i = pool.length - 1; i > 0; i--) {
+          const j = Math.floor(rand() * (i + 1));
+          [pool[i], pool[j]] = [pool[j], pool[i]];
+        }
+        const sample = [];
+        for (const [ans, clues] of pool) {
+          if (sample.length >= 250) break;
+          const k = Math.floor(rand() * clues.length);
+          const held = clues[k];
+          const rest = clues.filter((c, i) => i !== k && norm(c) !== norm(held));
+          if (rest.length === clues.length - 1 && !givesAway(norm(held), ans))
+            sample.push({ ans, held, rest });
+        }
+        const neg = [];
+        sample.forEach((x, i) => {
+          for (let d = 1; d <= 4; d++) {
+            const y = sample[(i + d * 37) % sample.length];
+            if (!givesAway(norm(x.held), y.ans)) neg.push([x.held, y]);
+          }
+        });
+
+        const probeBanks = {};
+        for (const [, a] of PROBES) probeBanks[a] ||= await bankOf(a);
+        const texts = [];
+        for (const [g, a] of PROBES) texts.push(...textsFor(g), ...probeBanks[a].flatMap(textsFor));
+        for (const x of sample) texts.push(...textsFor(x.held), ...x.rest.flatMap(textsFor));
+        await embedAll(texts);
+
+        const CUR = { W: 0.8, Y: 0.78, G: 0 };
+        const probes = PROBES.map(([g, a, want]) => {
+          const gn = norm(g),
+            gw = words(gn),
+            gv = V.get(bare(gn));
+          const top = probeBanks[a]
+            .map((c) => {
+              const tn = norm(c),
+                tw = words(tn);
+              const wsim = tw
+                .filter((b) => !gw.some((x) => same(x, b)))
+                .map(
+                  (b) =>
+                    `${b.w}:${Math.max(...gw.map((x) => dot(V.get(x.w), V.get(b.w)))).toFixed(3)}`
+                );
+              return {
+                c,
+                s: +dot(gv, V.get(bare(tn))).toFixed(3),
+                lex: +lexical(gw, tw, CUR.W).toFixed(2),
+                wsim: wsim.join(' '),
+              };
+            })
+            .sort((p, q) => q.s - p.s)
+            .slice(0, 3);
+          return { g, a, want, now: judge(g, a, probeBanks[a], CUR), top };
+        });
+
+        status('Trying threshold combinations…');
+        await new Promise((r) => setTimeout(r, 50));
+        const sweep = [];
+        for (const W of [0.8, 0.82, 0.84, 0.86, 0.88, 0.9, 2])
+          for (const Y of [0.78, 0.8, 0.82, 0.84, 0.86])
+            for (const G of [0, 1]) {
+              const cfg = { W, Y, G };
+              const pr = sample.map((x) => judge(x.held, x.ans, x.rest, cfg));
+              const nr = neg.map(([g, y]) => judge(g, y.ans, y.rest, cfg));
+              const pc = PROBES.map(([g, a]) => judge(g, a, probeBanks[a], cfg)[0]).join('');
+              sweep.push([
+                W,
+                Y,
+                G,
+                pr.filter((r) => r === 'yes').length,
+                pr.filter((r) => r === 'close').length,
+                nr.filter((r) => r === 'yes').length,
+                nr.filter((r) => r === 'close').length,
+                pc,
+              ]);
+            }
+        worker.terminate();
+        return JSON.stringify({ v: 1, pos: sample.length, neg: neg.length, probes, sweep });
+      }
+
+      const run = document.getElementById('run');
+      run.addEventListener('click', async () => {
+        run.disabled = true;
+        let lock = null;
+        try {
+          lock = await navigator.wakeLock?.request('screen');
+        } catch {}
+        const t0 = Date.now();
+        try {
+          const report = await probe();
+          document.getElementById('report').value = report;
+          document.getElementById('done').hidden = false;
+          status(
+            `Done in ${Math.round((Date.now() - t0) / 1000)} s. Copy the report and paste it to Claude.`
+          );
+        } catch (err) {
+          status(`Failed: ${err.message}`);
+          run.disabled = false;
+        }
+        lock?.release().catch(() => {});
+      });
+
+      document.getElementById('copy').addEventListener('click', async (e) => {
+        const box = document.getElementById('report');
+        try {
+          await navigator.clipboard.writeText(box.value);
+          e.target.textContent = 'Copied';
+        } catch {
+          box.select();
+          e.target.textContent = 'Selected, copy it from the menu';
+        }
+      });
+    </script>
+  </body>
+</html>
