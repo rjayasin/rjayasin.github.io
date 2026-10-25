@@ -3087,6 +3087,36 @@
       }
 
       // The file with `t`'s session stored inside, replacing any already there.
+      // The image with an unlabelled scale bar drawn into its pixels, or as it
+      // was without a pixel size. A JPEG is re-encoded with the original's
+      // APPn segments in place of the encoder's, so the cellSens calibration
+      // in its EXIF still reads back.
+      async function withScaleBar(blob, t) {
+        const um = umPerPx(t);
+        if (!um || !t.img) return blob;
+        const b = new Uint8Array(await blob.arrayBuffer());
+        const jpeg = isJpeg(b);
+        if (!jpeg && !isPng(b)) return blob;
+        const c = document.createElement('canvas');
+        c.width = t.origW;
+        c.height = t.origH;
+        const g = c.getContext('2d');
+        g.drawImage(t.img, 0, 0, c.width, c.height);
+        drawScaleBar(g, c.width, c.height, um, Math.max(14, Math.round(c.width / 60)), false);
+        const type = jpeg ? 'image/jpeg' : 'image/png';
+        const out = await new Promise((done) => c.toBlob(done, type, 0.95));
+        if (!jpeg) return out;
+        const o = new Uint8Array(await out.arrayBuffer());
+        const isApp = (s) => s.m >= 0xe0 && s.m <= 0xef;
+        const ours = jpegSegments(o);
+        const body = ours.segments.find((s) => !isApp(s))?.start ?? ours.rest;
+        const meta = jpegSegments(b).segments.filter(isApp);
+        return new Blob(
+          [o.subarray(0, 2), ...meta.map((s) => b.subarray(s.start, s.end)), o.subarray(body)],
+          { type }
+        );
+      }
+
       async function withEdits(blob, t) {
         const b = new Uint8Array(await blob.arrayBuffer());
         const data = await packSession(sessionOf(t));
@@ -3164,7 +3194,7 @@
         for (const r of images) {
           const t = r === current ? state : r;
           if (!t.result) continue;
-          const blob = await withEdits(r.blob, t);
+          const blob = await withEdits(await withScaleBar(r.blob, t), t);
           if (blob) await add(editedName(r.name), blob);
           else skipped.push(r.name);
           const base = r.name.replace(/(\.edited)?\.[^.]+$/, '') || 'image';
