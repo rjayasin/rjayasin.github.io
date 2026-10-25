@@ -713,14 +713,6 @@
         <h2>Organoids</h2>
         <div class="actions">
           <button type="button" id="include-all">include all</button>
-          <button type="button" id="csv">download csv</button>
-          <button
-            type="button"
-            id="save-edits"
-            title="Download a copy of the image with its edits, exclusions and settings stored inside; drop it back in to carry on"
-          >
-            save with edits
-          </button>
         </div>
       </div>
       <div class="table-wrap">
@@ -2774,13 +2766,6 @@
         return rows;
       }
 
-      const csvCell = (v) => (/[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v);
-
-      function download(lines, name) {
-        const csv = lines.map((r) => r.map(csvCell).join(',')).join('\n') + '\n';
-        save(new Blob([csv], { type: 'text/csv' }), name);
-      }
-
       function save(blob, name) {
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -2790,13 +2775,6 @@
       }
 
       const CSV_HEAD = ['organoid', 'cystic_index', 'excluded', 'organoid_um2', 'cyst_um2'];
-
-      $('csv').addEventListener('click', () => {
-        download(
-          [CSV_HEAD, ...csvRows(state)],
-          (state.name.replace(/\.[^.]+$/, '') || 'organoids') + '-cystic-index.csv'
-        );
-      });
 
       // ---- XLSX --------------------------------------------------------------
 
@@ -3162,16 +3140,6 @@
 
       const UNSUPPORTED = 'Only JPEG and PNG images can carry edits';
 
-      $('save-edits').addEventListener('click', async () => {
-        if (!current || !state.result) return;
-        const blob = await withEdits(current.blob, state);
-        if (!blob) {
-          errorEl.textContent = UNSUPPORTED + '.';
-          return;
-        }
-        save(blob, editedName(current.name));
-      });
-
       $('save-all').addEventListener('click', async () => {
         stash();
         const files = {};
@@ -3466,12 +3434,13 @@
 
       function renderImageList() {
         const host = $('image-list');
-        $('images').hidden = images.length < 2;
+        $('images').hidden = !images.length;
         const waiting = images.filter(
           (r) => !(r === current ? state : r).result && r.status !== 'error'
         ).length;
         $('images-count').textContent =
-          `${images.length} images` + (waiting ? ` · analysing ${waiting}…` : '');
+          `${images.length} image${images.length === 1 ? '' : 's'}` +
+          (waiting ? ` · analysing ${waiting}…` : '');
         $('csv-all').disabled = !!waiting;
         $('save-all').disabled = !!waiting;
         $('csv-all').title = waiting ? 'Waiting for every image to be analysed' : '';
@@ -3500,6 +3469,11 @@
       }
 
       $('clear-all').addEventListener('click', () => {
+        const what =
+          images.length === 1
+            ? 'this image and its edits'
+            : `all ${images.length} images and their edits`;
+        if (!confirm(`Remove ${what} from this page? This can’t be undone.`)) return;
         for (const r of images) {
           dbDel('img:' + r.id);
           dbDel('session:' + r.id);
