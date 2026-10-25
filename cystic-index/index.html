@@ -3610,15 +3610,21 @@
         };
       }
 
-      // The cellSens calibration is for the 2× objective; other objectives
-      // shrink the pixel size in proportion.
-      const META_MAG = 2;
+      // Objective the metadata's pixel size was calibrated for, when it says;
+      // other objectives shrink the pixel size in proportion.
+      function metaMag(t = state) {
+        const m = Number(t.calMeta?.mag);
+        return m > 0 ? m : null;
+      }
+
+      // Assumed when the metadata has a pixel size but no objective.
+      const FALLBACK_MAG = 2;
       let scaleFocus = false; // the pixel size row has focus
 
       // Pixel size for an objective, from the metadata, or null without it.
       function objectivePixel(mag) {
         const meta = metaPixel();
-        return meta ? (meta.x * META_MAG) / mag : null;
+        return meta ? (meta.x * (metaMag() || FALLBACK_MAG)) / mag : null;
       }
 
       // Pixel size to store for `v` µm/px: null when it is the metadata's own.
@@ -3634,6 +3640,7 @@
           const v = state.umPerPx || meta?.x;
           input.value = v ? +v.toPrecision(4) : '';
         }
+        const cal = metaMag() ? `, calibrated for a ${metaMag()}× objective` : '';
         const v = umPerPx();
         const objective = [...document.querySelectorAll('.objective')].find(
           (b) => v && Math.abs(objectivePixel(+b.dataset.mag) - v) < 1e-9
@@ -3653,9 +3660,9 @@
           ? 'No pixel size in this image’s metadata — enter one to see areas in µm².'
           : state.umPerPx
             ? meta
-              ? `${objective ? `for a ${objective.dataset.mag}× objective` : 'entered by hand'} · metadata says ${+meta.x.toPrecision(4)} µm/px`
+              ? `${objective ? `for a ${objective.dataset.mag}× objective` : 'entered by hand'} · metadata says ${+meta.x.toPrecision(4)} µm/px${cal}`
               : 'entered by hand'
-            : 'from cellSens metadata';
+            : `from cellSens metadata${cal}`;
       }
 
       function refreshUnits(setInput) {
