@@ -3634,7 +3634,6 @@
           const v = state.umPerPx || meta?.x;
           input.value = v ? +v.toPrecision(4) : '';
         }
-        const mag = `, calibrated for a ${META_MAG}× objective`;
         const v = umPerPx();
         const objective = [...document.querySelectorAll('.objective')].find(
           (b) => v && Math.abs(objectivePixel(+b.dataset.mag) - v) < 1e-9
@@ -3654,9 +3653,9 @@
           ? 'No pixel size in this image’s metadata — enter one to see areas in µm².'
           : state.umPerPx
             ? meta
-              ? `${objective ? `for a ${objective.dataset.mag}× objective` : 'entered by hand'} · metadata says ${+meta.x.toPrecision(4)} µm/px${mag}`
+              ? `${objective ? `for a ${objective.dataset.mag}× objective` : 'entered by hand'} · metadata says ${+meta.x.toPrecision(4)} µm/px`
               : 'entered by hand'
-            : `from cellSens metadata${mag}`;
+            : 'from cellSens metadata';
       }
 
       function refreshUnits(setInput) {
