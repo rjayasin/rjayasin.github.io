@@ -1904,7 +1904,41 @@
           g.strokeText(o.id, o.cx, o.cy);
           g.fillText(o.id, o.cx, o.cy);
         }
+        const um = umPerPx(t);
+        if (um) drawScaleBar(g, c.width, c.height, um, Math.max(14, Math.round(c.width / 60)));
         return new Promise((done) => c.toBlob(done, 'image/jpeg', 0.92));
+      }
+
+      // A scale bar in the bottom right corner of a `w` × `h` drawing, about a
+      // fifth of its width and rounded to 1, 2 or 5 × a power of ten µm.
+      // `size` is the label's font size in the drawing's pixels.
+      function drawScaleBar(g, w, h, umPerOutPx, size) {
+        const target = (w / 5) * umPerOutPx;
+        const pow = 10 ** Math.floor(Math.log10(target));
+        const um = [5, 2, 1].map((k) => k * pow).find((v) => v <= target);
+        const len = um / umPerOutPx;
+        const thick = Math.max(2, Math.round(size / 3));
+        const pad = Math.round(size * 1.2);
+        const x1 = w - pad;
+        const x0 = x1 - len;
+        const y = h - pad - thick;
+        const label = um >= 1000 ? `${+(um / 1000).toPrecision(3)} mm` : `${+um.toPrecision(3)} µm`;
+        g.save();
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        g.fillStyle = 'rgba(0,0,0,0.85)';
+        const halo = Math.max(1, size / 8);
+        g.fillRect(x0 - halo, y - halo, len + 2 * halo, thick + 2 * halo);
+        g.fillStyle = '#fff';
+        g.fillRect(x0, y, len, thick);
+        g.font = `600 ${size}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+        g.textAlign = 'center';
+        g.textBaseline = 'bottom';
+        g.lineJoin = 'round';
+        g.lineWidth = Math.max(2, size / 4);
+        g.strokeStyle = 'rgba(0,0,0,0.85)';
+        g.strokeText(label, (x0 + x1) / 2, y - size * 0.3);
+        g.fillText(label, (x0 + x1) / 2, y - size * 0.3);
+        g.restore();
       }
 
       function set(img, j, r, g, b, a) {
@@ -1986,6 +2020,21 @@
 
       function render() {
         if (!state.work) return;
+        paintView();
+        const um = umPerPx(state);
+        if (um) {
+          const umPerDevPx = (um * state.origW * state.box.w) / (state.work.width * canvas.width);
+          drawScaleBar(
+            ctx,
+            canvas.width,
+            canvas.height,
+            umPerDevPx,
+            12 * (window.devicePixelRatio || 1)
+          );
+        }
+      }
+
+      function paintView() {
         // Hold the crop still while editing, or it would shift under the brush.
         if (!state.editing || !state.box) {
           state.box = state.editing && state.selected ? boxAround(state.selected) : viewBox();
@@ -2150,6 +2199,11 @@
 
       function fmtPx(n) {
         return Math.round(n).toLocaleString() + ' px';
+      }
+
+      // µm across one original-image pixel, or null when the pixel size is unknown.
+      function umPerPx(t = state) {
+        return t.umPerPx || metaPixel(t)?.x || null;
       }
 
       // µm² per original-image pixel, or null when the pixel size is unknown.
@@ -3567,6 +3621,7 @@
 
       function refreshUnits(setInput) {
         syncScale(setInput);
+        render();
         if (!state.result) return;
         syncKnobs();
         renderTable();
