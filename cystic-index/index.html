@@ -623,9 +623,12 @@
         <label for="um-per-px">pixel size</label>
         <input type="number" id="um-per-px" class="mono" min="0" step="any" placeholder="?" />
         <span>µm / px</span>
-        <span class="scale-note" id="scale-note"></span>
-        <button type="button" id="scale-reset" hidden>use metadata</button>
+        <button type="button" id="scale-reset" hidden></button>
+        <button type="button" class="objective" data-mag="2" hidden>2×</button>
+        <button type="button" class="objective" data-mag="4" hidden>4×</button>
+        <button type="button" class="objective" data-mag="10" hidden>10×</button>
         <button type="button" id="scale-all" hidden>use for all images</button>
+        <span class="scale-note" id="scale-note"></span>
       </div>
       <div class="stats">
         <div class="stat">
@@ -3607,6 +3610,23 @@
         };
       }
 
+      // The cellSens calibration is for the 2× objective; other objectives
+      // shrink the pixel size in proportion.
+      const META_MAG = 2;
+      let scaleFocus = false; // the pixel size row has focus
+
+      // Pixel size for an objective, from the metadata, or null without it.
+      function objectivePixel(mag) {
+        const meta = metaPixel();
+        return meta ? (meta.x * META_MAG) / mag : null;
+      }
+
+      // Pixel size to store for `v` µm/px: null when it is the metadata's own.
+      function typedPixel(v) {
+        const meta = metaPixel();
+        return v > 0 && !(meta && Math.abs(v - meta.x) < 1e-9) ? v : null;
+      }
+
       function syncScale(setInput) {
         const meta = metaPixel();
         const input = $('um-per-px');
@@ -3614,14 +3634,27 @@
           const v = state.umPerPx || meta?.x;
           input.value = v ? +v.toPrecision(4) : '';
         }
-        const mag = ', calibrated for a 2× objective';
+        const mag = `, calibrated for a ${META_MAG}× objective`;
+        const v = umPerPx();
+        const objective = [...document.querySelectorAll('.objective')].find(
+          (b) => v && Math.abs(objectivePixel(+b.dataset.mag) - v) < 1e-9
+        );
         $('scale-row').classList.toggle('missing', !umPerPx2());
         $('scale-reset').hidden = !(meta && state.umPerPx);
+        if (meta)
+          $('scale-reset').textContent = `use ${+meta.x.toPrecision(4)} µm/px (from metadata)`;
+        for (const b of document.querySelectorAll('.objective')) {
+          b.hidden = !(meta && (scaleFocus || state.umPerPx));
+          b.classList.toggle('active', b === objective);
+          b.title = meta
+            ? `Pixel size for a ${b.dataset.mag}× objective: ${+objectivePixel(+b.dataset.mag).toPrecision(4)} µm/px`
+            : '';
+        }
         $('scale-note').textContent = !umPerPx2()
           ? 'No pixel size in this image’s metadata — enter one to see areas in µm².'
           : state.umPerPx
             ? meta
-              ? `entered by hand · metadata says ${+meta.x.toPrecision(4)} µm/px${mag}`
+              ? `${objective ? `for a ${objective.dataset.mag}× objective` : 'entered by hand'} · metadata says ${+meta.x.toPrecision(4)} µm/px${mag}`
               : 'entered by hand'
             : `from cellSens metadata${mag}`;
       }
@@ -3636,11 +3669,32 @@
       }
 
       $('um-per-px').addEventListener('input', () => {
-        const v = parseFloat($('um-per-px').value);
-        const meta = metaPixel();
         // Typing the metadata value back in is the same as using it.
-        state.umPerPx = v > 0 && !(meta && Math.abs(v - meta.x) < 1e-9) ? v : null;
+        state.umPerPx = typedPixel(parseFloat($('um-per-px').value));
         refreshUnits(false);
+      });
+
+      for (const b of document.querySelectorAll('.objective')) {
+        b.addEventListener('click', () => {
+          state.umPerPx = typedPixel(objectivePixel(+b.dataset.mag));
+          refreshUnits(true);
+        });
+      }
+
+      // Show the objectives while the pixel size is being edited. Pressing a
+      // button mustn't take focus from the box first, or they'd hide under
+      // the pointer (Safari doesn't focus buttons on click).
+      $('scale-row').addEventListener('mousedown', (e) => {
+        if (e.target.closest('button')) e.preventDefault();
+      });
+      $('scale-row').addEventListener('focusin', () => {
+        scaleFocus = true;
+        syncScale(false);
+      });
+      $('scale-row').addEventListener('focusout', (e) => {
+        if ($('scale-row').contains(e.relatedTarget)) return;
+        scaleFocus = false;
+        syncScale(false);
       });
 
       $('scale-reset').addEventListener('click', () => {
