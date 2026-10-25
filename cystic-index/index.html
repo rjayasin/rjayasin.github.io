@@ -3469,6 +3469,11 @@
       }
 
       $('clear-all').addEventListener('click', () => {
+        const what =
+          images.length === 1
+            ? 'this image and its edits'
+            : `all ${images.length} images and their edits`;
+        if (!confirm(`Remove ${what} from this page? This can’t be undone.`)) return;
         for (const r of images) {
           dbDel('img:' + r.id);
           dbDel('session:' + r.id);
