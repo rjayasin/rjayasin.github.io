@@ -3,7 +3,8 @@
 // endpoint and appends any families missing from ../fonts.js. Preserves the
 // file's existing codepoint sort order and formatting. Families listed in
 // culled-fonts.json (near-duplicates of a family we keep, or families with no
-// English letters) are never re-added.
+// English letters) are never re-added, and neither are families that share a
+// cached file name with a typefree.org font.
 // Exits non-zero on network/parse failures; exits 0 with no file changes when
 // nothing is new.
 
@@ -15,6 +16,7 @@ const FONTS_JS = path.join(ROOT, 'fonts.js');
 // Maps each culled family to the kept family it's indistinguishable from, or
 // to null when its Latin subset has no English letters to show.
 const CULLED_JSON = path.join(__dirname, 'culled-fonts.json');
+const TYPEFREE_JS = path.join(ROOT, 'typefree-fonts.js');
 const METADATA_URL = 'https://fonts.google.com/metadata/fonts';
 const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
@@ -47,6 +49,25 @@ async function fetchRemote() {
   return names;
 }
 
+// Matches Common.slugifyFont in common.js, which names the cached files.
+function slugifyFont(name) {
+  return name
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+// Slugs of the typefree.org fonts, so a new Google family can't take over
+// one's cached .woff2.
+function loadTypefreeSlugs() {
+  const sandbox = { window: {} };
+  // eslint-disable-next-line no-new-func
+  new Function('window', fs.readFileSync(TYPEFREE_JS, 'utf8'))(sandbox.window);
+  return new Set(Object.keys(sandbox.window.typefreeFonts || {}).map(slugifyFont));
+}
+
 function renderFontsJs(names) {
   const body = names.map((n) => `  ${JSON.stringify(n)}`).join(',\n');
   return `window.googleFonts = [\n${body}\n];\n`;
@@ -56,8 +77,11 @@ function renderFontsJs(names) {
   const local = loadLocal();
   const localSet = new Set(local);
   const culled = new Set(Object.keys(JSON.parse(fs.readFileSync(CULLED_JSON, 'utf8'))));
+  const typefree = loadTypefreeSlugs();
   const remote = await fetchRemote();
-  const newFonts = remote.filter((f) => !localSet.has(f) && !culled.has(f));
+  const newFonts = remote.filter(
+    (f) => !localSet.has(f) && !culled.has(f) && !typefree.has(slugifyFont(f))
+  );
 
   if (newFonts.length === 0) {
     console.log('ADDED=0');

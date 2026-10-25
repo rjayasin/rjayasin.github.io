@@ -9,8 +9,15 @@ cached font under cull-new-fonts.py's test are skipped.
 
 Writes ../typefree-fonts.js (window.typefreeFonts, family -> [category,
 release date, homepage], read by the homepage and the /fonts/ explorer) and
-../fonts/TYPEFREE-LICENSES.md. Safe to re-run: it rebuilds both from scratch
-and removes woff2 files for families it no longer keeps.
+../fonts/TYPEFREE-LICENSES.md.
+
+By default only families that are neither in typefree-fonts.js nor in
+culled-typefree-fonts.json are downloaded and checked, so the weekly font
+workflow picks up new typefree fonts without touching ones already kept.
+Families skipped for having no English letters or matching a cached font are
+recorded in culled-typefree-fonts.json so they aren't checked again. With
+--rebuild it starts from scratch instead, re-checking every family and
+removing woff2 files for families it no longer keeps.
 """
 
 import datetime
@@ -33,6 +40,9 @@ from fontTools.varLib import instancer
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TYPEFREE_JS = os.path.join(ROOT, "typefree-fonts.js")
 LICENSES_MD = os.path.join(ROOT, "fonts", "TYPEFREE-LICENSES.md")
+# Maps each skipped family to the cached font it matches, or to null when it
+# has no English letters.
+CULLED_JSON = os.path.join(ROOT, "scripts", "culled-typefree-fonts.json")
 BASE = "https://www.typefree.org/"
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 # The unicode-range Google serves for its "latin" subset.
@@ -153,14 +163,21 @@ def main():
     google = cull.parse_fonts_js(open(cull.FONTS_JS).read())
     google_set = set(google)
     culled_google = set(json.load(open(cull.CULLED_JSON)))
-    previous = set(load_typefree_js())
+    google_slugs = {cull.slug(n) for n in google_set | culled_google}
+    rebuild = "--rebuild" in sys.argv[1:]
+    previous = load_typefree_js()
+    culled = {} if rebuild or not os.path.exists(CULLED_JSON) else json.load(open(CULLED_JSON))
+    # Kept families, each with its typefree-fonts.js value.
+    final = {} if rebuild else dict(previous)
 
     skipped = {}
     todo = []
-    seen = set()
+    seen = {cull.slug(n) for n in final}
     for entry in catalog:
         name = display_name(entry["name"])
-        if name in google_set or name in culled_google:
+        if name in final or name in culled:
+            continue
+        elif cull.slug(name) in google_slugs:
             skipped[name] = "same family as a Google font"
         elif cull.slug(name) in seen:
             skipped[name] = "duplicate name in catalog"
@@ -168,13 +185,17 @@ def main():
             seen.add(cull.slug(name))
             todo.append(entry)
 
+    if not todo:
+        print("No new typefree fonts.")
+        return
+
     print(f"Downloading {len(todo)} of {len(catalog)} typefree families...")
     with ThreadPoolExecutor(12) as pool:
         prepared = list(pool.map(prepare, todo))
 
-    print("Signing cached Google fonts...")
+    print("Signing cached fonts...")
     pool_names, pool_sigs = [], []
-    for name in google:
+    for name in google + sorted(final):
         font = cull.load(name)
         if cull.is_color(font):
             continue
@@ -183,7 +204,7 @@ def main():
             pool_names.append(name)
             pool_sigs.append(sig)
 
-    kept = {}
+    added = {}
     for entry, variant, data, error in prepared:
         name = display_name(entry["name"])
         if error:
@@ -193,6 +214,7 @@ def main():
         font.flavor = None
         if not cull.has_english_letters(font):
             skipped[name] = "no English letters"
+            culled[name] = None
             continue
         if not cull.is_color(font):
             sig = cull.signature(font)
@@ -201,25 +223,30 @@ def main():
                 i = int(diffs.argmin())
                 if diffs[i] < cull.MAX_DIFF:
                     skipped[name] = f"matches {pool_names[i]} (diff {diffs[i]:.3f})"
+                    culled[name] = pool_names[i]
                     continue
                 print(f"  keep {name} (closest: {pool_names[i]}, diff {diffs[i]:.3f})")
                 pool_names.append(name)
                 pool_sigs.append(sig)
-        kept[name] = (entry, release_date(font), data)
+        added[name] = data
+        final[name] = [category_of(entry), release_date(font), entry["link"]]
 
-    for name in previous - set(kept):
-        path = os.path.join(cull.FONTS_DIR, cull.slug(name) + ".woff2")
-        if os.path.exists(path):
-            os.remove(path)
-    for name, (_, _, data) in kept.items():
+    if rebuild:
+        for name in set(previous) - set(final):
+            path = os.path.join(cull.FONTS_DIR, cull.slug(name) + ".woff2")
+            if os.path.exists(path):
+                os.remove(path)
+    for name, data in added.items():
         with open(os.path.join(cull.FONTS_DIR, cull.slug(name) + ".woff2"), "wb") as f:
             f.write(data)
 
-    names = sorted(kept)
+    with open(CULLED_JSON, "w") as f:
+        json.dump(dict(sorted(culled.items())), f, indent=2, ensure_ascii=False)
+        f.write("\n")
+
+    names = sorted(final)
     body = ",\n".join(
-        f"  {json.dumps(n, ensure_ascii=False)}: "
-        f"[{category_of(kept[n][0])}, {json.dumps(kept[n][1])}, {json.dumps(kept[n][0]['link'])}]"
-        for n in names
+        f"  {json.dumps(n, ensure_ascii=False)}: {json.dumps(final[n], ensure_ascii=False)}" for n in names
     )
     with open(TYPEFREE_JS, "w") as f:
         f.write(f"window.typefreeFonts = {{\n{body}\n}};\n")
@@ -237,17 +264,38 @@ def main():
         "| Family | Designer | Homepage | License |",
         "| --- | --- | --- | --- |",
     ]
+    # Typefree's catalog has since dropped its license fields, so families
+    # already listed keep their old row, and an empty license keeps the old one.
+    old_rows = {}
+    if os.path.exists(LICENSES_MD):
+        for line in open(LICENSES_MD).read().splitlines()[len(lines) :]:
+            old_rows[line.split(" | ", 1)[0][2:]] = line
+    entries = {display_name(e["name"]): e for e in catalog}
     for n in names:
-        entry = kept[n][0]
-        lines.append(
-            f"| {safe(n)} | {safe(entry.get('author'))} | {safe(entry['link'])} | {safe(license_of(entry['variants']))} |"
-        )
+        old = old_rows.get(safe(n))
+        entry = entries.get(n)
+        if old and (n not in added or entry is None):
+            lines.append(old)
+            continue
+        if entry is None:
+            lines.append(f"| {safe(n)} |  | {safe(final[n][2])} |  |")
+            continue
+        license = safe(license_of(entry["variants"]))
+        if not license and old:
+            license = old.rsplit(" | ", 1)[1].rstrip(" |")
+        lines.append(f"| {safe(n)} | {safe(entry.get('author'))} | {safe(entry['link'])} | {license} |")
     with open(LICENSES_MD, "w") as f:
         f.write("\n".join(lines) + "\n")
 
-    print(f"Kept {len(kept)}, skipped {len(skipped)}:")
-    for name, why in sorted(skipped.items()):
-        print(f"- {name}: {why}")
+    report = [f"Added {len(added)} of {len(todo)} new typefree fonts:"]
+    report += [f"+ {n}" for n in sorted(added)]
+    checked = {display_name(e["name"]) for e in todo}
+    report += [f"- {n}: {why}" for n, why in sorted(skipped.items()) if n in checked]
+    print("\n".join(report))
+    summary = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary:
+        with open(summary, "a") as f:
+            f.write("\n".join(report) + "\n")
 
 
 if __name__ == "__main__":

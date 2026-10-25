@@ -43,6 +43,13 @@ jobs:
           pip install --quiet -r scripts/requirements-fonts.txt
           python scripts/cull-new-fonts.py
 
+      # Skips typefree families already kept or recorded in
+      # culled-typefree-fonts.json, so only new ones are downloaded.
+      - name: Add new typefree.org fonts
+        run: |
+          python scripts/import-typefree-fonts.py
+          npx --yes prettier@3.3.3 --write typefree-fonts.js
+
       - name: Refresh font licenses & attribution
         run: node scripts/fetch-licenses.js
 
@@ -51,11 +58,12 @@ jobs:
 
       - name: Commit font updates
         run: |
-          if git diff --quiet -- fonts.js fonts-meta.js fonts/ scripts/culled-fonts.json; then
+          paths="fonts.js fonts-meta.js typefree-fonts.js fonts/ scripts/culled-fonts.json scripts/culled-typefree-fonts.json"
+          git add $paths
+          if git diff --cached --quiet -- $paths; then
             echo "No font changes."
           else
-            git add fonts.js fonts-meta.js fonts/ scripts/culled-fonts.json
-            git commit -m "🤖 add new google fonts ($RUN_LABEL)"
+            git commit -m "🤖 add new fonts ($RUN_LABEL)"
           fi
 
       - name: Push
