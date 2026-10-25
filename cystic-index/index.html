@@ -415,6 +415,24 @@
         border-radius: 6px;
       }
 
+      #close-organoid {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        font-size: 20px;
+        line-height: 1;
+        color: #fff;
+        background: rgba(0, 0, 0, 0.7);
+        border-color: rgba(255, 255, 255, 0.35);
+      }
+
+      #close-organoid:hover {
+        border-color: var(--accent);
+      }
+
       /* ---- Tuning ------------------------------------------------------ */
 
       .knob {
@@ -706,6 +724,15 @@
       </div>
       <div id="canvas-wrap">
         <canvas id="canvas"></canvas>
+        <button
+          type="button"
+          id="close-organoid"
+          title="Pick another organoid (Esc)"
+          aria-label="Pick another organoid"
+          hidden
+        >
+          ×
+        </button>
         <div id="tip" hidden></div>
         <div id="busy" hidden>analysing…</div>
       </div>
@@ -2593,6 +2620,7 @@
           .forEach((b) => b.classList.toggle('active', b.dataset.tool === state.tool));
         $('brush-size').hidden = lasso;
         $('zoom-size').hidden = !state.selected;
+        $('close-organoid').hidden = !(state.editing && state.selected);
         const what = state.editCyst ? `#${state.selected}'s cyst` : `#${state.selected}`;
         const how = lasso ? 'loop' : 'drag';
         const empty = state.selected && !state.result.organoids[state.selected - 1].areaWork;
@@ -2703,12 +2731,19 @@
           render();
           return;
         }
-        if (e.key !== 'Escape' || !state.editing || !state.selected) return;
+        if (e.key === 'Escape') closeOrganoid();
+      });
+
+      // Back from editing one organoid up close to picking one.
+      function closeOrganoid() {
+        if (!state.editing || !state.selected) return;
         state.selected = 0;
         state.box = null;
         syncEditBar();
         render();
-      });
+      }
+
+      $('close-organoid').addEventListener('click', closeOrganoid);
 
       document.querySelectorAll('.view-bar button[data-view]').forEach((btn) => {
         btn.addEventListener('click', () => {
