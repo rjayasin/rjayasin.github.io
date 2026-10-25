@@ -1807,18 +1807,17 @@
           guessEl.setSelectionRange(guessEl.value.length, guessEl.value.length);
         }
         if (e.key === 'Escape') guessEl.blur();
-        if (e.key === 'Tab') {
-          const j = nextOpen(sel, e.shiftKey ? -1 : 1);
-          if (j < 0) return;
-          e.preventDefault();
-          select(j, true);
-        }
       });
-      // Once an entry is settled, enter (or tab) moves on to the next one.
+      // Tab and shift-tab anywhere move to the next or previous open entry, and
+      // once an entry is settled, enter does too.
       document.addEventListener('keydown', (e) => {
         if (e.key !== 'Enter' && e.key !== 'Tab') return;
-        if (e.metaKey || e.ctrlKey || e.altKey || !puzzle || !state[sel].done) return;
-        if (e.target.closest('input, button, summary, a')) return;
+        if (e.metaKey || e.ctrlKey || e.altKey || !puzzle) return;
+        if (
+          e.key === 'Enter' &&
+          (!state[sel].done || e.target.closest('input, button, summary, a'))
+        )
+          return;
         const j = nextOpen(sel, e.shiftKey ? -1 : 1);
         if (j < 0) return;
         e.preventDefault();
