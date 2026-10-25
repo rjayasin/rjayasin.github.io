@@ -322,6 +322,12 @@
         color: var(--accent);
       }
 
+      /* Wrap the objectives as one group rather than one button at a time. */
+      .objectives:not([hidden]) {
+        display: flex;
+        gap: 6px;
+      }
+
       .scale-row button {
         padding: 2px 8px;
         font-size: 11px;
@@ -624,11 +630,13 @@
         <input type="number" id="um-per-px" class="mono" min="0" step="any" placeholder="?" />
         <span>µm / px</span>
         <button type="button" id="scale-reset" hidden></button>
-        <button type="button" class="objective" data-mag="2" hidden>2×</button>
-        <button type="button" class="objective" data-mag="4" hidden>4×</button>
-        <button type="button" class="objective" data-mag="10" hidden>10×</button>
         <button type="button" id="scale-all" hidden>use for all images</button>
         <span class="scale-note" id="scale-note"></span>
+        <span class="objectives" id="objectives" hidden>
+          <button type="button" class="objective" data-mag="2">2×</button>
+          <button type="button" class="objective" data-mag="4">4×</button>
+          <button type="button" class="objective" data-mag="10">10×</button>
+        </span>
       </div>
       <div class="stats">
         <div class="stat">
@@ -3623,8 +3631,8 @@
         $('scale-reset').hidden = !(meta && state.umPerPx);
         if (meta)
           $('scale-reset').textContent = `use ${+meta.x.toPrecision(4)} µm/px (from metadata)`;
+        $('objectives').hidden = !(meta && (scaleFocus || state.umPerPx));
         for (const b of document.querySelectorAll('.objective')) {
-          b.hidden = !(meta && (scaleFocus || state.umPerPx));
           b.classList.toggle('active', b === objective);
           b.title = meta
             ? `Pixel size for a ${b.dataset.mag}× objective: ${+objectivePixel(+b.dataset.mag).toPrecision(4)} µm/px`
