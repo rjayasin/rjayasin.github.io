@@ -12,11 +12,10 @@
 //   - or the whole guess is a close paraphrase by the same model. A lone
 //     word needs to be closer, since “guitar” sits near “Instrument”.
 // A past clue with a blank only matches a guess with one.
-// Thresholds were tuned on held-out past clues: about 60% of real clues
-// the bank hasn't seen pass outright and 25% come back close, while a
-// clue for another entry in the same puzzle passes about 1 time in 400.
-// YES was later raised from 0.78 to 0.8, which moved about 4% of
-// held-out clues from passing to close.
+// Thresholds were tuned on held-out past clues, each judged against the
+// rest of its answer's clues: about 45% pass outright and 29% come back
+// close, while about 1 in 500 judged against another answer's clues passes.
+// README.md has how they got here.
 const ClueMatcher = (() => {
   const YES = 0.8;
   const YES_ONE_WORD = 0.86;
