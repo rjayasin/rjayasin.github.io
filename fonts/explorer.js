@@ -16,6 +16,8 @@
   const sortSelectEl = document.getElementById('sort-select');
   const sizeButtonsEl = document.getElementById('size-buttons');
   const minimalToggleEl = document.getElementById('minimal-toggle');
+  const oneLineWrapEl = document.getElementById('one-line-wrap');
+  const oneLineToggleEl = document.getElementById('one-line-toggle');
 
   const sampleEl = document.getElementById('sample');
   const sampleToggleEl = document.getElementById('sample-toggle');
@@ -240,8 +242,15 @@
   });
 
   minimalToggleEl.addEventListener('click', () => {
-    minimalToggleEl.classList.toggle('active', listEl.classList.toggle('minimal'));
+    const on = listEl.classList.toggle('minimal');
+    minimalToggleEl.classList.toggle('active', on);
+    oneLineWrapEl.classList.toggle('open', on);
     // Tiled cards are much shorter, so top the list back up right away.
+    fill();
+  });
+
+  oneLineToggleEl.addEventListener('click', () => {
+    oneLineToggleEl.classList.toggle('active', listEl.classList.toggle('one-line'));
     fill();
   });
 

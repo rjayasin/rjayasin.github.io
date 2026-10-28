@@ -76,6 +76,35 @@ body {
 #filters .dot {
   user-select: none;
 }
+/* Slides out from behind "minimal", pushing the controls after it along.
+   The negative margin cancels the bar's flex gap while it's collapsed. */
+#one-line-wrap {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-shrink: 0;
+  overflow: hidden;
+  max-width: 0;
+  margin-left: -8px;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    max-width 0.3s ease,
+    margin 0.3s ease,
+    opacity 0.3s ease,
+    visibility 0s 0.3s;
+}
+#one-line-wrap.open {
+  max-width: 10em;
+  margin-left: 0;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    max-width 0.3s ease,
+    margin 0.3s ease,
+    opacity 0.3s ease,
+    visibility 0s;
+}
 /* Sort: a native dropdown (so the menu isn't clipped by the scrolling bar)
    dressed as plain bar text, with a caret drawn beside it. */
 #sort {
@@ -214,6 +243,9 @@ body {
 }
 #list.minimal .card .info {
   display: none;
+}
+#list.minimal.one-line .card {
+  flex-basis: 100%;
 }
 #sentinel {
   height: 1px;
