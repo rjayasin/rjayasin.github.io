@@ -152,7 +152,7 @@
           animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1);
         }
         40% {
-          transform: translateY(-8%) scale(1.08);
+          transform: translateY(-12%) scale(1.08);
           box-shadow: 0 6px 12px -4px rgba(0, 0, 0, 0.4);
           animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.3);
         }
@@ -997,13 +997,12 @@
     <script>
       Common.paintFavicon({ glyph: '✏️', fontSize: 44, transparent: true });
       if (matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('dark');
-      // The logo runs one full wave on load and on hover, even if the pointer
-      // leaves mid-way, and every click starts a new one, over any that's running.
+      // The logo runs one full wave on load, and every click starts a new one,
+      // over any that's running.
       {
         const logo = document.getElementById('logo');
         [...logo.children].forEach((s, k) => s.style.setProperty('--k', k));
         logo.classList.add('bounce');
-        logo.addEventListener('mouseenter', () => logo.classList.add('bounce'));
         logo.addEventListener('click', () => {
           logo.classList.remove('bounce');
           void logo.offsetWidth;
