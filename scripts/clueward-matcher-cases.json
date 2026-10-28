@@ -1,0 +1,70 @@
+[
+  {
+    "ans": "REAGAN",
+    "guess": "Nixons successor",
+    "want": "no",
+    "why": "#259: scored 0.775 against \"Carter's successor\" and was accepted at the old YES of 0.78"
+  },
+  { "ans": "REAGAN", "guess": "Nixon's successor", "want": "no", "why": "#258 probe" },
+  { "ans": "REAGAN", "guess": "Ford's successor", "want": "no", "why": "#258 probe" },
+  { "ans": "CARTER", "guess": "Nixon's successor", "want": "no", "why": "#258 probe" },
+  { "ans": "TRUMAN", "guess": "Hoover's successor", "want": "no", "why": "#258 probe" },
+  {
+    "ans": "TRUMAN",
+    "guess": "Lincoln's successor",
+    "want": "no",
+    "why": "#259: 0.782, close since YES went to 0.8"
+  },
+  {
+    "ans": "ADAMS",
+    "guess": "Jefferson's successor",
+    "want": "no",
+    "why": "#258 probe",
+    "known": "#259: 0.878 against \"Jefferson's predecessor\"; rejecting it would cost more real clues"
+  },
+  {
+    "ans": "CARTER",
+    "guess": "Obama's predecessor",
+    "want": "no",
+    "why": "#258 probe",
+    "known": "#259: 0.815 against \"Reagan's predecessor\"; rejecting it would cost more real clues"
+  },
+  {
+    "ans": "ESS",
+    "guess": "Letter before ar",
+    "want": "no",
+    "why": "#258 probe",
+    "known": "covers the past clue \"Letter\" and adds two words, which is allowed so \"Twisty letter\" passes"
+  },
+  {
+    "ans": "SCAT",
+    "guess": "vocal play",
+    "want": "no",
+    "why": "matched \"___ singing\" by swapping vocal for singing and adding play"
+  },
+  { "ans": "REAGAN", "guess": "Successor to Carter", "want": "yes", "why": "#258 probe" },
+  { "ans": "REAGAN", "guess": "Jimmy Carter's successor", "want": "yes", "why": "#258 probe" },
+  { "ans": "REAGAN", "guess": "President after Carter", "want": "yes", "why": "#258 probe" },
+  { "ans": "REAGAN", "guess": "Carter's replacement", "want": "yes", "why": "#258 probe" },
+  {
+    "ans": "REAGAN",
+    "guess": "40th president",
+    "want": "yes",
+    "why": "#258 probe",
+    "known": "words with digits never match by meaning, and the whole phrase only scores 0.773 against \"The 40th since 1789\""
+  },
+  { "ans": "TRUMAN", "guess": "FDR's successor", "want": "yes", "why": "#258 probe" },
+  { "ans": "ADAMS", "guess": "James Monroe's successor", "want": "yes", "why": "#258 probe" },
+  { "ans": "CARTER", "guess": "Successor of Ford", "want": "yes", "why": "#258 probe" },
+  { "ans": "DAD", "guess": "Mom's husband", "want": "yes", "why": "#258 probe" },
+  { "ans": "DAD", "guess": "Mom's partner", "want": "yes", "why": "#258 probe" },
+  { "ans": "ESS", "guess": "Twisty letter", "want": "yes", "why": "#258 probe" },
+  {
+    "ans": "ANGLO",
+    "guess": "Prefix for Norman or Saxon",
+    "held": true,
+    "want": "yes",
+    "why": "the only one of 400 held-out past clues that the swap and blank rules turned from yes to close",
+    "known": "used to match \"___-Saxon\", which a guess without a blank no longer can"
+  }
+]
