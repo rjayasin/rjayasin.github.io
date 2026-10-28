@@ -127,17 +127,17 @@ passed, 29% came back close, and 3 of 1,600 passed against the wrong answer.
 
 ## History
 
-- **`c82db9ca`**: blanks are removed before embedding, because "Alfa \_\_\_" and
+- **[`c82db9ca`](https://github.com/rjayasin/rjayasin.github.io/commit/c82db9ca)**: blanks are removed before embedding, because "Alfa \_\_\_" and
   other short fill-in-the-blank clues were matching any guess with a blank.
-- **#258**: "Nixons successor" was accepted for REAGAN. A temporary probe page
+- **[#258](https://github.com/rjayasin/rjayasin.github.io/pull/258)**: "Nixons successor" was accepted for REAGAN. A temporary probe page
   scored 20 probe guesses and held-out clues across 70 threshold combinations
   in the browser. Those probe guesses are now in the test cases.
-- **#259**: `YES` went from 0.78 to 0.8, since "Nixons successor" scored 0.775
+- **[#259](https://github.com/rjayasin/rjayasin.github.io/pull/259)**: `YES` went from 0.78 to 0.8, since "Nixons successor" scored 0.775
   against "Carter's successor". Real clues passing went from 49% to 45%.
   Raising `WORD` changed none of the probes, so it stayed at 0.8. "Obama's
   predecessor" (CARTER) and "Jefferson's successor" (ADAMS) are still accepted
   on purpose.
-- **`2b83a791`**: "vocal play" was accepted for SCAT through "\_\_\_ singing".
+- **[`2b83a791`](https://github.com/rjayasin/rjayasin.github.io/commit/2b83a791)**: "vocal play" was accepted for SCAT through "\_\_\_ singing".
   This added the rule against both swapping in near-synonyms and adding words,
   and the blank rule. Of 400 held-out clues, one went from passing to close:
   "Prefix for Norman or Saxon" (ANGLO), which had matched "\_\_\_-Saxon".
