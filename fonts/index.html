@@ -98,6 +98,11 @@
     <div id="single" hidden>
       <div id="single-top">
         <div id="single-info" class="info"></div>
+        <span class="group" id="single-size-buttons">
+          <button type="button" data-size="-4" title="smaller samples">a−</button>
+          <span class="dot">·</span>
+          <button type="button" data-size="4" title="larger samples">a+</button>
+        </span>
         <input
           id="single-input"
           type="text"
@@ -105,11 +110,6 @@
           spellcheck="false"
           placeholder="type anything…"
         />
-        <span class="group" id="single-size-buttons">
-          <button type="button" data-size="-4" title="smaller samples">a−</button>
-          <span class="dot">·</span>
-          <button type="button" data-size="4" title="larger samples">a+</button>
-        </span>
         <button type="button" id="single-close" title="close">×</button>
       </div>
       <div id="single-tiles"></div>
