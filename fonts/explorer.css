@@ -254,6 +254,7 @@ body {
   gap: 4px;
   white-space: nowrap;
   user-select: none;
+  margin-right: 16px;
 }
 #single-size-buttons button {
   font: inherit;
