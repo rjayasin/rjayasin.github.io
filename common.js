@@ -462,7 +462,7 @@ window.Common = window.Common || {};
       }
     });
     onTap(cycle);
-    loadScript('/fonts.js').then(cycle);
+    Promise.all([loadScript('/fonts.js'), loadScript('/typefree-fonts.js')]).then(cycle);
     return { cycle, getCurrent: () => current };
   }
 
