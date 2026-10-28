@@ -144,19 +144,6 @@
         font-weight: 400;
         line-height: 1;
       }
-      #logo.bounce > span {
-        animation: logo-lift 0.45s calc(var(--k) * 45ms);
-      }
-      @keyframes logo-lift {
-        from {
-          animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1);
-        }
-        40% {
-          transform: translateY(-12%) scale(1.08);
-          box-shadow: 0 6px 12px -4px rgba(0, 0, 0, 0.4);
-          animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.3);
-        }
-      }
       #main {
         flex: 1 1 auto;
         min-width: 0;
@@ -878,7 +865,6 @@
         .sq.in,
         #grid.cheer .sq:not(.block),
         #grid.cheer .sq:not(.block)::before,
-        #logo.bounce > span,
         #matcher.loading {
           animation: none;
         }
@@ -997,20 +983,37 @@
     <script>
       Common.paintFavicon({ glyph: '✏️', fontSize: 44, transparent: true });
       if (matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('dark');
-      // The logo runs one full wave on load, and every click starts a new one,
-      // over any that's running.
+      // A wave runs from the left on load and on every click, each lifting
+      // squares from wherever an earlier wave has them.
       {
         const logo = document.getElementById('logo');
-        [...logo.children].forEach((s, k) => s.style.setProperty('--k', k));
-        logo.classList.add('bounce');
-        logo.addEventListener('click', () => {
-          logo.classList.remove('bounce');
-          void logo.offsetWidth;
-          logo.classList.add('bounce');
-        });
-        logo.lastElementChild.addEventListener('animationend', () =>
-          logo.classList.remove('bounce')
-        );
+        const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+        const wave = () => {
+          if (reduce.matches) return;
+          [...logo.children].forEach((s, k) =>
+            s.animate(
+              [
+                {
+                  offset: 0,
+                  translate: '0 0',
+                  boxShadow: '0 0 0 0 transparent',
+                  composite: 'add',
+                  easing: 'cubic-bezier(0.2, 0.7, 0.4, 1)',
+                },
+                {
+                  offset: 0.4,
+                  translate: '0 -12%',
+                  scale: '1.08',
+                  boxShadow: '0 6px 12px -4px rgba(0, 0, 0, 0.4)',
+                  easing: 'cubic-bezier(0.6, 0, 0.8, 0.3)',
+                },
+              ],
+              { duration: 450, delay: k * 45 }
+            )
+          );
+        };
+        wave();
+        logo.addEventListener('click', wave);
       }
       {
         const THEME = 'clueward-theme';
@@ -1807,8 +1810,9 @@
         }
         if (e.key === 'Escape') guessEl.blur();
       });
-      // Tab and shift-tab anywhere move to the next or previous open entry, and
-      // once an entry is settled, enter does too.
+      // Tab and shift-tab anywhere move to the next or previous open entry, or
+      // any entry once the puzzle is complete, and once an entry is settled,
+      // enter moves on too.
       document.addEventListener('keydown', (e) => {
         if (e.key !== 'Enter' && e.key !== 'Tab') return;
         if (e.metaKey || e.ctrlKey || e.altKey || !puzzle) return;
@@ -1817,7 +1821,9 @@
           (!state[sel].done || e.target.closest('input, button, summary, a'))
         )
           return;
-        const j = nextOpen(sel, e.shiftKey ? -1 : 1);
+        const step = e.shiftKey ? -1 : 1;
+        let j = nextOpen(sel, step);
+        if (j < 0 && e.key === 'Tab') j = (sel + step + state.length) % state.length;
         if (j < 0) return;
         e.preventDefault();
         select(j, true);
