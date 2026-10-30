@@ -107,7 +107,8 @@
       #brand {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 24px;
+        margin-bottom: -16px;
       }
       /* A one-line run of grid squares, with clued and revealed across
          halves alternating. */
@@ -563,6 +564,8 @@
         font-weight: 600;
         font-size: 26px;
         letter-spacing: 0.12em;
+        text-indent: 0.12em;
+        text-align: center;
         overflow-wrap: anywhere;
       }
       #bar-mid > #guess-form {
@@ -698,11 +701,13 @@
       #actions {
         display: flex;
         flex-wrap: wrap;
+        justify-content: center;
         align-items: flex-start;
         gap: 12px;
         color: var(--muted);
       }
-      #actions button {
+      #actions button,
+      #giveup {
         padding: 0.5em 1em;
         border: 1px solid currentColor;
         border-radius: 6px;
@@ -711,11 +716,12 @@
           background 0.15s,
           color 0.15s;
       }
-      #actions #giveup {
+      #giveup {
+        align-self: flex-start;
         color: var(--bad);
       }
       @media (hover: hover) {
-        #actions #giveup:hover {
+        #giveup:hover {
           background: var(--bad);
           color: #fff;
         }
@@ -891,6 +897,9 @@
         #main {
           display: contents;
         }
+        #brand {
+          margin-bottom: -8px;
+        }
         #grid-wrap {
           order: 1;
           width: min(100%, calc(100dvh - 32px));
@@ -1008,16 +1017,16 @@
           </div>
           <div id="status"></div>
           <ul id="guesses"></ul>
+          <button id="giveup" type="button">reveal clue</button>
           <details id="known" hidden>
             <summary></summary>
             <ul></ul>
           </details>
         </div>
         <div id="actions">
-          <button id="giveup" type="button">reveal clue</button>
           <button id="share" type="button" hidden>share score</button>
-          <button id="today" type="button" hidden>today's puzzle</button>
           <button id="next" type="button">random puzzle</button>
+          <button id="today" type="button" hidden>today's puzzle</button>
         </div>
         <dialog id="info" aria-labelledby="info-title"></dialog>
         <div id="matcher"></div>
