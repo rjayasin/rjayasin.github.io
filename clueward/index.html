@@ -259,10 +259,6 @@
       .tool[hidden] {
         display: none;
       }
-      /* Nudged by script so the emoji's ink sits in the middle of the button. */
-      .tool > span {
-        display: block;
-      }
       #info-btn {
         font-size: 17px;
         font-weight: bold;
@@ -1025,7 +1021,7 @@
                   title="today's puzzle"
                   hidden
                 >
-                  <span>📅</span>
+                  📅
                 </button>
                 <button
                   id="next"
@@ -1034,7 +1030,7 @@
                   aria-label="random puzzle"
                   title="random puzzle"
                 >
-                  <span>🎲</span>
+                  🎲
                 </button>
               </div>
             </div>
@@ -1198,52 +1194,6 @@
             localStorage.setItem(THEME, dark ? 'dark' : 'light');
           } catch {}
         });
-      }
-      // Each emoji font draws its glyphs off center in the line, by a different amount per font,
-      // so find each tool emoji's ink on a canvas and shift it to the middle of its circle.
-      {
-        const SCALE = 4;
-        const ctx = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
-        const center = (el) => {
-          const box = el.getBoundingClientRect();
-          if (!box.height) return;
-          // A zero-size inline block sits on the baseline, so the page itself says where it is.
-          const mark = document.createElement('i');
-          mark.style.cssText = 'display: inline-block; width: 0; height: 0';
-          el.prepend(mark);
-          const at = mark.getBoundingClientRect();
-          mark.remove();
-          const size = parseFloat(getComputedStyle(el).fontSize);
-          const side = Math.ceil(size * 3 * SCALE);
-          ctx.canvas.width = ctx.canvas.height = side;
-          ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
-          // Any family will do: the glyph comes from the system emoji font either way.
-          ctx.font = `${size}px sans-serif`;
-          ctx.fillText(el.textContent.trim(), size, size * 2);
-          const { data } = ctx.getImageData(0, 0, side, side);
-          let top = side;
-          let bottom = 0;
-          let left = side;
-          let right = 0;
-          for (let y = 0; y < side; y++) {
-            for (let x = 0; x < side; x++) {
-              if (data[(y * side + x) * 4 + 3] > 8) {
-                top = Math.min(top, y);
-                bottom = y + 1;
-                left = Math.min(left, x);
-                right = Math.max(right, x + 1);
-              }
-            }
-          }
-          if (top >= bottom) return;
-          // Ink centers relative to the pen position, then to the span's own box.
-          const x = at.left - box.left + (left + right) / 2 / SCALE - size;
-          const y = at.top - box.top + (top + bottom) / 2 / SCALE - size * 2;
-          el.style.translate = `${(box.width / 2 - x).toFixed(2)}px ${(box.height / 2 - y).toFixed(2)}px`;
-        };
-        // Runs again when a hidden button such as today's puzzle shows up.
-        const watch = new ResizeObserver((entries) => entries.forEach((e) => center(e.target)));
-        document.querySelectorAll('.tool > span').forEach((el) => watch.observe(el));
       }
       Common.initHintUpdated({ hintEl: document.getElementById('hint') });
 
