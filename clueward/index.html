@@ -132,10 +132,12 @@
         justify-content: center;
         font-size: calc(100cqi / 8 * 0.56);
         line-height: 1.5;
-        background: linear-gradient(135deg, var(--done) 50%, var(--cell) 50%);
+        /* No repeat: Safari rounds the gradient tile down at fractional widths, and a repeat
+           shows a sliver of the next tile's corner along the right edge. */
+        background: var(--cell) linear-gradient(135deg, var(--done) 50%, var(--cell) 50%) no-repeat;
       }
       #logo > span:nth-child(even) {
-        background: linear-gradient(135deg, var(--gave) 50%, var(--cell) 50%);
+        background: var(--cell) linear-gradient(135deg, var(--gave) 50%, var(--cell) 50%) no-repeat;
       }
       #logo .num {
         position: absolute;
