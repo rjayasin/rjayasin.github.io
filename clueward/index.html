@@ -196,8 +196,27 @@
       }
       #controls {
         display: flex;
-        justify-content: space-between;
         align-items: center;
+        gap: 36px;
+      }
+      #info-btn {
+        display: grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        margin-left: auto;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        color: var(--muted);
+        font-size: 17px;
+        font-weight: bold;
+        text-decoration: none;
+      }
+      @media (hover: hover) {
+        #info-btn:hover {
+          background: var(--line);
+          color: inherit;
+        }
       }
       #theme {
         position: relative;
@@ -695,9 +714,6 @@
       #actions #giveup {
         color: var(--bad);
       }
-      #actions #info-btn[aria-expanded='true'] {
-        background: var(--line);
-      }
       @media (hover: hover) {
         #actions #giveup:hover {
           background: var(--bad);
@@ -705,23 +721,70 @@
         }
         #actions #share:hover,
         #actions #today:hover,
-        #actions #next:hover:not(:disabled),
-        #actions #info-btn:hover {
+        #actions #next:hover:not(:disabled) {
           background: var(--line);
         }
       }
       #info {
-        padding: 0.8em 1em;
+        width: min(480px, calc(100% - 32px));
+        max-height: calc(100dvh - 32px);
+        margin: auto;
+        padding: 20px 24px;
+        overflow-y: auto;
         border: 1px solid var(--line);
-        border-radius: 6px;
+        border-radius: 10px;
+        background: var(--cell);
+        color: inherit;
         line-height: 1.5;
-        color: var(--muted);
       }
-      #info[hidden] {
-        display: none;
+      #info::backdrop {
+        background: rgba(0, 0, 0, 0.5);
+      }
+      #info h2 {
+        margin: 0 32px 12px 0;
+        font-size: 1.2em;
       }
       #info ul {
         margin: 0 0 0 1.2em;
+        color: var(--muted);
+      }
+      #info p {
+        margin-bottom: 12px;
+      }
+      #info h3 {
+        margin: 16px 0 8px;
+        font-size: 1em;
+      }
+      #info li + li {
+        margin-top: 0.5em;
+      }
+      #info .keys-touch {
+        display: none;
+      }
+      @media (pointer: coarse) {
+        #info .keys-fine {
+          display: none;
+        }
+        #info .keys-touch {
+          display: list-item;
+        }
+      }
+      #info-close {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        color: var(--muted);
+        font-size: 20px;
+        line-height: 1;
+      }
+      @media (hover: hover) {
+        #info-close:hover {
+          background: var(--line);
+          color: inherit;
+        }
       }
       #matcher {
         color: var(--muted);
@@ -837,7 +900,6 @@
           order: 2;
         }
         #actions,
-        #info,
         #matcher {
           order: 3;
         }
@@ -905,6 +967,9 @@
                 <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" />
               </svg>
             </button>
+            <button id="info-btn" type="button" aria-label="how to play" aria-haspopup="dialog">
+              ?
+            </button>
           </div>
         </div>
         <div id="scorebar">
@@ -953,9 +1018,8 @@
           <button id="share" type="button" hidden>share score</button>
           <button id="today" type="button" hidden>today's puzzle</button>
           <button id="next" type="button">random puzzle</button>
-          <button id="info-btn" type="button" aria-expanded="false">how to play</button>
         </div>
-        <div id="info" hidden></div>
+        <dialog id="info" aria-labelledby="info-title"></dialog>
         <div id="matcher"></div>
         <div id="leaders">
           <div id="leaders-head">your high scores</div>
@@ -1050,6 +1114,7 @@
       const WORTH = 100;
       const MISS = 25;
       const EXACT = 50;
+      const TRIES = 4;
       const LEADERS = 10;
       const LAUNCH = Date.UTC(2026, 9, 16);
       const $ = (id) => document.getElementById(id);
@@ -1107,18 +1172,31 @@
       const label = (w) => `${w.n} ${w.dir === 'a' ? 'across' : 'down'}`;
 
       $('info').innerHTML = `
+        <button id="info-close" type="button" aria-label="close">×</button>
+        <h2 id="info-title">How to play</h2>
+        <p>Clueward is a crossword in reverse: the grid is filled in, and you write the clues.</p>
         <ul>
-          <li>The answers are filled in. Write a clue for each one.</li>
-          <li>Your clue counts if it matches any clue the NYT crossword used for that answer between 1976 and 2018. It can match exactly, with a small typo, or in meaning.</li>
-          <li>A correct clue is worth ${WORTH} points. Each wrong try takes off ${MISS}, down to ${MISS}. Tries marked “close” cost nothing.</li>
-          <li>An exact match to an NYT clue earns ${EXACT} extra points and a <span class="star">★</span>. Capital letters and punctuation don't matter.</li>
-          <li>Your clue can't include the answer. Type ___ for a blank.</li>
-          <li>Tab and shift-tab move to the next and previous unclued answer. ↓ and → switch to the down or across answer through the current square. ↑ brings back your last try. Click a square twice to switch direction.</li>
-        </ul>`;
-      $('info-btn').addEventListener('click', (e) => {
-        const open = $('info').hidden;
-        $('info').hidden = !open;
-        e.currentTarget.setAttribute('aria-expanded', open);
+          <li>Your clue counts if it matches any clue the NYT crossword used for that answer between 1976 and 2018.</li>
+          <li>Your clue doesn't have to match word for word: a small typo or the same meaning counts too. Capitalization and punctuation don't matter. Type _ (underscore) for a blank.</li>
+          <li>A correct clue is worth ${WORTH} points. Each wrong try takes off ${MISS}, and tries marked “close” cost nothing.</li>
+          <li>An exact match to a past NYT clue earns ${EXACT} extra points and a <span class="star">★</span>.</li>
+          <li>After ${TRIES} wrong tries, the clue is revealed. A revealed clue scores nothing.</li>
+          <li>Once an answer is <span class="ok">clued</span> or <span class="bad">revealed</span>, you can see every past NYT clue for it, sorted by most to least used.</li>
+          <li class="keys-touch">Tap a square twice to switch direction.</li>
+        </ul>
+        <div class="keys-fine">
+          <h3>Keys</h3>
+          <ul>
+            <li>Tab / shift-tab: next or previous unclued answer</li>
+            <li>↓ / →: switch to the down or across answer through the current square</li>
+            <li>↑: bring back your last try</li>
+            <li>Click a square twice to switch direction</li>
+          </ul>
+        </div>`;
+      $('info-btn').addEventListener('click', () => $('info').showModal());
+      $('info-close').addEventListener('click', () => $('info').close());
+      $('info').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) e.currentTarget.close();
       });
 
       function recordScore() {
@@ -1744,6 +1822,12 @@
         if (v.result === 'giveaway') g.why = 'gives it away';
         else if (!g.close) st.misses++;
         st.guesses.push(g);
+        if (st.misses >= TRIES) {
+          settle(k, false);
+          showWord();
+          statusEl.firstChild.insertAdjacentHTML('afterbegin', `${TRIES} wrong tries<br>`);
+          return;
+        }
         recordScore();
         showWord();
         setStatus(
@@ -1823,7 +1907,7 @@
       // enter moves on too.
       document.addEventListener('keydown', (e) => {
         if (e.key !== 'Enter' && e.key !== 'Tab') return;
-        if (e.metaKey || e.ctrlKey || e.altKey || !puzzle) return;
+        if (e.metaKey || e.ctrlKey || e.altKey || !puzzle || $('info').open) return;
         if (
           e.key === 'Enter' &&
           (!state[sel].done || e.target.closest('input, button, summary, a'))
@@ -1841,7 +1925,8 @@
       // still move the caret through a half-written clue.
       document.addEventListener('keydown', (e) => {
         const dir = { ArrowDown: 'd', ArrowRight: 'a' }[e.key];
-        if (!dir || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || !puzzle) return;
+        if (!dir || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || !puzzle || $('info').open)
+          return;
         if (e.target.closest('input') ? e.target.value : e.target.closest('summary')) return;
         const k = puzzle.words.findIndex((w) => w.dir === dir && w.cells.includes(lastCell));
         if (k < 0) return;
