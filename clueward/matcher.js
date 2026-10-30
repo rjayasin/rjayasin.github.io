@@ -68,16 +68,18 @@ const ClueMatcher = (() => {
 
   // 1 when every past-clue word has a counterpart and the guess adds at
   // most two of its own (none if any counterpart is only a near-synonym),
-  // else the share of past-clue words covered.
+  // else the share of past-clue words covered, kept under 1. A one-word
+  // past clue takes no near-synonyms, since “blue” sits near “Colour”.
   function lexical(gw, tw, vecOf) {
     if (!gw.length || !tw.length) return 0;
+    const near = vecOf && tw.length > 1;
     const match = (a, b) =>
-      same(a, b) || (vecOf && !/\d/.test(a.w + b.w) && dot(vecOf(a.w), vecOf(b.w)) >= WORD);
+      same(a, b) || (near && !/\d/.test(a.w + b.w) && dot(vecOf(a.w), vecOf(b.w)) >= WORD);
     const hits = tw.filter((b) => gw.some((a) => match(a, b))).length;
     const extra = gw.filter((a) => !tw.some((b) => match(a, b))).length;
     const swapped = tw.some((b) => !gw.some((a) => same(a, b)));
     if (hits === tw.length && extra <= (swapped ? 0 : 2)) return 1;
-    return hits / tw.length;
+    return Math.min(hits / tw.length, 0.99);
   }
 
   // Phrases are embedded without their blanks, which otherwise make any

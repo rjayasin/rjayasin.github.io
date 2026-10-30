@@ -37,6 +37,24 @@
     "known": "covers the past clue \"Letter\" and adds two words, which is allowed so \"Twisty letter\" passes"
   },
   {
+    "ans": "GREY",
+    "guess": "White and black mixed together",
+    "want": "no",
+    "why": "matched \"Colour\" by swapping black for colour and adding three words"
+  },
+  {
+    "ans": "GREY",
+    "guess": "Mix of black and white",
+    "want": "no",
+    "why": "matched \"Colour\" by swapping black for colour and adding two words"
+  },
+  {
+    "ans": "GREY",
+    "guess": "Blue",
+    "want": "no",
+    "why": "a lone colour matched \"Colour\" as a near-synonym"
+  },
+  {
     "ans": "SCAT",
     "guess": "vocal play",
     "want": "no",

@@ -65,8 +65,10 @@ the guess: the same stem, a one-letter typo (words of 5+ letters), or a word
 the model scores at least `WORD` (0.8) against it. Words with digits only
 match by stem or typo. The guess may then add up to two words of its own, but
 only if every counterpart matched by stem or typo. Once any counterpart is
-only a near-synonym, it may add none. The whole phrase must also score at
-least `LEX_MIN` (0.7). So:
+only a near-synonym, it may add none. A one-word past clue takes no
+near-synonyms at all, since a lone word sits near everything in its category
+("blue" vs "Colour"). The whole phrase must also score at least `LEX_MIN`
+(0.7). So:
 
 - "Twisty letter" matches "Letter": a stem match plus one extra word.
 - "Mom's husband" matches "Mom's spouse": a near-synonym with no extra words.
@@ -141,3 +143,11 @@ passed, 29% came back close, and 3 of 1,600 passed against the wrong answer.
   This added the rule against both swapping in near-synonyms and adding words,
   and the blank rule. Of 400 held-out clues, one went from passing to close:
   "Prefix for Norman or Saxon" (ANGLO), which had matched "\_\_\_-Saxon".
+- "White and black mixed together" was accepted for GREY through "Colour":
+  "black" was a near-synonym for "colour", and a guess that covered every
+  word of the past clue scored as a full match however many words it added.
+  Now it can't, and a one-word past clue takes no near-synonyms, so "Blue"
+  no longer matches "Colour" either. Of 600 held-out clues, three went from
+  passing to close: "Entryway" (ACCESS, through "Entry"), a long UTZ clue that
+  had only covered "Snack food brand" by the same bug, and one that flips
+  either way between runs.
