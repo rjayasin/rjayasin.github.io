@@ -154,9 +154,47 @@
       }
       #scorebar {
         display: flex;
-        flex-wrap: wrap;
-        gap: 8px 20px;
+        flex-direction: column;
+        gap: 10px;
         color: var(--muted);
+      }
+      #meta:empty {
+        display: none;
+      }
+      #tally {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 16px;
+      }
+      #tally .star {
+        font-size: 1.2em;
+      }
+      #share {
+        margin-left: auto;
+        padding: 0.3em 0.9em;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        color: var(--muted);
+        text-decoration: none;
+      }
+      /* Clued and revealed shares of the puzzle's entries. */
+      #progress {
+        height: 4px;
+        border-radius: 2px;
+        background: linear-gradient(
+            to right,
+            var(--done) var(--won, 0%),
+            var(--gave) var(--won, 0%) var(--lost, 0%),
+            transparent var(--lost, 0%)
+          ),
+          var(--line);
+      }
+      @media (hover: hover) {
+        #share:hover {
+          background: var(--line);
+          color: inherit;
+        }
       }
       #scorebar b {
         font-weight: normal;
@@ -170,14 +208,7 @@
           color: #fff;
         }
       }
-      #meta,
-      #daily,
-      #finished {
-        flex-basis: 100%;
-      }
-      #daily[hidden],
-      #finished[hidden],
-      #meta[hidden] {
+      #finished[hidden] {
         display: none;
       }
       #modes {
@@ -197,24 +228,38 @@
       }
       #controls {
         display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
         align-items: center;
-        gap: 36px;
+        gap: 6px;
       }
-      #info-btn {
+      #tools {
+        display: contents;
+      }
+      #nav {
+        display: flex;
+        gap: 4px;
+      }
+      #tools button {
         display: grid;
         place-items: center;
         width: 28px;
         height: 28px;
-        margin-left: auto;
         border: 1px solid var(--line);
         border-radius: 50%;
         color: var(--muted);
-        font-size: 17px;
-        font-weight: bold;
+        font-size: 14px;
         text-decoration: none;
       }
+      #tools button[hidden] {
+        display: none;
+      }
+      #tools #info-btn {
+        font-size: 17px;
+        font-weight: bold;
+      }
       @media (hover: hover) {
-        #info-btn:hover {
+        #tools button:hover {
           background: var(--line);
           color: inherit;
         }
@@ -559,6 +604,22 @@
       #which {
         color: var(--muted);
       }
+      .pips {
+        display: inline-flex;
+        gap: 4px;
+        margin-left: 6px;
+        vertical-align: middle;
+      }
+      .pips i {
+        width: 8px;
+        height: 8px;
+        border: 1px solid var(--muted);
+        border-radius: 50%;
+      }
+      .pips i.on {
+        background: var(--gold);
+        border-color: var(--gold);
+      }
       #answer {
         font-family: 'Libre Franklin', Helvetica, Arial, sans-serif;
         font-weight: 600;
@@ -698,37 +759,27 @@
       #known li.hit {
         color: var(--ok);
       }
-      #actions {
+      /* The matcher's state on the left, and reveal on the right. */
+      #under {
         display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        align-items: flex-start;
+        align-items: baseline;
         gap: 12px;
-        color: var(--muted);
+        margin-top: -4px;
+        font-size: 11px;
       }
-      #actions button,
-      #giveup {
-        padding: 0.5em 1em;
-        border: 1px solid currentColor;
-        border-radius: 6px;
-        text-decoration: none;
-        transition:
-          background 0.15s,
-          color 0.15s;
+      #under:not(:has(#matcher:not(:empty), #giveup:not([hidden]))) {
+        display: none;
       }
       #giveup {
-        align-self: flex-start;
+        margin: -8px 0 -8px auto;
+        padding: 8px 0 8px 12px;
         color: var(--bad);
+        text-decoration-style: dotted;
+        text-underline-offset: 2px;
       }
       @media (hover: hover) {
         #giveup:hover {
-          background: var(--bad);
-          color: #fff;
-        }
-        #actions #share:hover,
-        #actions #today:hover,
-        #actions #next:hover:not(:disabled) {
-          background: var(--line);
+          text-decoration-style: solid;
         }
       }
       #info {
@@ -794,7 +845,6 @@
       }
       #matcher {
         color: var(--muted);
-        font-size: 11px;
       }
       #matcher.loading {
         animation: pulse 1.6s ease-in-out infinite;
@@ -908,10 +958,6 @@
         #word {
           order: 2;
         }
-        #actions,
-        #matcher {
-          order: 3;
-        }
         #clues {
           order: 4;
         }
@@ -976,16 +1022,38 @@
                 <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" />
               </svg>
             </button>
-            <button id="info-btn" type="button" aria-label="how to play" aria-haspopup="dialog">
-              ?
-            </button>
+            <div id="tools">
+              <div id="nav">
+                <button
+                  id="today"
+                  type="button"
+                  aria-label="today's puzzle"
+                  title="today's puzzle"
+                  hidden
+                >
+                  📅
+                </button>
+                <button id="next" type="button" aria-label="random puzzle" title="random puzzle">
+                  🎲
+                </button>
+              </div>
+              <button id="info-btn" type="button" aria-label="how to play" aria-haspopup="dialog">
+                ?
+              </button>
+            </div>
           </div>
         </div>
         <div id="scorebar">
-          <b id="daily" hidden></b>
-          <span>score <b id="score">0</b></span>
-          <span>clued <b id="solved">0/0</b></span>
-          <span id="meta"></span>
+          <div id="meta"></div>
+          <div id="tally">
+            <span>score <b id="score">0</b></span>
+            <span>clued <b id="solved">0/0</b></span>
+            <span title="exact matches"
+              ><span class="star" aria-hidden="true">★</span> <b id="stars">0</b></span
+            >
+            <button id="share" type="button" aria-label="share score" hidden>share</button>
+          </div>
+          <div id="progress"></div>
           <b id="finished" hidden>✓ puzzle complete</b>
         </div>
         <div id="word">
@@ -1015,21 +1083,18 @@
               </svg>
             </button>
           </div>
+          <div id="under">
+            <div id="matcher"></div>
+            <button id="giveup" type="button">reveal clue</button>
+          </div>
           <div id="status"></div>
           <ul id="guesses"></ul>
-          <button id="giveup" type="button">reveal clue</button>
           <details id="known" hidden>
             <summary></summary>
             <ul></ul>
           </details>
         </div>
-        <div id="actions">
-          <button id="share" type="button" hidden>share score</button>
-          <button id="next" type="button">random puzzle</button>
-          <button id="today" type="button" hidden>today's puzzle</button>
-        </div>
         <dialog id="info" aria-labelledby="info-title"></dialog>
-        <div id="matcher"></div>
         <div id="leaders">
           <div id="leaders-head">your high scores</div>
           <ol id="leaders-list"></ol>
@@ -1451,20 +1516,19 @@
 
       function render() {
         const p = puzzle;
-        $('meta').hidden = game.mini;
+        const meta = [];
+        if (game.day) meta.push(`daily ${game.mini ? 'mini ' : ''}#${game.day}`);
         if (!game.mini)
-          $('meta').textContent = `${new Date(p.date + 'T12:00').toLocaleDateString(undefined, {
-            weekday: 'long',
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-          })} · ${p.by}`;
-        $('daily').hidden = !game.day;
-        $('daily').textContent =
-          `daily ${game.mini ? 'mini' : 'puzzle'} #${game.day} · ${new Date().toLocaleDateString(
-            undefined,
-            { month: 'short', day: 'numeric', year: 'numeric' }
-          )}`;
+          meta.push(
+            new Date(p.date + 'T12:00').toLocaleDateString(undefined, {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            }),
+            p.by
+          );
+        $('meta').textContent = meta.join(' · ');
         $('today').hidden = !!game.day;
         const step = p.size > 5 ? 30 : 60;
         const mid = (p.size - 1) / 2;
@@ -1645,8 +1709,14 @@
       function showWord() {
         const w = puzzle.words[sel];
         const st = state[sel];
-        $('which').textContent =
-          `${label(w)} · ${w.ans.length} letters` + (st.done ? '' : ` · worth ${worthOf(st)}`);
+        $('which').textContent = label(w);
+        if (!st.done) {
+          const left = Math.max(0, TRIES - st.misses);
+          $('which').insertAdjacentHTML(
+            'beforeend',
+            ` · ${worthOf(st)} points <span class="pips" role="img" aria-label="${left} of ${TRIES} tries left">${'<i class="on"></i>'.repeat(left)}${'<i></i>'.repeat(TRIES - left)}</span>`
+          );
+        }
         $('answer').textContent = w.ans;
         $('answer').className = st.won ? 'ok' : st.done && !st.given ? 'bad' : '';
         guessEl.value = '';
@@ -1716,7 +1786,13 @@
 
       function updateScore(cheer) {
         $('score').textContent = score();
-        $('solved').textContent = `${playable().filter((s) => s.won).length}/${playable().length}`;
+        const n = playable().length;
+        const won = playable().filter((s) => s.won).length;
+        const lost = playable().filter((s) => s.done && !s.won).length;
+        $('solved').textContent = `${won}/${n}`;
+        $('stars').textContent = playable().filter((s) => s.won && s.exact).length;
+        $('progress').style.setProperty('--won', (100 * won) / (n || 1) + '%');
+        $('progress').style.setProperty('--lost', (100 * (won + lost)) / (n || 1) + '%');
         $('share').hidden = !playable().some((s) => s.done);
         const done = state.every((s) => s.done);
         $('finished').hidden = !done;
@@ -1754,7 +1830,7 @@
         const flash = (msg) => {
           btn.textContent = msg;
           clearTimeout(shareTimer);
-          shareTimer = setTimeout(() => (btn.textContent = 'share score'), 1500);
+          shareTimer = setTimeout(() => (btn.textContent = 'share'), 1500);
         };
         try {
           if (navigator.share && matchMedia('(pointer: coarse)').matches) {
