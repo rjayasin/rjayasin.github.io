@@ -984,8 +984,8 @@
     <script>
       Common.paintFavicon({ glyph: '✏️', fontSize: 44, transparent: true });
       if (matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('dark');
-      // A wave runs from the left on load and on every click, each lifting
-      // squares from wherever an earlier wave has them.
+      // A wave runs from the left once each new grid has animated in and on
+      // every click, each lifting squares from wherever an earlier wave has them.
       {
         const logo = document.getElementById('logo');
         const reduce = matchMedia('(prefers-reduced-motion: reduce)');
@@ -1013,7 +1013,7 @@
             )
           );
         };
-        wave();
+        addEventListener('gridin', wave);
         logo.addEventListener('click', wave);
       }
       {
@@ -1410,6 +1410,13 @@
           }
           gridEl.appendChild(el);
         }
+        const first = gridEl.firstChild;
+        Promise.allSettled(
+          gridEl
+            .getAnimations({ subtree: true })
+            .filter((a) => a.animationName === 'sq-in')
+            .map((a) => a.finished)
+        ).then(() => first.isConnected && dispatchEvent(new Event('gridin')));
         for (const dir of ['a', 'd']) {
           const ol = $(`list-${dir}`);
           ol.textContent = '';
