@@ -14,6 +14,7 @@
         --border: #e5e7eb;
         --accent: #00a2ff;
         --edited: #16a34a;
+        --viewed: #2563eb;
       }
 
       body {
@@ -33,6 +34,7 @@
         --card: #1a1a1a;
         --border: #2a2a2a;
         --edited: #4ade80;
+        --viewed: #60a5fa;
       }
 
       @media (prefers-color-scheme: dark) {
@@ -42,6 +44,7 @@
           --card: #1a1a1a;
           --border: #2a2a2a;
           --edited: #4ade80;
+          --viewed: #60a5fa;
         }
       }
 
@@ -548,6 +551,11 @@
 
       td.edited {
         color: var(--edited);
+        font-weight: 600;
+      }
+
+      td.viewed {
+        color: var(--viewed);
         font-weight: 600;
       }
 
@@ -1622,6 +1630,7 @@
         cyst: null,
         result: null, // { labels, organoids }
         excluded: new Set(),
+        viewed: new Set(), // organoids opened for editing
         hover: 0,
         view: 'fill',
         zoom: true,
@@ -1785,10 +1794,12 @@
             const rgba = state.work.getContext('2d').getImageData(0, 0, W, H).data;
             state.F = computeFeatures(rgba, W, H);
             state.excluded.clear();
+            state.viewed.clear();
           }
           if (stage !== 'cyst') {
             state.seg = segmentOrganoids(state.F, state.params);
             state.excluded.clear();
+            state.viewed.clear();
             state.edited = false;
             state.selected = 0;
             state.cystEdit = new Int8Array(state.F.N);
@@ -1932,7 +1943,7 @@
         g.strokeStyle = 'rgba(0,0,0,0.85)';
         for (const o of t.result.organoids) {
           if (!o.areaWork) continue;
-          g.fillStyle = t.excluded.has(o.id) ? '#aaa' : o.edits ? '#4ade80' : '#fff';
+          g.fillStyle = t.excluded.has(o.id) ? '#aaa' : labelColour(t, o);
           g.strokeText(o.id, o.cx, o.cy);
           g.fillText(o.id, o.cx, o.cy);
         }
@@ -2124,11 +2135,15 @@
           if (!o.areaWork) continue;
           const off = state.excluded.has(o.id);
           ctx.strokeStyle = 'rgba(0,0,0,0.85)';
-          ctx.fillStyle = off ? '#aaa' : o.edits ? '#4ade80' : '#fff';
+          ctx.fillStyle = off ? '#aaa' : labelColour(state, o);
           ctx.strokeText(o.id, o.cx, o.cy);
           ctx.fillText(o.id, o.cx, o.cy);
         }
         if (blank) drawBrush();
+      }
+
+      function labelColour(t, o) {
+        return o.edits ? '#4ade80' : t.viewed?.has(o.id) ? '#60a5fa' : '#fff';
       }
 
       function drawBrush() {
@@ -2284,7 +2299,7 @@
           if (state.hover === o.id) tr.classList.add('hot');
           const [r, g, b] = PALETTE[o.colour];
           tr.innerHTML =
-            `<td${o.edits ? ' class="edited" title="Edited by hand"' : ''}><span class="swatch" style="background:rgb(${r},${g},${b})"></span>${o.id}</td>` +
+            `<td${o.edits ? ' class="edited" title="Edited by hand"' : state.viewed.has(o.id) ? ' class="viewed" title="Opened for editing, unchanged"' : ''}><span class="swatch" style="background:rgb(${r},${g},${b})"></span>${o.id}</td>` +
             `<td>${areaNum(o.area)}</td>` +
             `<td>${areaNum(o.cyst)}</td>` +
             `<td>${fmtPct(o.ci)}<span class="bar"><span style="width:${(100 * o.ci).toFixed(1)}%"></span></span></td>`;
@@ -2411,11 +2426,7 @@
         if (state.editing || !state.result) return;
         const id = labelAt(e);
         $('edit').click();
-        if (!id) return;
-        state.selected = id;
-        state.box = null;
-        syncEditBar();
-        render();
+        if (id) selectOrganoid(id);
       });
 
       canvas.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -2435,12 +2446,7 @@
         // stroke edits the selected one, even if it starts on a neighbour.
         if (!state.selected) {
           const id = e.button === 0 && labelAt(e);
-          if (!id) return;
-          state.selected = id;
-          state.box = null;
-          state.cursor = null;
-          syncEditBar();
-          render();
+          if (id) selectOrganoid(id);
           return;
         }
         const p = pointAt(e);
@@ -2455,6 +2461,17 @@
         stamp(p.x, p.y, drag.add);
         refresh(true);
       });
+
+      function selectOrganoid(id) {
+        state.viewed.add(id);
+        state.selected = id;
+        state.box = null;
+        state.cursor = null;
+        syncEditBar();
+        renderTable();
+        render();
+        saveSession();
+      }
 
       function endGestures() {
         if (state.peek) {
@@ -3261,6 +3278,7 @@
         'cyst',
         'result',
         'excluded',
+        'viewed',
         'params',
         'edited',
         'cystEdit',
@@ -3304,6 +3322,7 @@
             img: null,
             result: null,
             excluded: new Set(),
+            viewed: new Set(),
             params: r.session ? { ...DEFAULTS, ...r.session.params } : { ...state.params },
             edited: false,
             calMeta: null,
@@ -3493,6 +3512,7 @@
           r.cystEdit = new Int8Array(F.N);
           r.edited = false;
           r.excluded = new Set();
+          r.viewed = new Set();
           r.cyst = findCysts(F, r.seg, r.params);
           r.result = measure(F, r.seg.labels, r.cyst, workScale(r));
           if (r.restore) applySession(r, r.restore);
@@ -3844,6 +3864,7 @@
           H: t.work.height,
           params: t.params,
           excluded: [...t.excluded],
+          viewed: [...t.viewed],
           edited: t.edited,
           umPerPx: t.umPerPx,
         };
@@ -3877,6 +3898,7 @@
       function applySession(t, s) {
         if (s.W !== t.work.width || s.H !== t.work.height) return;
         t.excluded = new Set(s.excluded);
+        t.viewed = new Set(s.viewed);
         if (!s.edited) return;
         t.result = { labels: s.labels, organoids: s.organoids };
         t.seg.labels = s.labels;
