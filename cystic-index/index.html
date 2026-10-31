@@ -14,7 +14,7 @@
         --border: #e5e7eb;
         --accent: #00a2ff;
         --edited: #16a34a;
-        --viewed: #2563eb;
+        --viewed: #0a9eff;
       }
 
       body {
@@ -34,7 +34,7 @@
         --card: #1a1a1a;
         --border: #2a2a2a;
         --edited: #4ade80;
-        --viewed: #60a5fa;
+        --viewed: #38c8ff;
       }
 
       @media (prefers-color-scheme: dark) {
@@ -44,7 +44,7 @@
           --card: #1a1a1a;
           --border: #2a2a2a;
           --edited: #4ade80;
-          --viewed: #60a5fa;
+          --viewed: #38c8ff;
         }
       }
 
@@ -2143,7 +2143,7 @@
       }
 
       function labelColour(t, o) {
-        return o.edits ? '#4ade80' : t.viewed?.has(o.id) ? '#60a5fa' : '#fff';
+        return o.edits ? '#4ade80' : t.viewed?.has(o.id) ? '#38c8ff' : '#fff';
       }
 
       function drawBrush() {
