@@ -268,6 +268,152 @@
         width: 1px;
         background: var(--muted);
       }
+      button.plain {
+        background: transparent;
+        border-color: var(--line);
+        color: inherit;
+        font-weight: 400;
+        padding: 2px 8px;
+      }
+      tr.row {
+        cursor: pointer;
+      }
+      tr.row:hover {
+        background: var(--soft);
+      }
+      .tog {
+        display: inline-block;
+        width: 1em;
+        color: var(--muted);
+        transition: transform 0.15s;
+      }
+      tr.open .tog {
+        transform: rotate(90deg);
+      }
+      tr.detail > td {
+        background: var(--soft);
+        padding: 12px;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      @media (max-width: 600px) {
+        .cards {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      .card {
+        border: 1px solid var(--line);
+        border-left: 4px solid var(--line);
+        border-radius: 6px;
+        padding: 8px 10px;
+        background: Canvas;
+      }
+      .card.c-yes {
+        border-left-color: var(--ok);
+      }
+      .card.c-close {
+        border-left-color: var(--close);
+      }
+      .card.c-no {
+        border-left-color: var(--bad);
+      }
+      .card h3 {
+        font-size: 13px;
+        margin-bottom: 6px;
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .conds {
+        list-style: none;
+        margin-top: 6px;
+      }
+      .conds .mark {
+        display: inline-block;
+        width: 1.3em;
+        font-weight: 700;
+        color: var(--bad);
+      }
+      .conds .mark.hit {
+        color: var(--ok);
+      }
+      .conds .mark.na {
+        color: var(--muted);
+      }
+      .rule {
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px dashed var(--line);
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .ladder {
+        position: relative;
+        height: 10px;
+        margin: 8px 0 4px;
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .ladder .seg {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        opacity: 0.35;
+      }
+      .z-no {
+        background: var(--bad);
+      }
+      .z-close {
+        background: var(--close);
+      }
+      .z-yes {
+        background: var(--ok);
+      }
+      .ladder .seg.blocked {
+        background: repeating-linear-gradient(45deg, var(--muted) 0 3px, transparent 3px 6px);
+      }
+      .ladder .marker {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        margin-left: -1px;
+        background: currentColor;
+      }
+      table.matrix {
+        width: auto;
+        margin-top: 6px;
+      }
+      table.matrix th,
+      table.matrix td {
+        padding: 2px 6px;
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 12px;
+        background: transparent;
+        position: static;
+      }
+      .m-stem,
+      .m-typo {
+        color: var(--ok);
+        font-weight: 600;
+      }
+      .m-near {
+        color: var(--near);
+        font-weight: 600;
+      }
+      .m-barred {
+        color: var(--muted);
+        text-decoration: line-through;
+      }
+      .m-below {
+        color: var(--muted);
+      }
+      #thresholds table {
+        margin-bottom: 12px;
+      }
     </style>
   </head>
   <body>
@@ -307,6 +453,9 @@
               <option value="rank">most common first</option>
             </select>
           </label>
+          <button type="button" class="plain" id="expand">Expand all</button>
+          <button type="button" class="plain" id="collapse">Collapse all</button>
+          <span class="sub">Click a row for its full breakdown.</span>
         </div>
         <div class="scroll">
           <table>
@@ -325,7 +474,7 @@
           </table>
         </div>
         <h2>Thresholds</h2>
-        <dl id="thresholds"></dl>
+        <div id="thresholds"></div>
       </section>
     </main>
     <script src="/common.js"></script>
@@ -442,6 +591,7 @@
 
       let current = null;
       let runId = 0;
+      const open = new Set();
       async function run() {
         const id = ++runId;
         const ans = $('ans')
@@ -475,6 +625,7 @@
           const by = new Map(texts.map((t, i) => [t, vecs[i]]));
           vec = (t) => by.get(t);
         }
+        if (current?.ans !== ans) open.clear();
         current = analyse({ ans, guess, past, g, gw, ts, vec, verdict });
         render(current);
       }
@@ -688,7 +839,47 @@
           (A.decidedEarly >= 0 ? ': not reached, shown anyway' : '');
         renderRows();
 
-        $('thresholds').innerHTML = [
+        $('thresholds').innerHTML = thresholdTable(A);
+        $('out').hidden = false;
+      }
+
+      function thresholdTable(A) {
+        const thr = A.gw.length > 1 ? `YES ${I.YES}` : `YES_ONE_WORD ${I.YES_ONE_WORD}`;
+        const rows = [
+          ['Identical once normalized', '', '', 'identical (yes ★)'],
+          [
+            'Typos',
+            '',
+            '',
+            'edits ≤ allowed: 0 under 6 characters, 1 under 12, else 12% of the length',
+          ],
+          [
+            'Whole phrase',
+            `score < CLOSE ${I.CLOSE}`,
+            `CLOSE ${I.CLOSE} ≤ score < ${thr}`,
+            `score ≥ ${thr}, and a blank in the guess if the past clue has one`,
+          ],
+          [
+            'Word by word',
+            'under half the past clue’s words covered',
+            'at least half covered',
+            `every word covered, extra guess words ≤ 2 (0 if any past word lacks a stem or typo counterpart), phrase ≥ LEX_MIN ${I.LEX_MIN}, and a blank in the guess if the past clue has one`,
+          ],
+          [
+            'A word’s counterpart',
+            '',
+            '',
+            `same stem, one typo (5+ letters), or word score ≥ WORD ${I.WORD} if the past clue has 2+ words and neither has digits`,
+          ],
+          [
+            'Overall',
+            'nothing reaches close',
+            'any past clue reaches close',
+            'any past clue reaches yes',
+          ],
+        ];
+        const cell = (t, cls) => `<td>${t ? `<span class="${cls}">${esc(t)}</span>` : '—'}</td>`;
+        const consts = [
           ['YES', I.YES, 'whole-phrase score for yes, guess with 2+ content words'],
           [
             'YES_ONE_WORD',
@@ -697,15 +888,220 @@
           ],
           ['LEX_MIN', I.LEX_MIN, 'whole-phrase score a word-by-word match also needs'],
           ['WORD', I.WORD, 'word score for a near-synonym counterpart'],
-          ['CLOSE', I.CLOSE, 'whole-phrase score for close (or half a past clue’s words covered)'],
+          ['CLOSE', I.CLOSE, 'whole-phrase score for close'],
           ['WARM', WARM, 'most common past clues compared in pass 1'],
-        ]
+        ];
+        return (
+          `<div class="scroll"><table><thead><tr><th>Check</th><th>no</th><th>close</th><th>yes</th></tr></thead><tbody>` +
+          rows
+            .map(
+              ([k, no, close, yes]) =>
+                `<tr><td><strong>${k}</strong></td>${cell(no, 'r-no')}${cell(close, 'r-close')}${cell(yes, 'r-yes')}</tr>`
+            )
+            .join('') +
+          `</tbody></table></div><dl>` +
+          consts
+            .map(
+              ([k, n, d]) =>
+                `<dt><code>${k}</code></dt><dd><strong>${n}</strong> <span class="sub">${d}</span></dd>`
+            )
+            .join('') +
+          '</dl>'
+        );
+      }
+
+      const pct = (x) => `${(Math.max(0, Math.min(1, x)) * 100).toFixed(1)}%`;
+
+      // A 0–1 bar split into no / close / yes zones at cuts, with v marked.
+      function ladder(v, cuts, { blocked = false, legend } = {}) {
+        const segs = cuts
+          .map(([from, label], k) => {
+            const to = k + 1 < cuts.length ? cuts[k + 1][0] : 1;
+            const left = label === 'yes' && to - from < 0.03 ? 0.97 : from;
+            const cls = `seg z-${label}${blocked && label === 'yes' ? ' blocked' : ''}`;
+            return `<span class="${cls}" style="left:${pct(left)};width:${pct(to - left)}"></span>`;
+          })
+          .join('');
+        let res = [...cuts].reverse().find(([from]) => v >= from)?.[1] || 'no';
+        if (blocked && res === 'yes') res = 'close';
+        const marker =
+          v == null ? '' : `<span class="marker r-${res}" style="left:${pct(v)}"></span>`;
+        legend ||= cuts
           .map(
-            ([k, n, d]) =>
-              `<dt><code>${k}</code></dt><dd><strong>${n}</strong> <span class="sub">${d}</span></dd>`
+            ([from, label], k) =>
+              `${k ? ` < ${from} ≤ ` : ''}<span class="r-${label}">${label}</span>`
           )
           .join('');
-        $('out').hidden = false;
+        return `<div class="ladder">${segs}${marker}</div><div class="sub">${legend}</div>`;
+      }
+
+      const mark = (ok) =>
+        ok == null
+          ? '<span class="mark na">–</span>'
+          : `<span class="mark${ok ? ' hit' : ''}">${ok ? '✓' : '✗'}</span>`;
+      const conds = (list) =>
+        `<ul class="conds">${list.map(([ok, text]) => `<li>${mark(ok)}${text}</li>`).join('')}</ul>`;
+      function card(title, res, body, rule) {
+        const out = res
+          ? `<span class="r-${res}">→ ${res}</span>`
+          : '<span class="sub">→ no effect</span>';
+        return `<div class="card${res ? ` c-${res}` : ''}"><h3><span>${title}</span>${out}</h3>${body}<div class="rule">${rule}</div></div>`;
+      }
+
+      // Every past word against every guess word: how they'd count as counterparts.
+      function matrix(r, A) {
+        const m = r.map;
+        if (!r.tw.length || !A.gw.length) return '';
+        const cellOf = (a, b) => {
+          if (a.s === b.s) return ['stem', 'stem'];
+          if (I.same(a, b)) return ['typo', 'typo'];
+          if (/\d/.test(a.w + b.w)) return ['below', 'digits'];
+          if (!A.vec) return ['below', '—'];
+          const s = I.dot(A.vec(a.w), A.vec(b.w));
+          return [s >= I.WORD ? (m.near ? 'near' : 'barred') : 'below', f3(s)];
+        };
+        const head = `<tr><th>past ↓ guess →</th>${A.gw.map((a) => `<th>${esc(a.w)}</th>`).join('')}</tr>`;
+        const body = r.tw
+          .map(
+            (b) =>
+              `<tr><th>${esc(b.w)}</th>${A.gw
+                .map((a) => {
+                  const [cls, txt] = cellOf(a, b);
+                  return `<td class="m-${cls}">${txt}</td>`;
+                })
+                .join('')}</tr>`
+          )
+          .join('');
+        const foot = `<tr><th>guess word is</th>${A.gw
+          .map((a) =>
+            m.extra.some((x) => x.a === a)
+              ? '<td class="r-no">extra</td>'
+              : '<td class="r-yes">a counterpart</td>'
+          )
+          .join('')}</tr>`;
+        return `<div class="scroll"><table class="matrix">${head}${body}${foot}</table></div>`;
+      }
+
+      function detail(r, A) {
+        const m = r.map;
+        const thrName = A.gw.length > 1 ? 'YES' : 'YES_ONE_WORD';
+        const blankNote = I.hasBlank(r.t)
+          ? A.gBlank
+            ? 'the past clue has a blank, and so does the guess'
+            : 'the past clue has a blank and the guess doesn’t'
+          : 'the past clue has no blank';
+        const [res, why] = rowResult(r, A);
+        const cards = [];
+
+        const identical = r.t === A.g;
+        cards.push(
+          card(
+            'Identical once normalized',
+            identical ? 'yes' : null,
+            conds([
+              [identical, `<code>${esc(A.g || '(empty)')}</code> vs <code>${esc(r.t)}</code>`],
+            ]),
+            'yes ★ if identical; otherwise no effect'
+          )
+        );
+
+        const L = r.t.length;
+        const allowWhy =
+          L < 6
+            ? `${L} characters, under 6: none allowed`
+            : L < 12
+              ? `${L} characters, under 12: 1 allowed`
+              : `${L} characters × 12% = ${(L * 0.12).toFixed(2)}, rounded down: ${r.allow} allowed`;
+        const typoOk = !!r.allow && r.ed <= r.allow;
+        cards.push(
+          card(
+            'Typos',
+            typoOk ? 'yes' : null,
+            conds([[typoOk, `${r.ed} edits between the normalized texts, ${allowWhy}`]]),
+            'yes if edits ≤ allowed; otherwise no effect'
+          )
+        );
+
+        if (r.phrase == null) {
+          cards.push(card('Whole phrase', null, '<p class="sub">model unavailable</p>', ''));
+        } else {
+          const pres = r.phraseYes ? 'yes' : r.phrase >= I.CLOSE ? 'close' : 'no';
+          cards.push(
+            card(
+              'Whole phrase',
+              pres,
+              `<div><code>${esc(I.bare(A.g))}</code> vs <code>${esc(I.bare(r.t))}</code>: <strong>${f3(r.phrase)}</strong></div>` +
+                ladder(
+                  r.phrase,
+                  [
+                    [0, 'no'],
+                    [I.CLOSE, 'close'],
+                    [A.thr, 'yes'],
+                  ],
+                  { blocked: !r.fits }
+                ) +
+                conds([
+                  [r.phrase >= I.CLOSE, `score ≥ CLOSE ${I.CLOSE}, for close`],
+                  [
+                    r.phrase >= A.thr,
+                    `score ≥ ${thrName} ${A.thr}, for yes (${A.gw.length > 1 ? 'the guess has 2+ content words' : 'the guess has one content word'})`,
+                  ],
+                  [r.fits, `blank matched, for yes: ${blankNote}`],
+                ]),
+              `no &lt; CLOSE ${I.CLOSE} ≤ close &lt; ${thrName} ${A.thr} ≤ yes. Blanks are removed before embedding.`
+            )
+          );
+        }
+
+        const share = r.tw.length ? m.hits / r.tw.length : 0;
+        const allowed = m.swapped ? 0 : 2;
+        const nearRule = !A.vec
+          ? 'model unavailable: counterparts by stem or typo only'
+          : m.near
+            ? `near-synonyms count at word score ≥ WORD ${I.WORD}`
+            : 'a one-word past clue takes no near-synonyms, only stems and typos';
+        const wres = !r.tw.length ? 'no' : r.wordYes ? 'yes' : r.lex >= 0.5 ? 'close' : 'no';
+        cards.push(
+          card(
+            'Word by word',
+            wres,
+            (r.tw.length
+              ? `<div>${m.hits} of ${r.tw.length} past words covered (${Math.round(share * 100)}%), score <strong>${r.lex === 1 ? '1' : f3(r.lex)}</strong></div>` +
+                ladder(
+                  r.lex,
+                  [
+                    [0, 'no'],
+                    [0.5, 'close'],
+                    [1, 'yes'],
+                  ],
+                  {
+                    blocked: !r.fits,
+                    legend:
+                      'no &lt; 50% covered ≤ <span class="r-close">close</span> &lt; every condition below ≤ <span class="r-yes">yes</span>',
+                  }
+                ) +
+                matrix(r, A)
+              : '<p class="sub">the past clue has no content words</p>') +
+              conds([
+                [
+                  m.hits === r.tw.length && r.tw.length > 0,
+                  `every past word has a counterpart (${m.hits}/${r.tw.length})`,
+                ],
+                [
+                  m.extra.length <= allowed,
+                  `${m.extra.length} extra guess word${m.extra.length === 1 ? '' : 's'} ≤ ${allowed} allowed (${m.swapped ? 'a past word had no stem or typo counterpart, so none' : 'every past word matched by stem or typo, so 2'})`,
+                ],
+                [
+                  r.phrase == null ? null : r.phrase >= I.LEX_MIN,
+                  `whole phrase ${f3(r.phrase)} ≥ LEX_MIN ${I.LEX_MIN}`,
+                ],
+                [r.fits, `blank matched: ${blankNote}`],
+              ]),
+            `${nearRule}. Close needs half the past words covered; yes needs every condition.`
+          )
+        );
+
+        return `<div class="sub" style="margin-bottom:8px">This past clue alone gives <strong class="r-${res}">${res}</strong>${why ? ` (${esc(why)})` : ''}. The guess’s result is the best across all past clues.</div><div class="cards">${cards.join('')}</div>`;
       }
 
       function rowResult(r, A) {
@@ -779,15 +1175,20 @@
             const [res, why] = rowResult(r, A);
             const sub = [r.t !== r.clue.toLowerCase() ? `<code>${esc(r.t)}</code>` : ''];
             if (I.hasBlank(r.t)) sub.push(r.fits ? 'has a blank' : 'has a blank: guess needs one');
-            return `<tr class="${r.decider ? 'decider' : ''}">
-              <td class="num">${r.i + 1}</td>
+            const isOpen = open.has(r.i);
+            const cls = ['row', r.decider && 'decider', isOpen && 'open'].filter(Boolean).join(' ');
+            const more = isOpen
+              ? `<tr class="detail"><td colspan="7">${detail(r, A)}</td></tr>`
+              : '';
+            return `<tr class="${cls}" data-i="${r.i}" aria-expanded="${isOpen}">
+              <td class="num"><span class="tog">▸</span>${r.i + 1}</td>
               <td class="num">${r.first ? '1' : '2'}</td>
               <td>${esc(r.clue)}<div class="sub">${sub.filter(Boolean).join(' · ')}</div></td>
               <td class="num">${phraseCell(r, A)}</td>
               <td>${wordsCell(r, A)}</td>
               <td class="num">${r.allow ? `${r.ed} / ${r.allow}` : `<span class="sub">${r.ed} / 0</span>`}</td>
               <td><span class="r-${res}">${res}</span><div class="sub">${esc(why)}</div></td>
-            </tr>`;
+            </tr>${more}`;
           })
           .join('');
       }
@@ -797,6 +1198,21 @@
         run().catch((err) => status(`error: ${err.message}`));
       });
       $('sort').addEventListener('change', renderRows);
+      $('rows').addEventListener('click', (e) => {
+        const tr = e.target.closest('tr.row');
+        if (!tr || getSelection().toString()) return;
+        const i = +tr.dataset.i;
+        open.has(i) ? open.delete(i) : open.add(i);
+        renderRows();
+      });
+      $('expand').addEventListener('click', () => {
+        current?.rows.forEach((r) => open.add(r.i));
+        renderRows();
+      });
+      $('collapse').addEventListener('click', () => {
+        open.clear();
+        renderRows();
+      });
       const q = new URLSearchParams(location.search);
       $('ans').value = q.get('a') || '';
       $('guess').value = q.get('c') || '';
