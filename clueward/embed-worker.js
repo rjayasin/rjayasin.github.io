@@ -9,20 +9,15 @@ ready.then(
   (err) => postMessage({ error: String(err) })
 );
 
-// Texts are run in batches of similar length, since each batch is padded to
-// its longest text.
+// Texts are run one at a time: in a batch, a text's vector shifts with
+// whatever else is in it, enough to move a score across a threshold.
 onmessage = async ({ data: { id, texts } }) => {
   try {
     const extractor = await ready;
-    const order = texts.map((_, i) => i).sort((a, b) => texts[a].length - texts[b].length);
     const vecs = [];
-    for (let i = 0; i < order.length; i += 32) {
-      const batch = order.slice(i, i + 32);
-      const out = await extractor(
-        batch.map((j) => texts[j]),
-        { pooling: 'mean', normalize: true }
-      );
-      out.tolist().forEach((v, n) => (vecs[batch[n]] = v));
+    for (const t of texts) {
+      const out = await extractor([t], { pooling: 'mean', normalize: true });
+      vecs.push(out.tolist()[0]);
     }
     postMessage({ id, vecs });
   } catch (err) {

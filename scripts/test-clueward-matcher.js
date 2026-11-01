@@ -46,10 +46,10 @@ async function main() {
   const cache = new Map();
   async function embed(texts) {
     const missing = [...new Set(texts.filter((t) => !cache.has(t)))];
-    for (let i = 0; i < missing.length; i += 32) {
-      const batch = missing.slice(i, i + 32);
-      const out = await extractor(batch, { pooling: 'mean', normalize: true });
-      out.tolist().forEach((v, n) => cache.set(batch[n], v));
+    // One at a time, as in embed-worker.js, so scores don't depend on batching.
+    for (const t of missing) {
+      const out = await extractor([t], { pooling: 'mean', normalize: true });
+      cache.set(t, out.tolist()[0]);
     }
     return texts.map((t) => cache.get(t));
   }

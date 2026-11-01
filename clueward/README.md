@@ -61,7 +61,8 @@ The model is [bge-small-en-v1.5](https://huggingface.co/Xenova/bge-small-en-v1.5
 (quantized to 8 bits, run by transformers.js). Texts are embedded as
 mean-pooled, normalized vectors, so similarity is a dot product from about 0
 to 1. Phrases are embedded with their blanks removed, since otherwise any two
-short fill-in-the-blank clues look alike.
+short fill-in-the-blank clues look alike. Each text is embedded on its own:
+in a batch, its vector shifts with whatever else is in the batch.
 
 Each past clue is tried two ways. The guess is `yes` as soon as one passes:
 
@@ -157,3 +158,10 @@ passed, 29% came back close, and 3 of 1,600 passed against the wrong answer.
   passing to close: "Entryway" (ACCESS, through "Entry"), a long UTZ clue that
   had only covered "Snack food brand" by the same bug, and one that flips
   either way between runs.
+- "sandwich" was accepted for HAM in the game but came back close on
+  `bench.html`. Texts were embedded in batches of 32, and a text's vector
+  depended on the rest of its batch: "sandwich" against "Sandwich meat"
+  scored 0.840 alone, 0.852 as a pair and 0.856 in a batch of eight, either
+  side of `YES_ONE_WORD`. Texts are now embedded one at a time, which takes
+  about 15% longer. Scores in the test cases moved by up to 0.011, and all
+  still pass.
