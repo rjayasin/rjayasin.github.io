@@ -166,5 +166,23 @@ const ClueMatcher = (() => {
     return d[b.length];
   }
 
-  return { WARM, pastTexts, judge };
+  // bench.html breaks a judgement down with these.
+  const internals = {
+    YES,
+    YES_ONE_WORD,
+    LEX_MIN,
+    CLOSE,
+    WORD,
+    norm,
+    stem,
+    words,
+    same,
+    dot,
+    hasBlank,
+    bare,
+    givesAway,
+    lexical,
+    editDistance,
+  };
+  return { WARM, pastTexts, judge, internals };
 })();

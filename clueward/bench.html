@@ -1,0 +1,806 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Clueward matcher bench</title>
+    <link rel="icon" id="favicon" />
+    <link rel="stylesheet" href="/common.css" />
+    <style>
+      :root {
+        --muted: rgba(0, 0, 0, 0.55);
+        --line: rgba(0, 0, 0, 0.12);
+        --soft: rgba(0, 0, 0, 0.04);
+        --ok: #1a7f37;
+        --bad: #cf222e;
+        --close: #9a6700;
+        --near: #0969da;
+        --hl: rgba(26, 127, 55, 0.1);
+      }
+      body.dark {
+        --muted: rgba(255, 255, 255, 0.6);
+        --line: rgba(255, 255, 255, 0.15);
+        --soft: rgba(255, 255, 255, 0.05);
+        --ok: #3fb950;
+        --bad: #f85149;
+        --close: #d29922;
+        --near: #58a6ff;
+        --hl: rgba(63, 185, 80, 0.14);
+      }
+      body {
+        font:
+          15px/1.5 system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 24px 16px 64px;
+      }
+      h1 {
+        font-size: 22px;
+        margin-bottom: 4px;
+      }
+      h2 {
+        font-size: 16px;
+        margin: 28px 0 8px;
+      }
+      p.lede,
+      .note {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 16px 0 8px;
+        align-items: end;
+      }
+      label {
+        display: flex;
+        flex-direction: column;
+        font-size: 12px;
+        color: var(--muted);
+        gap: 2px;
+      }
+      input,
+      select,
+      button {
+        font: inherit;
+        color: inherit;
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 6px 10px;
+      }
+      #ans {
+        width: 160px;
+        text-transform: uppercase;
+        font-family: ui-monospace, Menlo, monospace;
+      }
+      #guess {
+        width: min(420px, 80vw);
+      }
+      button {
+        background: var(--ok);
+        border-color: var(--ok);
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      #status {
+        min-height: 1.5em;
+        color: var(--muted);
+      }
+      code,
+      .mono {
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 13px;
+      }
+      #verdict {
+        border: 1px solid var(--line);
+        border-left: 6px solid var(--muted);
+        border-radius: 6px;
+        padding: 12px 16px;
+        margin-top: 12px;
+      }
+      #verdict .big {
+        font-size: 22px;
+        font-weight: 700;
+      }
+      #verdict.yes {
+        border-left-color: var(--ok);
+      }
+      #verdict.close {
+        border-left-color: var(--close);
+      }
+      #verdict.no,
+      #verdict.giveaway {
+        border-left-color: var(--bad);
+      }
+      .yes .big,
+      .r-yes {
+        color: var(--ok);
+      }
+      .close .big,
+      .r-close {
+        color: var(--close);
+      }
+      .no .big,
+      .giveaway .big,
+      .r-no {
+        color: var(--bad);
+      }
+      .warn {
+        color: var(--bad);
+        font-weight: 600;
+      }
+      dl {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 4px 16px;
+      }
+      dt {
+        color: var(--muted);
+      }
+      ol.checks {
+        list-style: none;
+      }
+      ol.checks li {
+        padding: 4px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      ol.checks .mark {
+        display: inline-block;
+        width: 1.4em;
+        font-weight: 700;
+        color: var(--bad);
+      }
+      ol.checks .mark.hit {
+        color: var(--ok);
+      }
+      .skipped {
+        opacity: 0.45;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 8px;
+        font-size: 13px;
+      }
+      .controls label {
+        flex-direction: row;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+      }
+      .scroll {
+        overflow-x: auto;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 13px;
+      }
+      th,
+      td {
+        text-align: left;
+        vertical-align: top;
+        padding: 6px 8px;
+        border-bottom: 1px solid var(--line);
+      }
+      th {
+        position: sticky;
+        top: 0;
+        background: Canvas;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      td.num {
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      tr.decider {
+        background: var(--hl);
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .chip {
+        display: inline-block;
+        border-radius: 4px;
+        padding: 0 5px;
+        margin: 1px 2px 1px 0;
+        background: var(--soft);
+        border: 1px solid var(--line);
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .chip.stem,
+      .chip.typo {
+        border-color: var(--ok);
+        color: var(--ok);
+      }
+      .chip.near {
+        border-color: var(--near);
+        color: var(--near);
+      }
+      .chip.miss {
+        border-color: var(--bad);
+        color: var(--bad);
+      }
+      .chip.extra {
+        border-style: dashed;
+      }
+      .s-pass {
+        color: var(--ok);
+        font-weight: 600;
+      }
+      .s-close {
+        color: var(--close);
+      }
+      .s-low {
+        color: var(--muted);
+      }
+      .bar {
+        display: block;
+        height: 3px;
+        margin-top: 3px;
+        background: var(--line);
+        position: relative;
+        min-width: 60px;
+      }
+      .bar i {
+        position: absolute;
+        inset: 0 auto 0 0;
+        background: currentColor;
+      }
+      .bar b {
+        position: absolute;
+        top: -2px;
+        bottom: -2px;
+        width: 1px;
+        background: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Clueward matcher bench</h1>
+      <p class="lede">
+        Judges a clue for an answer with the game's own matcher (<code>matcher.js</code> and its
+        model) and shows every comparison against the answer's past clues. See
+        <a href="README.md">README.md</a> for the rules.
+      </p>
+      <form id="form">
+        <label
+          >Answer <input type="text" id="ans" autocomplete="off" spellcheck="false" required
+        /></label>
+        <label>Clue <input type="text" id="guess" autocomplete="off" /></label>
+        <button>Judge</button>
+      </form>
+      <p id="status"></p>
+      <section id="out" hidden>
+        <div id="verdict"></div>
+        <h2>Guess</h2>
+        <dl id="guess-info"></dl>
+        <h2>Checks before the model</h2>
+        <ol class="checks" id="early"></ol>
+        <h2 id="past-head">Past clues</h2>
+        <p class="note">
+          Pass 1 is the first <span id="warm"></span> clues plus any the guess covers by stem alone;
+          the rest are only compared if pass 1 gives no yes. The highlighted row is the clue
+          <code>matcher.js</code> reported as the match.
+        </p>
+        <div class="controls">
+          <label
+            >Sort
+            <select id="sort">
+              <option value="phrase">closest phrase first</option>
+              <option value="words">most words covered first</option>
+              <option value="rank">most common first</option>
+            </select>
+          </label>
+        </div>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Pass</th>
+                <th>Past clue</th>
+                <th>Phrase</th>
+                <th>Word by word</th>
+                <th>Typos</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+        <h2>Thresholds</h2>
+        <dl id="thresholds"></dl>
+      </section>
+    </main>
+    <script src="/common.js"></script>
+    <script src="matcher.js"></script>
+    <script>
+      Common.initDarkMode();
+      Common.paintFavicon({ glyph: '🧪', fontSize: 44, transparent: true });
+      const $ = (id) => document.getElementById(id);
+      const esc = Common.escHtml;
+      const I = ClueMatcher.internals;
+      const { WARM } = ClueMatcher;
+      const SHARDS = 256;
+      const status = (t) => ($('status').textContent = t);
+      const f3 = (x) => (x == null ? '—' : x.toFixed(3));
+      $('warm').textContent = WARM;
+
+      // FNV-1a hash of the answer, as in scripts/build-clueward.js.
+      function shardOf(ans) {
+        let h = 0x811c9dc5;
+        for (let i = 0; i < ans.length; i++) h = Math.imul(h ^ ans.charCodeAt(i), 0x01000193);
+        return ((h >>> 0) % SHARDS).toString(16).padStart(2, '0');
+      }
+      const shards = new Map();
+      async function pastOf(ans) {
+        const s = shardOf(ans);
+        if (!shards.has(s))
+          shards.set(
+            s,
+            fetch(`data/past/${s}.json`).then((r) => r.json())
+          );
+        return (await shards.get(s))[ans] || [];
+      }
+
+      // The game's embedding worker, with vectors cached by text.
+      const Model = (() => {
+        let loading = null;
+        let ready = false;
+        let worker;
+        let nextId = 0;
+        const pending = new Map();
+        const cache = new Map();
+        function load() {
+          loading ||= new Promise((resolve, reject) => {
+            worker = new Worker('embed-worker.js', { type: 'module' });
+            worker.onerror = (e) => reject(new Error(e.message || 'worker failed'));
+            worker.onmessage = ({ data }) => {
+              if (data.ready) resolve();
+              else if (data.id === undefined) reject(new Error(data.error));
+              else {
+                const p = pending.get(data.id);
+                pending.delete(data.id);
+                data.error ? p.reject(new Error(data.error)) : p.resolve(data.vecs);
+              }
+            };
+          }).then(
+            () => (ready = true),
+            (err) => console.error('model:', err)
+          );
+          return loading;
+        }
+        function embed(texts) {
+          const missing = [...new Set(texts.filter((t) => !cache.has(t)))];
+          if (missing.length) {
+            const id = nextId++;
+            const batch = new Promise((resolve, reject) => pending.set(id, { resolve, reject }));
+            worker.postMessage({ id, texts: missing });
+            missing.forEach((t, i) =>
+              cache.set(
+                t,
+                batch.then((vecs) => vecs[i])
+              )
+            );
+          }
+          return Promise.all(texts.map((t) => cache.get(t)));
+        }
+        async function get() {
+          await load();
+          return ready ? embed : null;
+        }
+        return { get };
+      })();
+
+      const typoAllow = (t) => (t.length < 6 ? 0 : t.length < 12 ? 1 : Math.floor(t.length * 0.12));
+
+      // How each past-clue word was covered by the guess, mirroring lexical()
+      // in matcher.js, which still decides the score.
+      function wordMap(gw, tw, vec) {
+        const near = !!vec && tw.length > 1;
+        const sim = (a, b) => (vec && !/\d/.test(a.w + b.w) ? I.dot(vec(a.w), vec(b.w)) : null);
+        const match = (a, b) => I.same(a, b) || (near && sim(a, b) != null && sim(a, b) >= I.WORD);
+        const pastWords = tw.map((b) => {
+          const st = gw.find((a) => a.s === b.s);
+          if (st) return { b, a: st, how: 'stem' };
+          const ty = gw.find((a) => I.same(a, b));
+          if (ty) return { b, a: ty, how: 'typo' };
+          let a = null;
+          let s = null;
+          for (const x of gw) {
+            const v = sim(x, b);
+            if (v != null && (s == null || v > s)) [a, s] = [x, v];
+          }
+          return { b, a, s, how: near && s != null && s >= I.WORD ? 'near' : 'miss' };
+        });
+        const extra = gw
+          .filter((a) => !tw.some((b) => match(a, b)))
+          .map((a) => {
+            const ss = tw.map((b) => sim(a, b)).filter((v) => v != null);
+            return { a, s: ss.length ? Math.max(...ss) : null };
+          });
+        const swapped = tw.some((b) => !gw.some((a) => I.same(a, b)));
+        const hits = pastWords.filter((p) => p.how !== 'miss').length;
+        return { pastWords, extra, swapped, hits, near };
+      }
+
+      let current = null;
+      let runId = 0;
+      async function run() {
+        const id = ++runId;
+        const ans = $('ans')
+          .value.toUpperCase()
+          .replace(/[^A-Z0-9]/g, '');
+        const guess = $('guess').value;
+        const q = new URLSearchParams({ a: ans, c: guess });
+        history.replaceState(null, '', `?${q}`);
+        if (!ans) return;
+        status('loading past clues…');
+        const past = await pastOf(ans);
+        if (id !== runId) return;
+        if (!past.length) {
+          $('out').hidden = true;
+          return status(`No past clues for ${ans}.`);
+        }
+        status('loading model…');
+        const verdict = await ClueMatcher.judge(guess, ans, past, Model.get);
+        const embed = await Model.get();
+        if (id !== runId) return;
+        status(embed ? '' : 'model failed to load: word scores use stems and typos only');
+
+        const g = I.norm(guess);
+        const gw = I.words(g);
+        const ts = past.map(I.norm);
+        let vec = null;
+        if (embed && g && g !== 'qblank') {
+          const texts = [I.bare(g), ...gw.map((x) => x.w), ...ClueMatcher.pastTexts(past)];
+          const vecs = await embed(texts);
+          if (id !== runId) return;
+          const by = new Map(texts.map((t, i) => [t, vecs[i]]));
+          vec = (t) => by.get(t);
+        }
+        current = analyse({ ans, guess, past, g, gw, ts, vec, verdict });
+        render(current);
+      }
+
+      function analyse({ ans, guess, past, g, gw, ts, vec, verdict }) {
+        const thr = gw.length > 1 ? I.YES : I.YES_ONE_WORD;
+        const gBlank = I.hasBlank(g);
+        const rows = past.map((clue, i) => {
+          const t = ts[i];
+          const tw = I.words(t);
+          const fits = !I.hasBlank(t) || gBlank;
+          const phrase = vec ? I.dot(vec(I.bare(g)), vec(I.bare(t))) : null;
+          const lexStem = I.lexical(gw, tw, null);
+          const lex = I.lexical(gw, tw, vec);
+          const wordYes = fits && lex === 1 && (phrase == null || phrase >= I.LEX_MIN);
+          const phraseYes = fits && phrase != null && phrase >= thr;
+          return {
+            i,
+            clue,
+            t,
+            tw,
+            fits,
+            phrase,
+            lex,
+            wordYes,
+            phraseYes,
+            first: i < WARM || lexStem === 1,
+            ed: I.editDistance(g, t),
+            allow: typoAllow(t),
+            map: wordMap(gw, tw, vec),
+            decider: verdict.best === clue,
+          };
+        });
+
+        // The checks before the model, in matcher.js's order.
+        const a = ans.toLowerCase();
+        const wordHit = g.split(' ').find((w) => w === a || I.stem(w) === a);
+        const squashed = g.replace(/ /g, '');
+        const exact = ts.indexOf(g);
+        const typo = rows.find((r) => r.allow && r.ed <= r.allow);
+        const nearestTypo = rows
+          .filter((r) => r.allow)
+          .sort((x, y) => x.ed - x.allow - (y.ed - y.allow))[0];
+        const early = [
+          {
+            name: 'Empty, or only a blank',
+            hit: !g || g === 'qblank',
+            result: 'no',
+            detail: g ? `normalized to “${g}”` : 'nothing left after normalizing',
+          },
+          {
+            name: 'Contains the answer',
+            hit: !!g && I.givesAway(g, ans),
+            result: 'giveaway',
+            detail: wordHit
+              ? `the word “${wordHit}” is the answer`
+              : a.length >= 5 && squashed.includes(a)
+                ? `“${a}” is inside “${squashed}”`
+                : a.length >= 5
+                  ? `no word is “${a}” and “${squashed}” doesn't contain it`
+                  : `no word is “${a}” (answers under 5 letters only count as whole words)`,
+          },
+          {
+            name: 'Identical to a past clue once normalized',
+            hit: exact >= 0,
+            result: 'yes ★',
+            detail:
+              exact >= 0 ? `#${exact + 1} “${past[exact]}”` : `no past clue normalizes to “${g}”`,
+          },
+          {
+            name: 'Within a few typos of a past clue',
+            hit: !!typo,
+            result: 'yes',
+            detail: typo
+              ? `#${typo.i + 1} “${typo.clue}”: ${typo.ed} edits, ${typo.allow} allowed`
+              : nearestTypo
+                ? `nearest: #${nearestTypo.i + 1} “${nearestTypo.clue}”: ${nearestTypo.ed} edits, ${nearestTypo.allow} allowed`
+                : 'every past clue is under 6 characters, so none allow typos',
+          },
+        ];
+        const decidedEarly = early.findIndex((c) => c.hit);
+
+        // The model checks, as compare() in matcher.js runs them over every clue.
+        let bench;
+        const fitting = rows.filter((r) => r.fits && r.phrase != null);
+        const best = fitting.reduce((x, r) => (!x || r.phrase > x.phrase ? r : x), null);
+        const top = rows.reduce(
+          (x, r) => (r.phrase != null && (!x || r.phrase > x.phrase) ? r : x),
+          null
+        );
+        const partial = rows.reduce((x, r) => (!x || r.lex > x.lex ? r : x), null);
+        const wordRow = rows.find((r) => r.wordYes);
+        if (decidedEarly >= 0) {
+          const c = early[decidedEarly];
+          bench = {
+            result: c.result.replace(' ★', ''),
+            why: `${c.name.toLowerCase()}: ${c.detail}`,
+          };
+        } else if (wordRow) {
+          bench = {
+            result: 'yes',
+            why: `covers every word of #${wordRow.i + 1} “${wordRow.clue}”${wordRow.phrase != null ? `, and the phrase scores ${f3(wordRow.phrase)} ≥ LEX_MIN ${I.LEX_MIN}` : ''}`,
+          };
+        } else if (best && best.phrase >= thr) {
+          bench = {
+            result: 'yes',
+            why: `the phrase scores ${f3(best.phrase)} ≥ ${thr} against #${best.i + 1} “${best.clue}”`,
+          };
+        } else {
+          const topS = top ? top.phrase : 0;
+          const parts = [];
+          if (best)
+            parts.push(
+              `best phrase ${f3(best.phrase)} against #${best.i + 1} “${best.clue}”, ${f3(thr - best.phrase)} short of ${thr}`
+            );
+          if (top && top !== best)
+            parts.push(`#${top.i + 1} “${top.clue}” scores ${f3(top.phrase)} but needs a blank`);
+          parts.push(
+            topS >= I.CLOSE
+              ? `close since ${f3(topS)} ≥ CLOSE ${I.CLOSE}`
+              : `top phrase ${f3(topS)} < CLOSE ${I.CLOSE}`
+          );
+          if (partial)
+            parts.push(
+              `most words covered: ${partial.map.hits}/${partial.tw.length} of #${partial.i + 1} “${partial.clue}” (${f3(partial.lex)}${partial.lex >= 0.5 ? ' ≥ 0.5, so close' : ' < 0.5'})`
+            );
+          bench = {
+            result: topS >= I.CLOSE || (partial && partial.lex >= 0.5) ? 'close' : 'no',
+            why: parts.join('; '),
+          };
+        }
+        return {
+          ans,
+          guess,
+          past,
+          g,
+          gw,
+          thr,
+          gBlank,
+          rows,
+          early,
+          decidedEarly,
+          bench,
+          verdict,
+          vec,
+        };
+      }
+
+      function scoreClass(s, thr) {
+        if (s == null) return 's-low';
+        return s >= thr ? 's-pass' : s >= I.CLOSE ? 's-close' : 's-low';
+      }
+
+      function render(A) {
+        const { verdict, bench } = A;
+        const v = $('verdict');
+        v.className = verdict.result;
+        const label = verdict.result + (verdict.exact ? ' ★' : '');
+        v.innerHTML =
+          `<div class="big">${esc(label)}</div>` +
+          `<div>${esc(A.guess)} → <span class="mono">${esc(A.ans)}</span>${verdict.best ? ` · matched “${esc(verdict.best)}”` : ''}</div>` +
+          `<div class="sub">${esc(bench.why)}</div>` +
+          (bench.result !== verdict.result
+            ? `<div class="warn">This breakdown says ${esc(bench.result)} but matcher.js says ${esc(verdict.result)}: bench.html is out of step with matcher.js.</div>`
+            : '');
+
+        $('guess-info').innerHTML = [
+          ['Normalized', `<code>${esc(A.g || '(empty)')}</code>`],
+          ['Embedded as', `<code>${esc(I.bare(A.g) || '(empty)')}</code>`],
+          [
+            'Content words',
+            A.gw.length
+              ? A.gw
+                  .map(
+                    (x) =>
+                      `<span class="chip">${esc(x.w)}${x.s !== x.w ? ` → ${esc(x.s)}` : ''}</span>`
+                  )
+                  .join('')
+              : '(none)',
+          ],
+          [
+            'Blank',
+            A.gBlank
+              ? 'yes: can match past clues with a blank'
+              : 'no: past clues with a blank are out',
+          ],
+          [
+            'Phrase threshold',
+            A.gw.length > 1
+              ? `YES ${I.YES} (two or more content words)`
+              : `YES_ONE_WORD ${I.YES_ONE_WORD} (one content word)`,
+          ],
+          ['Past clues', `${A.past.length} for ${esc(A.ans)}`],
+        ]
+          .map(([k, val]) => `<dt>${k}</dt><dd>${val}</dd>`)
+          .join('');
+
+        $('early').innerHTML = A.early
+          .map((c, n) => {
+            const skipped = A.decidedEarly >= 0 && n > A.decidedEarly;
+            const mark = `<span class="mark${c.hit ? ' hit' : ''}">${c.hit ? '✓' : '✗'}</span>`;
+            const result = c.hit
+              ? ` → ${esc(c.result)}${skipped ? '' : ' <strong>(decides)</strong>'}`
+              : ` <span class="sub">(would give: ${esc(c.result)})</span>`;
+            return `<li class="${skipped ? 'skipped' : ''}">${mark}<strong>${c.name}</strong>${result}<div class="sub">${esc(c.detail)}</div></li>`;
+          })
+          .join('');
+
+        $('past-head').textContent =
+          `Past clues (${A.past.length})` +
+          (A.decidedEarly >= 0 ? ': not reached, shown anyway' : '');
+        renderRows();
+
+        $('thresholds').innerHTML = [
+          ['YES', I.YES, 'whole-phrase score for yes, guess with 2+ content words'],
+          [
+            'YES_ONE_WORD',
+            I.YES_ONE_WORD,
+            'whole-phrase score for yes, guess with one content word',
+          ],
+          ['LEX_MIN', I.LEX_MIN, 'whole-phrase score a word-by-word match also needs'],
+          ['WORD', I.WORD, 'word score for a near-synonym counterpart'],
+          ['CLOSE', I.CLOSE, 'whole-phrase score for close (or half a past clue’s words covered)'],
+          ['WARM', WARM, 'most common past clues compared in pass 1'],
+        ]
+          .map(
+            ([k, n, d]) =>
+              `<dt><code>${k}</code></dt><dd><strong>${n}</strong> <span class="sub">${d}</span></dd>`
+          )
+          .join('');
+        $('out').hidden = false;
+      }
+
+      function rowResult(r, A) {
+        if (r.t === A.g) return ['yes', 'exact'];
+        if (r.allow && r.ed <= r.allow) return ['yes', 'typos'];
+        if (r.wordYes) return ['yes', 'word by word'];
+        if (r.phraseYes) return ['yes', 'phrase'];
+        const notes = [];
+        if (!r.fits && (r.lex === 1 || (r.phrase != null && r.phrase >= A.thr)))
+          notes.push('would match, but needs a blank');
+        if (r.fits && r.lex === 1 && r.phrase != null && r.phrase < I.LEX_MIN)
+          notes.push(`words covered, but phrase < LEX_MIN ${I.LEX_MIN}`);
+        if ((r.phrase != null && r.phrase >= I.CLOSE) || r.lex >= 0.5)
+          return [
+            'close',
+            [r.phrase >= I.CLOSE ? 'phrase' : 'half the words', ...notes].join('; '),
+          ];
+        return ['no', notes.join('; ')];
+      }
+
+      function wordsCell(r, A) {
+        const m = r.map;
+        if (!r.tw.length) return '<span class="sub">no content words</span>';
+        const chips = m.pastWords
+          .map((p) => {
+            const via =
+              p.how === 'stem' || p.how === 'typo'
+                ? `${p.how} ${p.a.w}`
+                : p.a
+                  ? `${p.a.w} ${f3(p.s)}${p.how === 'miss' && m.near ? ` < ${I.WORD}` : ''}`
+                  : 'none';
+            return `<span class="chip ${p.how}" title="${p.how}">${esc(p.b.w)} ← ${esc(via)}</span>`;
+          })
+          .join('');
+        const extras = m.extra
+          .map(
+            (x) =>
+              `<span class="chip extra" title="extra guess word">+${esc(x.a.w)}${x.s != null ? ` ${f3(x.s)}` : ''}</span>`
+          )
+          .join('');
+        const allowed = m.swapped ? 0 : 2;
+        const notes = [
+          `${m.hits}/${r.tw.length} covered`,
+          `${m.extra.length} extra (${allowed} allowed${m.swapped ? ': a word was swapped' : ''})`,
+          `score ${r.lex === 1 ? '1' : f3(r.lex)}`,
+        ];
+        if (!m.near && A.vec) notes.push('one-word past clue: no near-synonyms');
+        return `${chips}${extras}<div class="sub">${notes.join(' · ')}</div>`;
+      }
+
+      function phraseCell(r, A) {
+        if (r.phrase == null) return '—';
+        const cls = r.fits ? scoreClass(r.phrase, A.thr) : 's-low';
+        const pct = (x) => `${Math.max(0, Math.min(1, x)) * 100}%`;
+        return `<span class="${cls}">${f3(r.phrase)}<span class="bar"><i style="width:${pct(r.phrase)}"></i><b style="left:${pct(I.CLOSE)}"></b><b style="left:${pct(A.thr)}"></b></span></span>`;
+      }
+
+      function renderRows() {
+        const A = current;
+        if (!A) return;
+        const by = $('sort').value;
+        const rows = [...A.rows].sort((x, y) =>
+          by === 'rank'
+            ? x.i - y.i
+            : by === 'words'
+              ? y.lex - x.lex || (y.phrase ?? 0) - (x.phrase ?? 0)
+              : (y.phrase ?? 0) - (x.phrase ?? 0) || y.lex - x.lex
+        );
+        $('rows').innerHTML = rows
+          .map((r) => {
+            const [res, why] = rowResult(r, A);
+            const sub = [r.t !== r.clue.toLowerCase() ? `<code>${esc(r.t)}</code>` : ''];
+            if (I.hasBlank(r.t)) sub.push(r.fits ? 'has a blank' : 'has a blank: guess needs one');
+            return `<tr class="${r.decider ? 'decider' : ''}">
+              <td class="num">${r.i + 1}</td>
+              <td class="num">${r.first ? '1' : '2'}</td>
+              <td>${esc(r.clue)}<div class="sub">${sub.filter(Boolean).join(' · ')}</div></td>
+              <td class="num">${phraseCell(r, A)}</td>
+              <td>${wordsCell(r, A)}</td>
+              <td class="num">${r.allow ? `${r.ed} / ${r.allow}` : `<span class="sub">${r.ed} / 0</span>`}</td>
+              <td><span class="r-${res}">${res}</span><div class="sub">${esc(why)}</div></td>
+            </tr>`;
+          })
+          .join('');
+      }
+
+      $('form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        run().catch((err) => status(`error: ${err.message}`));
+      });
+      $('sort').addEventListener('change', renderRows);
+      const q = new URLSearchParams(location.search);
+      $('ans').value = q.get('a') || '';
+      $('guess').value = q.get('c') || '';
+      if ($('ans').value) $('form').requestSubmit();
+    </script>
+  </body>
+</html>

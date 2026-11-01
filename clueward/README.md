@@ -10,6 +10,11 @@ match is decided.
 
 - `matcher.js`: the matching rules (`ClueMatcher.judge`). Shared by the page
   and the test.
+- `bench.html`: judges one clue for one answer and shows every comparison with
+  the answer's past clues: phrase scores, word-by-word coverage, typos, blanks
+  and which threshold decided it. Takes `?a=ANSWER&c=clue`. Uses
+  `ClueMatcher.internals` for the breakdown and warns if it disagrees with
+  `judge`.
 - `embed-worker.js`: runs the embedding model in a web worker so the grid stays
   responsive.
 - `index.html`: the game. Its `Matcher` loads the worker, caches vectors,
@@ -116,8 +121,9 @@ more real clues. Those are reported but don't fail the run, and the test says
 when one starts passing.
 
 When a guess is judged wrongly in the game, add it as a case before changing
-anything. The browser console logs the best whole-phrase score for each guess
-(`match "…" ~ ANSWER: "…" 0.000`), but not for guesses accepted word by word.
+anything. `bench.html` shows why it was judged that way. The browser console
+logs the best whole-phrase score for each guess (`match "…" ~ ANSWER: "…"
+0.000`), but not for guesses accepted word by word.
 Node's scores can differ from the browser's in the third decimal.
 
 A change to the rules or thresholds should also be checked against real clues,
