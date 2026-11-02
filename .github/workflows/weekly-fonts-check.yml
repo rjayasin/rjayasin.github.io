@@ -63,7 +63,17 @@ jobs:
           if git diff --cached --quiet -- $paths; then
             echo "No font changes."
           else
-            git commit -m "🤖 add new fonts ($RUN_LABEL)"
+            # Every font has exactly one fonts/<slug>.woff2, so newly added
+            # .woff2 files = newly added fonts.
+            count=$(git diff --cached --name-only --diff-filter=A -- 'fonts/*.woff2' | wc -l)
+            if [[ "$count" -eq 0 ]]; then
+              msg="🤖 update font data ($RUN_LABEL)"
+            elif [[ "$count" -eq 1 ]]; then
+              msg="🤖 add 1 new font ($RUN_LABEL)"
+            else
+              msg="🤖 add $count new fonts ($RUN_LABEL)"
+            fi
+            git commit -m "$msg"
           fi
 
       - name: Push
