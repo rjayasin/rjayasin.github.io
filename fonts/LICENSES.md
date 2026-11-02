@@ -1182,6 +1182,12 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Red Rose | OFL | Jaikishan Patel | Copyright 2018 The Red Rose Project Authors (https://github.com/magictype/redrose) |
 | Redacted | OFL | Christian Naths | Copyright 2013 The Redacted Project Authors (https://github.com/christiannaths/redacted-font) |
 | Redacted Script | OFL | Christian Naths | Copyright 2013 The Redacted Project Authors (https://github.com/christiannaths/redacted-font) |
+| Redaction 10 | OFL | MCKL | Copyright 2019 The Redaction Project Authors (https://github.com/jeremymickel/Redaction) |
+| Redaction 100 | OFL | MCKL | Copyright 2019 The Redaction Project Authors (https://github.com/jeremymickel/Redaction) |
+| Redaction 20 | OFL | MCKL | Copyright 2019 The Redaction Project Authors (https://github.com/jeremymickel/Redaction) |
+| Redaction 35 | OFL | MCKL | Copyright 2019 The Redaction Project Authors (https://github.com/jeremymickel/Redaction) |
+| Redaction 50 | OFL | MCKL | Copyright 2019 The Redaction Project Authors (https://github.com/jeremymickel/Redaction) |
+| Redaction 70 | OFL | MCKL | Copyright 2019 The Redaction Project Authors (https://github.com/jeremymickel/Redaction) |
 | Reddit Mono | OFL | Stephen Hutchings, OrangeRed | Copyright (c) 2020-2023, Reddit, Inc. (https://github.com/reddit/redditsans) |
 | Reddit Sans | OFL | Stephen Hutchings, OrangeRed | Copyright (c) 2020-2023, Reddit, Inc. (https://github.com/reddit/redditsans) |
 | Reddit Sans Condensed | OFL | Stephen Hutchings, OrangeRed | Copyright (c) 2020-2023, Reddit, Inc. (https://github.com/reddit/redditsans) |
@@ -1434,6 +1440,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Timmana | OFL | Appaji Ambarisha Darbha | Copyright (c) 2012 Andhrapradesh Society for Knowledge Networks (fonts.siliconandhra.org). Copyright (c) 2011, Sergiy Tkachenko (www.4thfebruary.com.ua info@4thfebruary.com.ua), with Reserved Font Names \'Sansus\', \'Webissimo\'. |
 | Tinos | OFL | Steve Matteson | Copyright 2026 The Tinos Project Authors (https://github.com/googlefonts/tinos) |
 | Tiny5 | OFL | Stefan Schmidt | Copyright 2022-2024 The Tiny5 Project Authors (https://github.com/Gissio/font_tiny5) |
+| Tiny5 Duo | OFL | Stefan Schmidt | Copyright 2026 The Tiny5 Project Authors (https://github.com/Gissio/font_tiny5) |
 | Titan One | OFL | Rodrigo Fuenzalida | Copyright (c) 2011 Rodrigo Fuenzalida (hello@rfuenzalida.com), with Reserved Font Name "Titan One" |
 | Titillium Web | OFL | Accademia di Belle Arti di Urbino | Copyright (c) 2009-2011 by Accademia di Belle Arti di Urbino and students of MA course of Visual design. Some rights reserved. |
 | Tomorrow | OFL | Tony de Marco, Monica Rizzolli | Copyright 2019 The Tomorrow Project Authors (https://github.com/MonicaRizzolli/Tomorrow) |
@@ -1512,6 +1519,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Work Sans | OFL | Wei Huang | Copyright 2019 The Work Sans Project Authors (https://github.com/weiweihuanghuang/Work-Sans) |
 | Workbench | OFL | Jens Kutílek | Copyright 2021 The Workbench Project Authors (https://github.com/jenskutilek/homecomputer-fonts) |
 | Xanh Mono | OFL | Yellow Type, Lâm Bảo, Duy Dao | Copyright 2020 The XanhMono Project Authors (https://github.com/yellow-type-foundry/xanhmono) |
+| Xmind | OFL | lan | Copyright 2025 The Xmind Project Authors (https://github.com/lamzhonghang/xmind) |
 | Yaldevi | OFL | Mooniak | Copyright 2021 The Yaldevi Project Authors (https://github.com/mooniak/yaldevi-font) |
 | Yanone Kaffeesatz | OFL | Yanone, Cyreal | Copyright 2010 The Yanone Kaffeesatz Project Authors (https://github.com/yanone/kaffeesatz) |
 | Yantramanav | OFL | Erin McLaughlin | Copyright 2014, Erin McLaughlin (hello@erinmclaughlin.com). Copyright 2010, Google Inc. All Rights Reserved. |

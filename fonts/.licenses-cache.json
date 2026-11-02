@@ -12384,6 +12384,54 @@
       "copyright": "Copyright 2013 The Redacted Project Authors (https://github.com/christiannaths/redacted-font)",
       "resolved": true
     },
+    "Redaction 10": {
+      "family": "Redaction 10",
+      "slug": "redaction10",
+      "licenseCode": "OFL",
+      "designer": "MCKL",
+      "copyright": "Copyright 2019 The Redaction Project Authors (https://github.com/jeremymickel/Redaction)",
+      "resolved": true
+    },
+    "Redaction 100": {
+      "family": "Redaction 100",
+      "slug": "redaction100",
+      "licenseCode": "OFL",
+      "designer": "MCKL",
+      "copyright": "Copyright 2019 The Redaction Project Authors (https://github.com/jeremymickel/Redaction)",
+      "resolved": true
+    },
+    "Redaction 20": {
+      "family": "Redaction 20",
+      "slug": "redaction20",
+      "licenseCode": "OFL",
+      "designer": "MCKL",
+      "copyright": "Copyright 2019 The Redaction Project Authors (https://github.com/jeremymickel/Redaction)",
+      "resolved": true
+    },
+    "Redaction 35": {
+      "family": "Redaction 35",
+      "slug": "redaction35",
+      "licenseCode": "OFL",
+      "designer": "MCKL",
+      "copyright": "Copyright 2019 The Redaction Project Authors (https://github.com/jeremymickel/Redaction)",
+      "resolved": true
+    },
+    "Redaction 50": {
+      "family": "Redaction 50",
+      "slug": "redaction50",
+      "licenseCode": "OFL",
+      "designer": "MCKL",
+      "copyright": "Copyright 2019 The Redaction Project Authors (https://github.com/jeremymickel/Redaction)",
+      "resolved": true
+    },
+    "Redaction 70": {
+      "family": "Redaction 70",
+      "slug": "redaction70",
+      "licenseCode": "OFL",
+      "designer": "MCKL",
+      "copyright": "Copyright 2019 The Redaction Project Authors (https://github.com/jeremymickel/Redaction)",
+      "resolved": true
+    },
     "Reddit Mono": {
       "family": "Reddit Mono",
       "slug": "redditmono",
@@ -14504,6 +14552,14 @@
       "copyright": "Copyright 2022-2024 The Tiny5 Project Authors (https://github.com/Gissio/font_tiny5)",
       "resolved": true
     },
+    "Tiny5 Duo": {
+      "family": "Tiny5 Duo",
+      "slug": "tiny5duo",
+      "licenseCode": "OFL",
+      "designer": "Stefan Schmidt",
+      "copyright": "Copyright 2026 The Tiny5 Project Authors (https://github.com/Gissio/font_tiny5)",
+      "resolved": true
+    },
     "Tiro Bangla": {
       "family": "Tiro Bangla",
       "slug": "tirobangla",
@@ -15238,6 +15294,14 @@
       "licenseCode": "OFL",
       "designer": "Yellow Type, Lâm Bảo, Duy Dao",
       "copyright": "Copyright 2020 The XanhMono Project Authors (https://github.com/yellow-type-foundry/xanhmono)",
+      "resolved": true
+    },
+    "Xmind": {
+      "family": "Xmind",
+      "slug": "xmind",
+      "licenseCode": "OFL",
+      "designer": "lan",
+      "copyright": "Copyright 2025 The Xmind Project Authors (https://github.com/lamzhonghang/xmind)",
       "resolved": true
     },
     "Yaldevi": {
