@@ -242,8 +242,16 @@
         position: relative;
         width: 44px;
         text-align: center;
+        text-box: trim-both cap alphabetic;
         color: var(--muted);
         transition: color 0.2s;
+      }
+      /* Without text-box trimming the line box's descender space puts the
+         labels about 1 px above center. */
+      @supports not (text-box: trim-both cap alphabetic) {
+        #mode span {
+          top: 1px;
+        }
       }
       body:not(.mini) #mode span:first-child,
       body.mini #mode span:last-child {
@@ -292,8 +300,8 @@
         stroke-linejoin: round;
       }
       #info-btn svg {
-        width: 18px;
-        height: 18px;
+        width: 20px;
+        height: 20px;
         stroke-width: 2.5;
       }
       @media (hover: hover) {
