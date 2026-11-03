@@ -213,20 +213,49 @@
       #finished[hidden] {
         display: none;
       }
-      #modes {
+      /* Full / mini switch, drawn like the theme switch below. */
+      #mode {
+        position: relative;
         display: flex;
-        gap: 4px;
-      }
-      #modes button {
-        padding: 0.3em 0.9em;
+        align-items: center;
+        height: 28px;
+        padding: 0 2px;
         border: 1px solid var(--line);
-        border-radius: 6px;
+        border-radius: 14px;
         text-decoration: none;
-        color: var(--muted);
       }
-      #modes button[aria-pressed='true'] {
-        background: var(--line);
-        color: inherit;
+      #mode::before {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 44px;
+        height: 22px;
+        border-radius: 11px;
+        background: var(--gold);
+        transition: transform 0.2s ease;
+      }
+      body.mini #mode::before {
+        transform: translateX(44px);
+      }
+      #mode span {
+        position: relative;
+        width: 44px;
+        text-align: center;
+        text-box: trim-both cap alphabetic;
+        color: var(--muted);
+        transition: color 0.2s;
+      }
+      /* Without text-box trimming the line box's descender space puts the
+         labels about 1 px above center. */
+      @supports not (text-box: trim-both cap alphabetic) {
+        #mode span {
+          top: 1px;
+        }
+      }
+      body:not(.mini) #mode span:first-child,
+      body.mini #mode span:last-child {
+        color: #000;
       }
       #controls {
         display: flex;
@@ -261,9 +290,19 @@
       .tool[hidden] {
         display: none;
       }
-      #info-btn {
-        font-size: 17px;
-        font-weight: bold;
+      .tool svg {
+        width: 16px;
+        height: 16px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      #info-btn svg {
+        width: 20px;
+        height: 20px;
+        stroke-width: 2.5;
       }
       @media (hover: hover) {
         .tool:hover {
@@ -1010,10 +1049,9 @@
           </h1>
           <div id="controls">
             <div class="group">
-              <div id="modes">
-                <button type="button" data-mode="full" aria-pressed="true">full</button>
-                <button type="button" data-mode="mini" aria-pressed="false">mini</button>
-              </div>
+              <button id="mode" type="button" role="switch" aria-checked="false" aria-label="mini">
+                <span aria-hidden="true">full</span><span aria-hidden="true">mini</span>
+              </button>
               <div id="nav">
                 <button
                   id="today"
@@ -1032,7 +1070,11 @@
                   aria-label="random puzzle"
                   title="random puzzle"
                 >
-                  🎲
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M3 7h3.5c2 0 3 1 4.5 3.5l2 3c1.5 2.5 2.5 3.5 4.5 3.5H21" />
+                    <path d="M3 17h3.5c1.2 0 2-.4 2.8-1.2M14.7 8.2c.8-.8 1.6-1.2 2.8-1.2H21" />
+                    <path d="M18 4l3 3-3 3M18 14l3 3-3 3" />
+                  </svg>
                 </button>
               </div>
             </div>
@@ -1061,7 +1103,9 @@
                 aria-label="how to play"
                 aria-haspopup="dialog"
               >
-                ?
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M9 9a3 3 0 1 1 4 2.83c-.6.22-1 .78-1 1.42v1.25M12 18h.01" />
+                </svg>
               </button>
             </div>
           </div>
@@ -1510,8 +1554,7 @@
         const [curKey, dailyKey] = mini ? ['miniCur', 'miniDaily'] : ['cur', 'daily'];
         const saved = (rec, match) => rec?.v === DATA && rec.state && match(rec);
         document.body.classList.toggle('mini', mini);
-        for (const b of $('modes').children)
-          b.setAttribute('aria-pressed', (b.dataset.mode === 'mini') === mini);
+        $('mode').setAttribute('aria-checked', mini);
         try {
           let rec;
           if (Number.isInteger(id) && id >= 0 && id < (mini ? MINIS : PUZZLES)) {
@@ -1970,16 +2013,12 @@
         history.pushState(null, '', location.pathname + (game?.mini ? '?mini' : ''));
         start();
       });
-      for (const b of $('modes').children)
-        b.addEventListener('click', () => {
-          if (loading || (b.dataset.mode === 'mini') === !!game?.mini) return;
-          history.pushState(
-            null,
-            '',
-            location.pathname + (b.dataset.mode === 'mini' ? '?mini' : '')
-          );
-          start();
-        });
+      $('mode').addEventListener('click', () => {
+        if (loading) return;
+        const mini = document.body.classList.contains('mini');
+        history.pushState(null, '', location.pathname + (mini ? '' : '?mini'));
+        start();
+      });
       // The arrows step to the previous / next unclued entry, or the adjacent
       // one once every entry is done.
       for (const [id, step] of [
