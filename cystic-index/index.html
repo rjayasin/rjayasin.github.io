@@ -425,12 +425,17 @@
         width: 30px;
         height: 30px;
         padding: 0;
-        font-size: 20px;
-        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         color: #fff;
         background: rgba(0, 0, 0, 0.3);
         border-color: rgba(255, 255, 255, 0.35);
-        text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+      }
+
+      #close-organoid svg {
+        display: block;
+        filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.8));
       }
 
       #close-organoid:hover {
@@ -741,7 +746,14 @@
           aria-label="Pick another organoid"
           hidden
         >
-          ×
+          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+            <path
+              d="M1 1L11 11M11 1L1 11"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            />
+          </svg>
         </button>
         <div id="tip" hidden></div>
         <div id="busy" hidden>analysing…</div>
