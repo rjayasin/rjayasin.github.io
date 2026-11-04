@@ -26,6 +26,8 @@
         --sel-soft: #dcefff;
         --sel-edge: #1a73e8;
         --sel-tint: rgba(60, 150, 255, 0.4);
+        --ref-soft: #eef7ff;
+        --ref-tint: rgba(60, 150, 255, 0.14);
         --done: #33ad4d;
         --gave: #db4a4a;
         --given: #e4e4e4;
@@ -46,6 +48,8 @@
         --sel-soft: #19324a;
         --sel-edge: #4ea1ff;
         --sel-tint: rgba(60, 150, 255, 0.35);
+        --ref-soft: #1c2631;
+        --ref-tint: rgba(60, 150, 255, 0.13);
         --done: #2d7a40;
         --gave: #8f3333;
         --given: #3a3a3a;
@@ -67,6 +71,8 @@
           --sel-soft: #19324a;
           --sel-edge: #4ea1ff;
           --sel-tint: rgba(60, 150, 255, 0.35);
+          --ref-soft: #1c2631;
+          --ref-tint: rgba(60, 150, 255, 0.13);
           --done: #2d7a40;
           --gave: #8f3333;
           --given: #3a3a3a;
@@ -243,6 +249,7 @@
         width: 44px;
         text-align: center;
         text-box: trim-both cap alphabetic;
+        font-weight: 600;
         color: var(--muted);
         transition: color 0.2s;
       }
@@ -483,6 +490,12 @@
         background: linear-gradient(var(--sel-tint), var(--sel-tint)),
           linear-gradient(135deg, var(--a) 50%, var(--d) 50%);
       }
+      /* Entries the selected clue mentions ("17-, 24- and 46-Across") get a
+         fainter wash. */
+      .sq.ref {
+        background: linear-gradient(var(--ref-tint), var(--ref-tint)),
+          linear-gradient(135deg, var(--a) 50%, var(--d) 50%);
+      }
       .sq .num {
         position: absolute;
         top: 1px;
@@ -496,6 +509,9 @@
       }
       .sq.cur .num {
         background: linear-gradient(var(--sel-tint), var(--sel-tint)), var(--a);
+      }
+      .sq.ref .num {
+        background: linear-gradient(var(--ref-tint), var(--ref-tint)), var(--a);
       }
       .sq.starred .num,
       .sq.starred-a .num,
@@ -574,6 +590,11 @@
       }
       .list li.cur {
         background: var(--sel-soft);
+        border-left-color: var(--sel);
+      }
+      .list li.ref {
+        background: var(--ref-soft);
+        border-left-style: dotted;
         border-left-color: var(--sel);
       }
       .list .n {
@@ -1478,7 +1499,30 @@
             p.words.push({ n, dir, clue, ans, cells, own: flag === 1, given: flag === 2 });
           }
         }
+        for (const w of p.words) w.refs = refsIn(w, p.words);
         return p;
+      }
+
+      // The entries a clue mentions: "17-, 24- and 46-Across", "17-, 30-, and
+      // 49-Across", "11-/40-Down", "23-49 Across", "29-Down/60-Across",
+      // "37-Downs", "14-Acrossed", "57 across", but not "10 Downing St." or
+      // "I-76 across". Numbers with no entry in that direction, and the
+      // clue's own entry, are skipped.
+      function refsIn(w, words) {
+        const refs = new Set();
+        const sep = String.raw`(?:\s*-?\s*(?:,\s*(?:and|or|&)?|and|or|&|\/)\s*|-\s*)`;
+        const nums = String.raw`(?<![\d-])(\d+(?:${sep}\d+)*)`;
+        const dir = String.raw`\s*-?\s*(across|down)(?:es|s)?`;
+        const verb = String.raw`-(across|down)(?:ed|ing)`;
+        const re = new RegExp(String.raw`${nums}(?:${dir}|${verb})\b`, 'gi');
+        for (const [, nums, dir, verb] of w.clue.matchAll(re)) {
+          const d = (dir || verb)[0].toLowerCase();
+          for (const n of nums.match(/\d+/g)) {
+            const k = words.findIndex((x) => x.dir === d && x.n === +n);
+            if (k >= 0 && words[k] !== w) refs.add(k);
+          }
+        }
+        return [...refs];
       }
 
       // Daily puzzles are numbered from LAUNCH by the local date. Each plays
@@ -1660,7 +1704,8 @@
         const li = $(`clue-${k}`);
         li.className =
           (st.given ? 'given' : st.done ? (st.won ? 'won' : 'lost') : '') +
-          (k === sel ? ' cur' : '');
+          (k === sel ? ' cur' : '') +
+          (shownRefs().includes(k) ? ' ref' : '');
         li.innerHTML = `<span class="n">${w.n}</span><span class="ans">${w.ans}</span>`;
         if (st.won) {
           li.innerHTML += `<span class="said">${esc(st.said)}${st.exact ? ' <span class="star">★</span>' : ''}</span>`;
@@ -1668,6 +1713,10 @@
             li.innerHTML += `<span class="past">≈ ${esc(st.best)}</span>`;
         } else if (st.done) li.innerHTML += `<span class="said">${esc(w.clue)}</span>`;
       }
+
+      // The entries the selected entry's clue mentions, once that clue is
+      // shown, so a hidden clue's references don't give it away.
+      const shownRefs = () => (state[sel]?.done && puzzle.words[sel].refs) || [];
 
       // Each half of a square shows one of its entries: green once clued, red
       // once revealed. A square in only one entry is tinted whole.
@@ -1682,6 +1731,9 @@
         });
         const w = puzzle.words[sel];
         const on = new Set(w.cells);
+        const refs = shownRefs();
+        const near = new Set(refs.flatMap((k) => puzzle.words[k].cells));
+        puzzle.words.forEach((_, k) => $(`clue-${k}`)?.classList.toggle('ref', refs.includes(k)));
         // A clue number turns gold once every entry starting there earns a
         // ★, or half gold when only one of its across and down has.
         const stars = new Map();
@@ -1704,6 +1756,7 @@
             el.classList.toggle(`${half}-given`, st.given);
           }
           el.classList.toggle('cur', on.has(i) && i === lastCell);
+          el.classList.toggle('ref', near.has(i) && !on.has(i));
         }
         let box = $('sel-box');
         if (!box) {
