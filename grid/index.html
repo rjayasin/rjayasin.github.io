@@ -13,7 +13,9 @@
     <script>
       Common.initDarkMode();
       Common.initCursorHide();
-      Common.loadScript('/fonts.js').then(() => Common.loadScript('/grid/grid.js'));
+      Promise.all([Common.loadScript('/fonts.js'), Common.loadScript('/typefree-fonts.js')]).then(
+        () => Common.loadScript('/grid/grid.js')
+      );
     </script>
   </body>
 </html>

@@ -38,7 +38,9 @@
       // file of its own, so this is where the clean-path grid actually renders.
       if (location.pathname.startsWith('/grid/')) {
         Common.initCursorHide();
-        Common.loadScript('/fonts.js').then(() => Common.loadScript('/grid/grid.js'));
+        Promise.all([Common.loadScript('/fonts.js'), Common.loadScript('/typefree-fonts.js')]).then(
+          () => Common.loadScript('/grid/grid.js')
+        );
       } else {
         Common.paintFaviconR();
         document.body.classList.add('notfound');

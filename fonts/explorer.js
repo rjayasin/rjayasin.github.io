@@ -101,7 +101,7 @@
     if (cat >= 0) parts.push(meta.categories[cat].toLowerCase());
     const date = dateOf(font);
     if (date) parts.push(date);
-    if (typefree[font]) parts.push('typefree');
+    if (typefree[font]) parts.push(typefree[font][2].includes('fontshare.com') ? 'fontshare' : 'typefree');
     if (parts.length) el.appendChild(document.createTextNode(` · ${parts.join(' · ')}`));
   }
 

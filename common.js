@@ -112,7 +112,7 @@ window.Common = window.Common || {};
     return document.fonts.load(`1em '${font}'`).catch(() => {});
   }
 
-  // Includes the typefree.org fonts on pages that load /typefree-fonts.js.
+  // Includes the typefree.org and fontshare.com fonts on pages that load /typefree-fonts.js.
   function pickRandomGoogleFont() {
     const list = (window.googleFonts || []).concat(Object.keys(window.typefreeFonts || {}));
     if (!list.length) return null;

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Adds every font from typefree.org that looks different from the cache.
+"""Adds every font from typefree.org and fontshare.com that looks different from the cache.
 
-Downloads typefree's catalog, takes each family's regular upright file (a
+Downloads typefree's catalog (then Fontshare's, for families typefree lacks), takes each family's regular upright file (a
 variable font is pinned to weight 400), trims it to the same Latin range as
 the Google Fonts files, and saves it as ../fonts/<slug>.woff2. Families that
 share a name with a cached Google font, have no English letters, or match a
@@ -43,7 +43,21 @@ LICENSES_MD = os.path.join(ROOT, "fonts", "TYPEFREE-LICENSES.md")
 # Maps each skipped family to the cached font it matches, or to null when it
 # has no English letters.
 CULLED_JSON = os.path.join(ROOT, "scripts", "culled-typefree-fonts.json")
-BASE = "https://www.typefree.org/"
+BASE = "https://typefree.org/"
+FONTSHARE_API = "https://api.fontshare.com/v2/fonts?limit=1000"
+FONTSHARE_CATEGORIES = {
+    "Sans": "Sans Serif",
+    "Serif": "Serif",
+    "Slab": "Serif",
+    "Display": "Display",
+    "Blackletter": "Blackletter",
+    "Script": "Script",
+    "Handwritten": "Script",
+}
+FONTSHARE_LICENSES = {
+    "itf_ffl": "https://www.fontshare.com/licenses/itf-ffl",
+    "sil_ofl": "https://www.fontshare.com/licenses/sil-ofl",
+}
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 # The unicode-range Google serves for its "latin" subset.
 LATIN = (
@@ -60,7 +74,7 @@ spec.loader.exec_module(cull)
 
 
 def fetch(path):
-    url = BASE + urllib.parse.quote(path)
+    url = path if "://" in path else BASE + urllib.parse.quote(path)
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     with urllib.request.urlopen(req, timeout=60) as res:
         return res.read()
@@ -76,6 +90,36 @@ def load_typefree_js():
 
 def display_name(name):
     return name.rstrip("* ").strip()
+
+
+def fontshare_catalog():
+    """Fontshare's families, in the shape of typefree catalog entries."""
+    entries = []
+    for f in json.loads(fetch(FONTSHARE_API))["fonts"]:
+        people = [f["publisher"]["name"]] if f.get("display_publisher_as_designer") else []
+        people = people or [d["name"] for d in f.get("designers") or []]
+        cats = [c.strip() for c in (f.get("category") or "").split(",")]
+        license = FONTSHARE_LICENSES.get(f.get("license_type"), "https://www.fontshare.com/terms")
+        entries.append(
+            {
+                "name": f["name"],
+                "author": ", ".join(people),
+                "kategorien": [FONTSHARE_CATEGORIES[c] for c in cats if c in FONTSHARE_CATEGORIES],
+                "link": f"https://www.fontshare.com/fonts/{f['slug']}",
+                "date": (f.get("inserted_at") or "")[:10],
+                "variants": [
+                    {
+                        # The API's file key needs a format extension to resolve.
+                        "file": "https:" + s["file"] + ".woff2",
+                        "weight": s["weight"]["name"].replace("Semibold", "SemiBold"),
+                        "italic": s["is_italic"],
+                        "licenseURL": license,
+                    }
+                    for s in f["styles"]
+                ],
+            }
+        )
+    return entries
 
 
 def pick_variant(variants):
@@ -159,7 +203,7 @@ def license_of(variants):
 
 def main():
     configLogger(level="ERROR")
-    catalog = json.loads(fetch("fonts/fonts-extended.json"))
+    catalog = json.loads(fetch("fonts/fonts-extended.json")) + fontshare_catalog()
     google = cull.parse_fonts_js(open(cull.FONTS_JS).read())
     google_set = set(google)
     culled_google = set(json.load(open(cull.CULLED_JSON)))
@@ -229,7 +273,7 @@ def main():
                 pool_names.append(name)
                 pool_sigs.append(sig)
         added[name] = data
-        final[name] = [category_of(entry), release_date(font), entry["link"]]
+        final[name] = [category_of(entry), release_date(font) or entry.get("date", ""), entry["link"]]
 
     if rebuild:
         for name in set(previous) - set(final):
@@ -253,11 +297,11 @@ def main():
 
     safe = lambda s: (s or "").replace("|", "\\|").replace("\n", " ").strip()  # noqa: E731
     lines = [
-        "# Fonts from typefree.org — Licenses & Attributions",
+        "# Fonts from typefree.org and fontshare.com — Licenses & Attributions",
         "",
         "These `.woff2` files are trimmed copies of fonts listed on",
-        "[typefree.org](https://typefree.org), each released for free use by its",
-        "designer. See each family's homepage for its full license terms.",
+        "[typefree.org](https://typefree.org) and [fontshare.com](https://www.fontshare.com), each released",
+        "for free use by its designer. See each family's homepage for its full license terms.",
         "",
         "This file is generated by `scripts/import-typefree-fonts.py`. Do not edit by hand.",
         "",
