@@ -356,4 +356,15 @@
   });
 
   reset();
+
+  // ?font=Name opens that font's single view; ?text= sets the sample text.
+  const params = new URLSearchParams(location.search);
+  const linkedText = params.get('text');
+  if (linkedText) {
+    inputEl.value = linkedText;
+    applyText(linkedText);
+    setSampleOpen(true, { focus: false });
+  }
+  const linkedFont = params.get('font');
+  if (linkedFont && allFonts.includes(linkedFont)) openSingle(linkedFont);
 })();
