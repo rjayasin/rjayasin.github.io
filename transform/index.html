@@ -1,0 +1,1069 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ruvan / transform</title>
+    <link rel="icon" id="favicon" />
+    <link rel="stylesheet" href="/common.css" />
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      body {
+        cursor: pointer;
+        user-select: none;
+      }
+      #stage {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+      #hint {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 12px;
+        text-align: center;
+        pointer-events: none;
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          SF Mono,
+          Menlo,
+          Consolas,
+          Liberation Mono,
+          monospace;
+        font-size: 12px;
+        color: #888;
+        opacity: 1;
+        transition: opacity 0.4s ease;
+        user-select: none;
+        z-index: 3;
+      }
+      #hint-inner {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 6px;
+        background: #ffffff;
+        pointer-events: auto;
+      }
+      body.dark #hint-inner {
+        background: #111111;
+      }
+      #hint.hidden,
+      #hint.hidden #hint-inner {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #hint .hint-btn {
+        cursor: pointer;
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        text-underline-offset: 2px;
+      }
+      #hint .hint-btn:hover {
+        color: #333;
+      }
+      body.dark #hint .hint-btn:hover {
+        color: #ccc;
+      }
+      #hint-zone {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 60px;
+        z-index: 2;
+      }
+      .pop-wrap {
+        position: relative;
+      }
+      .popover {
+        position: absolute;
+        bottom: calc(100% + 12px);
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        background: #ffffff;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+        text-align: left;
+      }
+      body.dark .popover {
+        background: #1c1c1c;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+      }
+      .popover[hidden] {
+        display: none;
+      }
+      #history-menu {
+        left: auto;
+        right: 0;
+        transform: none;
+        max-height: 50vh;
+        overflow-y: auto;
+        gap: 2px;
+      }
+      #history-menu button {
+        all: unset;
+        cursor: pointer;
+        font-size: 18px;
+        line-height: 1.3;
+        padding: 2px 4px;
+        border-radius: 4px;
+        color: #888;
+        white-space: nowrap;
+      }
+      #history-menu button:hover,
+      #history-menu button.current {
+        color: #000000;
+      }
+      body.dark #history-menu button:hover,
+      body.dark #history-menu button.current {
+        color: #ffffff;
+      }
+      #history-menu .empty {
+        padding: 2px 4px;
+      }
+      #auto-interval {
+        width: 4ch;
+        text-align: right;
+        appearance: textfield;
+        -moz-appearance: textfield;
+      }
+      #auto-interval::-webkit-inner-spin-button,
+      #auto-interval::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      #mode-menu label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+      }
+      #mode-menu label:hover {
+        color: #333;
+      }
+      body.dark #mode-menu label:hover {
+        color: #ccc;
+      }
+      #mode-menu input {
+        accent-color: #888;
+        margin: 0;
+      }
+      #goo-defs {
+        position: absolute;
+        width: 0;
+        height: 0;
+      }
+    </style>
+    <script src="/common.js"></script>
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+    <svg id="goo-defs" aria-hidden="true">
+      <filter id="goo">
+        <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" />
+      </filter>
+    </svg>
+    <div id="hint">
+      <span id="hint-inner"
+        ><span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-text"><span id="hb-text-label"></span></span> text</span
+        >
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd">−</span>
+          font size</span
+        >
+        &nbsp;·&nbsp;
+        <span id="mode-wrap" class="pop-wrap" style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-mode">m <span id="hb-mode-label"></span> ▾</span
+          ><span id="mode-menu" class="popover" hidden></span
+        ></span>
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-auto">a auto <span id="hb-auto-label">off</span></span
+          ><span id="auto-every" hidden>
+            every
+            <input
+              id="auto-interval"
+              class="hint-input"
+              type="number"
+              min="1"
+              max="600"
+              step="0.5"
+              aria-label="auto interval in seconds"
+            />s</span
+          ></span
+        >
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-goog">g google fonts</span></span
+        >
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-viewer">f fonts viewer</span></span
+        >
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-dark"
+            >1 <span class="hb-dark-label">dark</span></span
+          ></span
+        >
+        &nbsp;·&nbsp;
+        <span style="white-space: nowrap"
+          ><span class="hint-btn" id="hb-sitemap">s sitemap</span></span
+        ><span id="history-group"
+          >&nbsp;·&nbsp;
+          <span id="history-wrap" class="pop-wrap" style="white-space: nowrap"
+            ><span class="hint-btn" id="hb-history">h history ▾</span
+            ><span id="history-menu" class="popover" hidden></span></span></span
+      ></span>
+    </div>
+    <div id="hint-zone"></div>
+    <script type="module">
+      import * as fontkit from 'https://cdn.jsdelivr.net/npm/fontkit@2.0.4/+esm';
+
+      Common.paintFaviconR();
+      Common.initDarkMode();
+      Common.initCursorHide();
+
+      const MODES = ['morph', 'crossfade', 'blur', 'gooey', 'glide'];
+      const DURATION = 900;
+      const CURVE_STEPS = 8;
+
+      const canvas = document.getElementById('stage');
+      const ctx = canvas.getContext('2d');
+
+      function loadPref(key, fallback) {
+        try {
+          return localStorage.getItem(key) ?? fallback;
+        } catch {
+          return fallback;
+        }
+      }
+      function savePref(key, value) {
+        try {
+          localStorage.setItem(key, value);
+        } catch {}
+      }
+
+      let mode = MODES.includes(loadPref('transform-mode')) ? loadPref('transform-mode') : 'morph';
+      let sizeScale = 1;
+      let fallbackItems = null;
+      let current = null;
+      let scene = null;
+      let anim = null;
+      let raf = 0;
+      let next = null;
+      let busy = false;
+
+      let liveLines = null;
+      let textToken = 0;
+
+      function getSavedLines() {
+        const items = Common.parseQueryItems();
+        return items.length ? items : fallbackItems || [];
+      }
+      const getLines = () => liveLines || getSavedLines();
+
+      // --- fonts -> outlines ---
+
+      async function loadFont(name) {
+        try {
+          const res = await fetch(`/fonts/${Common.slugifyFont(name)}.woff2`);
+          if (!res.ok) return null;
+          return fontkit.create(new Uint8Array(await res.arrayBuffer()));
+        } catch {
+          return null;
+        }
+      }
+
+      function covers(font, lines) {
+        let inked = false;
+        for (const ch of Array.from(lines.join(''))) {
+          if (/\s/.test(ch)) continue;
+          const cp = ch.codePointAt(0);
+          if (!font.hasGlyphForCodePoint(cp)) return false;
+          if (font.glyphForCodePoint(cp).path.commands.length) inked = true;
+        }
+        return inked;
+      }
+
+      async function pickFont(lines, avoid) {
+        for (let i = 0; i < 30; i++) {
+          const name = Common.pickRandomGoogleFont();
+          if (!name || name === avoid) continue;
+          const font = await loadFont(name);
+          try {
+            if (font && covers(font, lines)) return { name, font };
+          } catch {}
+        }
+        return null;
+      }
+
+      function flatten(commands) {
+        const out = [];
+        let cur = null;
+        let x = 0;
+        let y = 0;
+        const close = () => {
+          if (cur && cur.length > 2) out.push(cur);
+          cur = null;
+        };
+        for (const { command, args } of commands) {
+          if (command === 'moveTo') {
+            close();
+            [x, y] = args;
+            cur = [[x, y]];
+            continue;
+          }
+          if (command === 'closePath') {
+            close();
+            continue;
+          }
+          if (!cur) cur = [[x, y]];
+          if (command === 'lineTo') {
+            [x, y] = args;
+            cur.push([x, y]);
+          } else if (command === 'quadraticCurveTo') {
+            const [cx, cy, ex, ey] = args;
+            for (let s = 1; s <= CURVE_STEPS; s++) {
+              const t = s / CURVE_STEPS;
+              const m = 1 - t;
+              cur.push([
+                m * m * x + 2 * m * t * cx + t * t * ex,
+                m * m * y + 2 * m * t * cy + t * t * ey,
+              ]);
+            }
+            [x, y] = [ex, ey];
+          } else if (command === 'bezierCurveTo') {
+            const [ax, ay, bx, by, ex, ey] = args;
+            for (let s = 1; s <= CURVE_STEPS; s++) {
+              const t = s / CURVE_STEPS;
+              const m = 1 - t;
+              cur.push([
+                m * m * m * x + 3 * m * m * t * ax + 3 * m * t * t * bx + t * t * t * ex,
+                m * m * m * y + 3 * m * m * t * ay + 3 * m * t * t * by + t * t * t * ey,
+              ]);
+            }
+            [x, y] = [ex, ey];
+          }
+        }
+        close();
+        return out;
+      }
+
+      // One entry per character (spaces included) so two fonts' layouts of the
+      // same text line up index for index.
+      function layoutFont(font, lines) {
+        const upm = font.unitsPerEm;
+        const lineHeight = upm * Math.min(1.6, Math.max(1, (font.ascent - font.descent) / upm));
+        const glyphs = [];
+        lines.forEach((line, li) => {
+          const gs = Array.from(line).map((ch) => font.glyphForCodePoint(ch.codePointAt(0)));
+          let x = -gs.reduce((sum, g) => sum + g.advanceWidth, 0) / 2;
+          for (const g of gs) {
+            const gx = x;
+            glyphs.push(
+              flatten(g.path.commands).map((c) =>
+                c.map(([px, py]) => [gx + px, li * lineHeight - py])
+              )
+            );
+            x += g.advanceWidth;
+          }
+        });
+        return { glyphs, upm };
+      }
+
+      // --- geometry ---
+
+      function signedArea(pts) {
+        let a = 0;
+        for (let i = 0, n = pts.length; i < n; i++) {
+          const p = pts[i];
+          const q = pts[(i + 1) % n];
+          a += p[0] * q[1] - q[0] * p[1];
+        }
+        return a / 2;
+      }
+
+      function perimeter(pts) {
+        let d = 0;
+        for (let i = 0, n = pts.length; i < n; i++) {
+          const p = pts[i];
+          const q = pts[(i + 1) % n];
+          d += Math.hypot(q[0] - p[0], q[1] - p[1]);
+        }
+        return d;
+      }
+
+      function boxOf(ptsList) {
+        let x0 = Infinity;
+        let y0 = Infinity;
+        let x1 = -Infinity;
+        let y1 = -Infinity;
+        for (const pts of ptsList) {
+          for (const [x, y] of pts) {
+            if (x < x0) x0 = x;
+            if (x > x1) x1 = x;
+            if (y < y0) y0 = y;
+            if (y > y1) y1 = y;
+          }
+        }
+        return x0 === Infinity ? null : { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+      }
+
+      // Outer edges and holes get opposite windings so nonzero fill cuts the
+      // holes, and so a morph only ever pairs like with like.
+      function makeItem(pts, outer) {
+        const a = signedArea(pts);
+        if (a > 0 !== outer) pts = pts.slice().reverse();
+        const box = boxOf([pts]);
+        return {
+          pts,
+          outer,
+          area: Math.abs(a),
+          perim: perimeter(pts),
+          cx: box.x + box.w / 2,
+          cy: box.y + box.h / 2,
+        };
+      }
+
+      function makeGlyph(items) {
+        return { items, box: boxOf(items.map((it) => it.pts)) };
+      }
+
+      function prepGlyph(contours) {
+        const raw = contours
+          .map((pts) => ({ pts, a: signedArea(pts) }))
+          .filter((r) => Math.abs(r.a) > 0.5);
+        if (!raw.length) return makeGlyph([]);
+        const big = raw.reduce((m, r) => (Math.abs(r.a) > Math.abs(m.a) ? r : m));
+        const outerSign = Math.sign(big.a);
+        return makeGlyph(raw.map((r) => makeItem(r.pts, Math.sign(r.a) === outerSign)));
+      }
+
+      function fit(lay) {
+        const W = window.innerWidth;
+        const H = window.innerHeight;
+        const box = boxOf(lay.glyphs.flat());
+        if (!box) return { glyphs: lay.glyphs.map(() => makeGlyph([])), em: 0 };
+        const s = sizeScale * Math.min((W * 0.86) / (box.w || 1), (H * 0.6) / (box.h || 1));
+        const ox = W / 2 - (box.x + box.w / 2) * s;
+        const oy = H / 2 - (box.y + box.h / 2) * s;
+        return {
+          glyphs: lay.glyphs.map((cs) =>
+            prepGlyph(cs.map((c) => c.map(([x, y]) => [ox + x * s, oy + y * s])))
+          ),
+          em: lay.upm * s,
+        };
+      }
+
+      function resample(pts, n) {
+        const m = pts.length;
+        const seg = [];
+        let total = 0;
+        for (let i = 0; i < m; i++) {
+          const p = pts[i];
+          const q = pts[(i + 1) % m];
+          const d = Math.hypot(q[0] - p[0], q[1] - p[1]);
+          seg.push(d);
+          total += d;
+        }
+        const out = [];
+        const step = total / n;
+        let i = 0;
+        let acc = 0;
+        for (let k = 0; k < n; k++) {
+          const target = k * step;
+          while (i < m - 1 && acc + seg[i] < target) acc += seg[i++];
+          const p = pts[i];
+          const q = pts[(i + 1) % m];
+          const f = seg[i] ? (target - acc) / seg[i] : 0;
+          out.push([p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f]);
+        }
+        return out;
+      }
+
+      function mean(ring) {
+        let x = 0;
+        let y = 0;
+        for (const p of ring) {
+          x += p[0];
+          y += p[1];
+        }
+        return [x / ring.length, y / ring.length];
+      }
+
+      // Rotates ring b's starting point to best line up with ring a.
+      function align(a, b) {
+        const n = a.length;
+        const [ax, ay] = mean(a);
+        const [bx, by] = mean(b);
+        const cost = (k, stride) => {
+          let s = 0;
+          for (let i = 0; i < n; i += stride) {
+            const p = a[i];
+            const q = b[(i + k) % n];
+            const dx = p[0] - ax - (q[0] - bx);
+            const dy = p[1] - ay - (q[1] - by);
+            s += dx * dx + dy * dy;
+          }
+          return s;
+        };
+        const step = Math.max(1, Math.floor(n / 64));
+        let best = 0;
+        let bestCost = Infinity;
+        for (let k = 0; k < n; k += step) {
+          const c = cost(k, step);
+          if (c < bestCost) [best, bestCost] = [k, c];
+        }
+        let fine = best;
+        bestCost = Infinity;
+        for (let k = best - step; k <= best + step; k++) {
+          const kk = (k + n) % n;
+          const c = cost(kk, 1);
+          if (c < bestCost) [fine, bestCost] = [kk, c];
+        }
+        return a.map((_, i) => b[(i + fine) % n]);
+      }
+
+      const ringSize = (...perims) =>
+        Math.min(500, Math.max(24, Math.ceil(Math.max(...perims) / 2.5)));
+      const point = (it, n) => Array.from({ length: n }, () => [it.cx, it.cy]);
+
+      function pairUp(fromItems, toItems) {
+        const pairs = [];
+        for (const outer of [true, false]) {
+          const A = fromItems.filter((it) => it.outer === outer);
+          const B = toItems.filter((it) => it.outer === outer);
+          const cand = [];
+          A.forEach((p, i) =>
+            B.forEach((q, j) =>
+              cand.push([
+                Math.hypot(p.cx - q.cx, p.cy - q.cy) +
+                  Math.abs(Math.sqrt(p.area) - Math.sqrt(q.area)),
+                i,
+                j,
+              ])
+            )
+          );
+          cand.sort((x, y) => x[0] - y[0]);
+          const usedA = new Set();
+          const usedB = new Set();
+          for (const [, i, j] of cand) {
+            if (usedA.has(i) || usedB.has(j)) continue;
+            usedA.add(i);
+            usedB.add(j);
+            const n = ringSize(A[i].perim, B[j].perim);
+            const from = resample(A[i].pts, n);
+            pairs.push({ outer, from, to: align(from, resample(B[j].pts, n)) });
+          }
+          A.forEach((p, i) => {
+            if (usedA.has(i)) return;
+            const n = ringSize(p.perim);
+            pairs.push({ outer, from: resample(p.pts, n), to: point(p, n) });
+          });
+          B.forEach((q, j) => {
+            if (usedB.has(j)) return;
+            const n = ringSize(q.perim);
+            pairs.push({ outer, from: point(q, n), to: resample(q.pts, n) });
+          });
+        }
+        return pairs;
+      }
+
+      const lerpRing = (a, b, e) =>
+        a.map((p, i) => [p[0] + (b[i][0] - p[0]) * e, p[1] + (b[i][1] - p[1]) * e]);
+
+      // --- drawing ---
+
+      function isDark() {
+        const cl = document.body.classList;
+        return (
+          cl.contains('dark') ||
+          (!cl.contains('light') && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        );
+      }
+
+      function resizeCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.round(window.innerWidth * dpr);
+        canvas.height = Math.round(window.innerHeight * dpr);
+      }
+
+      function clear() {
+        const dpr = window.devicePixelRatio || 1;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.fillStyle = isDark() ? '#ffffff' : '#000000';
+      }
+
+      function trace(pts, map) {
+        for (let i = 0; i < pts.length; i++) {
+          const [x, y] = map ? map(pts[i]) : pts[i];
+          if (i) ctx.lineTo(x, y);
+          else ctx.moveTo(x, y);
+        }
+        ctx.closePath();
+      }
+
+      // Glyphs sharing an alpha and blur go into one fill.
+      function drawLayer(sc, style) {
+        const groups = new Map();
+        sc.glyphs.forEach((g, i) => {
+          if (!g.items.length) return;
+          const st = style(i, g);
+          if (st.alpha <= 0.004) return;
+          const blur = st.blur || 0;
+          const key = st.alpha.toFixed(2) + '|' + blur.toFixed(1);
+          if (!groups.has(key)) groups.set(key, { alpha: st.alpha, blur, list: [] });
+          groups.get(key).list.push([g, st.map]);
+        });
+        for (const { alpha, blur, list } of groups.values()) {
+          ctx.globalAlpha = alpha;
+          ctx.filter = blur > 0.05 ? `blur(${blur}px)` : 'none';
+          ctx.beginPath();
+          for (const [g, map] of list) for (const it of g.items) trace(it.pts, map);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        ctx.filter = 'none';
+      }
+
+      function drawStatic() {
+        clear();
+        if (scene) drawLayer(scene, () => ({ alpha: 1 }));
+      }
+
+      const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+      const progress = (now) => ease(Math.min(1, Math.max(0, (now - anim.start) / DURATION)));
+
+      function boxMap(src, dst) {
+        if (!src || !dst) return null;
+        const sx = src.w > 1e-3 ? dst.w / src.w : 1;
+        const sy = src.h > 1e-3 ? dst.h / src.h : 1;
+        return ([x, y]) => [dst.x + (x - src.x) * sx, dst.y + (y - src.y) * sy];
+      }
+
+      const lerpBox = (a, b, e) =>
+        a && b
+          ? {
+              x: a.x + (b.x - a.x) * e,
+              y: a.y + (b.y - a.y) * e,
+              w: a.w + (b.w - a.w) * e,
+              h: a.h + (b.h - a.h) * e,
+            }
+          : null;
+
+      function drawFrame(now) {
+        const { from, to } = anim;
+        const e = progress(now);
+        clear();
+        if (anim.mode === 'morph') {
+          ctx.beginPath();
+          for (const pairs of anim.pairs) for (const p of pairs) trace(lerpRing(p.from, p.to, e));
+          ctx.fill();
+        } else if (anim.mode === 'crossfade') {
+          drawLayer(from, () => ({ alpha: 1 - e }));
+          drawLayer(to, () => ({ alpha: e }));
+        } else if (anim.mode === 'blur') {
+          const B = Math.min(40, to.em * 0.15);
+          drawLayer(from, () => ({ alpha: 1 - e, blur: e * B }));
+          drawLayer(to, () => ({ alpha: e, blur: (1 - e) * B }));
+        } else if (anim.mode === 'gooey') {
+          const k = to.em / 100;
+          const style = (f) => ({
+            alpha: Math.pow(f, 0.4),
+            blur: f > 0 ? k * Math.min(8 / f - 8, 60) : 0,
+          });
+          drawLayer(from, () => style(1 - e));
+          drawLayer(to, () => style(e));
+        } else if (anim.mode === 'glide') {
+          const mid = (i) => lerpBox(from.glyphs[i]?.box, to.glyphs[i]?.box, e);
+          drawLayer(from, (i, g) => ({ alpha: 1 - e, map: boxMap(g.box, mid(i)) }));
+          drawLayer(to, (i, g) => ({ alpha: e, map: boxMap(g.box, mid(i)) }));
+        }
+      }
+
+      function tick(now) {
+        raf = 0;
+        if (!anim) return;
+        if (now - anim.start >= DURATION) {
+          finish();
+          return;
+        }
+        drawFrame(now);
+        raf = requestAnimationFrame(tick);
+      }
+
+      function finish() {
+        if (raf) cancelAnimationFrame(raf);
+        raf = 0;
+        anim = null;
+        canvas.style.filter = '';
+        drawStatic();
+      }
+
+      // What's on screen right now, so a click mid-transition starts from there.
+      function onScreen() {
+        if (!anim) return scene;
+        if (anim.mode !== 'morph') return anim.to;
+        const e = progress(performance.now());
+        return {
+          em: anim.to.em,
+          glyphs: anim.pairs.map((pairs) =>
+            makeGlyph(
+              pairs
+                .map((p) => makeItem(lerpRing(p.from, p.to, e), p.outer))
+                .filter((it) => it.area > 1)
+            )
+          ),
+        };
+      }
+
+      function startTransition(target) {
+        const from = onScreen();
+        const to = fit(target.layout);
+        setCurrent(target);
+        scene = to;
+        scheduleAuto();
+        anim = { mode, from, to, start: performance.now() };
+        if (mode === 'morph') {
+          anim.pairs = to.glyphs.map((g, i) => pairUp(from.glyphs[i]?.items || [], g.items));
+        }
+        canvas.style.filter = mode === 'gooey' ? 'url(#goo)' : '';
+        if (!raf) raf = requestAnimationFrame(tick);
+      }
+
+      // --- actions ---
+
+      // Oldest first; a new font is appended and becomes current, while the
+      // arrows and the history popover just move historyIndex.
+      const fontHistory = [];
+      let historyIndex = -1;
+
+      function setCurrent(target) {
+        current = target;
+        console.log('font:', target.name);
+        if (fontHistory[historyIndex]?.name !== target.name) {
+          fontHistory.push({ name: target.name, font: target.font });
+          if (fontHistory.length > 50) fontHistory.shift();
+          historyIndex = fontHistory.length - 1;
+        }
+        if (openPop === 'history') renderHistory();
+      }
+
+      function showHistory(i) {
+        const entry = fontHistory[i];
+        const lines = getLines();
+        if (!entry || !lines.length || !covers(entry.font, lines)) return;
+        historyIndex = i;
+        startTransition({ ...entry, layout: layoutFont(entry.font, lines) });
+      }
+
+      function stepHistory(dir) {
+        const lines = getLines();
+        for (let i = historyIndex + dir; i >= 0 && i < fontHistory.length; i += dir) {
+          if (covers(fontHistory[i].font, lines)) return showHistory(i);
+        }
+      }
+
+      function prefetch() {
+        next = pickFont(getLines(), current && current.name);
+      }
+
+      async function transform() {
+        const lines = getLines();
+        if (busy || !current || !lines.length) return;
+        busy = true;
+        try {
+          let target = next && (await next);
+          next = null;
+          if (!target || !covers(target.font, lines)) target = await pickFont(lines, current.name);
+          if (!target) return;
+          target.layout = layoutFont(target.font, lines);
+          startTransition(target);
+          prefetch();
+        } finally {
+          busy = false;
+        }
+      }
+
+      async function setText({ prefetchNext = true } = {}) {
+        const token = ++textToken;
+        const lines = getLines();
+        if (anim) finish();
+        if (!lines.join('').trim()) {
+          scene = null;
+          drawStatic();
+          return;
+        }
+        if (!current || !covers(current.font, lines)) {
+          const picked = await pickFont(lines, current && current.name);
+          if (!picked || token !== textToken) return;
+          setCurrent(picked);
+        }
+        current.layout = layoutFont(current.font, lines);
+        scene = fit(current.layout);
+        drawStatic();
+        if (prefetchNext) prefetch();
+      }
+
+      function refreshLabels() {
+        document.getElementById('hb-mode-label').textContent = mode;
+      }
+
+      function refit() {
+        if (anim) finish();
+        if (current && current.layout) scene = fit(current.layout);
+        drawStatic();
+      }
+
+      function changeSize(dir) {
+        sizeScale = Math.min(4, Math.max(0.1, sizeScale * (dir > 0 ? 1.15 : 1 / 1.15)));
+        refit();
+      }
+
+      const modeMenu = document.getElementById('mode-menu');
+      const historyMenu = document.getElementById('history-menu');
+      const popovers = { mode: modeMenu, history: historyMenu };
+      let openPop = null;
+
+      function setPopover(name) {
+        openPop = name;
+        for (const [k, menu] of Object.entries(popovers)) menu.hidden = k !== name;
+        if (name === 'history') renderHistory();
+        setHintLocked(!!name);
+      }
+      const togglePopover = (name) => setPopover(openPop === name ? null : name);
+
+      function renderHistory() {
+        historyMenu.replaceChildren();
+        if (!fontHistory.length) {
+          const empty = document.createElement('span');
+          empty.className = 'empty';
+          empty.textContent = 'no fonts yet';
+          historyMenu.append(empty);
+        }
+        for (let i = fontHistory.length - 1; i >= 0; i--) {
+          const entry = fontHistory[i];
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.textContent = entry.name;
+          b.title = entry.name;
+          if (i === historyIndex) b.classList.add('current');
+          Common.loadGoogleFont(entry.name);
+          b.style.fontFamily = `'${entry.name}', serif`;
+          b.addEventListener('click', () => showHistory(i));
+          historyMenu.append(b);
+        }
+      }
+
+      for (const m of MODES) {
+        const label = document.createElement('label');
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'mode';
+        radio.value = m;
+        radio.checked = m === mode;
+        radio.addEventListener('change', () => {
+          mode = m;
+          savePref('transform-mode', mode);
+          refreshLabels();
+          radio.blur();
+          setPopover(null);
+        });
+        label.append(radio, ' ' + m);
+        modeMenu.append(label);
+      }
+
+      // A click outside the open popover only closes it.
+      for (const type of ['click', 'touchend']) {
+        document.addEventListener(
+          type,
+          (e) => {
+            if (!openPop || e.target.closest('.pop-wrap')) return;
+            e.preventDefault();
+            e.stopPropagation();
+            setPopover(null);
+          },
+          { capture: true, passive: false }
+        );
+      }
+
+      const intervalInput = document.getElementById('auto-interval');
+      let auto = false;
+      let autoTimer = 0;
+      let autoInterval = Math.min(
+        600,
+        Math.max(1, parseFloat(loadPref('transform-interval')) || 3)
+      );
+      intervalInput.value = autoInterval;
+
+      function scheduleAuto() {
+        clearTimeout(autoTimer);
+        if (auto)
+          autoTimer = setTimeout(() => transform().finally(scheduleAuto), autoInterval * 1000);
+      }
+
+      function toggleAuto() {
+        auto = !auto;
+        document.getElementById('hb-auto-label').textContent = auto ? 'on' : 'off';
+        document.getElementById('auto-every').hidden = !auto;
+        scheduleAuto();
+        showHint();
+      }
+
+      intervalInput.addEventListener('input', () => {
+        const v = parseFloat(intervalInput.value);
+        if (!(v >= 1)) return;
+        autoInterval = Math.min(600, v);
+        savePref('transform-interval', autoInterval);
+        scheduleAuto();
+      });
+      intervalInput.addEventListener('focus', () => setHintLocked(true));
+      intervalInput.addEventListener('blur', () => {
+        intervalInput.value = autoInterval;
+        setHintLocked(!!openPop);
+      });
+      intervalInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === 'Escape') intervalInput.blur();
+      });
+
+      const { show: showHint, setLocked: setHintLocked } = Common.initHintBar({
+        hintEl: document.getElementById('hint'),
+        hintZoneEl: document.getElementById('hint-zone'),
+      });
+      refreshLabels();
+
+      // Keep history at the far right, after the "updated" item the hint bar appends.
+      const hintInner = document.getElementById('hint-inner');
+      const historyGroup = document.getElementById('history-group');
+      new MutationObserver(() => {
+        if (hintInner.lastChild !== historyGroup) hintInner.append(historyGroup);
+      }).observe(hintInner, { childList: true });
+
+      document.getElementById('hb-fi').addEventListener('click', () => {
+        changeSize(1);
+        showHint();
+      });
+      document.getElementById('hb-fd').addEventListener('click', () => {
+        changeSize(-1);
+        showHint();
+      });
+      document.getElementById('hb-mode').addEventListener('click', () => togglePopover('mode'));
+      document
+        .getElementById('hb-history')
+        .addEventListener('click', () => togglePopover('history'));
+      document.getElementById('hb-auto').addEventListener('click', toggleAuto);
+      document.getElementById('hb-goog').addEventListener('click', () => {
+        if (current) Common.openFontSpecimen(current.name);
+      });
+      function openInViewer() {
+        if (!current) return;
+        const params = new URLSearchParams({ font: current.name, text: getLines().join(' ') });
+        window.open(`/fonts/?${params}`, '_blank', 'noopener');
+      }
+      document.getElementById('hb-viewer').addEventListener('click', openInViewer);
+      document.getElementById('hb-dark').addEventListener('click', () => {
+        Common.toggleDark();
+        showHint();
+      });
+      document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
+      Common.initSitemapShortcut();
+
+      const textBtn = document.getElementById('hb-text');
+      const textEditor = Common.initTextEditor({
+        buttonEl: textBtn,
+        labelEl: document.getElementById('hb-text-label'),
+        getItems: getSavedLines,
+        onEditStart: () => setHintLocked(true),
+        onEditEnd: () => {
+          liveLines = null;
+          setHintLocked(false);
+          setText();
+        },
+      });
+      textBtn.addEventListener('input', (e) => {
+        liveLines = e.target.value.split('/').filter((s) => s.length > 0);
+        setText({ prefetchNext: false });
+      });
+
+      document.addEventListener('keydown', (e) => {
+        const t = e.target;
+        const typing =
+          (t.tagName === 'INPUT' && t.type !== 'radio') ||
+          t.tagName === 'TEXTAREA' ||
+          t.isContentEditable;
+        if (typing) return;
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        if (['+', '=', '-', '_'].includes(e.key)) {
+          changeSize(e.key === '+' || e.key === '=' ? 1 : -1);
+          return;
+        }
+        if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && t.type !== 'radio') {
+          e.preventDefault();
+          stepHistory(e.key === 'ArrowLeft' ? -1 : 1);
+          return;
+        }
+        if (e.repeat) return;
+        const key = e.key.toLowerCase();
+        if (key === 'escape' && openPop) setPopover(null);
+        else if (key === 'm') togglePopover('mode');
+        else if (key === 'h') togglePopover('history');
+        else if (key === 'a') toggleAuto();
+        else if (key === 'g' && current) Common.openFontSpecimen(current.name);
+        else if (key === 'f') openInViewer();
+      });
+
+      Common.onTap(transform);
+      window.addEventListener('darkmodechange', () => {
+        if (!anim) drawStatic();
+      });
+      window.addEventListener('resize', () => {
+        resizeCanvas();
+        refit();
+      });
+      resizeCanvas();
+
+      async function init() {
+        await Promise.all([
+          Common.loadScript('/fonts.js'),
+          Common.loadScript('/typefree-fonts.js'),
+        ]);
+        if (!Common.parseQueryItems().length) {
+          try {
+            const words = (await (await fetch('/words.txt')).text()).split(/\s+/).filter(Boolean);
+            if (words.length) {
+              const word = words[Math.floor(Math.random() * words.length)];
+              fallbackItems = [word];
+              history.replaceState(
+                null,
+                '',
+                location.pathname + '?' + encodeURIComponent(word) + location.hash
+              );
+            }
+          } catch {}
+        }
+        if (!getLines().length) fallbackItems = ['transform'];
+        textEditor.refresh();
+        await setText();
+      }
+      init();
+    </script>
+  </body>
+</html>
