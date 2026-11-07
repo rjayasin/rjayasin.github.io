@@ -78,15 +78,30 @@
       }
       window.addEventListener('darkmodechange', updateHomeFavicon);
 
-      async function display(rainbow) {
-        const fadeOut = new Promise((r) => setTimeout(r, 100));
+      const fontHistory = [];
+      let historyIndex = -1;
+      let displayToken = 0;
+
+      function pickEntry(rainbow) {
         if (Math.random() < 1 / 7 && window.EMOJIS) {
           const emojis = Array.from(
             { length: 5 },
             () => window.EMOJIS[Math.floor(Math.random() * window.EMOJIS.length)]
           );
+          return { emojis };
+        }
+        return { font: Common.pickRandomGoogleFont(), rainbow };
+      }
+
+      async function display(entry) {
+        const token = ++displayToken;
+        nameEl.style.opacity = '0';
+        const fadeOut = new Promise((r) => setTimeout(r, 100));
+        if (entry.emojis) {
+          const emojis = entry.emojis;
           console.log('emojis:', emojis.join(''));
           await fadeOut;
+          if (token !== displayToken) return;
           nameEl.style.backgroundImage = '';
           nameEl.style.color = '';
           nameEl.style.fontFamily = '';
@@ -96,15 +111,16 @@
           currentHomeFont = null;
           updateHomeFavicon();
         } else {
-          const font = Common.pickRandomGoogleFont();
+          const font = entry.font;
           const fontLoad = Common.loadGoogleFont(font);
           await Promise.all([fadeOut, fontLoad]);
+          if (token !== displayToken) return;
           console.log('font:', font);
           currentHomeFont = font;
           currentEmoji = null;
           nameEl.style.fontFamily = `'${font}', serif`;
           nameEl.textContent = 'Ruvan';
-          if (rainbow) {
+          if (entry.rainbow) {
             nameEl.style.backgroundImage =
               'linear-gradient(90deg, #ff0000, #ff8800, #ffee00, #22cc22, #0088ff, #4422cc, #8800cc)';
             nameEl.style.webkitBackgroundClip = 'text';
@@ -119,6 +135,12 @@
         }
       }
 
+      function showNew(rainbow) {
+        fontHistory.push(pickEntry(rainbow));
+        historyIndex = fontHistory.length - 1;
+        display(fontHistory[historyIndex]);
+      }
+
       const cooldown = Common.makeCooldown(500);
       let clickCount = 0;
       function handleClick(e) {
@@ -127,14 +149,17 @@
         Common.ensureEmojis();
         cooldown(() => {
           clickCount++;
-          nameEl.style.opacity = '0';
-          display(clickCount % 10 === 0);
+          showNew(clickCount % 10 === 0);
         });
       }
 
       document.addEventListener('keydown', (e) => {
         if ((e.key === 'g' || e.key === 'G') && !e.repeat && currentHomeFont) {
           Common.openFontSpecimen(currentHomeFont);
+        } else if (e.key === 'ArrowLeft' && historyIndex > 0) {
+          display(fontHistory[--historyIndex]);
+        } else if (e.key === 'ArrowRight' && historyIndex < fontHistory.length - 1) {
+          display(fontHistory[++historyIndex]);
         }
       });
       Common.initSitemapShortcut();
@@ -142,7 +167,7 @@
       Common.onTap(handleClick);
 
       Promise.all([Common.loadScript('/fonts.js'), Common.loadScript('/typefree-fonts.js')]).then(
-        () => display()
+        () => showNew(false)
       );
     </script>
   </body>
