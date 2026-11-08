@@ -10,6 +10,7 @@
       :root {
         --muted: #6b7280;
         --fg: #111827;
+        --bg: #ffffff;
         --card: #f9fafb;
         --border: #e5e7eb;
         --accent: #00a2ff;
@@ -31,6 +32,7 @@
       body.dark {
         --muted: #9ca3af;
         --fg: #f5f5f5;
+        --bg: #111111;
         --card: #1a1a1a;
         --border: #2a2a2a;
         --edited: #4ade80;
@@ -41,6 +43,7 @@
         body:not(.light) {
           --muted: #9ca3af;
           --fg: #f5f5f5;
+          --bg: #111111;
           --card: #1a1a1a;
           --border: #2a2a2a;
           --edited: #4ade80;
@@ -59,6 +62,46 @@
 
       header a:hover {
         text-decoration: underline;
+      }
+
+      #help-open {
+        font-size: 12px;
+        padding: 1px 8px;
+        margin-left: 6px;
+        border-radius: 6px;
+      }
+
+      #help {
+        max-width: min(520px, calc(100vw - 32px));
+        margin: auto;
+        padding: 20px 22px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--bg);
+        color: var(--fg);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+      }
+
+      #help::backdrop {
+        background: rgba(0, 0, 0, 0.4);
+      }
+
+      #help h2 {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 20px;
+        font-weight: 500;
+        margin-bottom: 8px;
+      }
+
+      #help .close {
+        float: right;
+        display: grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        margin: -6px -8px 0 8px;
+        color: var(--muted);
       }
 
       h1 {
@@ -205,6 +248,8 @@
       }
 
       .stat {
+        display: flex;
+        flex-direction: column;
         background: var(--card);
         border: 1px solid var(--border);
         border-radius: 10px;
@@ -212,6 +257,7 @@
       }
 
       .stat .label {
+        flex: 1;
         color: var(--muted);
         font-size: 11px;
         text-transform: uppercase;
@@ -625,9 +671,33 @@
     <header>
       <h1><a href="/">Ruvan</a> <span class="crumb">/ cystic-index</span></h1>
       <p class="subtitle">
-        Drop in an image of collecting duct organoids to measure how much of each one is cyst.
+        An automated image analysis tool for measuring cystic index and the percentage of cystic
+        collecting duct organoids.
+        <button type="button" id="help-open" aria-haspopup="dialog">how to use</button>
       </p>
     </header>
+
+    <dialog id="help" aria-labelledby="help-title">
+      <form method="dialog">
+        <button type="submit" class="close" aria-label="Close">
+          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+            <path
+              d="M1 1L11 11M11 1L1 11"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
+      </form>
+      <h2 id="help-title">How to use</h2>
+      <p>
+        Upload a bright-field image of collecting duct organoids to quantify cyst formation. The
+        tool estimates the cystic index for each organoid (cyst area as a percentage of total
+        organoid area) and the percentage of organoids classified as cystic (cystic organoids
+        divided by all organoids). Review and adjust the segmentation as needed.
+      </p>
+    </dialog>
 
     <div id="drop">
       <span id="drop-text">Drop images here, paste one, or</span>
@@ -681,6 +751,11 @@
           <div class="label">Cystic index</div>
           <div class="value" id="s-ci">–</div>
           <div class="sub">all cyst area ÷ all organoid area</div>
+        </div>
+        <div class="stat">
+          <div class="label">Percentage of cystic organoids</div>
+          <div class="value" id="s-cystic">–</div>
+          <div class="sub" id="s-cystic-sub"></div>
         </div>
         <div class="stat">
           <div class="label">Mean per organoid</div>
@@ -793,6 +868,18 @@
       Common.initDarkMode();
       Common.initSitemapShortcut();
       Common.initHintUpdated({ hintEl: document.getElementById('res-note') });
+
+      const help = document.getElementById('help');
+      document.getElementById('help-open').addEventListener('click', () => help.showModal());
+      help.addEventListener('click', (e) => {
+        const r = help.getBoundingClientRect();
+        const inside =
+          e.clientX >= r.left &&
+          e.clientX <= r.right &&
+          e.clientY >= r.top &&
+          e.clientY <= r.bottom;
+        if (!inside) help.close();
+      });
 
       // ======================================================================
       // Image analysis
@@ -2347,10 +2434,14 @@
           const sd = Math.sqrt(list.reduce((s, o) => s + (o.ci - mean) ** 2, 0) / list.length);
           const cystic = list.filter((o) => o.cyst > 0).length;
           $('s-mean').textContent = fmtPct(mean);
-          $('s-mean-sub').textContent = `± ${fmtPct(sd)} sd · ${cystic} with a cyst`;
+          $('s-mean-sub').textContent = `± ${fmtPct(sd)} sd`;
+          $('s-cystic').textContent = fmtPct(cystic / list.length);
+          $('s-cystic-sub').textContent = `${cystic} of ${list.length} with a cyst`;
         } else {
           $('s-mean').textContent = '–';
           $('s-mean-sub').textContent = '';
+          $('s-cystic').textContent = '–';
+          $('s-cystic-sub').textContent = '';
         }
         $('s-area').textContent = fmtArea(area);
         $('s-area-sub').textContent = `${fmtArea(cyst)} of it cyst`;
@@ -2808,13 +2899,17 @@
         const list = t.result.organoids.filter((o) => o.areaWork && !t.excluded.has(o.id));
         const area = list.reduce((s, o) => s + o.area, 0);
         const cyst = list.reduce((s, o) => s + o.cyst, 0);
-        return { count: list.length, area, cyst, ci: area ? cyst / area : null };
+        const cystic = list.filter((o) => o.cyst > 0).length;
+        return { count: list.length, cystic, area, cyst, ci: area ? cyst / area : null };
       }
+
+      const pctCystic = (cystic, count) => (count ? ((100 * cystic) / count).toFixed(1) : '');
 
       const mean = (xs) => (xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : null);
       const fix = (v, d) => (v == null ? '' : v.toFixed(d));
 
-      // Per-organoid rows plus total and mean rows over the included organoids.
+      // Per-organoid rows plus total, mean and percent cystic rows over the
+      // included organoids.
       // Each row is [organoid, cystic_index, excluded, organoid_um2, cyst_um2].
       function csvRows(t) {
         const k = umPerPx2(t);
@@ -2837,6 +2932,7 @@
           k ? fix(mean(inc.map((o) => o.area * k)), 1) : '',
           k ? fix(mean(inc.map((o) => o.cyst * k)), 1) : '',
         ]);
+        rows.push(['percent_cystic_organoids', pctCystic(tot.cystic, tot.count), '', '', '']);
         return rows;
       }
 
@@ -2993,6 +3089,8 @@
         const used = new Set(['all images']);
         const summary = [['image', 'row', 'cystic_index', 'organoid_um2', 'cyst_um2', 'um_per_px']];
         const sheets = [{ name: 'all images', rows: summary }];
+        let count = 0;
+        let cystic = 0;
         let area = 0;
         let cyst = 0;
         let areaUm = 0;
@@ -3009,9 +3107,11 @@
             name: sheetName(r.name.replace(/\.[^.]+$/, ''), used),
             rows: [[...CSV_HEAD, 'um_per_px'], ...rows.map((row) => [...row, px])],
           });
-          for (const [label, ci, , a, c] of rows.slice(-2))
+          for (const [label, ci, , a, c] of rows.slice(-3))
             summary.push([r.name, label, ci, a, c, px]);
           const tot = totals(r);
+          count += tot.count;
+          cystic += tot.cystic;
           area += tot.area;
           cyst += tot.cyst;
           if (k) {
@@ -3044,6 +3144,14 @@
           fix(mean(cis), 4),
           allUm ? fix(mean(areasUm), 1) : '',
           allUm ? fix(mean(cystsUm), 1) : '',
+          '',
+        ]);
+        summary.push([
+          'all images',
+          'percent_cystic_organoids',
+          pctCystic(cystic, count),
+          '',
+          '',
           '',
         ]);
         save(xlsx(sheets), 'cystic-index-all-images.xlsx');
