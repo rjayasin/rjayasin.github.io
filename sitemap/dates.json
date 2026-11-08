@@ -127,10 +127,6 @@
     "date": "2026-10-05T23:11:55-07:00",
     "url": "https://github.com/rjayasin/rjayasin.github.io/commit/f464b8598c709e855b77613322300799906da0ab"
   },
-  "/cystic-index/": {
-    "date": "2026-11-03T12:22:24-08:00",
-    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/8d4f83cf73c9f5171ff8293b661e2cf3d6c76ad9"
-  },
   "/reverse-jeopardy/": {
     "date": "2026-10-16T13:09:41-07:00",
     "url": "https://github.com/rjayasin/rjayasin.github.io/commit/35ebaea631826ac48ec585f9bbdffa8eccdcb957"
@@ -142,5 +138,9 @@
   "/transform/": {
     "date": "2026-11-06T20:37:45-08:00",
     "url": "https://github.com/rjayasin/rjayasin.github.io/commit/3380fddf5dda2e91ee0e7097e1312e96525c7bf3"
+  },
+  "https://rjayasin.github.io/cystic-index/": {
+    "date": "2026-11-08T20:48:16Z",
+    "url": "https://github.com/rjayasin/cystic-index/commit/48360d3b0cc8f418127ffa02e1d058a22a656031"
   }
 }
