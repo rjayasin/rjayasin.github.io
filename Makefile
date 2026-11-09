@@ -3,7 +3,7 @@ PRETTIER := npx --yes prettier@$(PRETTIER_VERSION)
 HTML_VALIDATE_VERSION := 11.5.3
 HTML_VALIDATE := npx --yes html-validate@$(HTML_VALIDATE_VERSION)
 
-.PHONY: format format-check html-check syntax-check check sitemap til clueward-test
+.PHONY: format format-check html-check syntax-check readme-check check sitemap readme til clueward-test
 
 format:
 	$(PRETTIER) --write .
@@ -17,10 +17,17 @@ html-check:
 syntax-check:
 	git ls-files '*.js' '*.json' '*.html' | xargs node scripts/validate-files.js
 
-check: format-check html-check syntax-check
+readme-check:
+	node scripts/build-readme.js --check
 
-sitemap:
+check: format-check html-check syntax-check readme-check
+
+sitemap: readme
 	node scripts/build-sitemap-dates.js
+
+# README.md is generated from the sitemap's tree.
+readme:
+	node scripts/build-readme.js
 
 # Regenerate til/tils.json for local preview. Not committed (see .gitignore);
 # the deploy workflow regenerates it into the published artifact.

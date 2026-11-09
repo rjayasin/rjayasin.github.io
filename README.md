@@ -1,4 +1,4 @@
-<!-- Keep every sublist ordered by date added, oldest at the top and newest at the bottom. -->
+<!-- Generated from sitemap/index.html by `make readme`; edit the sitemap instead. -->
 
 `tools`
 
@@ -25,14 +25,15 @@
 `text`
 
 - [`grid`](https://rjayasin.github.io/grid/)
-- [`stack`](https://rjayasin.github.io/stack/?hello/world)
-- [`box`](https://rjayasin.github.io/box/?hello/world)
+- [`stack`](https://rjayasin.github.io/stack/)
+- [`box`](https://rjayasin.github.io/box/)
 - [`clock`](https://rjayasin.github.io/clock/)
 - [`border`](https://rjayasin.github.io/border/)
 - [`isometric`](https://rjayasin.github.io/isometric/)
 - [`shooter`](https://rjayasin.github.io/shooter/)
 - [`gravity`](https://rjayasin.github.io/gravity/)
 - [`fonts`](https://rjayasin.github.io/fonts/)
+- [`transform`](https://rjayasin.github.io/transform/)
 
 `games`
 
