@@ -7,7 +7,9 @@
 - [`deploys`](https://rjayasin.github.io/deploys/)
 - [`fuji-viewer`](https://rjayasin.github.io/fuji-viewer/)
 - [`gif-helper`](https://rjayasin.github.io/gif-helper/)
-- [`cystic-index`](https://rjayasin.github.io/cystic-index/)
+- `bio`
+  - [`cystic-index`](https://rjayasin.github.io/cystic-index/)
+  - [`dapi-counter`](https://rjayasin.github.io/dapi-counter/)
 
 `writing`
 
