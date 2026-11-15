@@ -23,8 +23,11 @@ body {
   border: none;
   outline: none;
   border-bottom: 1px dotted currentColor;
+  border-radius: 0;
+  letter-spacing: inherit;
   padding: 2px 0;
-  flex: 1;
+  flex-shrink: 0;
+  transition: width 0.2s ease;
 }
 #single-input::placeholder {
   color: #888;
@@ -157,7 +160,7 @@ body {
   border-bottom: 1px dotted currentColor;
   border-radius: 0;
   outline: none;
-  padding: 0;
+  padding: 2px 0;
   width: 0;
   min-width: 0;
   visibility: hidden;
@@ -178,12 +181,21 @@ body {
     visibility 0s;
 }
 /* Grows with the text (--chars is set as you type), within reason. */
-#sample.open input {
+#sample.open input,
+#single-input {
   width: calc(min(max(var(--chars, 0), 14), 48) * (1ch + 0.05em) + 1ch);
 }
 /* Unfocused, it hugs the text exactly: no minimum, no room for the caret. */
-#sample.open input:not(:focus) {
+#sample.open input:not(:focus),
+#single-input:not(:focus) {
   width: calc(min(var(--chars, 0), 48) * (1ch + 0.05em));
+}
+#sample input {
+  margin-left: 0;
+}
+#sample.open input:placeholder-shown:not(:focus),
+#single-input:placeholder-shown:not(:focus) {
+  width: calc(14 * (1ch + 0.05em));
 }
 .expander input::placeholder {
   color: #888;
@@ -272,8 +284,10 @@ body {
   color: #888;
   letter-spacing: 0.05em;
 }
+/* Its width is set in JS so the sample input lines up with the list's. */
 #single-info {
-  flex: 1;
+  flex: 0 1 auto;
+  min-width: 0;
   white-space: nowrap;
   overflow-x: auto;
   scrollbar-width: none;
@@ -286,7 +300,6 @@ body {
   gap: 4px;
   white-space: nowrap;
   user-select: none;
-  margin-right: 16px;
 }
 #single-size-buttons button {
   font: inherit;
@@ -309,11 +322,30 @@ body {
   background: transparent;
   border: none;
   padding: 8px 10px;
-  margin: -8px -10px;
+  margin: -8px -10px -8px auto;
   cursor: pointer;
   transition: color 0.2s ease;
 }
 #single-close:hover {
+  color: #000;
+}
+input:placeholder-shown + .clear {
+  display: none;
+}
+#sample-clear {
+  margin-left: 4px;
+}
+#single-clear {
+  font: inherit;
+  color: #888;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-left: -12px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+#single-clear:hover {
   color: #000;
 }
 #single-tiles {
@@ -344,6 +376,7 @@ body.dark #single-top {
   border-bottom-color: #333;
 }
 body.dark #single-close:hover,
+body.dark #single-clear:hover,
 body.dark #single-size-buttons button:hover {
   color: #fff;
 }
@@ -374,6 +407,7 @@ body.dark .expander input {
     border-bottom-color: #333;
   }
   body:not(.light) #single-close:hover,
+  body:not(.light) #single-clear:hover,
   body:not(.light) #single-size-buttons button:hover {
     color: #fff;
   }

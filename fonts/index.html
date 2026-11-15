@@ -19,30 +19,36 @@
   <body>
     <header id="controls">
       <nav id="filters">
-        <span class="group expander" id="sample">
-          <button
-            type="button"
-            id="sample-toggle"
-            title="sample text"
-            aria-label="sample text"
-            aria-expanded="false"
-            aria-controls="sample-input"
-          >
-            <svg viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M5 2.5c1.5 0 3 .5 3 2v7c0 1.5-1.5 2-3 2M11 2.5c-1.5 0-3 .5-3 2v7c0 1.5 1.5 2 3 2M6.3 8h3.4" />
-            </svg>
-          </button>
-          <input
-            id="sample-input"
-            type="text"
-            autocomplete="off"
-            spellcheck="false"
-            placeholder="type anything…"
-            aria-label="sample text"
-            tabindex="-1"
-          />
+        <span class="group dropdown" id="sort">
+          <select id="sort-select" aria-label="sort order">
+            <option value="random">random</option>
+            <option value="new">newest</option>
+            <option value="abc">abc</option>
+          </select>
+          <span class="caret" aria-hidden="true">▾</span>
         </span>
-        <span class="sep">|</span>
+        <span class="sep">·</span>
+        <span class="group" id="size-buttons">
+          <button type="button" data-size="-4" title="smaller samples">a−</button>
+          <span class="dot">·</span>
+          <button type="button" data-size="4" title="larger samples">a+</button>
+        </span>
+        <span class="sep">·</span>
+        <button type="button" id="minimal-toggle">minimal</button>
+        <span class="sep">·</span>
+        <span id="one-line-wrap">
+          <button type="button" id="one-line-toggle">one line</button>
+          <span class="sep">·</span>
+        </span>
+        <span id="count"></span>
+        <span class="sep">·</span>
+        <span class="group dropdown" id="cat">
+          <select id="cat-select" aria-label="category">
+            <option value="all">all</option>
+          </select>
+          <span class="caret" aria-hidden="true">▾</span>
+        </span>
+        <span class="sep">·</span>
         <span class="group expander" id="search">
           <button
             type="button"
@@ -68,35 +74,17 @@
             tabindex="-1"
           />
         </span>
-        <span class="sep">|</span>
-        <span class="group dropdown" id="sort">
-          <select id="sort-select" aria-label="sort order">
-            <option value="random">random</option>
-            <option value="new">newest</option>
-            <option value="abc">abc</option>
-          </select>
-          <span class="caret" aria-hidden="true">▾</span>
-        </span>
-        <span class="sep">|</span>
-        <span class="group" id="size-buttons">
-          <button type="button" data-size="-4" title="smaller samples">a−</button>
-          <span class="dot">·</span>
-          <button type="button" data-size="4" title="larger samples">a+</button>
-        </span>
-        <span class="sep">|</span>
-        <button type="button" id="minimal-toggle">minimal</button>
-        <span class="sep">|</span>
-        <span id="one-line-wrap">
-          <button type="button" id="one-line-toggle">one line</button>
-          <span class="sep">|</span>
-        </span>
-        <span id="count"></span>
-        <span class="sep">|</span>
-        <span class="group dropdown" id="cat">
-          <select id="cat-select" aria-label="category">
-            <option value="all">all</option>
-          </select>
-          <span class="caret" aria-hidden="true">▾</span>
+        <span class="sep">·</span>
+        <span class="group expander open" id="sample">
+          <input
+            id="sample-input"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="type anything…"
+            aria-label="sample text"
+          />
+          <button type="button" class="clear" id="sample-clear" title="clear" aria-label="clear sample text">×</button>
         </span>
       </nav>
     </header>
@@ -110,6 +98,7 @@
           <span class="dot">·</span>
           <button type="button" data-size="4" title="larger samples">a+</button>
         </span>
+        <span class="sep">·</span>
         <input
           id="single-input"
           type="text"
@@ -117,6 +106,7 @@
           spellcheck="false"
           placeholder="type anything…"
         />
+        <button type="button" class="clear" id="single-clear" title="clear" aria-label="clear sample text">×</button>
         <button type="button" id="single-close" title="close">×</button>
       </div>
       <div id="single-tiles"></div>

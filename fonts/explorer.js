@@ -19,8 +19,6 @@
   const oneLineWrapEl = document.getElementById('one-line-wrap');
   const oneLineToggleEl = document.getElementById('one-line-toggle');
 
-  const sampleEl = document.getElementById('sample');
-  const sampleToggleEl = document.getElementById('sample-toggle');
   const searchEl = document.getElementById('search');
   const searchToggleEl = document.getElementById('search-toggle');
   const searchInputEl = document.getElementById('search-input');
@@ -267,19 +265,28 @@
     const sample = listEl.querySelector('.card .sample');
     singleTilesEl.style.fontSize = sample ? getComputedStyle(sample).fontSize : '';
     singleInputEl.value = inputEl.value;
+    singleInputEl.style.setProperty('--chars', String(singleInputEl.value.length));
     retileSingle();
     singleTilesEl.scrollTop = 0;
     singleEl.hidden = false;
     document.body.style.overflow = 'hidden';
+    alignSingleInput();
     Common.loadGoogleFont(font);
   }
+
+  // Size the info so the single view's input starts where the list's does.
+  function alignSingleInput() {
+    if (singleEl.hidden) return;
+    singleInfoEl.style.width = '0px';
+    const offset = inputEl.getBoundingClientRect().left - singleInputEl.getBoundingClientRect().left;
+    singleInfoEl.style.width = `${Math.max(0, offset)}px`;
+  }
+
+  window.addEventListener('resize', alignSingleInput);
 
   function closeSingle() {
     singleEl.hidden = true;
     document.body.style.overflow = '';
-    // Text typed in the single view shows in the list's field too, so keep
-    // the field open exactly when it holds something.
-    setSampleOpen(Boolean(inputEl.value.trim()), { focus: false });
   }
 
   singleCloseEl.addEventListener('click', closeSingle);
@@ -287,15 +294,13 @@
   // Retype existing cards in place so edits don't reset scroll or refetch.
   function applyText(raw) {
     state.text = raw.trim();
-    inputEl.style.setProperty('--chars', String(inputEl.value.length));
+    for (const el of [inputEl, singleInputEl]) el.style.setProperty('--chars', String(el.value.length));
     const samples = listEl.querySelectorAll('.card .sample');
     for (let i = 0; i < samples.length; i++) {
       samples[i].textContent = sampleFor(filtered[i]);
     }
   }
 
-  // Sample text: the I-beam expands into the text every card renders.
-  const setSampleOpen = makeExpander(sampleEl, sampleToggleEl, inputEl, () => applyText(''));
   inputEl.addEventListener('input', () => applyText(inputEl.value));
 
   // The single view's input mirrors the main one, so the sample text stays
@@ -306,12 +311,23 @@
     retileSingle();
   });
 
+  function clearText(fieldEl) {
+    inputEl.value = '';
+    singleInputEl.value = '';
+    applyText('');
+    if (!singleEl.hidden) retileSingle();
+    fieldEl.focus();
+  }
+
+  document.getElementById('sample-clear').addEventListener('click', () => clearText(inputEl));
+  document.getElementById('single-clear').addEventListener('click', () => clearText(singleInputEl));
+
   // Inline style beats the stylesheet's desktop/mobile defaults for
   // --sample-size, so the first bump reads the effective size and takes over.
   function bumpSampleSize(delta) {
     const sample = listEl.querySelector('.card .sample');
     const cur = sample ? parseFloat(getComputedStyle(sample).fontSize) : 34;
-    const next = Math.min(120, Math.max(10, cur + delta));
+    const next = Math.min(240, Math.max(10, cur + delta));
     listEl.style.setProperty('--sample-size', `${next}px`);
     if (!singleEl.hidden) singleTilesEl.style.fontSize = `${next}px`;
   }
@@ -336,8 +352,7 @@
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === '/') {
       e.preventDefault();
-      if (singleEl.hidden) setSampleOpen(true);
-      else singleInputEl.focus();
+      (singleEl.hidden ? inputEl : singleInputEl).focus();
     } else if (e.key === '+' || e.key === '=') {
       bumpSampleSize(4);
     } else if (e.key === '-' || e.key === '_') {
@@ -353,7 +368,6 @@
   if (linkedText) {
     inputEl.value = linkedText;
     applyText(linkedText);
-    setSampleOpen(true, { focus: false });
   }
   const linkedFont = params.get('font');
   if (linkedFont && allFonts.includes(linkedFont)) openSingle(linkedFont);
