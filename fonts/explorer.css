@@ -105,13 +105,13 @@ body {
     opacity 0.3s ease,
     visibility 0s;
 }
-/* Sort: a native dropdown (so the menu isn't clipped by the scrolling bar)
-   dressed as plain bar text, with a caret drawn beside it. */
-#sort {
+/* Sort and category: native dropdowns (so the menu isn't clipped by the
+   scrolling bar) dressed as plain bar text, with a caret drawn beside them. */
+.dropdown {
   position: relative;
   align-items: baseline;
 }
-#sort-select {
+.dropdown select {
   font: inherit;
   letter-spacing: inherit;
   color: #000;
@@ -124,10 +124,10 @@ body {
   appearance: none;
   cursor: pointer;
 }
-#sort-select:focus-visible {
+.dropdown select:focus-visible {
   outline: 1px dotted currentColor;
 }
-#sort .caret {
+.dropdown .caret {
   position: absolute;
   right: 0;
   pointer-events: none;
@@ -348,7 +348,7 @@ body.dark #single-size-buttons button:hover {
   color: #fff;
 }
 body.dark #single-input,
-body.dark #sort-select,
+body.dark .dropdown select,
 body.dark .expander input {
   color: #fff;
 }
@@ -378,7 +378,7 @@ body.dark .expander input {
     color: #fff;
   }
   body:not(.light) #single-input,
-  body:not(.light) #sort-select,
+  body:not(.light) .dropdown select,
   body:not(.light) .expander input {
     color: #fff;
   }

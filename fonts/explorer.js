@@ -12,7 +12,7 @@
   const sentinelEl = document.getElementById('sentinel');
   const inputEl = document.getElementById('sample-input');
   const countEl = document.getElementById('count');
-  const catButtonsEl = document.getElementById('cat-buttons');
+  const catSelectEl = document.getElementById('cat-select');
   const sortSelectEl = document.getElementById('sort-select');
   const sizeButtonsEl = document.getElementById('size-buttons');
   const minimalToggleEl = document.getElementById('minimal-toggle');
@@ -166,40 +166,30 @@
   );
   observer.observe(sentinelEl);
 
-  // Category chips, built from the metadata so labels stay in sync.
-  meta.categories.forEach((label, i) => {
-    const dot = document.createElement('span');
-    dot.className = 'dot';
-    dot.textContent = '·';
-    catButtonsEl.appendChild(dot);
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.dataset.cat = String(i);
-    btn.textContent = label.toLowerCase();
-    catButtonsEl.appendChild(btn);
-  });
-
-  catButtonsEl.addEventListener('click', (e) => {
-    const btn = e.target.closest('button');
-    if (!btn) return;
-    state.cat = btn.dataset.cat === 'all' ? 'all' : Number(btn.dataset.cat);
-    catButtonsEl.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b === btn));
-    reset();
-  });
-
   // A select is as wide as its longest option; fit it to the chosen one so
   // the caret hugs the label. (The bar is monospace, so ch counts exactly.)
-  function fitSortSelect() {
-    const n = sortSelectEl.selectedOptions[0].textContent.length;
-    sortSelectEl.style.width = `calc(${n} * (1ch + 0.05em) + 1.1em)`;
+  function fitSelect(el) {
+    const n = el.selectedOptions[0].textContent.length;
+    el.style.width = `calc(${n} * (1ch + 0.05em) + 1.1em)`;
   }
+
+  meta.categories.forEach((label, i) => {
+    catSelectEl.add(new Option(label.toLowerCase(), String(i)));
+  });
+
+  catSelectEl.addEventListener('change', () => {
+    state.cat = catSelectEl.value === 'all' ? 'all' : Number(catSelectEl.value);
+    fitSelect(catSelectEl);
+    reset();
+  });
+  fitSelect(catSelectEl);
 
   sortSelectEl.addEventListener('change', () => {
     state.sort = sortSelectEl.value;
-    fitSortSelect();
+    fitSelect(sortSelectEl);
     reset();
   });
-  fitSortSelect();
+  fitSelect(sortSelectEl);
 
   // An icon button that expands into an inline field. Closing clears the
   // field (and runs onClear); blurring an empty field closes it.
