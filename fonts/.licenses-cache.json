@@ -136,6 +136,14 @@
       "copyright": "Copyright 2023 The Agdasima Project Authors (https://github.com/docrepair-fonts/agdasima-fonts).",
       "resolved": true
     },
+    "Agrave Pro": {
+      "family": "Agrave Pro",
+      "slug": "agravepro",
+      "licenseCode": "OFL",
+      "designer": "Daan Jobsis",
+      "copyright": "Copyright 2026 The Agràve Pro Project Authors (https://github.com/daanjobsis/agrave-pro)",
+      "resolved": true
+    },
     "Agu Display": {
       "family": "Agu Display",
       "slug": "agudisplay",
@@ -4166,6 +4174,14 @@
       "licenseCode": "OFL",
       "designer": "Carrois Apostrophe",
       "copyright": "Digitized data copyright 2012-2016, The Mozilla Foundation and Telefonica S.A.",
+      "resolved": true
+    },
+    "Firjar": {
+      "family": "Firjar",
+      "slug": "firjar",
+      "licenseCode": "OFL",
+      "designer": "Yazeed Omar",
+      "copyright": "Copyright 2025 The Firjar Project Authors (https://github.com/Mestaratype/Firjar)",
       "resolved": true
     },
     "Fjalla One": {

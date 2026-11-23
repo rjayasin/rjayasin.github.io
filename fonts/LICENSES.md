@@ -27,6 +27,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Afacad | OFL | Kristian Möller, Dicotype | Copyright 2023 The Afacad Project Authors (https://github.com/Dicotype/Afacad) |
 | Agbalumo | OFL | Raphael Alẹ́gbẹ́lẹ́yẹ̀, Sorkin Type, Eben Sorkin | Copyright 2023 The Agbalumo Project Authors (https://github.com/SorkinType/Agbalumo) |
 | Agdasima | OFL | The DocRepair Project, Patric King | Copyright 2023 The Agdasima Project Authors (https://github.com/docrepair-fonts/agdasima-fonts). |
+| Agrave Pro | OFL | Daan Jobsis | Copyright 2026 The Agràve Pro Project Authors (https://github.com/daanjobsis/agrave-pro) |
 | Agu Display | OFL | Seun Badejo | Copyright 2024 The Agu Display Project Authors (https://github.com/theseunbadejo/Agu-Display) |
 | Aguafina Script | OFL | Sudtipos | Copyright (c) 2007 Angel Koziupa (sudtipos@sudtipos.com), Copyright (c) 2007 Alejandro Paul (sudtipos@sudtipos.com), with Reserved Font Name "Aguafina Script" |
 | Akatab | OFL | SIL International | Copyright (c) 2010-2025, SIL Global (https://scripts.sil.org), with Reserved Font Name "Akatab", copyright 2010-2019 Adobe (http://www.adobe.com/), with Reserved Font Name "Source" (Latin glyphs). |
@@ -483,6 +484,7 @@ Google Fonts auto-update workflow. Do not edit by hand.
 | Fira Sans | OFL | Carrois Apostrophe | Digitized data copyright 2012-2016, The Mozilla Foundation and Telefonica S.A. |
 | Fira Sans Condensed | OFL | Carrois Apostrophe | Digitized data copyright 2012-2016, The Mozilla Foundation and Telefonica S.A. |
 | Fira Sans Extra Condensed | OFL | Carrois Apostrophe | Digitized data copyright 2012-2016, The Mozilla Foundation and Telefonica S.A. |
+| Firjar | OFL | Yazeed Omar | Copyright 2025 The Firjar Project Authors (https://github.com/Mestaratype/Firjar) |
 | Fjalla One | OFL | Sorkin Type, Irina Smirnova | Copyright 2012 The Fjalla Project Authors (https://github.com/SorkinType/FjallaOne) |
 | Fjord One | OFL | Viktoriya Grabowska | Copyright (c) 2011, Sorkin Type Co (www.sorkintype.com eben@eyebytes.com) with Reserved Font Names "Fjord" and "Fjord One" This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is copied below, and is also available with a FAQ at: http://scripts.sil.org/OFL |
 | Flamenco | OFL | LatinoType | Copyright (c) 2011 by LatinoType Limitada (info@latinotype.com), with Reserved Font Names "Flamenco" |
