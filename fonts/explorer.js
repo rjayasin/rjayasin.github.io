@@ -39,6 +39,21 @@
     return m ? m[1] : '';
   }
 
+  const addedBySlug = {};
+  for (const [date, slugs] of Object.entries(window.fontsAdded || {})) {
+    for (const slug of slugs) addedBySlug[slug] = date;
+  }
+  const added = {};
+  for (const font of allFonts) added[font] = addedBySlug[Common.slugifyFont(font)] || '';
+
+  // Descending, with empty values last.
+  function compareDesc(a, b) {
+    if (a === b) return 0;
+    if (!a) return 1;
+    if (!b) return -1;
+    return a < b ? 1 : -1;
+  }
+
   function shuffle(arr) {
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -51,16 +66,8 @@
     if (state.sort === 'random') {
       shuffle(ordered);
     } else if (state.sort === 'new') {
-      // allFonts is alphabetical, so the stable sort keeps same-day fonts in
-      // name order; dateless (delisted) families sink to the end.
-      ordered.sort((a, b) => {
-        const da = dateOf(a);
-        const db = dateOf(b);
-        if (da === db) return 0;
-        if (!da) return 1;
-        if (!db) return -1;
-        return da < db ? 1 : -1;
-      });
+      // Date added to the site, then release date, then name (allFonts order).
+      ordered.sort((a, b) => compareDesc(added[a], added[b]) || compareDesc(dateOf(a), dateOf(b)));
     }
   }
 
@@ -97,8 +104,8 @@
     const parts = [];
     const cat = catOf(font);
     if (cat >= 0) parts.push(meta.categories[cat].toLowerCase());
-    const date = dateOf(font);
-    if (date) parts.push(date);
+    if (state.sort === 'new' && added[font]) parts.push(`added ${added[font]}`);
+    else if (dateOf(font)) parts.push(dateOf(font));
     if (typefree[font]) parts.push(typefree[font][2].includes('fontshare.com') ? 'fontshare' : 'typefree');
     if (parts.length) el.appendChild(document.createTextNode(` · ${parts.join(' · ')}`));
   }

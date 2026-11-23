@@ -3,7 +3,7 @@ PRETTIER := npx --yes prettier@$(PRETTIER_VERSION)
 HTML_VALIDATE_VERSION := 11.5.3
 HTML_VALIDATE := npx --yes html-validate@$(HTML_VALIDATE_VERSION)
 
-.PHONY: format format-check html-check syntax-check readme-check check sitemap readme til clueward-test
+.PHONY: format format-check html-check syntax-check readme-check check sitemap readme til fonts-added clueward-test
 
 format:
 	$(PRETTIER) --write .
@@ -33,6 +33,9 @@ readme:
 # the deploy workflow regenerates it into the published artifact.
 til:
 	node scripts/build-til-index.js
+
+fonts-added:
+	node scripts/build-fonts-added.js
 
 # Needs @huggingface/transformers (see the script's header) and downloads the
 # matcher's model on first run, so it isn't part of `make check`.

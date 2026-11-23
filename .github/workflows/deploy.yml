@@ -52,6 +52,8 @@ jobs:
       # Not committed to git — regenerated fresh on every deploy.
       - name: Build TIL index
         run: node scripts/build-til-index.js
+      - name: Build font added dates
+        run: node scripts/build-fonts-added.js
       # Replace `?v=N` placeholders on local css/js references with content
       # hashes, so cached HTML and assets can't pair up across versions.
       - name: Fingerprint asset references

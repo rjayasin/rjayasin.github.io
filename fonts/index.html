@@ -119,6 +119,7 @@
         Common.loadScript('/fonts.js'),
         Common.loadScript('/fonts-meta.js'),
         Common.loadScript('/typefree-fonts.js'),
+        Common.loadScript('/fonts/added.js').catch(() => {}),
       ]).then(() => Common.loadScript('/fonts/explorer.js?v=dev'));
     </script>
   </body>

@@ -3,3 +3,4 @@ node_modules/
 # Generated into the Pages artifact by the deploy workflow (and `make til`
 # for local preview); never committed. Source of truth is til/*.md frontmatter.
 til/tils.json
+fonts/added.js
