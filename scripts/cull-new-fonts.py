@@ -102,7 +102,10 @@ def signature(font):
     for ch in SAMPLE:
         img = Image.new("L", (CELL * 2, CELL * 2), 0)
         if ord(ch) in cmap:
-            ImageDraw.Draw(img).text((CELL // 2, CELL // 4), ch, font=pil, fill=255)
+            try:  # FreeType raster overflow on some outlines
+                ImageDraw.Draw(img).text((CELL // 2, CELL // 4), ch, font=pil, fill=255)
+            except OSError:
+                pass
         cell = Image.new("L", (CELL, CELL), 0)
         bbox = img.getbbox()
         if bbox:
