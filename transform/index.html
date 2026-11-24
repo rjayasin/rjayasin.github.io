@@ -190,10 +190,13 @@
         padding: 6px;
         gap: 2px;
       }
+      /* flex: none so a long history scrolls instead of squashing every row
+         (overflow: hidden lets a flex item shrink below its text). */
       #history-menu button {
         all: unset;
         box-sizing: border-box;
         display: block;
+        flex: none;
         max-width: 100%;
         cursor: pointer;
         font-size: 18px;
@@ -326,6 +329,7 @@
           margin: 0;
         }
         #hint-controls .item {
+          flex: none;
           line-height: 46px;
         }
         #hint-controls .item ~ .item,
@@ -344,7 +348,7 @@
           height: 60px;
         }
         #history-menu {
-          min-width: min(300px, calc(100vw - 16px));
+          width: min(320px, calc(100vw - 16px));
         }
         #history-menu button {
           font-size: 22px;
@@ -1199,6 +1203,10 @@
       });
       new ResizeObserver(updateFades).observe(document.getElementById('hint-inner'));
       new ResizeObserver(updateFades).observe(hintScroll);
+      // History names render in their own fonts, which load after the menu
+      // is placed and can widen it; re-place so it stays on screen.
+      const popResize = new ResizeObserver(() => placePopover());
+      for (const el of [modeMenu, historyMenu, hintControls]) popResize.observe(el);
       touchQuery.addEventListener('change', () => {
         if (openPop === 'menu') setPopover(null);
       });
