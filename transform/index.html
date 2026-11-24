@@ -72,13 +72,55 @@
         min-width: 0;
         max-width: 40%;
       }
-      #hb-text {
+      /* The text field, styled like the fonts page's sample field: always
+         shown, grows with what's typed, × to clear. */
+      #text-input {
+        font: inherit;
+        letter-spacing: inherit;
+        color: #000;
+        background: transparent;
+        border: none;
+        border-bottom: 1px dotted currentColor;
+        border-radius: 0;
+        outline: none;
+        padding: 4px 0 0;
         min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      #hb-text input {
         max-width: 100%;
+        width: calc(min(max(var(--chars, 0), 14), 48) * (1ch + 0.05em) + 1ch);
+        user-select: text;
+        -webkit-user-select: text;
+        cursor: text;
+      }
+      /* Unfocused, it hugs the text exactly: no minimum, no room for the caret. */
+      #text-input:not(:focus) {
+        width: calc(min(var(--chars, 0), 48) * (1ch + 0.05em));
+      }
+      #text-input:placeholder-shown:not(:focus) {
+        width: calc(14 * (1ch + 0.05em));
+      }
+      #text-input::placeholder {
+        color: #888;
+      }
+      body.dark #text-input {
+        color: #fff;
+      }
+      #text-clear {
+        flex: none;
+        font: inherit;
+        color: #888;
+        background: transparent;
+        border: none;
+        padding: 0 0 0 6px;
+        cursor: pointer;
+      }
+      #text-clear:hover {
+        color: #000;
+      }
+      body.dark #text-clear:hover {
+        color: #fff;
+      }
+      #text-input:placeholder-shown + #text-clear {
+        display: none;
       }
       .sep {
         padding: 0 1.5ch;
@@ -272,6 +314,14 @@
           flex: 0 1 auto;
           max-width: none;
         }
+        #text-input {
+          font-size: 16px;
+          padding: 2px 0;
+        }
+        #text-clear {
+          font-size: 18px;
+          padding: 8px 10px;
+        }
         #hb-menu {
           display: flex;
           align-items: center;
@@ -383,7 +433,18 @@
     </svg>
     <div id="hint">
       <span id="text-item" class="item"
-        ><span class="hint-btn" id="hb-text"><span id="hb-text-label"></span></span>&nbsp;text</span
+        ><input
+          id="text-input"
+          type="text"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          enterkeyhint="done"
+          placeholder="type anything…"
+          aria-label="text (a / starts a new line)"
+        /><button type="button" id="text-clear" title="clear" aria-label="clear text">
+          ×
+        </button></span
       ><span class="sep">·</span>
       <div id="hint-controls">
         <div id="hint-scroll">
@@ -1313,28 +1374,52 @@
       document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
       Common.initSitemapShortcut();
 
-      const textBtn = document.getElementById('hb-text');
-      const textEditor = Common.initTextEditor({
-        buttonEl: textBtn,
-        labelEl: document.getElementById('hb-text-label'),
-        getItems: getSavedLines,
-        onEditStart: () => {
-          const input = textBtn.querySelector('input');
-          input.enterKeyHint = 'done';
-          input.autocapitalize = 'off';
-          input.autocomplete = 'off';
-          input.spellcheck = false;
-          setHintLocked(true);
-        },
-        onEditEnd: () => {
-          liveLines = null;
-          setHintLocked(false);
-          setText();
-        },
-      });
-      textBtn.addEventListener('input', (e) => {
-        liveLines = e.target.value.split('/').filter((s) => s.length > 0);
+      // Typing redraws live; Enter or leaving the field saves the text to the
+      // URL (a / starts a new line), and Escape puts back what was saved.
+      const textItem = document.getElementById('text-item');
+      const textInput = document.getElementById('text-input');
+      const textClear = document.getElementById('text-clear');
+      const splitLines = (v) => v.split('/').filter((s) => s.length > 0);
+
+      function showSavedText() {
+        textInput.value = getSavedLines().join('/');
+        textInput.style.setProperty('--chars', String(textInput.value.length));
+      }
+
+      textInput.addEventListener('focus', () => setHintLocked(true));
+      textInput.addEventListener('input', () => {
+        textInput.style.setProperty('--chars', String(textInput.value.length));
+        liveLines = splitLines(textInput.value);
         setText({ prefetchNext: false });
+      });
+      textInput.addEventListener('blur', () => {
+        const parts = splitLines(textInput.value);
+        if (parts.length) {
+          const search = '?' + parts.map(encodeURIComponent).join('/');
+          history.replaceState(null, '', location.pathname + search + location.hash);
+        }
+        liveLines = null;
+        showSavedText();
+        setText();
+        setHintLocked(!!openPop);
+      });
+      textInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') showSavedText();
+        if (e.key === 'Enter' || e.key === 'Escape') {
+          e.preventDefault();
+          textInput.blur();
+        }
+      });
+      // Keep the field focused when × is pressed while typing.
+      textClear.addEventListener('mousedown', (e) => e.preventDefault());
+      textClear.addEventListener('click', () => {
+        textInput.value = '';
+        textInput.dispatchEvent(new Event('input'));
+        textInput.focus();
+      });
+      // The field is short; the rest of its slot in the bar focuses it too.
+      textItem.addEventListener('click', (e) => {
+        if (e.target === textItem) textInput.focus();
       });
 
       document.addEventListener('keydown', (e) => {
@@ -1395,7 +1480,7 @@
           } catch {}
         }
         if (!getLines().length) fallbackItems = ['transform'];
-        textEditor.refresh();
+        showSavedText();
         await setText();
       }
       init();
