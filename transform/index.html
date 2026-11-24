@@ -25,11 +25,16 @@
       }
       #hint {
         position: fixed;
+        top: 0;
         left: 0;
         right: 0;
-        bottom: 12px;
-        text-align: center;
-        pointer-events: none;
+        display: flex;
+        align-items: stretch;
+        justify-content: center;
+        height: 32px;
+        padding: 0 12px;
+        background: #ffffff;
+        border-bottom: 1px solid rgba(128, 128, 128, 0.2);
         font-family:
           ui-monospace,
           SFMono-Regular,
@@ -40,25 +45,69 @@
           monospace;
         font-size: 12px;
         color: #888;
+        white-space: nowrap;
         opacity: 1;
         transition: opacity 0.4s ease;
         user-select: none;
+        -webkit-user-select: none;
+        touch-action: manipulation;
         z-index: 3;
       }
-      #hint-inner {
-        display: inline-block;
-        padding: 6px 10px;
-        border-radius: 6px;
-        background: #ffffff;
-        pointer-events: auto;
-      }
-      body.dark #hint-inner {
+      body.dark #hint {
         background: #111111;
       }
-      #hint.hidden,
-      #hint.hidden #hint-inner {
+      #hint.hidden {
         opacity: 0;
         pointer-events: none;
+      }
+      /* Everything but history scrolls sideways when the bar is too narrow;
+         history stays pinned at the right so it's always one tap away. */
+      #hint-scroll {
+        display: flex;
+        align-items: center;
+        flex: 0 1 auto;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+      }
+      #hint-scroll::-webkit-scrollbar {
+        display: none;
+      }
+      #hint-scroll.fade-r {
+        -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+        mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+      }
+      #hint-scroll.fade-l {
+        -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent);
+        mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent);
+      }
+      #hint-scroll.fade-l.fade-r {
+        -webkit-mask-image: linear-gradient(
+          to right,
+          transparent,
+          #000 28px,
+          #000 calc(100% - 28px),
+          transparent
+        );
+        mask-image: linear-gradient(
+          to right,
+          transparent,
+          #000 28px,
+          #000 calc(100% - 28px),
+          transparent
+        );
+      }
+      #hint-inner {
+        display: block;
+        width: max-content;
+        margin: 0 auto;
+      }
+      #history-wrap {
+        display: flex;
+        align-items: center;
+        flex: none;
       }
       #hint .hint-btn {
         cursor: pointer;
@@ -72,30 +121,39 @@
       body.dark #hint .hint-btn:hover {
         color: #ccc;
       }
+      #hint .hint-btn.disabled {
+        opacity: 0.35;
+        cursor: default;
+      }
+      #hint .hint-btn.disabled:hover {
+        color: inherit;
+      }
       #hint-zone {
         position: fixed;
         left: 0;
         right: 0;
-        bottom: 0;
-        height: 60px;
+        top: 0;
+        height: 48px;
         z-index: 2;
       }
-      .pop-wrap {
-        position: relative;
-      }
+      /* Fixed, and placed under their button by placePopover(), so the
+         scrolling strip can't clip them. */
       .popover {
-        position: absolute;
-        bottom: calc(100% + 12px);
-        left: 50%;
-        transform: translateX(-50%);
+        position: fixed;
+        top: 0;
+        left: 0;
         display: flex;
         flex-direction: column;
         gap: 6px;
+        max-width: calc(100vw - 16px);
         padding: 8px 12px;
         border-radius: 6px;
         background: #ffffff;
         box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
         text-align: left;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        z-index: 4;
       }
       body.dark .popover {
         background: #1c1c1c;
@@ -105,33 +163,38 @@
         display: none;
       }
       #history-menu {
-        left: auto;
-        right: 0;
-        transform: none;
-        max-height: 50vh;
-        overflow-y: auto;
+        min-width: min(220px, calc(100vw - 16px));
+        padding: 6px;
         gap: 2px;
       }
       #history-menu button {
         all: unset;
+        box-sizing: border-box;
+        display: block;
+        max-width: 100%;
         cursor: pointer;
         font-size: 18px;
         line-height: 1.3;
-        padding: 2px 4px;
+        padding: 2px 6px;
         border-radius: 4px;
         color: #888;
         white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       #history-menu button:hover,
       #history-menu button.current {
         color: #000000;
+      }
+      #history-menu button.current {
+        background: rgba(128, 128, 128, 0.14);
       }
       body.dark #history-menu button:hover,
       body.dark #history-menu button.current {
         color: #ffffff;
       }
       #history-menu .empty {
-        padding: 2px 4px;
+        padding: 2px 6px;
       }
       #auto-interval {
         width: 4ch;
@@ -160,6 +223,53 @@
         accent-color: #888;
         margin: 0;
       }
+      /* Touch: no keyboard, so drop the shortcut letters, and give every
+         control a finger-sized target. Inputs stay at 16px so iOS doesn't
+         zoom the page when they're focused. */
+      @media (hover: none) and (pointer: coarse) {
+        #hint {
+          height: 44px;
+          font-size: 14px;
+        }
+        #hint .key {
+          display: none;
+        }
+        #hint .hint-btn {
+          padding: 12px 0;
+        }
+        #hint #hb-fi,
+        #hint #hb-fd,
+        #hint #hb-prev,
+        #hint #hb-next {
+          padding: 12px 8px;
+        }
+        #hint .hint-input {
+          font-size: 16px;
+          user-select: text;
+          -webkit-user-select: text;
+        }
+        #hint-zone {
+          height: 60px;
+        }
+        #history-menu {
+          min-width: min(300px, calc(100vw - 16px));
+        }
+        #history-menu button {
+          font-size: 22px;
+          padding: 8px 10px;
+        }
+        #history-menu .empty {
+          padding: 8px 10px;
+        }
+        #mode-menu {
+          gap: 0;
+          padding: 4px 16px;
+        }
+        #mode-menu label {
+          padding: 9px 0;
+          font-size: 16px;
+        }
+      }
       #goo-defs {
         position: absolute;
         width: 0;
@@ -176,59 +286,55 @@
       </filter>
     </svg>
     <div id="hint">
-      <span id="hint-inner"
-        ><span style="white-space: nowrap"
-          ><span class="hint-btn" id="hb-text"><span id="hb-text-label"></span></span> text</span
-        >
-        &nbsp;·&nbsp;
-        <span style="white-space: nowrap"
-          ><span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd">−</span>
-          font size</span
-        >
-        &nbsp;·&nbsp;
-        <span id="mode-wrap" class="pop-wrap" style="white-space: nowrap"
-          ><span class="hint-btn" id="hb-mode">m <span id="hb-mode-label"></span> ▾</span
-          ><span id="mode-menu" class="popover" hidden></span
-        ></span>
-        &nbsp;·&nbsp;
-        <span style="white-space: nowrap"
-          ><span class="hint-btn" id="hb-auto">a auto <span id="hb-auto-label">off</span></span
+      <div id="hint-scroll">
+        <span id="hint-inner"
+          ><span class="hint-btn" id="hb-text"><span id="hb-text-label"></span></span> text
+          &nbsp;·&nbsp; <span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd"
+            >−</span
+          >
+          font size &nbsp;·&nbsp;
+          <span class="hint-btn pop-anchor" id="hb-mode"
+            ><span class="key">m </span><span id="hb-mode-label"></span> ▾</span
+          >
+          &nbsp;·&nbsp;
+          <span class="hint-btn" id="hb-auto"
+            ><span class="key">a </span>auto <span id="hb-auto-label">off</span></span
           ><span id="auto-every" hidden>
             every
             <input
               id="auto-interval"
               class="hint-input"
               type="number"
+              inputmode="decimal"
+              enterkeyhint="done"
               min="1"
               max="600"
               step="0.5"
               aria-label="auto interval in seconds"
             />s</span
-          ></span
+          >
+          &nbsp;·&nbsp;
+          <span class="hint-btn" id="hb-goog"><span class="key">g </span>google fonts</span>
+          &nbsp;·&nbsp;
+          <span class="hint-btn" id="hb-viewer"><span class="key">f </span>fonts viewer</span>
+          &nbsp;·&nbsp;
+          <span class="hint-btn" id="hb-dark"
+            ><span class="key">1 </span><span class="hb-dark-label">dark</span></span
+          >
+          &nbsp;·&nbsp;
+          <span class="hint-btn" id="hb-sitemap"><span class="key">s </span>sitemap</span></span
         >
-        &nbsp;·&nbsp;
-        <span style="white-space: nowrap"
-          ><span class="hint-btn" id="hb-goog">g google fonts</span></span
-        >
-        &nbsp;·&nbsp;
-        <span style="white-space: nowrap"
-          ><span class="hint-btn" id="hb-viewer">f fonts viewer</span></span
-        >
-        &nbsp;·&nbsp;
-        <span style="white-space: nowrap"
-          ><span class="hint-btn" id="hb-dark"
-            >1 <span class="hb-dark-label">dark</span></span
-          ></span
-        >
-        &nbsp;·&nbsp;
-        <span style="white-space: nowrap"
-          ><span class="hint-btn" id="hb-sitemap">s sitemap</span></span
-        ><span id="history-group"
-          >&nbsp;·&nbsp;
-          <span id="history-wrap" class="pop-wrap" style="white-space: nowrap"
-            ><span class="hint-btn" id="hb-history">h history ▾</span
-            ><span id="history-menu" class="popover" hidden></span></span></span
-      ></span>
+      </div>
+      <span id="history-wrap"
+        >&nbsp;·&nbsp;<span class="hint-btn pop-keep" id="hb-prev" title="previous font (←)">←</span
+        >/<span class="hint-btn pop-keep" id="hb-next" title="next font (→)">→</span>&nbsp;<span
+          class="hint-btn pop-anchor"
+          id="hb-history"
+          ><span class="key">h </span>history ▾</span
+        ></span
+      >
+      <div id="mode-menu" class="popover" hidden></div>
+      <div id="history-menu" class="popover" hidden></div>
     </div>
     <div id="hint-zone"></div>
     <script type="module">
@@ -765,6 +871,7 @@
           historyIndex = fontHistory.length - 1;
         }
         if (openPop === 'history') renderHistory();
+        updateHistoryNav();
       }
 
       function showHistory(i) {
@@ -775,11 +882,23 @@
         startTransition({ ...entry, layout: layoutFont(entry.font, lines) });
       }
 
-      function stepHistory(dir) {
+      // The nearest entry in that direction that can draw the current text.
+      function findStep(dir) {
         const lines = getLines();
         for (let i = historyIndex + dir; i >= 0 && i < fontHistory.length; i += dir) {
-          if (covers(fontHistory[i].font, lines)) return showHistory(i);
+          if (covers(fontHistory[i].font, lines)) return i;
         }
+        return -1;
+      }
+
+      function stepHistory(dir) {
+        const i = findStep(dir);
+        if (i >= 0) showHistory(i);
+      }
+
+      function updateHistoryNav() {
+        document.getElementById('hb-prev').classList.toggle('disabled', findStep(-1) < 0);
+        document.getElementById('hb-next').classList.toggle('disabled', findStep(1) < 0);
       }
 
       function prefetch() {
@@ -820,6 +939,7 @@
         current.layout = layoutFont(current.font, lines);
         scene = fit(current.layout);
         drawStatic();
+        updateHistoryNav();
         if (prefetchNext) prefetch();
       }
 
@@ -838,15 +958,41 @@
         refit();
       }
 
+      const hintEl = document.getElementById('hint');
+      const hintScroll = document.getElementById('hint-scroll');
       const modeMenu = document.getElementById('mode-menu');
       const historyMenu = document.getElementById('history-menu');
       const popovers = { mode: modeMenu, history: historyMenu };
+      const anchors = {
+        mode: document.getElementById('hb-mode'),
+        history: document.getElementById('hb-history'),
+      };
       let openPop = null;
+
+      // Drops the open popover just under the bar, centred on its button but
+      // kept on screen, and no taller than the space left below.
+      function placePopover() {
+        if (!openPop) return;
+        const menu = popovers[openPop];
+        const a = anchors[openPop].getBoundingClientRect();
+        const top = hintEl.getBoundingClientRect().bottom + 6;
+        const vw = document.documentElement.clientWidth;
+        menu.style.top = `${top}px`;
+        menu.style.maxHeight = `${Math.max(120, window.innerHeight - top - 12)}px`;
+        const w = menu.offsetWidth;
+        const left = Math.min(Math.max(8, a.left + a.width / 2 - w / 2), vw - w - 8);
+        menu.style.left = `${Math.max(8, left)}px`;
+      }
 
       function setPopover(name) {
         openPop = name;
         for (const [k, menu] of Object.entries(popovers)) menu.hidden = k !== name;
+        if (name) anchors[name].scrollIntoView({ block: 'nearest', inline: 'nearest' });
         if (name === 'history') renderHistory();
+        placePopover();
+        if (name === 'history') {
+          historyMenu.querySelector('.current')?.scrollIntoView({ block: 'nearest' });
+        }
         setHintLocked(!!name);
       }
       const togglePopover = (name) => setPopover(openPop === name ? null : name);
@@ -891,19 +1037,55 @@
         modeMenu.append(label);
       }
 
-      // A click outside the open popover only closes it.
+      // A click outside the open popover only closes it (the popover buttons
+      // and the ←/→ steppers still work through it). Likewise a tap outside
+      // the bar while typing in it only puts the keyboard away.
       for (const type of ['click', 'touchend']) {
         document.addEventListener(
           type,
           (e) => {
-            if (!openPop || e.target.closest('.pop-wrap')) return;
-            e.preventDefault();
-            e.stopPropagation();
-            setPopover(null);
+            const t = e.target;
+            if (openPop) {
+              if (t.closest('.popover, .pop-anchor, .pop-keep')) return;
+              e.preventDefault();
+              e.stopPropagation();
+              setPopover(null);
+              return;
+            }
+            const active = document.activeElement;
+            if (type === 'touchend' && active?.matches('#hint input') && !t.closest('#hint')) {
+              e.preventDefault();
+              e.stopPropagation();
+              active.blur();
+            }
           },
           { capture: true, passive: false }
         );
       }
+
+      // Fade whichever edge of the scrolling strip has more controls past it.
+      function updateFades() {
+        const max = hintScroll.scrollWidth - hintScroll.clientWidth;
+        hintScroll.classList.toggle('fade-l', hintScroll.scrollLeft > 1);
+        hintScroll.classList.toggle('fade-r', hintScroll.scrollLeft < max - 1);
+      }
+      hintScroll.addEventListener('scroll', () => {
+        updateFades();
+        placePopover();
+      });
+      new ResizeObserver(updateFades).observe(document.getElementById('hint-inner'));
+      new ResizeObserver(updateFades).observe(hintScroll);
+      // A vertical mouse wheel scrolls the strip sideways.
+      hintScroll.addEventListener(
+        'wheel',
+        (e) => {
+          if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+          if (hintScroll.scrollWidth <= hintScroll.clientWidth) return;
+          hintScroll.scrollLeft += e.deltaY;
+          e.preventDefault();
+        },
+        { passive: false }
+      );
 
       const intervalInput = document.getElementById('auto-interval');
       let auto = false;
@@ -945,17 +1127,10 @@
       });
 
       const { show: showHint, setLocked: setHintLocked } = Common.initHintBar({
-        hintEl: document.getElementById('hint'),
+        hintEl,
         hintZoneEl: document.getElementById('hint-zone'),
       });
       refreshLabels();
-
-      // Keep history at the far right, after the "updated" item the hint bar appends.
-      const hintInner = document.getElementById('hint-inner');
-      const historyGroup = document.getElementById('history-group');
-      new MutationObserver(() => {
-        if (hintInner.lastChild !== historyGroup) hintInner.append(historyGroup);
-      }).observe(hintInner, { childList: true });
 
       document.getElementById('hb-fi').addEventListener('click', () => {
         changeSize(1);
@@ -969,6 +1144,8 @@
       document
         .getElementById('hb-history')
         .addEventListener('click', () => togglePopover('history'));
+      document.getElementById('hb-prev').addEventListener('click', () => stepHistory(-1));
+      document.getElementById('hb-next').addEventListener('click', () => stepHistory(1));
       document.getElementById('hb-auto').addEventListener('click', toggleAuto);
       document.getElementById('hb-goog').addEventListener('click', () => {
         if (current) Common.openFontSpecimen(current.name);
@@ -991,7 +1168,14 @@
         buttonEl: textBtn,
         labelEl: document.getElementById('hb-text-label'),
         getItems: getSavedLines,
-        onEditStart: () => setHintLocked(true),
+        onEditStart: () => {
+          const input = textBtn.querySelector('input');
+          input.enterKeyHint = 'done';
+          input.autocapitalize = 'off';
+          input.autocomplete = 'off';
+          input.spellcheck = false;
+          setHintLocked(true);
+        },
         onEditEnd: () => {
           liveLines = null;
           setHintLocked(false);
@@ -1037,6 +1221,7 @@
       window.addEventListener('resize', () => {
         resizeCanvas();
         refit();
+        placePopover();
       });
       resizeCanvas();
 
