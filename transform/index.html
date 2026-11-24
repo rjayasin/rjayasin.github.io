@@ -60,8 +60,77 @@
         opacity: 0;
         pointer-events: none;
       }
+      #text-item,
+      #hint-controls,
+      #history-wrap,
+      #hint > .sep {
+        display: flex;
+        align-items: center;
+      }
+      #text-item {
+        flex: none;
+        min-width: 0;
+        max-width: 40%;
+      }
+      /* The text field, styled like the fonts page's sample field: always
+         shown, grows with what's typed, × to clear. */
+      #text-input {
+        font: inherit;
+        letter-spacing: inherit;
+        color: #000;
+        background: transparent;
+        border: none;
+        border-bottom: 1px dotted currentColor;
+        border-radius: 0;
+        outline: none;
+        padding: 4px 0 0;
+        min-width: 0;
+        max-width: 100%;
+        width: calc(min(max(var(--chars, 0), 14), 48) * (1ch + 0.05em) + 1ch);
+        user-select: text;
+        -webkit-user-select: text;
+        cursor: text;
+      }
+      /* Unfocused, it hugs the text exactly: no minimum, no room for the caret. */
+      #text-input:not(:focus) {
+        width: calc(min(var(--chars, 0), 48) * (1ch + 0.05em));
+      }
+      #text-input:placeholder-shown:not(:focus) {
+        width: calc(14 * (1ch + 0.05em));
+      }
+      #text-input::placeholder {
+        color: #888;
+      }
+      body.dark #text-input {
+        color: #fff;
+      }
+      #text-clear {
+        flex: none;
+        font: inherit;
+        color: #888;
+        background: transparent;
+        border: none;
+        padding: 0 0 0 6px;
+        cursor: pointer;
+      }
+      #text-clear:hover {
+        color: #000;
+      }
+      body.dark #text-clear:hover {
+        color: #fff;
+      }
+      #text-input:placeholder-shown + #text-clear {
+        display: none;
+      }
+      .sep {
+        padding: 0 1.5ch;
+      }
+      #hint-controls {
+        flex: 0 1 auto;
+        min-width: 0;
+      }
       /* Everything but history scrolls sideways when the bar is too narrow;
-         history stays pinned at the right so it's always one tap away. */
+         history stays pinned at the right so it's always one click away. */
       #hint-scroll {
         display: flex;
         align-items: center;
@@ -100,13 +169,12 @@
         );
       }
       #hint-inner {
-        display: block;
+        display: flex;
+        align-items: baseline;
         width: max-content;
         margin: 0 auto;
       }
       #history-wrap {
-        display: flex;
-        align-items: center;
         flex: none;
       }
       #hint .hint-btn {
@@ -121,12 +189,9 @@
       body.dark #hint .hint-btn:hover {
         color: #ccc;
       }
-      #hint .hint-btn.disabled {
-        opacity: 0.35;
-        cursor: default;
-      }
-      #hint .hint-btn.disabled:hover {
-        color: inherit;
+      #hb-menu,
+      .touch-only {
+        display: none;
       }
       #hint-zone {
         position: fixed;
@@ -167,10 +232,13 @@
         padding: 6px;
         gap: 2px;
       }
+      /* flex: none so a long history scrolls instead of squashing every row
+         (overflow: hidden lets a flex item shrink below its text). */
       #history-menu button {
         all: unset;
         box-sizing: border-box;
         display: block;
+        flex: none;
         max-width: 100%;
         cursor: pointer;
         font-size: 18px;
@@ -223,36 +291,114 @@
         accent-color: #888;
         margin: 0;
       }
-      /* Touch: no keyboard, so drop the shortcut letters, and give every
-         control a finger-sized target. Inputs stay at 16px so iOS doesn't
+      /* Touch: the bar holds just the text and a menu button; every other
+         control is a row in the menu's dropdown. No keyboard, so no shortcut
+         letters, and finger-sized targets. Inputs stay at 16px so iOS doesn't
          zoom the page when they're focused. */
       @media (hover: none) and (pointer: coarse) {
         #hint {
           height: 44px;
           font-size: 14px;
+          justify-content: space-between;
+          gap: 16px;
         }
-        #hint .key {
+        #hint .key,
+        #hint > .sep,
+        #hint-controls .sep {
           display: none;
+        }
+        .touch-only {
+          display: inline;
+        }
+        #text-item {
+          flex: 0 1 auto;
+          max-width: none;
+        }
+        #text-input {
+          font-size: 16px;
+          padding: 2px 0;
+        }
+        #text-clear {
+          font-size: 18px;
+          padding: 8px 10px;
+        }
+        #hb-menu {
+          display: flex;
+          align-items: center;
+          flex: none;
         }
         #hint .hint-btn {
           padding: 12px 0;
         }
-        #hint #hb-fi,
-        #hint #hb-fd,
-        #hint #hb-prev,
-        #hint #hb-next {
-          padding: 12px 8px;
+        #hint #hb-fi {
+          padding: 12px 10px 12px 0;
+        }
+        #hint #hb-fd {
+          padding: 12px 10px;
         }
         #hint .hint-input {
           font-size: 16px;
+          line-height: normal;
           user-select: text;
           -webkit-user-select: text;
+        }
+        #hint-controls {
+          display: none;
+        }
+        #hint.menu-open #hint-controls {
+          position: fixed;
+          top: 0;
+          left: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          min-width: min(240px, calc(100vw - 16px));
+          max-width: calc(100vw - 16px);
+          padding: 4px 16px;
+          border-radius: 6px;
+          background: #ffffff;
+          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+          overflow-y: auto;
+          overscroll-behavior: contain;
+          z-index: 4;
+        }
+        body.dark #hint.menu-open #hint-controls {
+          background: #1c1c1c;
+          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+        }
+        #hint-controls #hint-scroll {
+          display: block;
+          overflow: visible;
+          -webkit-mask-image: none;
+          mask-image: none;
+        }
+        #hint-inner {
+          flex-direction: column;
+          align-items: stretch;
+          width: auto;
+          margin: 0;
+        }
+        #hint-controls .item {
+          flex: none;
+          line-height: 46px;
+        }
+        #hint-controls .item ~ .item,
+        #history-wrap .item {
+          border-top: 1px solid rgba(128, 128, 128, 0.15);
+        }
+        /* A row that's a single button is tappable across its whole width. */
+        #hint-controls .item > span.hint-btn:only-child {
+          display: block;
+          padding: 0;
+        }
+        #history-wrap .item {
+          flex: 1;
         }
         #hint-zone {
           height: 60px;
         }
         #history-menu {
-          min-width: min(300px, calc(100vw - 16px));
+          width: min(320px, calc(100vw - 16px));
         }
         #history-menu button {
           font-size: 22px;
@@ -286,53 +432,83 @@
       </filter>
     </svg>
     <div id="hint">
-      <div id="hint-scroll">
-        <span id="hint-inner"
-          ><span class="hint-btn" id="hb-text"><span id="hb-text-label"></span></span> text
-          &nbsp;·&nbsp; <span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd"
-            >−</span
+      <span id="text-item" class="item"
+        ><input
+          id="text-input"
+          type="text"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          enterkeyhint="done"
+          placeholder="type anything…"
+          aria-label="text (a / starts a new line)"
+        /><button type="button" id="text-clear" title="clear" aria-label="clear text">
+          ×
+        </button></span
+      ><span class="sep">·</span>
+      <div id="hint-controls">
+        <div id="hint-scroll">
+          <div id="hint-inner">
+            <span class="item"
+              ><span class="hint-btn" id="hb-fi">+</span>/<span class="hint-btn" id="hb-fd">−</span>
+              font size</span
+            ><span class="sep">·</span>
+            <span class="item"
+              ><span class="hint-btn pop-anchor" id="hb-mode"
+                ><span class="key">m </span><span class="touch-only">mode: </span
+                ><span id="hb-mode-label"></span> ▾</span
+              ></span
+            ><span class="sep">·</span>
+            <span class="item"
+              ><span class="hint-btn" id="hb-auto"
+                ><span class="key">a </span>auto <span id="hb-auto-label">off</span></span
+              ><span id="auto-every" hidden>
+                every
+                <input
+                  id="auto-interval"
+                  class="hint-input"
+                  type="number"
+                  inputmode="decimal"
+                  enterkeyhint="done"
+                  min="1"
+                  max="600"
+                  step="0.5"
+                  aria-label="auto interval in seconds"
+                />s</span
+              ></span
+            ><span class="sep">·</span>
+            <span class="item"
+              ><span class="hint-btn" id="hb-goog"
+                ><span class="key">g </span>google fonts</span
+              ></span
+            ><span class="sep">·</span>
+            <span class="item"
+              ><span class="hint-btn" id="hb-viewer"
+                ><span class="key">f </span>fonts viewer</span
+              ></span
+            ><span class="sep">·</span>
+            <span class="item"
+              ><span class="hint-btn" id="hb-dark"
+                ><span class="key">1 </span><span class="hb-dark-label">dark</span></span
+              ></span
+            ><span class="sep">·</span>
+            <span class="item"
+              ><span class="hint-btn" id="hb-sitemap"
+                ><span class="key">s </span>sitemap</span
+              ></span
+            >
+          </div>
+        </div>
+        <div id="history-wrap">
+          <span class="sep">·</span
+          ><span class="item"
+            ><span class="hint-btn pop-anchor" id="hb-history"
+              ><span class="key">h </span>history ▾</span
+            ></span
           >
-          font size &nbsp;·&nbsp;
-          <span class="hint-btn pop-anchor" id="hb-mode"
-            ><span class="key">m </span><span id="hb-mode-label"></span> ▾</span
-          >
-          &nbsp;·&nbsp;
-          <span class="hint-btn" id="hb-auto"
-            ><span class="key">a </span>auto <span id="hb-auto-label">off</span></span
-          ><span id="auto-every" hidden>
-            every
-            <input
-              id="auto-interval"
-              class="hint-input"
-              type="number"
-              inputmode="decimal"
-              enterkeyhint="done"
-              min="1"
-              max="600"
-              step="0.5"
-              aria-label="auto interval in seconds"
-            />s</span
-          >
-          &nbsp;·&nbsp;
-          <span class="hint-btn" id="hb-goog"><span class="key">g </span>google fonts</span>
-          &nbsp;·&nbsp;
-          <span class="hint-btn" id="hb-viewer"><span class="key">f </span>fonts viewer</span>
-          &nbsp;·&nbsp;
-          <span class="hint-btn" id="hb-dark"
-            ><span class="key">1 </span><span class="hb-dark-label">dark</span></span
-          >
-          &nbsp;·&nbsp;
-          <span class="hint-btn" id="hb-sitemap"><span class="key">s </span>sitemap</span></span
-        >
+        </div>
       </div>
-      <span id="history-wrap"
-        >&nbsp;·&nbsp;<span class="hint-btn pop-keep" id="hb-prev" title="previous font (←)">←</span
-        >/<span class="hint-btn pop-keep" id="hb-next" title="next font (→)">→</span>&nbsp;<span
-          class="hint-btn pop-anchor"
-          id="hb-history"
-          ><span class="key">h </span>history ▾</span
-        ></span
-      >
+      <span class="hint-btn pop-anchor" id="hb-menu">menu ▾</span>
       <div id="mode-menu" class="popover" hidden></div>
       <div id="history-menu" class="popover" hidden></div>
     </div>
@@ -871,7 +1047,6 @@
           historyIndex = fontHistory.length - 1;
         }
         if (openPop === 'history') renderHistory();
-        updateHistoryNav();
       }
 
       function showHistory(i) {
@@ -894,11 +1069,6 @@
       function stepHistory(dir) {
         const i = findStep(dir);
         if (i >= 0) showHistory(i);
-      }
-
-      function updateHistoryNav() {
-        document.getElementById('hb-prev').classList.toggle('disabled', findStep(-1) < 0);
-        document.getElementById('hb-next').classList.toggle('disabled', findStep(1) < 0);
       }
 
       function prefetch() {
@@ -939,7 +1109,6 @@
         current.layout = layoutFont(current.font, lines);
         scene = fit(current.layout);
         drawStatic();
-        updateHistoryNav();
         if (prefetchNext) prefetch();
       }
 
@@ -960,21 +1129,34 @@
 
       const hintEl = document.getElementById('hint');
       const hintScroll = document.getElementById('hint-scroll');
+      const hintControls = document.getElementById('hint-controls');
       const modeMenu = document.getElementById('mode-menu');
       const historyMenu = document.getElementById('history-menu');
-      const popovers = { mode: modeMenu, history: historyMenu };
+      // On touch screens the bar is just the text and a menu button; the
+      // other controls live in the menu's dropdown (#hint-controls).
+      const touchQuery = window.matchMedia('(hover: none) and (pointer: coarse)');
+      const popovers = { mode: modeMenu, history: historyMenu, menu: hintControls };
+      const menuBtn = document.getElementById('hb-menu');
       const anchors = {
         mode: document.getElementById('hb-mode'),
         history: document.getElementById('hb-history'),
+        menu: menuBtn,
       };
       let openPop = null;
+
+      // A button inside the closed dropdown has no box; its popover hangs off
+      // the menu button instead.
+      function anchorRect(name) {
+        const r = anchors[name].getBoundingClientRect();
+        return r.width ? r : menuBtn.getBoundingClientRect();
+      }
 
       // Drops the open popover just under the bar, centred on its button but
       // kept on screen, and no taller than the space left below.
       function placePopover() {
         if (!openPop) return;
         const menu = popovers[openPop];
-        const a = anchors[openPop].getBoundingClientRect();
+        const a = anchorRect(openPop);
         const top = hintEl.getBoundingClientRect().bottom + 6;
         const vw = document.documentElement.clientWidth;
         menu.style.top = `${top}px`;
@@ -985,9 +1167,15 @@
       }
 
       function setPopover(name) {
+        if (name === 'menu' && !touchQuery.matches) name = null;
         openPop = name;
-        for (const [k, menu] of Object.entries(popovers)) menu.hidden = k !== name;
-        if (name) anchors[name].scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        modeMenu.hidden = name !== 'mode';
+        historyMenu.hidden = name !== 'history';
+        hintEl.classList.toggle('menu-open', name === 'menu');
+        if (name !== 'menu') hintControls.removeAttribute('style');
+        if (name && name !== 'menu' && anchors[name].getBoundingClientRect().width) {
+          anchors[name].scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        }
         if (name === 'history') renderHistory();
         placePopover();
         if (name === 'history') {
@@ -1037,8 +1225,8 @@
         modeMenu.append(label);
       }
 
-      // A click outside the open popover only closes it (the popover buttons
-      // and the ←/→ steppers still work through it). Likewise a tap outside
+      // A click outside the open popover only closes it (the buttons that
+      // open popovers still work through it). Likewise a tap outside
       // the bar while typing in it only puts the keyboard away.
       for (const type of ['click', 'touchend']) {
         document.addEventListener(
@@ -1046,7 +1234,8 @@
           (e) => {
             const t = e.target;
             if (openPop) {
-              if (t.closest('.popover, .pop-anchor, .pop-keep')) return;
+              if (t.closest('.popover, .pop-anchor')) return;
+              if (openPop === 'menu' && t.closest('#hint-controls')) return;
               e.preventDefault();
               e.stopPropagation();
               setPopover(null);
@@ -1075,6 +1264,29 @@
       });
       new ResizeObserver(updateFades).observe(document.getElementById('hint-inner'));
       new ResizeObserver(updateFades).observe(hintScroll);
+      // History names render in their own fonts, which load after the menu
+      // is placed and can widen it; re-place so it stays on screen.
+      const popResize = new ResizeObserver(() => placePopover());
+      for (const el of [modeMenu, historyMenu, hintControls]) popResize.observe(el);
+      touchQuery.addEventListener('change', () => {
+        if (openPop === 'menu') setPopover(null);
+      });
+      // The hint bar appends an "updated" entry after a plain " · "; give it
+      // the same item/separator markup as the rest so it lays out (and drops
+      // its dot in the dropdown) like them.
+      const hintInner = document.getElementById('hint-inner');
+      new MutationObserver(() => {
+        const updated = document.getElementById('hb-updated');
+        if (!updated || updated.classList.contains('item')) return;
+        updated.classList.add('item');
+        const dot = updated.previousSibling;
+        if (dot && dot.nodeType === Node.TEXT_NODE) {
+          const sep = document.createElement('span');
+          sep.className = 'sep';
+          sep.textContent = '·';
+          dot.replaceWith(sep);
+        }
+      }).observe(hintInner, { childList: true });
       // A vertical mouse wheel scrolls the strip sideways.
       hintScroll.addEventListener(
         'wheel',
@@ -1144,8 +1356,7 @@
       document
         .getElementById('hb-history')
         .addEventListener('click', () => togglePopover('history'));
-      document.getElementById('hb-prev').addEventListener('click', () => stepHistory(-1));
-      document.getElementById('hb-next').addEventListener('click', () => stepHistory(1));
+      menuBtn.addEventListener('click', () => togglePopover('menu'));
       document.getElementById('hb-auto').addEventListener('click', toggleAuto);
       document.getElementById('hb-goog').addEventListener('click', () => {
         if (current) Common.openFontSpecimen(current.name);
@@ -1163,28 +1374,52 @@
       document.getElementById('hb-sitemap').addEventListener('click', Common.openSitemap);
       Common.initSitemapShortcut();
 
-      const textBtn = document.getElementById('hb-text');
-      const textEditor = Common.initTextEditor({
-        buttonEl: textBtn,
-        labelEl: document.getElementById('hb-text-label'),
-        getItems: getSavedLines,
-        onEditStart: () => {
-          const input = textBtn.querySelector('input');
-          input.enterKeyHint = 'done';
-          input.autocapitalize = 'off';
-          input.autocomplete = 'off';
-          input.spellcheck = false;
-          setHintLocked(true);
-        },
-        onEditEnd: () => {
-          liveLines = null;
-          setHintLocked(false);
-          setText();
-        },
-      });
-      textBtn.addEventListener('input', (e) => {
-        liveLines = e.target.value.split('/').filter((s) => s.length > 0);
+      // Typing redraws live; Enter or leaving the field saves the text to the
+      // URL (a / starts a new line), and Escape puts back what was saved.
+      const textItem = document.getElementById('text-item');
+      const textInput = document.getElementById('text-input');
+      const textClear = document.getElementById('text-clear');
+      const splitLines = (v) => v.split('/').filter((s) => s.length > 0);
+
+      function showSavedText() {
+        textInput.value = getSavedLines().join('/');
+        textInput.style.setProperty('--chars', String(textInput.value.length));
+      }
+
+      textInput.addEventListener('focus', () => setHintLocked(true));
+      textInput.addEventListener('input', () => {
+        textInput.style.setProperty('--chars', String(textInput.value.length));
+        liveLines = splitLines(textInput.value);
         setText({ prefetchNext: false });
+      });
+      textInput.addEventListener('blur', () => {
+        const parts = splitLines(textInput.value);
+        if (parts.length) {
+          const search = '?' + parts.map(encodeURIComponent).join('/');
+          history.replaceState(null, '', location.pathname + search + location.hash);
+        }
+        liveLines = null;
+        showSavedText();
+        setText();
+        setHintLocked(!!openPop);
+      });
+      textInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') showSavedText();
+        if (e.key === 'Enter' || e.key === 'Escape') {
+          e.preventDefault();
+          textInput.blur();
+        }
+      });
+      // Keep the field focused when × is pressed while typing.
+      textClear.addEventListener('mousedown', (e) => e.preventDefault());
+      textClear.addEventListener('click', () => {
+        textInput.value = '';
+        textInput.dispatchEvent(new Event('input'));
+        textInput.focus();
+      });
+      // The field is short; the rest of its slot in the bar focuses it too.
+      textItem.addEventListener('click', (e) => {
+        if (e.target === textItem) textInput.focus();
       });
 
       document.addEventListener('keydown', (e) => {
@@ -1245,7 +1480,7 @@
           } catch {}
         }
         if (!getLines().length) fallbackItems = ['transform'];
-        textEditor.refresh();
+        showSavedText();
         await setText();
       }
       init();
