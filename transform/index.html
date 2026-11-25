@@ -1022,6 +1022,7 @@
         const to = fit(target.layout);
         setCurrent(target);
         scene = to;
+        placePopover();
         scheduleAuto();
         anim = { mode, from, to, start: performance.now() };
         if (mode === 'morph') {
@@ -1109,6 +1110,7 @@
         current.layout = layoutFont(current.font, lines);
         scene = fit(current.layout);
         drawStatic();
+        placePopover();
         if (prefetchNext) prefetch();
       }
 
@@ -1120,6 +1122,7 @@
         if (anim) finish();
         if (current && current.layout) scene = fit(current.layout);
         drawStatic();
+        placePopover();
       }
 
       function changeSize(dir) {
@@ -1152,15 +1155,20 @@
       }
 
       // Drops the open popover just under the bar, centred on its button but
-      // kept on screen, and no taller than the space left below.
+      // kept on screen, and no taller than the space left below (history stops
+      // above the text).
       function placePopover() {
         if (!openPop) return;
         const menu = popovers[openPop];
         const a = anchorRect(openPop);
         const top = hintEl.getBoundingClientRect().bottom + 6;
         const vw = document.documentElement.clientWidth;
+        let bottom = window.innerHeight - 12;
+        if (openPop === 'history') {
+          for (const g of scene?.glyphs || []) if (g.box) bottom = Math.min(bottom, g.box.y - 16);
+        }
         menu.style.top = `${top}px`;
-        menu.style.maxHeight = `${Math.max(120, window.innerHeight - top - 12)}px`;
+        menu.style.maxHeight = `${Math.max(120, bottom - top)}px`;
         const w = menu.offsetWidth;
         const left = Math.min(Math.max(8, a.left + a.width / 2 - w / 2), vw - w - 8);
         menu.style.left = `${Math.max(8, left)}px`;
