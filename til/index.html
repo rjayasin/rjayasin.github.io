@@ -7,6 +7,11 @@
     <link rel="icon" id="favicon" />
     <link rel="stylesheet" href="/common.css" />
     <style>
+      @font-face {
+        font-family: 'JetBrains Mono';
+        font-display: block;
+        src: url('/fonts/jetbrains-mono.woff2') format('woff2');
+      }
       body {
         /* Greys and hairlines are named once here so the two dark-mode blocks
            at the bottom only restate the handful that actually change. */
@@ -40,6 +45,11 @@
         font-size: 15px;
         font-weight: normal;
         letter-spacing: 0.05em;
+      }
+      header h1 {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 16px;
+        letter-spacing: 0;
       }
       h1 .crumb {
         color: var(--muted);
