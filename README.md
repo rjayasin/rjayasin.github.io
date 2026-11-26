@@ -15,6 +15,11 @@
 
 - [`til`](https://rjayasin.github.io/til/)
 
+`projects`
+
+- [`showcase`](https://rjayasin.github.io/projects/)
+- [`rtr`](https://github.com/rjayasin/rtr)
+
 `words`
 
 - [`across`](https://rjayasin.github.io/across/)
