@@ -60,8 +60,8 @@
     "url": "https://github.com/rjayasin/rjayasin.github.io/commit/16e58efb31ba18087a3c60fb8a3be02be4138236"
   },
   "/sitemap/": {
-    "date": "2026-11-08T20:04:57-08:00",
-    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/dfe3f506637810237e739cadab2038424321494b"
+    "date": "2026-11-25T22:59:24-08:00",
+    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/45f5cdaf639e79d55db115bad1bca08dd33f8173"
   },
   "/grid/": {
     "date": "2026-11-06T20:22:18-08:00",
@@ -146,5 +146,9 @@
   "https://rjayasin.github.io/dapi-counter/": {
     "date": "2026-11-09T04:05:13Z",
     "url": "https://github.com/rjayasin/dapi-counter/commit/b847f90cf3df675b3d5a8fb0fe8d542161aabc93"
+  },
+  "/projects/": {
+    "date": "2026-11-25T22:59:24-08:00",
+    "url": "https://github.com/rjayasin/rjayasin.github.io/commit/45f5cdaf639e79d55db115bad1bca08dd33f8173"
   }
 }

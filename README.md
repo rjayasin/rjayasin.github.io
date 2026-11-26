@@ -15,11 +15,6 @@
 
 - [`til`](https://rjayasin.github.io/til/)
 
-`projects`
-
-- [`showcase`](https://rjayasin.github.io/projects/)
-- [`rtr`](https://github.com/rjayasin/rtr)
-
 `words`
 
 - [`across`](https://rjayasin.github.io/across/)
@@ -67,3 +62,4 @@
 - [`/`](https://rjayasin.github.io/)
 - [`github`](https://github.com/rjayasin/rjayasin.github.io)
 - [`sitemap`](https://rjayasin.github.io/sitemap/)
+- [`projects`](https://rjayasin.github.io/projects/)
