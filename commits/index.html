@@ -44,6 +44,9 @@
         font-weight: normal;
         letter-spacing: 0.05em;
       }
+      h1 .crumb {
+        color: #888;
+      }
       .subtitle {
         color: #888;
         margin-top: 4px;
@@ -192,7 +195,7 @@
         display: block;
         fill: currentColor;
       }
-      body.dark header a,
+      body.dark header a:not(.crumb),
       body.dark .commit a,
       body.dark .repo:hover,
       body.dark #gh-auth:hover,
@@ -342,7 +345,7 @@
   <body>
     <header>
       <div>
-        <h1><a href="/">Ruvan</a> / commits</h1>
+        <h1><a class="crumb" href="/">Ruvan</a> <span class="crumb">/</span> commits</h1>
         <p class="subtitle" id="range"></p>
       </div>
       <button id="gh-auth" type="button" aria-label="Log in with GitHub" title="Log in with GitHub">

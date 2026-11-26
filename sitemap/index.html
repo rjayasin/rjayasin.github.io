@@ -43,6 +43,9 @@
         font-weight: normal;
         letter-spacing: 0.05em;
       }
+      h1 .crumb {
+        color: #888;
+      }
       h2 {
         color: #888;
         margin-top: 18px;
@@ -146,7 +149,7 @@
           font-size: 15px;
         }
       }
-      body.dark header a,
+      body.dark header a:not(.crumb),
       body.dark li a:not(.when),
       body.dark .view-toggle button:hover,
       body.dark .view-toggle button.active,
@@ -162,7 +165,7 @@
         color: #000;
       }
       @media (prefers-color-scheme: dark) {
-        body:not(.light) header a,
+        body:not(.light) header a:not(.crumb),
         body:not(.light) li a:not(.when),
         body:not(.light) .view-toggle button:hover,
         body:not(.light) .view-toggle button.active,
@@ -183,7 +186,7 @@
   </head>
   <body>
     <header>
-      <h1><a href="/">Ruvan</a> / sitemap</h1>
+      <h1><a class="crumb" href="/">Ruvan</a> <span class="crumb">/</span> sitemap</h1>
     </header>
     <nav class="view-toggle" aria-label="view">
       <button type="button" data-view="tree" class="active">tree</button>
