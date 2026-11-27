@@ -392,7 +392,23 @@
 
       Common.initDarkMode();
 
-      const USER = 'rjayasin';
+      const OWNER = 'rjayasin';
+      // /commits/<user> is served by 404.html, which redirects here with ?user=.
+      const userParams = new URLSearchParams(location.search);
+      const userParam = userParams.get('user');
+      const USER = /^[A-Za-z0-9-]{1,39}$/.test(userParam || '') ? userParam : OWNER;
+      const IS_OWNER = USER.toLowerCase() === OWNER;
+      if (userParam !== null) {
+        userParams.delete('user');
+        const qs = userParams.toString();
+        const path = IS_OWNER ? '/commits/' : `/commits/${USER}`;
+        history.replaceState(null, '', path + (qs ? '?' + qs : '') + location.hash);
+      }
+      if (!IS_OWNER) {
+        document.title = `Ruvan / commits / ${USER}`;
+        document.querySelector('h1').innerHTML =
+          `<a class="crumb" href="/">Ruvan</a> <span class="crumb">/</span> <a class="crumb" href="/commits/">commits</a> <span class="crumb">/</span> ${Common.escHtml(USER)}`;
+      }
       const BOT_REPO = 'rjayasin/rjayasin.github.io';
       const BOT_AUTHOR = '41898282+github-actions[bot]@users.noreply.github.com';
       const log = document.getElementById('log');
@@ -439,6 +455,7 @@
       let botCommitsAll = [];
 
       async function fetchBotCommits() {
+        if (!IS_OWNER) return;
         await authReady;
         const headers = { Accept: 'application/vnd.github+json' };
         const token = getToken();
@@ -487,6 +504,7 @@
           auth.refresh();
           throw new Error('GitHub token rejected; logged out');
         }
+        if (r.status === 422) throw new Error(`no GitHub user named ${USER}`);
         // The search API's anonymous limit is only 10 requests/min, so name
         // the rate limit (and the way out) instead of a bare "GitHub API 403".
         if (!r.ok) throw new Error(Common.GH.rateLimitError(r) || `GitHub API ${r.status}`);
@@ -953,7 +971,8 @@
 
         // Persist counts so revisits (and the first toggle) render instantly
         // from cache while fresh data loads in the background.
-        const CACHE_KEY = 'hm_counts_v1' + (getToken() ? '_auth' : '');
+        const CACHE_KEY =
+          'hm_counts_v1' + (IS_OWNER ? '' : '_' + USER.toLowerCase()) + (getToken() ? '_auth' : '');
         function loadCachedCounts() {
           try {
             const obj = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');

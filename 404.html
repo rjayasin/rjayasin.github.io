@@ -36,7 +36,12 @@
       Common.initDarkMode();
       // GitHub Pages serves this file for any unknown path. /grid/<char> has no
       // file of its own, so this is where the clean-path grid actually renders.
-      if (location.pathname.startsWith('/grid/')) {
+      const commitsUser = location.pathname.match(/^\/commits\/([A-Za-z0-9-]{1,39})\/?$/);
+      if (commitsUser) {
+        const params = new URLSearchParams(location.search);
+        params.set('user', commitsUser[1]);
+        location.replace('/commits/?' + params + location.hash);
+      } else if (location.pathname.startsWith('/grid/')) {
         Common.initCursorHide();
         Promise.all([Common.loadScript('/fonts.js'), Common.loadScript('/typefree-fonts.js')]).then(
           () => Common.loadScript('/grid/grid.js')
